@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-13T21:59:43.261071+00:00",
+    "generated_at": "2026-04-14T01:01:07.286652+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "../grammars/regex.ebnf",
@@ -276,14 +276,6 @@
       [
         "rule_reference",
         "digits"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        ","
       ]
     ],
     [
@@ -431,6 +423,30 @@
       ],
       [
         "rule_reference",
+        "atomic_group"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "scan_substring_group"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "script_run_group"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
         "directive_verb"
       ],
       [
@@ -448,14 +464,6 @@
       [
         "rule_reference",
         "code_block"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "rule_reference",
-        "atomic_group"
       ],
       [
         "operator",
@@ -1314,6 +1322,14 @@
       [
         "quoted_string",
         "\\G"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "\\K"
       ]
     ],
     [
@@ -2640,6 +2656,10 @@
       ],
       [
         "operator",
+        "?"
+      ],
+      [
+        "operator",
         "|"
       ],
       [
@@ -2648,7 +2668,23 @@
       ],
       [
         "rule_reference",
+        "brace_ws"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "rule_reference",
         "hex_digits"
+      ],
+      [
+        "rule_reference",
+        "brace_ws"
+      ],
+      [
+        "operator",
+        "?"
       ],
       [
         "quoted_string",
@@ -2740,7 +2776,23 @@
       ],
       [
         "rule_reference",
+        "brace_ws"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "rule_reference",
         "octal_digits"
+      ],
+      [
+        "rule_reference",
+        "brace_ws"
+      ],
+      [
+        "operator",
+        "?"
       ],
       [
         "quoted_string",
@@ -3163,6 +3215,26 @@
       [
         "quoted_string",
         ")"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "(*atomic:"
+      ],
+      [
+        "rule_reference",
+        "pattern"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "quoted_string",
+        ")"
       ]
     ],
     [
@@ -3532,6 +3604,22 @@
       ],
       [
         "rule_reference",
+        "non_atomic_lookahead_pos"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "non_atomic_lookbehind_pos"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
         "alpha_lookaround"
       ]
     ],
@@ -3610,6 +3698,42 @@
     [
       [
         "rule",
+        "non_atomic_lookahead_pos"
+      ],
+      [
+        "quoted_string",
+        "(?*"
+      ],
+      [
+        "rule_reference",
+        "pattern"
+      ],
+      [
+        "quoted_string",
+        ")"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "non_atomic_lookbehind_pos"
+      ],
+      [
+        "quoted_string",
+        "(?<*"
+      ],
+      [
+        "rule_reference",
+        "pattern"
+      ],
+      [
+        "quoted_string",
+        ")"
+      ]
+    ],
+    [
+      [
+        "rule",
         "alpha_lookaround"
       ],
       [
@@ -3641,6 +3765,24 @@
       [
         "rule",
         "alpha_lookaround_name"
+      ],
+      [
+        "rule_reference",
+        "atomic_alpha_lookaround_name"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "non_atomic_alpha_lookaround_name"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "atomic_alpha_lookaround_name"
       ],
       [
         "quoted_string",
@@ -3701,6 +3843,156 @@
       [
         "quoted_string",
         "negative_lookbehind"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "non_atomic_alpha_lookaround_name"
+      ],
+      [
+        "quoted_string",
+        "napla"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "non_atomic_positive_lookahead"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "naplb"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "non_atomic_positive_lookbehind"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "scan_substring_group"
+      ],
+      [
+        "quoted_string",
+        "(*"
+      ],
+      [
+        "rule_reference",
+        "scan_substring_name"
+      ],
+      [
+        "quoted_string",
+        ":"
+      ],
+      [
+        "rule_reference",
+        "returned_capture_group_list"
+      ],
+      [
+        "rule_reference",
+        "pattern"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "quoted_string",
+        ")"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "scan_substring_name"
+      ],
+      [
+        "quoted_string",
+        "scs"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "scan_substring"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "script_run_group"
+      ],
+      [
+        "quoted_string",
+        "(*"
+      ],
+      [
+        "rule_reference",
+        "script_run_name"
+      ],
+      [
+        "quoted_string",
+        ":"
+      ],
+      [
+        "rule_reference",
+        "pattern"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "quoted_string",
+        ")"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "script_run_name"
+      ],
+      [
+        "quoted_string",
+        "sr"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "script_run"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "asr"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "atomic_script_run"
       ]
     ],
     [
@@ -3841,14 +4133,6 @@
         "R"
       ],
       [
-        "rule_reference",
-        "digits"
-      ],
-      [
-        "operator",
-        "?"
-      ],
-      [
         "operator",
         "|"
       ],
@@ -3960,7 +4244,7 @@
       ],
       [
         "rule_reference",
-        "digits"
+        "callout_arg"
       ],
       [
         "operator",
@@ -3969,6 +4253,314 @@
       [
         "quoted_string",
         ")"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_arg"
+      ],
+      [
+        "rule_reference",
+        "digits"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "callout_string"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_string"
+      ],
+      [
+        "rule_reference",
+        "callout_backtick_string"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "callout_single_string"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "callout_double_string"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "callout_caret_string"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "callout_percent_string"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "callout_hash_string"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "callout_dollar_string"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "callout_brace_string"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_backtick_string"
+      ],
+      [
+        "quoted_string",
+        "`"
+      ],
+      [
+        "rule_reference",
+        "callout_backtick_payload"
+      ],
+      [
+        "quoted_string",
+        "`"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_single_string"
+      ],
+      [
+        "quoted_string",
+        "'"
+      ],
+      [
+        "rule_reference",
+        "callout_single_payload"
+      ],
+      [
+        "quoted_string",
+        "'"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_double_string"
+      ],
+      [
+        "quoted_string",
+        "\""
+      ],
+      [
+        "rule_reference",
+        "callout_double_payload"
+      ],
+      [
+        "quoted_string",
+        "\""
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_caret_string"
+      ],
+      [
+        "quoted_string",
+        "^"
+      ],
+      [
+        "rule_reference",
+        "callout_caret_payload"
+      ],
+      [
+        "quoted_string",
+        "^"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_percent_string"
+      ],
+      [
+        "quoted_string",
+        "%"
+      ],
+      [
+        "rule_reference",
+        "callout_percent_payload"
+      ],
+      [
+        "quoted_string",
+        "%"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_hash_string"
+      ],
+      [
+        "quoted_string",
+        "#"
+      ],
+      [
+        "rule_reference",
+        "callout_hash_payload"
+      ],
+      [
+        "quoted_string",
+        "#"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_dollar_string"
+      ],
+      [
+        "quoted_string",
+        "$"
+      ],
+      [
+        "rule_reference",
+        "callout_dollar_payload"
+      ],
+      [
+        "quoted_string",
+        "$"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_brace_string"
+      ],
+      [
+        "quoted_string",
+        "{"
+      ],
+      [
+        "rule_reference",
+        "callout_brace_payload"
+      ],
+      [
+        "quoted_string",
+        "}"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_backtick_payload"
+      ],
+      [
+        "regex",
+        "([^`]|``)*"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_single_payload"
+      ],
+      [
+        "regex",
+        "([^']|'')*"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_double_payload"
+      ],
+      [
+        "regex",
+        "([^\"]|\"\")*"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_caret_payload"
+      ],
+      [
+        "regex",
+        "([^^]|\\^\\^)*"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_percent_payload"
+      ],
+      [
+        "regex",
+        "([^%]|%%)*"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_hash_payload"
+      ],
+      [
+        "regex",
+        "([^#]|##)*"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_dollar_payload"
+      ],
+      [
+        "regex",
+        "([^$]|\\$\\$)*"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "callout_brace_payload"
+      ],
+      [
+        "regex",
+        "([^}]|}})*"
       ]
     ],
     [
@@ -4046,11 +4638,95 @@
       ],
       [
         "rule_reference",
-        "modifier_char"
+        "modifier_item"
       ],
       [
         "operator",
         "+"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "modifier_item"
+      ],
+      [
+        "quoted_string",
+        "a"
+      ],
+      [
+        "rule_reference",
+        "ascii_restrict_modifier"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "x"
+      ],
+      [
+        "quoted_string",
+        "x"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "modifier_char"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "ascii_restrict_modifier"
+      ],
+      [
+        "quoted_string",
+        "D"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "S"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "W"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "P"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "T"
       ]
     ],
     [
@@ -4084,14 +4760,6 @@
       ],
       [
         "quoted_string",
-        "x"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
         "U"
       ],
       [
@@ -4101,62 +4769,6 @@
       [
         "quoted_string",
         "J"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "u"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "a"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "d"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "S"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "A"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "X"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "R"
       ],
       [
         "operator",
@@ -4342,23 +4954,7 @@
       ],
       [
         "rule_reference",
-        "ws"
-      ],
-      [
-        "operator",
-        "?"
-      ],
-      [
-        "rule_reference",
         "version_operator"
-      ],
-      [
-        "rule_reference",
-        "ws"
-      ],
-      [
-        "operator",
-        "?"
       ],
       [
         "rule_reference",
@@ -4372,14 +4968,6 @@
       ],
       [
         "quoted_string",
-        "!="
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
         ">="
       ],
       [
@@ -4388,31 +4976,7 @@
       ],
       [
         "quoted_string",
-        "<="
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
         "="
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        ">"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "<"
       ]
     ],
     [
@@ -4514,7 +5078,7 @@
       ],
       [
         "rule_reference",
-        "alpha_lookaround_name"
+        "atomic_alpha_lookaround_name"
       ],
       [
         "quoted_string",

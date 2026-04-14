@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.20`
+  - `1.1.21`
 - integration contract version:
-  - `1.1.22`
+  - `1.1.23`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3874,15 +3874,16 @@ Accepted syntax families in the current published flavor:
   - `*`
   - `+`
   - `?`
-  - counted forms such as `{3}`, `{2,}`, `{2,4}`, `{,4}`, and `{,}`
+  - counted forms such as `{3}`, `{2,}`, `{2,4}`, and `{,4}`
+  - comma-only `{,}` as literal text rather than a counted quantifier
   - lazy suffix `?`
   - possessive suffix `+`
   - final-atom binding across literal runs, so `ab+` is transported as literal `a` followed by quantified `b`
 - escapes:
   - simple escaped characters such as `\n`, `\t`, `\\`
-  - hexadecimal forms such as `\xFF` and `\x{FFFF}`
+  - hexadecimal forms such as `\xA`, `\xFF`, `\x{FFFF}`, and `\x{ 41 }`
   - Unicode forms such as `\u{FFFF}`
-  - octal escapes, including braced forms such as `\o{101}`
+  - octal escapes, including braced forms such as `\o{101}` and `\o{ 101 }`
   - control escapes such as `\cA`
   - Unicode property escapes `\p{...}` and `\P{...}`
 - backreferences:
@@ -3904,16 +3905,24 @@ Accepted syntax families in the current published flavor:
   - noncapturing groups `(?:abc)`
   - named groups `(?<name>abc)` and `(?'name'abc)`
   - atomic groups `(?>abc)`
+  - `(*atomic:abc)` atomic groups
+  - script-run groups such as `(*sr:abc)` and `(*atomic_script_run:abc)`
+  - scan-substring groups such as `(.)(*scs:(1)abc)`
 - lookarounds:
   - positive lookahead
   - negative lookahead
   - positive lookbehind
   - negative lookbehind
+  - non-atomic symbolic lookarounds such as `(?*abc)` and `(?<*abc)`
+  - alpha lookaround aliases such as `(*pla:abc)` and `(*napla:abc)`
+- callouts:
+  - numeric callouts such as `(?C1)`
+  - string callouts such as `(?C"alpha""beta")` and `(?C{left}}right})`
 - inline modifier forms
 - scoped inline modifier forms
 - conditional forms:
   - condition may be a lookaround, a PCRE2 VERSION comparison, a bare name, an explicit name reference, digits, signed digits, or a recursion condition
-  - VERSION comparisons include compact forms like `VERSION>=10.0` and whitespace-bearing forms like `VERSION >= 10`
+  - VERSION comparisons use PCRE2's compact source form, such as `VERSION>=10.0` or `VERSION=10`; whitespace-bearing forms such as `VERSION >= 10` are rejected
   - recursion conditions currently include plain `R`, numeric forms like `R1`, and named forms like `R&word`
   - explicit false branches are preserved separately, so `(?(1)a|b)` transports `a` and `b` as distinct yes/no branches
 - embedded code-block forms:
@@ -3945,13 +3954,26 @@ Representative accepted examples:
 - `(?&callee(+1,<cap>,'alt'))`
 - `(?(1)a|b)`
 - `(?(VERSION>=10.0)cat|dog)`
-- `(?(VERSION >= 10)cat|dog)`
+- `(?(VERSION=10)cat|dog)`
 - `(?(R)a|b)`
 - `(a)(?(R1)b|c)`
 - `(?(R&word)a|b)`
+- `\Kword`
+- `\xA`
+- `\x{ 41 }`
+- `\o{ 101 }`
+- `(?C1)`
+- `(?C"alpha""beta")`
+- `(?C{left}}right})`
+- `(?*foo)`
+- `(*napla:foo)`
+- `(*atomic:foo)`
+- `(*sr:foo)`
+- `(.)(*scs:(1)foo)`
 - `(?<A>foo)-\\k{A}`
 - `(?<A>a)?(?(A)b|c)`
 - `a{,4}`
+- `a{,}b`
 - `(?>ab|cd)`
 - `(?=abc)abc`
 - `((((((((((((((((((((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))))))))))))))))))))`
@@ -3997,14 +4019,19 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.20` specifically adds deeper generated-host resilience for legal PCRE2 conformance inputs while carrying forward braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.21` specifically adds PCRE2 source-derived grammar and compile-contract alignment while carrying forward the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
   - an `80`-level nested capturing-group pattern followed by `\80` now parses without generated-host stack abort or generated recursion-guard rejection
   - a grammar-like recursive named-group interpolation pattern with nested `\g<...>` references now parses without generated-host stack abort
   - `(?'name'ab)\k{ name }(?P=name)` now transports the padded named backreference as `backreference` -> `braced_name_ref`
   - `(A)(\g{ -2 }B)` now transports the padded relative numeric reference as `backreference` -> `subroutine_ref` -> `braced_subroutine_ref` -> `signed_digits`
   - `[[:digit:]-   ]` transports `[:digit:]` as a `posix_class`, followed by literal `-` and literal spaces rather than a `class_range`
   - `(?(VERSION>=10.0)cat|dog)` now emits `version_condition` / `version_operator` / `version_number`
-  - `(?(VERSION >= 10)cat|dog)` now preserves whitespace around the comparison operator and accepts a missing minor component
+  - `(?(VERSION=10)cat|dog)` now emits the strict equality `version_condition`; whitespace-bearing VERSION forms are rejected
+  - `a{,}b` now preserves `{,}` as literal text instead of a `counted_quantifier`
+  - `\Kword`, `\xA`, `\x{ 41 }`, and `\o{ 101 }` now follow PCRE2 source-derived escape spelling
+  - `(?C1)`, `(?C"alpha""beta")`, and `(?C{left}}right})` now enter numeric and string callout transport
+  - `(?*foo)`, `(*napla:foo)`, `(*atomic:foo)`, `(*sr:foo)`, and `(.)(*scs:(1)foo)` now parse through non-atomic lookaround, atomic alpha group, script-run, and scan-substring families
+  - `(?R1)` is rejected because PCRE2 whole-pattern recursion is `(?R)` and returned-capture whole-pattern recursion is `(?R(1))`
   - `(?1(1))` now appears as `subroutine_call` plus `returned_capture_subroutine`, preserving both the target and the returned-capture grouplist
   - `(?&callee(+1,<cap>,'alt'))` now preserves mixed numeric/named returned-capture grouplist entries without degrading into `inline_modifiers`
   - `🎉` now emits a single `literal` node spanning the full UTF-8 codepoint
@@ -4032,6 +4059,12 @@ Diagnostics and AST behavior:
   - descending character-class ranges such as `[z-a]`
   - quantified anchors such as `^+`
   - variable-length lookbehind such as `(?<=a+)b`
+  - `\K` inside lookarounds
+  - numeric callouts above `255`
+  - invalid PCRE2 verb/start-option spellings and quantified non-ACCEPT verbs
+  - invalid POSIX class names
+  - scan-substring references to captures that do not exist yet
+  - unsupported default-mode escapes such as `\F`, `\l`, `\L`, `\u`, and `\U`
 
 Current non-promises and boundaries:
 - this is not a blanket claim of compatibility with every PCRE, PCRE2, RE2, Oniguruma, JavaScript, .NET, or Rust-regex dialect feature
@@ -4089,16 +4122,16 @@ Important interpretation:
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1668`
-  - `parse_expectation_mismatch_total=527`
-  - `false_accept_total=325`
-  - `false_reject_total=202`
+  - `parse_expectation_match_total=1806`
+  - `parse_expectation_mismatch_total=389`
+  - `false_accept_total=318`
+  - `false_reject_total=71`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.20`
-  - integration contract version `1.1.22`
+  - parser release version `1.1.21`
+  - integration contract version `1.1.23`
 - the current improvement came from two complementary changes:
-  - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
-  - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind
+  - the grammar now accepts more real PCRE2 surface such as `\K`, string callouts, one-digit and whitespace-braced hex/octal escapes, non-atomic lookarounds, script-run groups, scan-substring groups, and strict VERSION conditionals, while treating `{,}` as literal text
+  - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, variable-length lookbehind, invalid verbs/start-options, bad scan-substring capture lists, `\K` in lookarounds, and unsupported default-mode escapes
 - future normalizer work should stay split by source family:
   - `normalize_pcre2_testdata.py`
   - `normalize_pcre2_compile_oracle.py`

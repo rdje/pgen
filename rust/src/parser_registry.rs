@@ -31,6 +31,7 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 
 type ParseSampleFn = fn(&str) -> bool;
 
+#[cfg(has_generated_systemverilog_parser)]
 fn normalize_generated_grammar_profile<'a>(
     grammar_name: &str,
     grammar_profile: Option<&'a str>,
@@ -480,6 +481,9 @@ pub fn parse_sample_with_profile(
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Option<bool> {
+    #[cfg(not(has_generated_systemverilog_parser))]
+    let _ = grammar_profile;
+
     match grammar_name {
         #[cfg(has_generated_systemverilog_parser)]
         "systemverilog" => Some(parse_with_systemverilog_profile(sample, grammar_profile)),
@@ -496,6 +500,9 @@ pub fn parse_sample_detail_with_profile(
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Option<Result<(), String>> {
+    #[cfg(not(has_generated_systemverilog_parser))]
+    let _ = grammar_profile;
+
     match grammar_name {
         "return_annotation" => Some(parse_with_return_annotation_detail(sample)),
         "semantic_annotation" => Some(parse_with_semantic_annotation_detail(sample)),
@@ -538,6 +545,9 @@ pub fn parse_sample_ast_json_with_profile(
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Option<Result<JsonValue, String>> {
+    #[cfg(not(has_generated_systemverilog_parser))]
+    let _ = grammar_profile;
+
     match grammar_name {
         "return_annotation" => Some(parse_with_return_annotation_ast_json(sample)),
         "semantic_annotation" => Some(parse_with_semantic_annotation_ast_json(sample)),
@@ -651,20 +661,16 @@ mod tests {
                 }
             }
             serde_json::Value::Object(map) => {
-                if let Some(serde_json::Value::String(candidate)) = map.get("rule_name") {
-                    if candidate == rule_name {
-                        if let Some(serde_json::Value::Object(span)) = map.get("span") {
-                            if let (
-                                Some(serde_json::Value::Number(start)),
-                                Some(serde_json::Value::Number(end)),
-                            ) = (span.get("start"), span.get("end"))
-                            {
-                                if let (Some(start), Some(end)) = (start.as_u64(), end.as_u64()) {
-                                    spans.push((start as usize, end as usize));
-                                }
-                            }
-                        }
-                    }
+                if let Some(serde_json::Value::String(candidate)) = map.get("rule_name")
+                    && candidate == rule_name
+                    && let Some(serde_json::Value::Object(span)) = map.get("span")
+                    && let (
+                        Some(serde_json::Value::Number(start)),
+                        Some(serde_json::Value::Number(end)),
+                    ) = (span.get("start"), span.get("end"))
+                    && let (Some(start), Some(end)) = (start.as_u64(), end.as_u64())
+                {
+                    spans.push((start as usize, end as usize));
                 }
                 for value in map.values() {
                     collect_rule_spans(value, rule_name, spans);
@@ -944,6 +950,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "(?<A>tom|bon)-\\k{A}"), Some(true));
         assert_eq!(parse_sample("regex", "(?&name)"), Some(true));
         assert_eq!(parse_sample("regex", "(?R)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?R1)"), Some(false));
         assert_eq!(parse_sample("regex", "\\g{1}"), Some(true));
         assert_eq!(parse_sample("regex", "(A)(\\g{ -2 }B)"), Some(true));
         assert_eq!(
@@ -951,6 +958,8 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
             Some(true)
         );
         assert_eq!(parse_sample("regex", "(?C1)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?C\"alpha\"\"beta\")"), Some(true));
+        assert_eq!(parse_sample("regex", "(?C{left}}right})"), Some(true));
         assert_eq!(parse_sample("regex", "(*UTF)abc"), Some(true));
         assert_eq!(parse_sample("regex", "(*MARK:A)(*SKIP:B)(C|X)"), Some(true));
         assert_eq!(
@@ -973,6 +982,35 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         ] {
             assert_eq!(parse_sample("regex", sample), Some(true));
         }
+        for sample in [
+            "(?*foo)",
+            "(?<*foo)",
+            "(*napla:foo)",
+            "(*non_atomic_positive_lookahead:foo)",
+            "(*naplb:foo)",
+            "(*non_atomic_positive_lookbehind:foo)",
+            "(*atomic:foo)",
+            "(*sr:foo)",
+            "(*script_run:foo)",
+            "(*asr:foo)",
+            "(*atomic_script_run:foo)",
+            "(.)(*scs:(1)foo)",
+            "(?<cap>.)(*scan_substring:(1,<cap>)foo)",
+        ] {
+            assert_eq!(parse_sample("regex", sample), Some(true));
+        }
+        assert_eq!(parse_sample("regex", r"\Kword"), Some(true));
+        assert_eq!(parse_sample("regex", r"\xA"), Some(true));
+        assert_eq!(parse_sample("regex", r"\x{ 41 }"), Some(true));
+        assert_eq!(parse_sample("regex", r"\o{ 101 }"), Some(true));
+        assert_eq!(parse_sample("regex", "a{,}b"), Some(true));
+        assert_eq!(parse_sample("regex", "(?aD)\\d"), Some(true));
+        assert_eq!(parse_sample("regex", "(?xx:a b)"), Some(true));
+        assert_eq!(
+            parse_sample("regex", "(?(VERSION >= 10)cat|dog)"),
+            Some(false)
+        );
+        assert_eq!(parse_sample("regex", "(?(VERSION<10)cat|dog)"), Some(false));
         assert_eq!(parse_sample("regex", "(?[\\p{L} - \\p{Lu}])"), Some(true));
         assert_eq!(parse_sample("regex", "^[]cde]"), Some(true));
         assert_eq!(parse_sample("regex", "^[^]cde]"), Some(true));

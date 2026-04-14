@@ -819,11 +819,12 @@ Interpretation note:
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1668`
-  - `parse_expectation_mismatch_total=527`
-  - `false_accept_total=325`
-  - `false_reject_total=202`
+  - `parse_expectation_match_total=1806`
+  - `parse_expectation_mismatch_total=389`
+  - `false_accept_total=318`
+  - `false_reject_total=71`
 - Progress (2026-03-29): the compile-oracle lane is now also driving concrete regex robustness fixes rather than only widening measurement. `grammars/regex.ebnf` now accepts more real PCRE2 surface (`[[:^name:]]`, bare-name and signed conditional references, `\k{name}`, `{,}`), while the generated host path now runs `rust/src/regex_compile_validation.rs` after parse success to reject obvious compile-invalid forms that the raw grammar alone would otherwise over-accept (`\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind).
+- Progress (2026-04-14): the same compile-oracle lane was ratcheted after a PCRE2 source-derived regex audit. `grammars/regex.ebnf` now models syntax such as `\K`, one-digit and whitespace-braced hex/octal escapes, string callouts, `(*atomic:...)`, non-atomic lookarounds, scan-substring groups, script-run groups, strict modifier forms, strict `VERSION>=...` / `VERSION=...` conditionals, and `{,}` as literal text rather than a counted quantifier. The generated-host validator now covers PCRE2 callout bounds, start-option and verb-name legality, non-ACCEPT verb quantification, `\K` lookaround restrictions, forbidden class escapes, POSIX class-name validation, scan-substring reference existence, unsupported default escapes, and `(?R1)` rejection.
 - Roadmap consequence (2026-03-29): regex now has two distinct external hardening roles under the corpus bundle:
   - `regex_pcre2_textsafe_corpus_gate`
     - broad accepted-syntax widening lane

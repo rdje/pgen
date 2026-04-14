@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.22",
-  "parser_release_version": "1.1.20",
+  "integration_contract_version": "1.1.23",
+  "parser_release_version": "1.1.21",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -197,7 +197,7 @@
         "conditional",
         "condition_assertion",
         "alpha_condition_assertion",
-        "alpha_lookaround_name",
+        "atomic_alpha_lookaround_name",
         "yes_branch",
         "no_branch",
         "counted_quantifier"
@@ -205,7 +205,7 @@
       "expected_rule_texts": {
         "condition_assertion": ["*pla:foo"],
         "alpha_condition_assertion": ["*pla:foo"],
-        "alpha_lookaround_name": ["pla"],
+        "atomic_alpha_lookaround_name": ["pla"],
         "counted_quantifier": ["{6}"]
       }
     },
@@ -288,6 +288,59 @@
       "forbidden_rule_names": ["simple_escape", "quantifier"]
     },
     {
+      "name": "braced_octal_escape_with_whitespace",
+      "input": "\\o{ 101 }",
+      "required_rule_names": ["escape", "octal_escape", "octal_digits"],
+      "forbidden_rule_names": ["simple_escape", "quantifier"]
+    },
+    {
+      "name": "braced_hex_escape_with_whitespace",
+      "input": "\\x{ 41 }",
+      "required_rule_names": ["escape", "hex_escape", "hex_digits"],
+      "forbidden_rule_names": ["simple_escape", "quantifier"]
+    },
+    {
+      "name": "one_digit_hex_escape",
+      "input": "\\xA",
+      "required_rule_names": ["escape", "hex_escape"],
+      "forbidden_rule_names": ["simple_escape"]
+    },
+    {
+      "name": "keep_out_escape_anchor",
+      "input": "\\Kword",
+      "required_rule_names": ["anchor"],
+      "expected_rule_texts": {
+        "anchor": ["\\K"]
+      },
+      "forbidden_rule_names": ["escape"]
+    },
+    {
+      "name": "numeric_callout",
+      "input": "(?C1)",
+      "required_rule_names": ["callout"],
+      "expected_rule_texts": {
+        "callout": ["(?C1)"]
+      }
+    },
+    {
+      "name": "double_quoted_string_callout",
+      "input": "(?C\"alpha\"\"beta\")",
+      "required_rule_names": ["callout", "callout_arg", "callout_string", "callout_double_string"],
+      "expected_rule_texts": {
+        "callout": ["(?C\"alpha\"\"beta\")"],
+        "callout_double_string": ["\"alpha\"\"beta\""]
+      }
+    },
+    {
+      "name": "brace_string_callout",
+      "input": "(?C{left}}right})",
+      "required_rule_names": ["callout", "callout_arg", "callout_string", "callout_brace_string"],
+      "expected_rule_texts": {
+        "callout": ["(?C{left}}right})"],
+        "callout_brace_string": ["{left}}right}"]
+      }
+    },
+    {
       "name": "control_escape_targets_that_look_like_syntax",
       "input": "^\\ca\\cA\\c[;\\c:",
       "required_rule_names": ["control_escape"]
@@ -350,12 +403,12 @@
       "forbidden_rule_names": ["name"]
     },
     {
-      "name": "version_conditional_whitespace_and_missing_minor",
-      "input": "(?(VERSION >= 10)cat|dog)",
+      "name": "version_conditional_equals_missing_minor",
+      "input": "(?(VERSION=10)cat|dog)",
       "required_rule_names": ["version_condition", "version_operator", "version_number"],
       "expected_rule_texts": {
-        "version_condition": ["VERSION >= 10"],
-        "version_operator": [">="],
+        "version_condition": ["VERSION=10"],
+        "version_operator": ["="],
         "version_number": ["10"]
       },
       "forbidden_rule_names": ["name"]
@@ -412,6 +465,15 @@
     {
       "name": "left_open_counted_quantifier",
       "input": "a{,4}"
+    },
+    {
+      "name": "comma_only_braces_are_literals",
+      "input": "a{,}b",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["a", "{", ",", "}", "b"]
+      },
+      "forbidden_rule_names": ["counted_quantifier"]
     },
     {
       "name": "malformed_counted_quantifier_extra_comma_as_literals",
@@ -482,6 +544,68 @@
     {
       "name": "literal_quantifier_binding",
       "input": "ab+"
+    },
+    {
+      "name": "non_atomic_symbolic_lookahead",
+      "input": "(?*foo)",
+      "required_rule_names": ["lookaround", "non_atomic_lookahead_pos"],
+      "expected_rule_texts": {
+        "non_atomic_lookahead_pos": ["(?*foo)"]
+      }
+    },
+    {
+      "name": "non_atomic_alpha_lookahead",
+      "input": "(*napla:foo)",
+      "required_rule_names": ["lookaround", "alpha_lookaround", "non_atomic_alpha_lookaround_name"],
+      "expected_rule_texts": {
+        "non_atomic_alpha_lookaround_name": ["napla"]
+      },
+      "forbidden_rule_names": ["directive_verb"]
+    },
+    {
+      "name": "atomic_alpha_group_alias",
+      "input": "(*atomic:foo)",
+      "required_rule_names": ["atomic_group"],
+      "expected_rule_texts": {
+        "atomic_group": ["(*atomic:foo)"]
+      },
+      "forbidden_rule_names": ["directive_verb"]
+    },
+    {
+      "name": "script_run_group_short_alias",
+      "input": "(*sr:foo)",
+      "required_rule_names": ["script_run_group", "script_run_name"],
+      "expected_rule_texts": {
+        "script_run_name": ["sr"]
+      },
+      "forbidden_rule_names": ["directive_verb"]
+    },
+    {
+      "name": "scan_substring_group_short_alias",
+      "input": "(.)(*scs:(1)foo)",
+      "required_rule_names": ["capturing_group", "scan_substring_group", "scan_substring_name", "returned_capture_group_list"],
+      "expected_rule_texts": {
+        "capturing_group": ["(.)"],
+        "scan_substring_name": ["scs"],
+        "returned_capture_group_list": ["(1)"]
+      },
+      "forbidden_rule_names": ["directive_verb"]
+    },
+    {
+      "name": "ascii_restrict_modifier_aD",
+      "input": "(?aD)\\d",
+      "required_rule_names": ["inline_modifiers", "modifier_item", "ascii_restrict_modifier"],
+      "expected_rule_texts": {
+        "ascii_restrict_modifier": ["D"]
+      }
+    },
+    {
+      "name": "extended_mode_xx_modifier",
+      "input": "(?xx:a b)",
+      "required_rule_names": ["scoped_inline_modifiers", "modifier_item"],
+      "expected_rule_texts": {
+        "modifier_item": ["xx"]
+      }
     },
     {
       "name": "plain_embedded_code_block",
@@ -575,6 +699,18 @@
     {
       "name": "unsupported_escape_i",
       "input": "ab\\idef"
+    },
+    {
+      "name": "version_conditional_whitespace_not_pcre2",
+      "input": "(?(VERSION >= 10)cat|dog)"
+    },
+    {
+      "name": "version_conditional_less_than_not_pcre2",
+      "input": "(?(VERSION<10)cat|dog)"
+    },
+    {
+      "name": "suffixed_whole_pattern_recursion_not_pcre2",
+      "input": "(?R1)"
     }
   ]
 }

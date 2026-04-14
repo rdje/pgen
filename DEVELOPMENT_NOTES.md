@@ -1,4 +1,71 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-14 - Regex PCRE2 source-derived audit
+### Context
+RGX's PCRE2 conformance campaign produced `PGEN-RGX-0017` through `PGEN-RGX-0055`, covering syntax accepted or rejected by PCRE2 but not yet faithfully modeled by PGEN's published regex grammar and generated compile-contract layer. PCRE2 does not publish a formal EBNF/PEG; the practical authority is the combination of the PCRE2 prose docs, the PCRE2 testdata corpus, and the hand-written recursive-descent compiler in `src/pcre2_compile.c`.
+
+### Decision
+- Keep [grammars/regex.ebnf](grammars/regex.ebnf) as the public syntax contract, but derive missing syntax and edge-case validation from PCRE2's compiler behavior instead of matching only the failing examples literally.
+- Preserve the split between:
+  - EBNF syntax acceptance in [grammars/regex.ebnf](grammars/regex.ebnf)
+  - host/generated compile-contract validation in [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+- Publish the change as regex release `1.1.21` / integration contract `1.1.23` while keeping AST schema version `1`.
+- Keep the live `regex` family status at `Done`; this is a maintenance/conformance release over a closed family row, not a reopening of the family proof.
+
+### What Was Changed
+- Broadened and tightened PCRE2 syntax coverage in [grammars/regex.ebnf](grammars/regex.ebnf), including:
+  - braced hex/octal whitespace payloads and one/two-digit `\x` forms
+  - `\K`
+  - `(*atomic:...)`
+  - non-atomic symbolic and alpha lookarounds
+  - scan-substring groups
+  - script-run groups
+  - numeric and string callouts
+  - strict `VERSION` condition operators
+  - stricter inline modifier and subroutine-target behavior
+  - `{,}` as literal text rather than a counted quantifier
+- Added compile-contract checks in [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs) for source-derived PCRE2 behavior that belongs above the grammar layer:
+  - numeric callout argument bound
+  - backtracking verb/start-option constraints
+  - quantified non-`ACCEPT` verb rejection
+  - invalid character-class escape rejection
+  - `\K` rejection inside lookarounds
+  - POSIX class validation
+  - scan-substring capture-list validation against preceding captures
+  - rejection for unsupported default PCRE2/Perl/JS escapes such as `\i`, `\F`, `\l`, `\L`, `\u`, and `\U`
+- Updated parser registry and embedding API metadata so downstream users see release `1.1.21` / contract `1.1.23`.
+- Regenerated the regex parser artifacts and updated the regex integration contract samples.
+- Ratcheted the lightweight PCRE2 compile-oracle baseline in [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env) to the measured source-derived state:
+  - `MIN_MATCH_TOTAL=1806`
+  - `MAX_MISMATCH_TOTAL=389`
+  - `MAX_FALSE_ACCEPT_TOTAL=318`
+  - `MAX_FALSE_REJECT_TOTAL=71`
+- Updated public/continuity docs:
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Validation
+- Passed:
+  - `python3 -m json.tool rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `cargo test --features generated_parsers --lib regex_compile_validation --no-run`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `git diff --check`
+- Clippy note:
+  - strict source clippy passed
+  - generated-parser clippy still reports the known non-strict generated `rtl_frontend_parser.rs` baseline debt
+  - touched handwritten files were cleaned so no `parser_registry.rs`, `embedding_api.rs`, or `regex_compile_validation.rs` warnings remain in the generated clippy log scan
+
 ## 2026-04-13 - rtl_frontend rich concatenation proof tightening
 ### Context
 After the rich continuous proof slice, only the rich plain `always @(*)` and rich `always_latch` samples still required `concatenation_expr` evidence without expected text. Both samples share the same procedural RHS concatenation and already lock their procedural block, assignment targets, assignment operators, and downstream continuous assignment text.

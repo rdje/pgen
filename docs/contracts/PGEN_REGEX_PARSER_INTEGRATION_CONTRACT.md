@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.22`
+  - `1.1.23`
 - Parser release version:
-  - `1.1.20`
+  - `1.1.21`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-04-13`
+  - `2026-04-14`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -27,6 +27,30 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.21 / Contract 1.1.23 Highlights
+- `1.1.21` is a PCRE2 source-derived grammar and compile-contract audit release over parser release `1.1.20`; regex AST dump schema version stays `1`.
+- This release follows the source-of-truth workflow in `docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md`: use `pcre2syntax(3)` / `pcre2pattern(3)` for prose intent, `src/pcre2_compile.c` for edge-case authority, and PCRE2 `testdata/testinput*` through `regex_pcre2_compile_oracle_gate` as executable regression evidence.
+- Grammar-level additions and corrections include:
+  - `\K` as an anchor-like atom outside forbidden contexts
+  - one-digit `\xA` and whitespace-braced `\x{ 41 }` / `\o{ 101 }` escape payloads
+  - string callouts such as `(?C"alpha""beta")` and `(?C{left}}right})`, with doubled delimiter escaping
+  - `(*atomic:...)`, non-atomic symbolic lookarounds `(?*...)` / `(?<*...)`, and non-atomic alpha lookarounds such as `(*napla:...)`
+  - `(*scs:...)` / `(*scan_substring:...)` scan-substring groups and `(*sr:...)` / `(*script_run:...)` / `(*asr:...)` / `(*atomic_script_run:...)` script-run groups
+  - stricter inline modifier spelling, including ASCII restrictors such as `(?aD)` and extended-mode `(?xx:...)`
+  - strict PCRE2 VERSION conditional syntax with no whitespace around the operator, such as `(?(VERSION=10)cat|dog)` and `(?(VERSION>=10.0)cat|dog)`
+  - comma-only `{,}` as literal text rather than a counted quantifier, while valid left-open counted quantifiers such as `{,4}` remain counted quantifiers
+- Generated-host compile-contract additions include:
+  - rejecting numeric callouts above PCRE2's `255` limit
+  - validating the PCRE2 start-option and verb-name tables derived from `pcre2_compile.c`
+  - rejecting quantified non-ACCEPT verbs
+  - rejecting `\K` inside lookaround assertions
+  - rejecting forbidden character-class escapes such as `\A`, `\B`, `\C`, `\E`, `\G`, `\K`, `\Q`, `\R`, `\X`, `\Z`, and `\z`
+  - validating POSIX class names while still allowing malformed opener text to fall back as literals where PCRE2 does
+  - validating scan-substring capture lists against captures declared before the scan-substring group
+  - rejecting unsupported default-mode escapes such as `\i`, `\F`, `\l`, `\L`, `\u`, and `\U`
+  - rejecting suffixed whole-pattern recursion syntax such as `(?R1)` while retaining whole-pattern recursion `(?R)` and proper returned-capture calls such as `(?R(1))`
+- The maintained `regex_pcre2_compile_oracle_gate` baseline is ratcheted to the measured `pcre2-10.47` slice: `2195` cases executed, `1613` compile-ok cases, `582` compile-fail cases, `1806` expectation matches, `389` mismatches, `318` false accepts, and `71` false rejects.
 
 ## Release 1.1.20 / Contract 1.1.22 Highlights
 - `1.1.20` is a generated-regex resource-depth hardening release over parser release `1.1.19`; regex AST dump schema version stays `1`.
@@ -58,7 +82,7 @@ This is the document downstream projects such as RGX should read first when deci
 - `1.1.17` is a PCRE2-conformance alpha-lookaround assertion patch over the `1.1.16` parser release.
 - This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0034` and models the general atomic alpha-lookaround family rather than only the concrete `(*pla:...)` spelling.
 - PCRE2 supports lower-case assertion aliases for the four atomic lookaround forms: `(*pla:...)` / `(*positive_lookahead:...)`, `(*nla:...)` / `(*negative_lookahead:...)`, `(*plb:...)` / `(*positive_lookbehind:...)`, and `(*nlb:...)` / `(*negative_lookbehind:...)`.
-- In conditional assertion position, patterns such as `(?(*pla:foo).{6}|a..)` now transport the condition through `conditional` -> `condition_assertion` -> `alpha_condition_assertion` -> `alpha_lookaround_name`, with the `yes_branch` and `no_branch` preserved under the existing conditional shape.
+- In conditional assertion position, patterns such as `(?(*pla:foo).{6}|a..)` now transport the condition through `conditional` -> `condition_assertion` -> `alpha_condition_assertion` -> `atomic_alpha_lookaround_name`, with the `yes_branch` and `no_branch` preserved under the existing conditional shape.
 - Non-atomic lookaround aliases such as `(*napla:...)` / `(*naplb:...)` and script-run alpha assertions remain outside this atomic-lookaround condition contract for now. Regex AST schema version stays `1`.
 
 ## Release 1.1.16 / Contract 1.1.17 Highlights
@@ -135,7 +159,7 @@ This is the document downstream projects such as RGX should read first when deci
 - The headline change in `1.1.10` is publishing PCRE2 VERSION conditionals requested in RGX bug report `PGEN-RGX-0016`.
 - `1.1.10` adds support for conditional forms such as:
   - `(?(VERSION>=10.0)cat|dog)`
-  - `(?(VERSION >= 10)cat|dog)`
+  - `(?(VERSION>=10)cat|dog)`
 - `1.1.10` transports those condition bodies structurally as:
   - `version_condition`
   - `version_operator`
@@ -206,7 +230,7 @@ This is the document downstream projects such as RGX should read first when deci
   - braced named backreferences such as `\k{name}`
   - bare-name and signed numeric conditional references
   - named recursion conditions such as `R&name` inside conditionals
-  - left-open counted quantifiers such as `{,4}` and comma-only counted form `{,}`
+  - left-open counted quantifiers such as `{,4}`
 - The generated regex host path in `1.1.10` also continues to enforce the compile-style validation contract added in `1.1.0`, so obvious compile-invalid forms no longer slip through as successful parses.
 - The release is additionally backed by the maintained PCRE2 compile-oracle lane documented in `PGEN_USER_GUIDE.md`.
 
@@ -346,6 +370,10 @@ This is the document downstream projects such as RGX should read first when deci
   - a deeply nested `80`-capture pattern followed by `\80`
   - a grammar-like recursive named-group interpolation pattern using nested `\g<...>` references
   - this is a host/code-generation resilience guarantee over parser release `1.1.20`; it does not introduce a new AST schema version
+- Integration contract `1.1.23` explicitly guarantees the 2026-04-14 PCRE2 source-derived audit slice:
+  - grammar additions include `\K`, one-digit and whitespace-braced hex/octal escapes, string callouts, `(*atomic:...)`, non-atomic lookarounds, scan-substring groups, script-run groups, strict modifier forms, and strict no-whitespace VERSION conditionals
+  - compile-contract validation now covers numeric callout bounds, PCRE2 start-option and verb tables, non-ACCEPT verb quantification, `\K` lookaround restrictions, forbidden class escapes, POSIX class-name validation, scan-substring reference existence, unsupported default escapes, and `(?R1)` rejection
+  - comma-only `{,}` is now a literal brace/comma/brace sequence, not a counted quantifier
 - Integration contract `1.1.20` explicitly guarantees PCRE2 braced `\k{...}` named backreferences with optional space/tab padding:
   - `(?'name'ab)\k{ name }(?P=name)` transports the padded named backreference as `backreference` -> `braced_name_ref`
   - the named payload transports under `name = "name"` while the enclosing `braced_name_ref` rule text remains `{ name }`
@@ -356,7 +384,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `\g{...}` with brace delimiters remains a backreference form; `\g<...>` and `\g'...'` remain Oniguruma-style subroutine-reference forms
   - this contract slice is shape-based for the PCRE2 braced numeric reference family, not a literal special case for `-2`
 - Integration contract `1.1.18` explicitly guarantees PCRE2 atomic alpha-lookaround assertion aliases in conditional assertion position:
-  - `(?(*pla:foo).{6}|a..)` transports the condition as `condition_assertion` -> `alpha_condition_assertion` -> `alpha_lookaround_name`, with `alpha_lookaround_name = "pla"`
+  - `(?(*pla:foo).{6}|a..)` transports the condition as `condition_assertion` -> `alpha_condition_assertion` -> `atomic_alpha_lookaround_name`, with `atomic_alpha_lookaround_name = "pla"`
   - the modeled family includes `pla` / `positive_lookahead`, `nla` / `negative_lookahead`, `plb` / `positive_lookbehind`, and `nlb` / `negative_lookbehind`
   - non-atomic lookaround and script-run alpha assertion aliases are not part of this `regex_default` contract slice yet
 - Integration contract `1.1.17` explicitly guarantees the default PCRE2 backtracking-control directive payload shape, including MARK/PRUNE/SKIP/THEN:
@@ -381,7 +409,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `[[:digit:]-]+` transports `[:digit:]` through `posix_class` with `posix_name = "digit"` and the trailing `-` as a separate `class_literal`
   - `[[:digit:]-   ]` extends the same guarantee to the PCRE2 class item shape where the trailing `-` and ordinary spaces are separate `class_literal` items rather than a `class_range`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
-- Contract `1.1.22` publishes parser release `1.1.20` resource-depth resilience for legal deep PCRE2 conformance inputs and carries forward contract `1.1.21` for the `[[:digit:]-   ]` POSIX-class-plus-literals AST shape, parser release `1.1.19` PCRE2-compatible braced `\k{...}` named backreference whitespace handling, parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Contract `1.1.23` publishes parser release `1.1.21` PCRE2 source-derived syntax and compile-contract alignment, and carries forward parser release `1.1.20` resource-depth resilience for legal deep PCRE2 conformance inputs, contract `1.1.21` for the `[[:digit:]-   ]` POSIX-class-plus-literals AST shape, parser release `1.1.19` PCRE2-compatible braced `\k{...}` named backreference whitespace handling, parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
   - the `PGEN-RGX-0054` pattern with `80` nested capturing groups plus `\80` now parses without host stack abort or generated recursion-guard rejection
   - the `PGEN-RGX-0055` recursive named-group interpolation pattern now parses without host stack abort
   - `(?'name'ab)\k{ name }(?P=name)` now transports the padded named backreference as `backreference` -> `braced_name_ref`, not `simple_escape("k")` plus literal `{ name }`
@@ -401,7 +429,11 @@ This is the document downstream projects such as RGX should read first when deci
   - `X{12ABC}`, `X{,9`, and `X{,9]` now preserve malformed alphanumeric/left-open brace forms as literals
   - `a{(?#XYZ),2}` now preserves the surrounding brace/comma/digit text while still transporting `(?#XYZ)` through `comment_group`
   - `(?(VERSION>=10.0)cat|dog)` now transports the condition as `version_condition` with `version_operator = ">="` and `version_number = "10.0"`
-  - `(?(VERSION >= 10)cat|dog)` now preserves whitespace around the comparison operator and accepts a missing minor component
+  - `(?(VERSION=10)cat|dog)` now transports as a strict PCRE2 `version_condition`, while whitespace-bearing forms such as `(?(VERSION >= 10)cat|dog)` are rejected by the generated-host contract
+  - `a{,}b` now transports `{`, `,`, and `}` as literal text rather than a `counted_quantifier`
+  - `(?C"alpha""beta")` and `(?C{left}}right})` now transport as string callouts with doubled-delimiter payload escaping
+  - `(?*foo)`, `(*napla:foo)`, `(*atomic:foo)`, `(*sr:foo)`, and `(.)(*scs:(1)foo)` now parse through the corresponding PCRE2 group families
+  - `(?R1)` is rejected; use `(?R)` for whole-pattern recursion or `(?R(1))` for returned-capture whole-pattern recursion
   - `(?1(1))` now transports as `subroutine_call` containing `returned_capture_subroutine`, `subroutine_target`, `returned_capture_group_list`, and `returned_capture_group`
   - `(?&callee(+1,<cap>,'alt'))` now preserves mixed numeric and named returned-capture grouplist entries without falling back to `inline_modifiers`
   - `🎉` now transports as a single `literal` node spanning the full UTF-8 codepoint
@@ -429,10 +461,10 @@ This is the document downstream projects such as RGX should read first when deci
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1668`
-  - `parse_expectation_mismatch_total=527`
-  - `false_accept_total=325`
-  - `false_reject_total=202`
+  - `parse_expectation_match_total=1806`
+  - `parse_expectation_mismatch_total=389`
+  - `false_accept_total=318`
+  - `false_reject_total=71`
 - This does not reopen the closed `regex` family row by itself, but it is the main maintained future hardening lane for downstream trust widening.
 
 ## Published Regex Flavor Summary
@@ -445,7 +477,8 @@ This is the document downstream projects such as RGX should read first when deci
   - capturing, noncapturing, named, and atomic groups
   - lookahead and lookbehind assertions
   - greedy, lazy, and possessive quantifiers
-  - counted quantifier forms such as `{3}`, `{2,}`, `{2,4}`, `{,4}`, and `{,}`
+  - counted quantifier forms such as `{3}`, `{2,}`, `{2,4}`, and `{,4}`
+  - comma-only `{,}` as literal text rather than a counted quantifier
   - final-atom quantifier binding for literal runs, so `ab+` means literal `a` followed by quantified `b`
   - char classes, negated char classes, ranges, and POSIX classes
   - negated POSIX classes such as `[[:^alnum:]]`
@@ -456,7 +489,7 @@ This is the document downstream projects such as RGX should read first when deci
   - inline modifiers and scoped modifiers
   - conditional regex forms whose condition may be:
     - a lookaround assertion
-    - a PCRE2 VERSION comparison such as `VERSION>=10.0` or `VERSION >= 10`
+    - a PCRE2 VERSION comparison such as `VERSION>=10.0` or `VERSION=10`
     - a bare name
     - an explicit name reference
     - digits
@@ -484,6 +517,10 @@ This is the document downstream projects such as RGX should read first when deci
     - descending character-class ranges such as `[z-a]`
     - quantified anchors such as `^+`
     - variable-length lookbehind such as `(?<=a+)b`
+    - `\K` inside lookarounds
+    - numeric callouts above `255`
+    - invalid PCRE2 verb/start-option spellings and quantified non-ACCEPT verbs
+    - scan-substring references to captures that do not exist yet
 - Character-class AST adapter contract:
   - `class_item` variants currently include `class_range`, `class_literal`, `class_escape`, and `posix_class`
   - `posix_class` carries the POSIX class spelling through `posix_name`, including names such as `space`, `blank`, `digit`, `alnum`, and `xdigit`
@@ -496,7 +533,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `(?1(1))`
   - `(?&callee(+1,<cap>,'alt'))`
   - `(?(VERSION>=10.0)cat|dog)`
-  - `(?(VERSION >= 10)cat|dog)`
+  - `(?(VERSION=10)cat|dog)`
   - `(?{lua:return true})`
   - `(?{rhai:let x = 1;})`
   - `(?{native:callback_name})`
@@ -579,7 +616,7 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.20");
+assert_eq!(contract.regex_parser_release_version, "1.1.21");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```

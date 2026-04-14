@@ -22,10 +22,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.22";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.23";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.20";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.21";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -127,19 +127,10 @@ impl Default for ParseLimits {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AstDumpOptions {
     pub pretty: bool,
     pub max_ast_bytes: Option<usize>,
-}
-
-impl Default for AstDumpOptions {
-    fn default() -> Self {
-        Self {
-            pretty: false,
-            max_ast_bytes: None,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1252,32 +1243,32 @@ fn encode_ast_dump_payload(
     let encoded = serialize_canonical_json(ast_json, options.pretty)?;
     let full_bytes = encoded.len();
     let max_ast_bytes = options.max_ast_bytes;
-    if let Some(max_bytes) = max_ast_bytes {
-        if full_bytes > max_bytes {
-            let diagnostic = AstDumpTruncationDiagnostic {
-                pgen_dump_contract_version: 1,
-                kind: "pgen_ast_dump_truncation",
-                truncated: true,
-                dump_kind: "parser_return_ast",
-                max_bytes,
-                full_bytes,
-                reason: "encoded parser AST JSON exceeded configured max bytes; payload omitted",
-            };
-            let encoded_diagnostic = serialize_canonical_json(&diagnostic, options.pretty)?;
-            let emitted_bytes = encoded_diagnostic.len();
-            if emitted_bytes > max_bytes {
-                return Err(invalid_limits_diagnostic(format!(
-                    "max_ast_bytes {} is too small to fit truncation diagnostics (requires at least {} bytes)",
-                    max_bytes, emitted_bytes
-                )));
-            }
-            return Ok(AstDumpPayload {
-                dump_json: encoded_diagnostic,
-                truncated: true,
-                full_bytes,
-                emitted_bytes,
-            });
+    if let Some(max_bytes) = max_ast_bytes
+        && full_bytes > max_bytes
+    {
+        let diagnostic = AstDumpTruncationDiagnostic {
+            pgen_dump_contract_version: 1,
+            kind: "pgen_ast_dump_truncation",
+            truncated: true,
+            dump_kind: "parser_return_ast",
+            max_bytes,
+            full_bytes,
+            reason: "encoded parser AST JSON exceeded configured max bytes; payload omitted",
+        };
+        let encoded_diagnostic = serialize_canonical_json(&diagnostic, options.pretty)?;
+        let emitted_bytes = encoded_diagnostic.len();
+        if emitted_bytes > max_bytes {
+            return Err(invalid_limits_diagnostic(format!(
+                "max_ast_bytes {} is too small to fit truncation diagnostics (requires at least {} bytes)",
+                max_bytes, emitted_bytes
+            )));
         }
+        return Ok(AstDumpPayload {
+            dump_json: encoded_diagnostic,
+            truncated: true,
+            full_bytes,
+            emitted_bytes,
+        });
     }
 
     Ok(AstDumpPayload {
@@ -1348,10 +1339,10 @@ fn parse_generated_return(input: &str) -> Result<(), ParseDiagnostic> {
             input,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.return_annotation"),
         );
-        return parser
+        parser
             .parse_full_return_annotation()
             .map(|_| ())
-            .map_err(|err| generated_parse_failure_diagnostic("return", input, err));
+            .map_err(|err| generated_parse_failure_diagnostic("return", input, err))
     }
     #[cfg(not(feature = "generated_parsers"))]
     {
@@ -1370,10 +1361,10 @@ fn parse_generated_semantic(input: &str) -> Result<(), ParseDiagnostic> {
             input,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.semantic_annotation"),
         );
-        return parser
+        parser
             .parse_full_semantic_annotation()
             .map(|_| ())
-            .map_err(|err| generated_parse_failure_diagnostic("semantic", input, err));
+            .map_err(|err| generated_parse_failure_diagnostic("semantic", input, err))
     }
     #[cfg(not(feature = "generated_parsers"))]
     {
@@ -1490,7 +1481,7 @@ fn parse_generated_vhdl_ast_json(input: &str) -> Result<JsonValue, ParseDiagnost
 fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     {
-        return run_generated_regex_on_dedicated_stack(input, |owned_input| {
+        run_generated_regex_on_dedicated_stack(input, |owned_input| {
             use crate::generated_parsers::regex::RegexParser;
             let mut parser = RegexParser::new(
                 &owned_input,
@@ -1501,7 +1492,7 @@ fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
                 .map_err(|err| generated_parse_failure_diagnostic("regex", &owned_input, err))?;
             validate_regex_compile_contract(&owned_input)
                 .map_err(|err| regex_compile_contract_diagnostic(&owned_input, err))
-        });
+        })
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     {
@@ -1515,7 +1506,7 @@ fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
 fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     {
-        return run_generated_regex_on_dedicated_stack(input, |owned_input| {
+        run_generated_regex_on_dedicated_stack(input, |owned_input| {
             use crate::generated_parsers::regex::RegexParser;
             let mut parser = RegexParser::new(
                 &owned_input,
@@ -1532,7 +1523,7 @@ fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnos
                     err
                 ))
             })
-        });
+        })
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     {
@@ -2111,8 +2102,8 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 55);
-        assert_eq!(manifest.failure_samples.len(), 8);
+        assert_eq!(manifest.success_samples.len(), 70);
+        assert_eq!(manifest.failure_samples.len(), 11);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
             manifest
@@ -2142,7 +2133,25 @@ mod tests {
             manifest
                 .success_samples
                 .iter()
-                .any(|sample| sample.name == "version_conditional_whitespace_and_missing_minor")
+                .any(|sample| sample.name == "version_conditional_equals_missing_minor")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "version_conditional_whitespace_not_pcre2")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "version_conditional_less_than_not_pcre2")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "suffixed_whole_pattern_recursion_not_pcre2")
         );
         assert!(
             manifest
@@ -2161,6 +2170,42 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "braced_octal_escape")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "braced_octal_escape_with_whitespace")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "braced_hex_escape_with_whitespace")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "one_digit_hex_escape")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "keep_out_escape_anchor")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "double_quoted_string_callout")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "brace_string_callout")
         );
         assert!(
             manifest
@@ -2252,6 +2297,48 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "alpha_lookahead_condition_short")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "non_atomic_alpha_lookahead")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "atomic_alpha_group_alias")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "script_run_group_short_alias")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "scan_substring_group_short_alias")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "ascii_restrict_modifier_aD")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "extended_mode_xx_modifier")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "comma_only_braces_are_literals")
         );
         assert!(
             manifest
@@ -3025,7 +3112,7 @@ mod tests {
     fn regex_parser_integration_contract_accepts_version_conditionals() {
         for (input, condition_text, operator, version) in [
             ("(?(VERSION>=10.0)cat|dog)", "VERSION>=10.0", ">=", "10.0"),
-            ("(?(VERSION >= 10)cat|dog)", "VERSION >= 10", ">=", "10"),
+            ("(?(VERSION=10)cat|dog)", "VERSION=10", "=", "10"),
         ] {
             let parsed = regex_ast_dump_json(input);
 

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-13 (+0200, task: rtl-frontend-rich-concatenation-proof)
+Last updated: 2026-04-14 (+0200, task: regex-pcre2-source-audit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,52 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Aligned the regex parser contract with the PCRE2 source-derived audit after RGX reports `PGEN-RGX-0017` through `PGEN-RGX-0055`:
+  - changed:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+    - [rust/src/parser_registry.rs](rust/src/parser_registry.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - release/contract:
+    - regex release `1.1.21`
+    - regex integration contract `1.1.23`
+    - AST schema remains `1`
+  - PCRE2-derived scope:
+    - PCRE2 has no formal EBNF/PEG, so the practical syntax authority remains prose docs plus the hand-written compiler in `src/pcre2_compile.c` plus testdata
+    - grammar additions/tightening include braced hex/octal whitespace payloads, one/two-digit `\x`, `\K`, `(*atomic:...)`, non-atomic lookarounds, scan-substring groups, script-run groups, numeric/string callouts, strict `VERSION` operators, stricter inline modifiers, stricter subroutine targets, and `{,}` as literal text
+    - generated compile-contract validation now covers callout bounds, backtracking verb/start-option constraints, quantified non-`ACCEPT` verb rejection, invalid class escapes, `\K` in lookarounds, POSIX class names, scan-substring capture-list validation, and unsupported default escapes
+  - oracle baseline:
+    - `MIN_MATCH_TOTAL=1806`
+    - `MAX_MISMATCH_TOTAL=389`
+    - `MAX_FALSE_ACCEPT_TOTAL=318`
+    - `MAX_FALSE_REJECT_TOTAL=71`
+  - validation:
+    - `python3 -m json.tool rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+    - `cargo test --features generated_parsers --lib regex_compile_validation --no-run`
+    - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changes; `regex` remains `Done`
+    - this is maintenance/conformance hardening over the already-closed regex family row
+    - `clippy_on_rust_change` completed with strict source clippy green; generated-parser clippy still carries the known non-strict generated `rtl_frontend_parser.rs` baseline debt, with touched handwritten files clean
 - Tightened `rtl_frontend` rich procedural concatenation proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
