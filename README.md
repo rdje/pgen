@@ -88,6 +88,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `rust/docs/`: Rust-specific architecture/API/test docs
 - `docs/contracts/`: downstream parser integration contracts, issue-reporting protocol, and released-parser bug ledger
 - `docs/reference/`: normative specs, matrices, closure roadmaps, release policy, and other maintained deep-reference docs
+- `docs/tcl/md/tcl.md`: local Tcl syntax note for the pending SDC/Tcl-shaped PNR parser lane; reference input only, not a shipped SDC grammar
 - `regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening; keeps immutable upstream snapshots separate from normalized corpus/oracle outputs, with maintained gates `make -C rust regex_corpus_bundle_contract_gate`, `make -C rust regex_pcre2_textsafe_corpus_gate`, and `make -C rust regex_pcre2_compile_oracle_gate`
 - `tools/`: conversion/extraction and support workflows
 - `perl/`: legacy/frontend EBNF-to-JSON path (`ebnf_to_json.pl`) still used in hybrid flow
@@ -177,6 +178,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
   - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
   - `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/tcl/md/tcl.md`
   - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `LIVE_ACHIEVEMENT_STATUS.md`
   - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
@@ -203,6 +205,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 - Downstream parser integration contracts:
   - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`, `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`, `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
+- Future downstream parser source notes:
+  - `docs/tcl/md/tcl.md`
 - Regex corpus acquisition and hardening:
   - `regex_corpus_bundle/README.md`, `regex_corpus_bundle/docs/regex_corpus_plan.md`, `regex_corpus_bundle/corpus/pcre2/invalid/README.md`, `regex_corpus_bundle/corpus/pcre2/quarantine/README.md`, `regex_corpus_bundle/oracle/pcre2/README.md`
 - Operational continuity:

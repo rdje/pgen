@@ -33164,3 +33164,16 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - honest current read:
     - this is a regex maintenance release on top of the already-closed regex family row
     - the regex live-status label remains `Done`; this does not reopen the family
+- 2026-04-14: documented the post-RGX residual cleanup instead of leaving it implicit.
+  - trace:
+    - the remaining tracked Rust diffs after the RGX PCRE2 slice were from `cargo fmt`, not parser behavior changes
+    - they were committed separately as `56000c3 Rustfmt residual parser tooling files`
+    - the previously untracked `docs/tcl/md/tcl.md` file was a Tcl syntax reference note already referenced by continuity/PNR planning docs
+    - it was normalized to ASCII/no trailing whitespace and committed as `34fc04b Docs: add Tcl syntax reference note`
+  - documentation correction:
+    - live status now records that this was hygiene and source-note capture, not a parser-family status change
+    - the mdBook parser-family/source-map surfaces now list the Tcl note as a future SDC/Tcl-shaped parser source note
+    - the user guide artifact map now lists `docs/tcl/md/tcl.md` under local language/source notes
+  - honest current read:
+    - no parser-family row changes
+    - no released contract version changes

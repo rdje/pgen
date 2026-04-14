@@ -31,6 +31,8 @@ They define:
 
 - `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
 
+The PNR addendum is a pending-request contract, not a shipped parser release. It names future LEF, DEF, Liberty, SDC, structural Verilog netlist, and SPEF parser surfaces and points SDC work at Tcl-shaped tokenization/quoting/substitution behavior. The local Tcl syntax note lives at `docs/tcl/md/tcl.md`.
+
 ### Support and issue workflow
 
 - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`

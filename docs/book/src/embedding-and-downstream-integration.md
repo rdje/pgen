@@ -53,6 +53,8 @@ The current regex maintenance release also documents a resource-depth distinctio
 
 PNR now also has a PGEN-side downstream contract addendum. It captures PNR's inbound request for future LEF, DEF, Liberty, SDC, structural Verilog netlist, and SPEF parser crates, while explicitly marking those parser-family releases as pending rather than shipped.
 
+For that pending PNR/SDC lane, `docs/tcl/md/tcl.md` records a local Tcl syntax note so future work remembers that SDC is Tcl-shaped at the command/word/substitution layer. That note is reference input only; the authoritative SDC command semantics still need the Synopsys SDC source path recorded in the PNR contract before EBNF work starts.
+
 ## Primary Source Docs
 
 - `rust/docs/EMBEDDING_API_CONTRACT.md`

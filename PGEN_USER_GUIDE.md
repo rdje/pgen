@@ -4119,6 +4119,11 @@ LRM conversion workspaces (tracked versioned outputs):
 - `docs/verilog/2005/`
   - `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
 
+Local language/source notes for future parser work:
+- `docs/tcl/md/tcl.md`
+  - Tcl syntax reference note for the future SDC lane
+  - not a shipped SDC parser, not a complete SDC grammar, and not a replacement for the authoritative Synopsys SDC source path recorded in `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
+
 Canonical extracted EBNF snapshots:
 - `grammars/systemverilog_2017_lrm_extracted.ebnf`
 - `grammars/systemverilog_2023_lrm_extracted.ebnf`

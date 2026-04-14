@@ -35723,3 +35723,26 @@ Architectural north star:
     - `git diff --check` passed
   - status truth:
     - regex remains `Done`; this is a downstream maintenance hardening release, not a live-status promotion
+- 2026-04-14: post-RGX residual cleanup trace and documentation correction.
+  - user called out that I should not leave files dirty when I had touched them.
+  - traced remaining tracked files:
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - `rust/src/ast_pipeline/mod.rs`
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `rust/src/bin/coverage_gap_triage.rs`
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/main.rs`
+  - finding:
+    - those tracked diffs were rustfmt-only fallout from the earlier formatter run, not semantic parser/stimuli changes
+    - verified with `cargo fmt --manifest-path rust/Cargo.toml --check`
+    - committed as `56000c3 Rustfmt residual parser tooling files`
+  - untracked artifact:
+    - `docs/tcl/md/tcl.md` existed because previous PNR/SDC planning already referenced a local Tcl syntax note
+    - normalized the note to ASCII/no trailing whitespace and committed it as `34fc04b Docs: add Tcl syntax reference note`
+  - documentation correction:
+    - updated live/continuity docs, the mdBook parser-family/source-map surfaces, and the user guide artifact map so this cleanup does not exist only in Git history
+  - status truth:
+    - no parser-family status changed
+    - no release or integration contract version changed

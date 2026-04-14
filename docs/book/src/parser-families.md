@@ -72,3 +72,14 @@ For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+## Future Downstream Parser Requests
+
+PNR has requested future parser support for LEF, DEF, Liberty, SDC, structural Verilog netlists, and SPEF, but those parser-family releases are not shipped yet.
+
+Important source notes:
+
+- `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md` records the downstream request, crate-shape target, and authoritative-source acquisition policy.
+- `docs/tcl/md/tcl.md` is a local Tcl syntax reference note for the future SDC lane, because SDC is Tcl-shaped at the tokenization/quoting/substitution layer.
+
+Do not treat the Tcl note as a complete SDC grammar or as an implemented parser family. It is reference input for future EBNF work once the authoritative Synopsys SDC source is acquired.
