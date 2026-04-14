@@ -3341,6 +3341,11 @@
         "procedural_block",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "signal_reference": [
+          "bus[IDX]"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child u_child (.a(bus[IDX]), .y({a, b}));"
@@ -3375,6 +3380,11 @@
         "procedural_block",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "signal_reference": [
+          "cfg.data[IDX]"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child u_child (.a(cfg.data[IDX]), .y({LANES{a}}));"

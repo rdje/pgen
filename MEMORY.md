@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-14 (+0200, task: rtl-frontend-unpacked-array-bitselect-actual-proof)
+Last updated: 2026-04-14 (+0200, task: rtl-frontend-named-port-signal-reference-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,29 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` generated-contract named-port signal-reference proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract labels strengthened:
+    - `named_port_bitselect_and_concat_actuals`
+    - `named_port_member_bitselect_and_repeat_actuals`
+  - proof tightening:
+    - `required_rule_texts` now subset-locks composite `signal_reference` spans `bus[IDX]` and `cfg.data[IDX]`
+    - scalar leaf references such as `IDX`, `LANES`, `a`, and `b` were intentionally left out of the required subset to keep the lock focused on the named-port actual shape
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` was not run because no Rust source or generated Rust artifacts changed
 - Widened `rtl_frontend` generated-contract proof for combined unpacked-array struct-member bit-select actuals:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

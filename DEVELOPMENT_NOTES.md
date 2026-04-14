@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-14 - rtl_frontend named-port signal-reference proof tightening
+### Context
+The generated contract already retained compact named-port actual shapes for a bit-select plus concatenation and a member-path bit-select plus repetition:
+- `child u_child (.a(bus[IDX]), .y({a, b}));`
+- `child u_child (.a(cfg.data[IDX]), .y({LANES{a}}));`
+
+Both samples required `signal_reference` evidence, but they only exact-locked parent `module_instantiation`, `instance_item`, `port_connection`, and value-shape rules. The contract did not yet explicitly assert that the generated AST retained the composite `signal_reference` spans themselves.
+
+### Decision
+- Add narrow `required_rule_texts` locks for the composite signal references:
+  - `bus[IDX]`
+  - `cfg.data[IDX]`
+- Do not exact-lock all `signal_reference` leaves for those samples, because the generated AST also exposes scalar leaves such as `IDX`, `LANES`, `a`, and `b`; those are incidental to this proof slice.
+- Keep `rtl_frontend` at `In Progress`; this tightens a targeted generated-contract seam, not the full handwritten-baseline parity proof.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `named_port_bitselect_and_concat_actuals`
+  - strengthened `named_port_member_bitselect_and_repeat_actuals`
+  - added subset retained-text assertions for the composite `signal_reference` spans `bus[IDX]` and `cfg.data[IDX]`
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not run for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-14 - rtl_frontend unpacked-array member bit-select actual
 ### Context
 The generated contract already had separate evidence for unpacked-array struct-member actuals (`cfgs[IDX].data`) and member-path bit-select/repetition actuals (`cfg.data[IDX]` / `{LANES{a}}`). The handwritten bootstrap/reference crate also exercises the combined elaboration shape `cfgs[IDX].data[BIT]`, where the port actual first indexes an unpacked array of structs and then bit-selects the selected member.
