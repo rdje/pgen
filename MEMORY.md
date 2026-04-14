@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-14 (+0200, task: regex-pcre2-source-audit)
+Last updated: 2026-04-14 (+0200, task: rtl-frontend-instance-expression-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` generated-contract instance expression proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract labels strengthened:
+    - `ordered_parameter_override_ternary_binary_expr`
+    - `named_parameter_override_ternary_binary_expr`
+    - `ordered_port_actuals_ternary_binary_expr`
+    - `named_port_actuals_ternary_binary_expr`
+    - `named_port_actual_ternary_member_paths`
+  - proof tightening:
+    - added subset retained-text assertions for instance parameter override and port actual `conditional_expr`, `additive_expr`, and `shift_expr` spans
+    - retained high-signal spans such as `SEL ? (a[HI:LO] + LANES) : (LANES << 1)`, `LANES << 1`, `SEL ? (a[HI:LO] + d) : (d << 1)`, `d << 1`, and `SEL ? cfg.data : backup.data`
+    - kept `expected_rule_texts` as exact full-vector locks and used `required_rule_texts` only for selected recursive expression span presence
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` was not run because no Rust source or generated Rust artifacts changed
 - Aligned the regex parser contract with the PCRE2 source-derived audit after RGX reports `PGEN-RGX-0017` through `PGEN-RGX-0055`:
   - changed:
     - [grammars/regex.ebnf](grammars/regex.ebnf)

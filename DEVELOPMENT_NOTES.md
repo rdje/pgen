@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-14 - rtl_frontend instance expression proof tightening
+### Context
+The previous `rtl_frontend` generated-contract slice added `required_rule_texts` so recursive expression rules can assert selected retained text spans without freezing every incidental scalar expression node. The next high-signal gap was instance syntax: ordered/named parameter overrides and ordered/named port actuals already required `conditional_expr`, `additive_expr`, and `shift_expr` evidence, but their expression text was still only indirectly covered by parent `module_instantiation` and `port_connection` locks.
+
+### Decision
+- Reuse the existing subset retained-text mechanism instead of promoting these recursive expression spans to exact full-vector `expected_rule_texts`.
+- Tighten only the instance parameter/port expression samples in this slice:
+  - `ordered_parameter_override_ternary_binary_expr`
+  - `named_parameter_override_ternary_binary_expr`
+  - `ordered_port_actuals_ternary_binary_expr`
+  - `named_port_actuals_ternary_binary_expr`
+  - `named_port_actual_ternary_member_paths`
+- Keep `rtl_frontend` at `In Progress`; this is proof tightening over a targeted generated-contract seam, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `required_rule_texts` for the parameter-override ternary/binary samples, including `SEL ? (a[HI:LO] + LANES) : (LANES << 1)`, `(LANES + 1) * 2`, `a[HI:LO] + LANES`, and `LANES << 1`
+  - added `required_rule_texts` for the port-actual ternary/binary samples, including `SEL ? (a[HI:LO] + d) : (d << 1)`, `(a[HI:LO] + d) * 2`, `a[HI:LO] + d`, and `d << 1`
+  - added `required_rule_texts` for the named-port member-path ternary `SEL ? cfg.data : backup.data`
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not run for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-14 - Regex PCRE2 source-derived audit
 ### Context
 RGX's PCRE2 conformance campaign produced `PGEN-RGX-0017` through `PGEN-RGX-0055`, covering syntax accepted or rejected by PCRE2 but not yet faithfully modeled by PGEN's published regex grammar and generated compile-contract layer. PCRE2 does not publish a formal EBNF/PEG; the practical authority is the combination of the PCRE2 prose docs, the PCRE2 testdata corpus, and the hand-written recursive-descent compiler in `src/pcre2_compile.c`.

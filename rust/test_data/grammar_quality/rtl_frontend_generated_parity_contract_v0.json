@@ -3046,6 +3046,19 @@
         "procedural_block",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "conditional_expr": [
+          "SEL ? (a[HI:LO] + LANES) : (LANES << 1)",
+          "(LANES + 1) * 2"
+        ],
+        "additive_expr": [
+          "a[HI:LO] + LANES",
+          "(LANES + 1) * 2"
+        ],
+        "shift_expr": [
+          "LANES << 1"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child #(\n    SEL ? (a[HI:LO] + LANES) : (LANES << 1),\n    (LANES + 1) * 2\n) u_child (\n    .a(a),\n    .y(y)\n);"
@@ -3119,6 +3132,19 @@
         "parameter_override",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "conditional_expr": [
+          "SEL ? (a[HI:LO] + d) : (d << 1)",
+          "(a[HI:LO] + d) * 2"
+        ],
+        "additive_expr": [
+          "a[HI:LO] + d",
+          "(a[HI:LO] + d) * 2"
+        ],
+        "shift_expr": [
+          "d << 1"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child u_child (\n    SEL ? (a[HI:LO] + d) : (d << 1),\n    (a[HI:LO] + d) * 2,\n    y\n);"
@@ -3202,6 +3228,19 @@
         "procedural_block",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "conditional_expr": [
+          "SEL ? (a[HI:LO] + LANES) : (LANES << 1)",
+          "(LANES + 1) * 2"
+        ],
+        "additive_expr": [
+          "a[HI:LO] + LANES",
+          "(LANES + 1) * 2"
+        ],
+        "shift_expr": [
+          "LANES << 1"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child #(\n    .MASK(SEL ? (a[HI:LO] + LANES) : (LANES << 1)),\n    .LANES((LANES + 1) * 2)\n) u_child (\n    .a(a),\n    .y(y)\n);"
@@ -3361,6 +3400,19 @@
         "parameter_override",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "conditional_expr": [
+          "SEL ? (a[HI:LO] + d) : (d << 1)",
+          "(a[HI:LO] + d) * 2"
+        ],
+        "additive_expr": [
+          "a[HI:LO] + d",
+          "(a[HI:LO] + d) * 2"
+        ],
+        "shift_expr": [
+          "d << 1"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child u_child (\n    .a(SEL ? (a[HI:LO] + d) : (d << 1)),\n    .b((a[HI:LO] + d) * 2),\n    .y(y)\n);"
@@ -3397,6 +3449,11 @@
         "generate_region",
         "procedural_block"
       ],
+      "required_rule_texts": {
+        "conditional_expr": [
+          "SEL ? cfg.data : backup.data"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child u_child (.a(SEL ? cfg.data : backup.data), .y(y));"

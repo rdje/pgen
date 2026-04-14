@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-04-14 - Tighten rtl_frontend instance expression proof
+### Achievement Summary
+Extended the `rtl_frontend` generated-contract subset retained-text proof from procedural/dataflow expression lanes into module-instance parameter overrides and port actuals.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `ordered_parameter_override_ternary_binary_expr`
+  - strengthened `named_parameter_override_ternary_binary_expr`
+  - strengthened `ordered_port_actuals_ternary_binary_expr`
+  - strengthened `named_port_actuals_ternary_binary_expr`
+  - strengthened `named_port_actual_ternary_member_paths`
+  - retained high-signal `conditional_expr`, `additive_expr`, and `shift_expr` span evidence without exact-locking every recursive scalar expression span
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Note:
+  - `clippy_on_rust_change` was not run because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-14 - Tighten rtl_frontend expression text proof
 ### Achievement Summary
 Strengthened the `rtl_frontend` generated contract so recursive expression rules can assert selected retained text spans without freezing every incidental scalar subexpression.
