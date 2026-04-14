@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-14 (+0200, task: hosted-actions-manual-only-pause)
+Last updated: 2026-04-14 (+0200, task: rtl-frontend-unpacked-array-element-actual-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,36 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` generated-contract proof for plain unpacked-array element actuals:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - generated-contract labels added:
+    - `unpacked_array_element_actual`
+    - `unpacked_array_element_actual_empty_index`
+  - retained syntax lane:
+    - `child u_child (.a(banks[IDX]), .y(y));`
+    - proves the generated parser retains a named-port actual that passes a plain indexed unpacked-array element
+    - the nearby malformed `banks[]` actual is rejected
+  - proof tightening:
+    - `required_rule_texts` subset-locks the combined `signal_reference` span `banks[IDX]`
+    - exact text locks cover parent `module_instantiation`, `instance_item`, `port_connection`, and `unpacked_dimension` spans
+  - validation:
+    - `target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual.sv`
+    - `target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual_empty_index.sv` rejected as expected
+    - `target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual.sv /tmp/rtl_frontend_unpacked_array_element_actual_ast.json`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` was not run because no Rust source or generated Rust artifacts changed
 - Temporarily paused hosted GitHub Actions auto-runs to conserve account Actions minutes:
   - changed:
     - all tracked files under [.github/workflows](.github/workflows)

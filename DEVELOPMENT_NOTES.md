@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-14 - rtl_frontend unpacked-array element actual proof
+### Context
+The handwritten `rtl_frontend` baseline already exercises elaboration acceptance for unpacked-array element actuals such as `banks[IDX]` in a named port connection. The generated contract had adjacent proof for unpacked-array declarations, indexed struct-member actuals, and indexed struct-member bit-select actuals, but it did not yet lock the simpler plain unpacked-array element actual surface.
+
+That made this a good bounded Phase S proof slice: the generated parser should retain `child u_child (.a(banks[IDX]), .y(y));`, and the same lane should reject malformed empty-index syntax such as `banks[]`.
+
+### Decision
+- Add a focused positive generated-contract sample for a plain unpacked-array element named-port actual.
+- Add a nearby negative sample for the malformed empty-index actual.
+- Use `required_rule_texts` for the high-signal `signal_reference` span `banks[IDX]`, avoiding brittle exact locks over incidental scalar leaves.
+- Use exact `expected_rule_texts` for the parent `module_instantiation`, `instance_item`, `port_connection`, and `unpacked_dimension` spans.
+- Keep `rtl_frontend` at `In Progress`; this tightens a specific generated-contract seam, not the full handwritten-baseline parity proof.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `unpacked_array_element_actual`
+  - added `unpacked_array_element_actual_empty_index`
+  - retained `child u_child (.a(banks[IDX]), .y(y));`
+  - locked rejection for `child u_child (.a(banks[]), .y(y));`
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+
+### Validation
+- Passed:
+  - `target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual.sv`
+  - `target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual_empty_index.sv` rejected as expected with `Parser did not consume full input`
+  - `target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual.sv /tmp/rtl_frontend_unpacked_array_element_actual_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not run for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-14 - Hosted GitHub Actions manual-only pause
 ### Context
 The repository owner received a GitHub Actions usage alert showing 90% of the monthly included Actions minutes consumed for the account. Continuing to run all PGEN workflow gates automatically on every push or pull request would risk paid usage before the billing reset.

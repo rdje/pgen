@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-14 - Tighten rtl_frontend unpacked-array element actual proof
+### Achievement Summary
+Extended the `rtl_frontend` generated contract with a plain unpacked-array element named-port actual and a nearby malformed empty-index reject.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added positive sample `unpacked_array_element_actual`
+  - added negative sample `unpacked_array_element_actual_empty_index`
+  - retained the source shape `child u_child (.a(banks[IDX]), .y(y));`
+  - subset-locked the combined `signal_reference` span `banks[IDX]`
+  - exact-locked the parent `module_instantiation`, `instance_item`, `port_connection`, and `unpacked_dimension` texts
+  - locked rejection for malformed `banks[]` in the same named-port actual position
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual.sv`
+  - `target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual_empty_index.sv` rejected as expected with `Parser did not consume full input`
+  - `target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_unpacked_array_element_actual.sv /tmp/rtl_frontend_unpacked_array_element_actual_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Note:
+  - `clippy_on_rust_change` was not run because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-14 - Pause hosted GitHub Actions auto-runs
 ### Achievement Summary
 Temporarily disabled automatic hosted GitHub Actions runs for PGEN to conserve account Actions minutes. The tracked workflow surface is now manual-only until further notice.

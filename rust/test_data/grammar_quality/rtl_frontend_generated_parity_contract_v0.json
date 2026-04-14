@@ -1511,6 +1511,60 @@
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data), .y(y));\nendmodule\n"
     },
     {
+      "label": "unpacked_array_element_actual",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "parameter_declaration_group",
+        "net_declaration",
+        "packed_range",
+        "unpacked_dimension",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration",
+        "struct_type",
+        "union_type",
+        "enum_type",
+        "parameter_override",
+        "procedural_block",
+        "continuous_assign",
+        "generate_region"
+      ],
+      "required_rule_texts": {
+        "signal_reference": [
+          "banks[IDX]"
+        ]
+      },
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child u_child (.a(banks[IDX]), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(banks[IDX]), .y(y))"
+        ],
+        "port_connection": [
+          ".a(banks[IDX])",
+          ".y(y)"
+        ],
+        "unpacked_dimension": [
+          "[0:DEPTH-1]"
+        ]
+      },
+      "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter DEPTH = 2,\n    parameter IDX = 1\n) (\n    output logic y\n);\nlogic [7:0] banks [0:DEPTH-1];\nchild u_child (.a(banks[IDX]), .y(y));\nendmodule\n"
+    },
+    {
+      "label": "unpacked_array_element_actual_empty_index",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter DEPTH = 2,\n    parameter IDX = 1\n) (\n    output logic y\n);\nlogic [7:0] banks [0:DEPTH-1];\nchild u_child (.a(banks[]), .y(y));\nendmodule\n"
+    },
+    {
       "label": "unpacked_array_struct_member_bitselect_actual",
       "expected_parse_ok": true,
       "require_ast_json": true,

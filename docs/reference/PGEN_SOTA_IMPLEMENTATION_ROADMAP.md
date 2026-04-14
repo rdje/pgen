@@ -3386,6 +3386,10 @@ Why `rtl_frontend` exists:
     - unpacked-array dimensions on ANSI port declarations,
     - unpacked-array dimensions on net declarations with per-declarator AST items,
     - elaboration-time validation/preservation of unpacked-array element actuals such as `banks[IDX]`.
+  - Progress (2026-04-14): tightened the generated-contract proof for the same plain unpacked-array element actual lane:
+    - retained `child u_child (.a(banks[IDX]), .y(y));` through exact parent instantiation/port text plus subset `signal_reference` text,
+    - retained a nearby malformed `banks[]` named-port actual as a negative sample,
+    - kept the live `rtl_frontend` row at `In Progress` because this is proof tightening, not full handwritten-baseline parity closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

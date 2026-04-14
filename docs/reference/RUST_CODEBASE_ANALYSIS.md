@@ -32,7 +32,8 @@ This is a live document, not an archival write-up. It should be amended whenever
   - remaining regex caveats are now deliberate scope-widening questions around full PCRE2 parity, stronger JS/Lua shielding, host-language wrapper parsing, and any future AST-semantic stability promises beyond the current JSON schema contract.
   - current Phase S `rtl_frontend` generated-contract work is proof tightening rather than closure promotion:
     - `expected_rule_texts` in `rtl_frontend_generated_contract_probe` remains the exact full-vector retained-text assertion
-    - `required_rule_texts` now exists for subset retained-text assertions over recursive rules such as `conditional_expr`, `additive_expr`, and `shift_expr`, where the salient span should be proven without freezing every incidental scalar expression subtree
+    - `required_rule_texts` now exists for subset retained-text assertions over recursive rules such as `conditional_expr`, `additive_expr`, `shift_expr`, and `signal_reference`, where the salient span should be proven without freezing every incidental scalar expression subtree
+    - the generated contract now also locks the plain unpacked-array element named-port actual `child u_child (.a(banks[IDX]), .y(y));` plus a nearby malformed `banks[]` rejection, matching the handwritten baseline's simpler unpacked-array element actual lane without changing the live status label
     - the live `rtl_frontend` row remains `In Progress` until broader handwritten-baseline parity/proof closure is achieved
   - downstream regex hardening under `regex_corpus_bundle/` now also has two distinct external-corpus roles:
     - `regex_pcre2_textsafe_corpus_gate` for accepted-syntax widening
