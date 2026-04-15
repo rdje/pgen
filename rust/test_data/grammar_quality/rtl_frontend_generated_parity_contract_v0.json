@@ -2132,6 +2132,7 @@
         "concatenation_expr",
         "generate_region",
         "generate_if",
+        "module_instantiation",
         "instance_item",
         "parameter_override",
         "port_connection"
@@ -2145,6 +2146,18 @@
         ]
       },
       "expected_rule_texts": {
+        "generate_region": [
+          "generate\n    if (SEL) begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));\n    end\nendgenerate"
+        ],
+        "generate_if": [
+          "if (SEL) begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));\n    end"
+        ],
+        "generate_body": [
+          "begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));\n    end"
+        ],
+        "module_instantiation": [
+          "leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));"
+        ],
         "continuous_assign": [
           "assign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};"
         ],

@@ -3385,6 +3385,10 @@ Why `rtl_frontend` exists:
     - `generate_if_else_with_dataflow` now exact-locks `generate_region`, `generate_if`, and both branch-level `generate_body` spans,
     - `generate_if_else_with_local_net_declarations` now exact-locks the same structural spans around local declaration branches,
     - kept the live `rtl_frontend` row at `In Progress` because this is proof tightening, not full handwritten-baseline parity closure.
+  - Progress (2026-04-15): tightened the generated-contract proof for the single-branch generate `if` named-instantiation lane:
+    - `generate_if_with_dataflow_and_named_instantiation` now requires `module_instantiation`,
+    - the same sample now exact-locks `generate_region`, `generate_if`, branch-level `generate_body`, and the full parameterized `module_instantiation` text for `leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));`,
+    - kept the existing dataflow, parameter-override, port-connection, and concatenation evidence in place while leaving the live `rtl_frontend` row at `In Progress`.
   - Progress (2026-04-15): tightened the generated-contract proof for existing generate `for` lanes:
     - `generate_for_with_local_net_declaration` now exact-locks `generate_region` and branch-level `generate_body` spans,
     - `generate_for_named_instantiation_and_dataflow` now exact-locks the same structural spans around the looped instantiation body,

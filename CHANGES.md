@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-15 - Tighten rtl_frontend generate-if instantiation structural proof
+### Achievement Summary
+Tightened the `rtl_frontend` generated contract so the retained single-branch generate `if` sample with a parameterized named instantiation now proves the complete generate and instantiation retained-text surface.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `generate_if_with_dataflow_and_named_instantiation`
+  - added `module_instantiation` to the required AST rule set
+  - exact-locked the surrounding `generate_region` span
+  - exact-locked the `generate_if` span
+  - exact-locked the branch-level `generate_body` span
+  - exact-locked the full `module_instantiation` span for `leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));`
+  - kept the existing `continuous_assign`, `parameter_override`, `port_connection`, `concatenation_expr`, and `instance_item` text evidence
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Note:
+  - `clippy_on_rust_change` was not run because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-15 - Publish regex bounded-lookbehind, Unicode-name, and orphan-\E fixes
 ### Achievement Summary
 Published regex parser release `1.1.23` with integration contract `1.1.25` for RGX reports `PGEN-RGX-0058`, `PGEN-RGX-0059`, and `PGEN-RGX-0060`.

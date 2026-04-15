@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-15 - rtl_frontend generate-if instantiation structural text proof
+### Context
+After the generate `if/else` and generate `for` structural proof tightening, the single-branch `generate_if_with_dataflow_and_named_instantiation` sample still had a weaker proof shape. It required `generate_region` and `generate_if` presence, retained the nested instance item as subset text, and exact-locked important leaf/value surfaces, but it did not exact-lock:
+
+- the surrounding `generate_region`
+- the `generate_if` item
+- the branch-level `generate_body`
+- the full parameterized `module_instantiation`
+
+That left a small but real generated-contract gap: the sample could keep parsing while the generated parser reshaped the retained generate/instantiation spans around the parameterized named instance.
+
+### Decision
+- Strengthen the existing generated-contract sample rather than add a near-duplicate generate case.
+- Use exact `expected_rule_texts` for the compact structural spans and full instantiation.
+- Keep this as proof tightening only; it does not promote `rtl_frontend` beyond `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `generate_if_with_dataflow_and_named_instantiation` now requires `module_instantiation`.
+  - The sample now exact-locks `generate_region`, `generate_if`, `generate_body`, and `module_instantiation` retained text.
+  - Existing `continuous_assign`, `parameter_override`, `port_connection`, `concatenation_expr`, and `instance_item` text checks remain in place.
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not run for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-15 - Regex bounded lookbehind, Unicode names, and orphan class \E
 ### Context
 RGX filed three additional PCRE2-conformance reports against the published regex parser handoff `1.1.22` / contract `1.1.24`.
