@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.22`
+  - `1.1.23`
 - integration contract version:
-  - `1.1.24`
+  - `1.1.25`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3817,14 +3817,15 @@ Current measured operational baseline:
 - family status:
   - `Done`
 - parser-backed family proof:
-  - `parseability_attempts_total=4272`
-  - `parseability_accepted_total=3767`
-  - `parseability_rejected_total=505`
-  - `parseability_parser_rejections_total=505`
-  - `parseability_acceptance_rate_percent=88.18`
-  - `initial_targets=661`
-  - `resolved_targets=661`
+  - `parseability_attempts_total=5238`
+  - `parseability_accepted_total=4538`
+  - `parseability_rejected_total=700`
+  - `parseability_parser_rejections_total=700`
+  - `parseability_acceptance_rate_percent=86.64`
+  - `initial_targets=734`
+  - `resolved_targets=734`
   - `final_targets=0`
+  - `target_attempts=5759`
   - the retained parser-rejection count is target-drive diagnostic evidence from the stimuli-quality lane, not an open family-status blocker
 - broader checked-in corpus proof:
   - `cases_executed=44`
@@ -3892,6 +3893,8 @@ Accepted syntax families in the current published flavor:
 - backreferences:
   - numeric forms such as `\1`
   - named forms such as `\k<name>`, `\k'name'`, and `\k{name}`
+  - Unicode capture names and references such as `(?'ABáC'...)\g{ABáC}` under the UTF-shaped PCRE2 name contract
+  - capture names must be non-empty, must not start with a digit, may contain Unicode letters/digits plus `_`, and are bounded by PCRE2's `128`-byte name limit
   - numeric forms are preserved as `backreference` constructs rather than generic escapes in the AST dump
   - subroutine-reference forms such as `\g{1}` and `\g<1>` are transported through `backreference` / `subroutine_ref`
   - parenthesized returned-capture subroutine forms such as `(?1(1))` and `(?&callee(+1,<cap>,'alt'))` are transported through `subroutine_call` / `returned_capture_subroutine`
@@ -3904,6 +3907,8 @@ Accepted syntax families in the current published flavor:
   - POSIX classes such as `[[:digit:]]`
   - negated POSIX classes such as `[[:^alnum:]]`
   - quoted class literals such as `[z\Qa-d]\E]`, where the quoted region contributes literal class characters
+  - orphan class quote-end markers such as `[\Eabc]`, where `\E` is zero-width and the substantive items remain `a`, `b`, and `c`
+  - range forms such as `[a-\Ec]`, where zero-width `\E` may appear before the substantive right endpoint
 - groups:
   - capturing groups `(abc)`
   - noncapturing groups `(?:abc)`
@@ -3917,6 +3922,8 @@ Accepted syntax families in the current published flavor:
   - negative lookahead
   - positive lookbehind
   - negative lookbehind
+  - bounded variable-length lookbehind such as `(?<=a{1,3})b`
+  - PCRE2 control verbs inside lookbehind such as `(?<=a(*ACCEPT)b)c`
   - non-atomic symbolic lookarounds such as `(?*abc)` and `(?<*abc)`
   - alpha lookaround aliases such as `(*pla:abc)` and `(*napla:abc)`
 - callouts:
@@ -3955,6 +3962,11 @@ Representative accepted examples:
 - `\\o{101}`
 - `\\pL`
 - `[z\\Qa-d]\\E]`
+- `^[\\Eabc]`
+- `^[a-\\Ec]`
+- `(?<=a{1,3})b`
+- `(?<=a(*ACCEPT)b)c`
+- `(?'ABáC'...)\\g{ABáC}`
 - `\\g<1>`
 - `(?1(1))`
 - `(?&callee(+1,<cap>,'alt'))`
@@ -4025,7 +4037,12 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.22` specifically adds PCRE2 short Unicode property escapes and quoted class literals while carrying forward the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.23` specifically adds PCRE2 bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling while carrying forward the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+  - `(?<=a{1,3})b` and `(?<=a(*ACCEPT)b)c` now pass the generated-host compile contract; unbounded forms such as `(?<=a+)b` remain rejected
+  - `(?'ABáC'...)\g{ABáC}` now transports through `named_group`, `name`, `unicode_char`, `backreference`, and `braced_subroutine_ref`
+  - `^[\Eabc]` treats orphan class `\E` as zero-width while retaining `a`, `b`, and `c` as `class_literal` items
+  - `^[a-\Ec]` treats `\E` before the range right-hand side as zero-width rather than as a substantive escaped endpoint
+  - malformed `\k` spellings, empty named references, names beginning with digits, and names beyond PCRE2's `128`-byte limit are rejected by the generated-host compile contract
   - `\pL` and `\PN` now transport through `property_escape` rather than `simple_escape` plus a literal
   - `[z\Qa-d]\E]` now transports the class quote through `quoted_class_literal`, including the quoted `]`
   - invalid short-property spellings such as `\pA`, `\P_`, and bare `\p` are rejected by the generated-host compile contract
@@ -4068,12 +4085,13 @@ Diagnostics and AST behavior:
   - forbidden character-class escapes such as `[\B]`, `[\R]`, `[\X]`
   - descending character-class ranges such as `[z-a]`
   - quantified anchors such as `^+`
-  - variable-length lookbehind such as `(?<=a+)b`
+  - unbounded variable-length lookbehind such as `(?<=a+)b`
   - `\K` inside lookarounds
   - numeric callouts above `255`
   - invalid PCRE2 verb/start-option spellings and quantified non-ACCEPT verbs
   - malformed short Unicode property escapes such as `\pA`
   - empty class quote regions when they would leave no substantive class atom or form an invalid range endpoint
+  - malformed named backreference escapes such as bare `\k` and overlong capture group names
   - invalid POSIX class names
   - scan-substring references to captures that do not exist yet
   - unsupported default-mode escapes such as `\F`, `\l`, `\L`, `\u`, and `\U`
@@ -4134,16 +4152,17 @@ Important interpretation:
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1814`
-  - `parse_expectation_mismatch_total=381`
-  - `false_accept_total=314`
-  - `false_reject_total=67`
+  - `parse_expectation_match_total=1828`
+  - `parse_expectation_mismatch_total=367`
+  - `false_accept_total=309`
+  - `false_reject_total=58`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.22`
-  - integration contract version `1.1.24`
-- the current improvement came from two complementary changes:
+  - parser release version `1.1.23`
+  - integration contract version `1.1.25`
+- the current improvement came from complementary changes:
+  - the grammar and compile-contract layer now accept PCRE2 bounded variable-length lookbehind, Unicode capture names, and orphan `\E` as a zero-width class marker while still rejecting unbounded lookbehind, malformed named references, overlong names, and classes with no substantive atom
   - the grammar now accepts more real PCRE2 surface such as short Unicode property escapes, quoted class literals, `\K`, string callouts, one-digit and whitespace-braced hex/octal escapes, non-atomic lookarounds, script-run groups, scan-substring groups, and strict VERSION conditionals, while treating `{,}` as literal text
-  - the host path now rejects obvious compile-invalid forms such as malformed short Unicode property escapes, empty quoted class regions with no substantive class item, `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, variable-length lookbehind, invalid verbs/start-options, bad scan-substring capture lists, `\K` in lookarounds, and unsupported default-mode escapes
+  - the host path now rejects obvious compile-invalid forms such as malformed short Unicode property escapes, empty quoted class regions with no substantive class item, `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, unbounded variable-length lookbehind, invalid verbs/start-options, bad scan-substring capture lists, `\K` in lookarounds, and unsupported default-mode escapes
 - future normalizer work should stay split by source family:
   - `normalize_pcre2_testdata.py`
   - `normalize_pcre2_compile_oracle.py`

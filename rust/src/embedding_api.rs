@@ -22,10 +22,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.24";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.25";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.22";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.23";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2102,8 +2102,8 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 75);
-        assert_eq!(manifest.failure_samples.len(), 16);
+        assert_eq!(manifest.success_samples.len(), 80);
+        assert_eq!(manifest.failure_samples.len(), 19);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
             manifest
@@ -2302,6 +2302,36 @@ mod tests {
             manifest
                 .success_samples
                 .iter()
+                .any(|sample| sample.name == "orphan_class_quote_end_is_zero_width")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "orphan_class_quote_end_skips_before_range_rhs")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "bounded_variable_length_lookbehind_quantifier")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "variable_length_lookbehind_control_verb_accept")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "unicode_named_group_identifier")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
                 .any(|sample| sample.name == "mark_shorthand_payload_with_open_paren")
         );
         assert!(
@@ -2417,6 +2447,30 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "recursive_named_group_interpolation")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "unbounded_variable_length_lookbehind")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "malformed_named_backreference_escape")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "empty_braced_named_backreference_escape")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "overlong_capture_group_name")
         );
         assert!(
             manifest

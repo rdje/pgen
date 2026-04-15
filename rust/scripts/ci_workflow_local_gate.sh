@@ -2057,10 +2057,16 @@ audit_family_contract_proof_surface() {
     'PGEN_EBNF_STIMULI_QUALITY_CONTRACT="$STIMULI_CONTRACT_FILE"'
   assert_file_contains \
     "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$STIMULI_TARGET_MAX_ATTEMPTS"'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
     'frontend_state_dir: $frontend_state_dir'
   assert_file_contains \
     "rust/scripts/regex_parser_family_contract_gate.sh" \
     'stimuli_contract_file: $stimuli_contract_file'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'stimuli_target_max_attempts: $STIMULI_TARGET_MAX_ATTEMPTS'
   assert_file_contains \
     "rust/scripts/regex_parser_family_contract_gate.sh" \
     'dual_run_summary_json: $dual_run_summary_json'

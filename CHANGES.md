@@ -1,4 +1,86 @@
 # CHANGES.md
+## 2026-04-15 - Publish regex bounded-lookbehind, Unicode-name, and orphan-\E fixes
+### Achievement Summary
+Published regex parser release `1.1.23` with integration contract `1.1.25` for RGX reports `PGEN-RGX-0058`, `PGEN-RGX-0059`, and `PGEN-RGX-0060`.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - widened capture names so PCRE2 UTF-mode Unicode letters can appear in group names and named references
+  - added `stray_class_end_quote` so orphan `\E` inside a non-empty character class is modeled as a zero-width class item
+  - allowed zero-width class markers around range dashes, so forms such as `[a-\Ec]` retain PCRE2's scanner behavior without making `\E` a substantive range endpoint
+- Regenerated tracked parser artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - accepts bounded variable-length lookbehind and PCRE2 control verbs such as `(*ACCEPT)` inside lookbehind
+  - keeps unbounded lookbehind quantifiers such as `+`, `*`, and `{n,}` rejected
+  - validates PCRE2 capture-name shape, including Unicode letters/digits, non-digit first character, and `MAX_NAME_SIZE=128`
+  - treats orphan class `\E` as zero-width in non-empty classes while still rejecting a class with no substantive atom
+  - rejects malformed `\k` named-reference spellings and overlong capture names instead of leaving false accepts
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs) and [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - bumped regex parser release to `1.1.23`
+  - bumped regex integration contract to `1.1.25`
+  - added success samples for bounded variable lookbehind, lookbehind control verbs, Unicode capture names, and orphan `\E` class handling
+  - added failure samples for unbounded lookbehind, malformed named references, empty braced named references, and overlong capture names
+- Ratcheted [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - baseline version `5`
+  - `MIN_MATCH_TOTAL=1828`
+  - `MAX_MISMATCH_TOTAL=367`
+  - `MAX_FALSE_ACCEPT_TOTAL=309`
+  - `MAX_FALSE_REJECT_TOTAL=58`
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](rust/scripts/regex_parser_family_contract_gate.sh):
+  - gives regex target-drive closure a transparent default budget of `10000` attempts through `PGEN_REGEX_FAMILY_CONTRACT_STIMULI_TARGET_MAX_ATTEMPTS`
+  - records the effective budget in text and JSON summaries
+  - preserves the strict family-status rule that `Done` requires `final_targets=0`
+- Updated [rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env](rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env):
+  - forwards `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=10000` into the aggregate SOTA telemetry replay
+  - keeps `regex_combined_telemetry_contract_gate` aligned with the source-side regex family contract budget and the live `Done` computation
+- Updated public/continuity documentation:
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Status impact:
+  - no live parser-family label changed
+  - `regex` remains `Done`
+  - this is PCRE2 compatibility maintenance over the already-published regex contract, not a reopening of the family row
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_compile_validation`
+  - `parseability_probe --parse regex .../PGEN-RGX-0058/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex .../PGEN-RGX-0059/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex .../PGEN-RGX-0060/repro_input.txt --profile regex_default`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_status_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_combined_telemetry_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- Clippy note:
+  - source all-targets clippy passed
+  - generated all-targets clippy executed in non-strict mode and reported generated-parser lint debt, including generated regex/RTL parser template patterns; the wrapper completed successfully under the repository's current generated-clippy policy
+- Latest regex family status snapshot:
+  - `regex_status=Done`
+  - `regex_tracker_alignment_ok=true`
+  - `regex_stimuli_parseability_attempts_total=5238`
+  - `regex_stimuli_parseability_accepted_total=4538`
+  - `regex_stimuli_parseability_parser_rejections_total=700`
+  - `regex_stimuli_initial_targets=734`
+  - `regex_stimuli_resolved_targets=734`
+  - `regex_stimuli_final_targets=0`
+  - `regex_stimuli_target_attempts=5759`
+
 ## 2026-04-15 - Tighten rtl_frontend generate-for structural proof
 ### Achievement Summary
 Tightened the `rtl_frontend` generated contract so the retained generate `for` samples now prove full structural retained text for the surrounding generate region and loop body.

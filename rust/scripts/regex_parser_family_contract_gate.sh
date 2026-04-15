@@ -14,6 +14,7 @@ FRONTEND_GATE="$RUST_DIR/scripts/ebnf_frontend_readiness_gate.sh"
 DUAL_RUN_GATE="$RUST_DIR/scripts/ebnf_frontend_dual_run_diff_gate.sh"
 STIMULI_GATE="$RUST_DIR/scripts/ebnf_stimuli_quality_gate.sh"
 STIMULI_CONTRACT_FILE="${PGEN_REGEX_FAMILY_CONTRACT_STIMULI_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/regex_family_stimuli_contract.json}"
+STIMULI_TARGET_MAX_ATTEMPTS="${PGEN_REGEX_FAMILY_CONTRACT_STIMULI_TARGET_MAX_ATTEMPTS:-10000}"
 
 EXISTING_FRONTEND_STATE_DIR="${PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR:-}"
 EXISTING_DUAL_RUN_STATE_DIR="${PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR:-}"
@@ -118,6 +119,10 @@ require_file "$FRONTEND_GATE"
 require_file "$DUAL_RUN_GATE"
 require_file "$STIMULI_GATE"
 require_file "$STIMULI_CONTRACT_FILE"
+if ! [[ "$STIMULI_TARGET_MAX_ATTEMPTS" =~ ^[0-9]+$ ]] || [[ "$STIMULI_TARGET_MAX_ATTEMPTS" -lt 1 ]]; then
+    echo "error: PGEN_REGEX_FAMILY_CONTRACT_STIMULI_TARGET_MAX_ATTEMPTS must be an integer >= 1" >&2
+    exit 2
+fi
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -144,6 +149,7 @@ if [[ -z "$EXISTING_STIMULI_STATE_DIR" ]]; then
     run_logged "ebnf_stimuli_quality_gate" env \
         PGEN_EBNF_STIMULI_QUALITY_STATE_DIR="$stimuli_state_dir" \
         PGEN_EBNF_STIMULI_QUALITY_CONTRACT="$STIMULI_CONTRACT_FILE" \
+        PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$STIMULI_TARGET_MAX_ATTEMPTS" \
         "$STIMULI_GATE"
 fi
 
@@ -395,6 +401,7 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "stimuli_summary_txt: $stimuli_summary_txt"
     echo "stimuli_summary_csv: $stimuli_summary_csv"
     echo "stimuli_contract_file: $stimuli_contract_file"
+    echo "stimuli_target_max_attempts: $STIMULI_TARGET_MAX_ATTEMPTS"
     echo "stimuli_parseability_report_json: $stimuli_regex_parseability_report_json"
     echo "stimuli_parseability_counterexample_triage_json: $stimuli_regex_parseability_counterexample_triage_json"
     echo "stimuli_parseability_counterexample_triage_txt: $stimuli_regex_parseability_counterexample_triage_txt"
@@ -461,6 +468,7 @@ jq -n \
     --arg stimuli_summary_txt "$stimuli_summary_txt" \
     --arg stimuli_summary_csv "$stimuli_summary_csv" \
     --arg stimuli_contract_file "$stimuli_contract_file" \
+    --argjson stimuli_target_max_attempts "$STIMULI_TARGET_MAX_ATTEMPTS" \
     --arg stimuli_parseability_report_json "$stimuli_regex_parseability_report_json" \
     --arg stimuli_parseability_counterexample_triage_json "$stimuli_regex_parseability_counterexample_triage_json" \
     --arg stimuli_parseability_counterexample_triage_txt "$stimuli_regex_parseability_counterexample_triage_txt" \
@@ -531,6 +539,7 @@ jq -n \
         dual_run_regex_overall: $dual_run_regex_overall,
         dual_run_regex_notes: $dual_run_regex_notes,
         stimuli_contract_file: $stimuli_contract_file,
+        stimuli_target_max_attempts: $stimuli_target_max_attempts,
         stimuli_regex_parseability_required: $stimuli_regex_parseability_required,
         stimuli_regex_parseability_attempts_total: $stimuli_regex_parseability_attempts_total,
         stimuli_regex_parseability_accepted_total: $stimuli_regex_parseability_accepted_total,

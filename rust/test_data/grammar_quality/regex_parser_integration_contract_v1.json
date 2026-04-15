@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.24",
-  "parser_release_version": "1.1.22",
+  "integration_contract_version": "1.1.25",
+  "parser_release_version": "1.1.23",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -157,6 +157,58 @@
         "quoted_class_literal": ["\\Q\\E"]
       },
       "forbidden_rule_names": ["class_range", "class_escape"]
+    },
+    {
+      "name": "orphan_class_quote_end_is_zero_width",
+      "input": "^[\\Eabc]",
+      "required_rule_names": ["char_class", "class_item", "stray_class_end_quote", "class_literal"],
+      "expected_rule_texts": {
+        "stray_class_end_quote": ["\\E"],
+        "class_literal": ["a", "b", "c"]
+      },
+      "forbidden_rule_names": ["class_escape"]
+    },
+    {
+      "name": "orphan_class_quote_end_skips_before_range_rhs",
+      "input": "^[a-\\Ec]",
+      "required_rule_names": ["char_class", "class_item", "class_range", "stray_class_end_quote"],
+      "expected_rule_texts": {
+        "stray_class_end_quote": ["\\E"],
+        "class_range": ["a-\\Ec"]
+      },
+      "forbidden_rule_names": ["class_escape"]
+    },
+    {
+      "name": "bounded_variable_length_lookbehind_quantifier",
+      "input": "(?<=a{1,3})b",
+      "required_rule_names": ["lookaround", "lookbehind_pos", "quantifier"],
+      "expected_rule_texts": {
+        "lookbehind_pos": ["(?<=a{1,3})"],
+        "quantifier": ["{1,3}"]
+      }
+    },
+    {
+      "name": "variable_length_lookbehind_control_verb_accept",
+      "input": "(?<=a(*ACCEPT)b)c",
+      "required_rule_names": ["lookaround", "lookbehind_pos", "directive_verb", "directive_named", "directive_name"],
+      "expected_rule_texts": {
+        "lookbehind_pos": ["(?<=a(*ACCEPT)b)"],
+        "directive_verb": ["(*ACCEPT)"],
+        "directive_named": ["ACCEPT"],
+        "directive_name": ["ACCEPT"]
+      }
+    },
+    {
+      "name": "unicode_named_group_identifier",
+      "input": "(?'ABáC'...)\\g{ABáC}",
+      "required_rule_names": ["named_group", "name", "unicode_char", "backreference", "braced_subroutine_ref"],
+      "expected_rule_texts": {
+        "name": ["ABáC", "ABáC"],
+        "unicode_char": ["á", "á"],
+        "backreference": ["\\g{ABáC}"],
+        "braced_subroutine_ref": ["{ABáC}"]
+      },
+      "forbidden_rule_names": ["simple_escape"]
     },
     {
       "name": "mark_shorthand_payload_with_open_paren",
@@ -744,8 +796,20 @@
       "input": "^+"
     },
     {
-      "name": "variable_length_lookbehind",
+      "name": "unbounded_variable_length_lookbehind",
       "input": "(?<=a+)b"
+    },
+    {
+      "name": "malformed_named_backreference_escape",
+      "input": "\\k"
+    },
+    {
+      "name": "empty_braced_named_backreference_escape",
+      "input": "\\k{}"
+    },
+    {
+      "name": "overlong_capture_group_name",
+      "input": "(?'abcdefghijklmnopqrstuvwxyzABCDEFGabcdefghijklmnopqrstuvwxyzABCDEabcdefghijklmnopqrstuvwxyzABCDEabcdefghijklmnopqrstuvwxyzABCDEFGH'toolong)"
     },
     {
       "name": "unsupported_escape_i",

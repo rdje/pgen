@@ -85,7 +85,7 @@ signed_digits_or_name = signed_digits | name
 signed_digits = sign? digits
 sign           = "+" | "-"
 name           = name_start name_continue*
-name_start     = letter | '_'
+name_start     = letter | '_' | unicode_char
 name_continue  = name_start | digit
 brace_ws       = (' ' | '\t')+
 
@@ -113,17 +113,21 @@ class_body     = class_item*
 }
 class_item     = posix_class
                | quoted_class_literal
+               | stray_class_end_quote
                | class_range
                | class_literal
                | class_escape
 
 quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
 quoted_class_literal_char = letter | digit | whitespace | class_safe_special | ']' | unicode_char
+stray_class_end_quote = "\\E"
 
-@generate: "ch >= '" + escape_char($1) + "' && ch <= '" + escape_char($3) + "'"
-@semantic_value: {type: "range", start: $1, end: $3}
-@validate: ord($1) <= ord($3)
-class_range    = class_atom "-" class_atom
+@generate: "ch >= '" + escape_char($1) + "' && ch <= '" + escape_char($5) + "'"
+@semantic_value: {type: "range", start: $1, end: $5}
+@validate: ord($1) <= ord($5)
+class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom
+class_zero_width = stray_class_end_quote | empty_quoted_class_literal
+empty_quoted_class_literal = "\\Q" "\\E"
 
 @generate: "ch == '" + escape_char($1) + "'"
 @semantic_value: {type: "literal", char: $1}
@@ -153,7 +157,18 @@ posix_negation = "^"
 
 @generate: extract_char_value($1)
 @semantic_value: {type: "atom", value: $1}
-class_atom     = class_escape | class_literal
+class_atom     = class_range_escape | class_literal
+class_range_escape = "\\" class_range_escape_unit
+class_range_escape_unit = hex_escape
+                        | unicode_escape
+                        | octal_escape
+                        | control_escape
+                        | property_escape
+                        | class_range_simple_escape
+class_range_simple_escape = class_range_any_char_no_orphan_quote_end
+class_range_any_char_no_orphan_quote_end = letter_no_upper_e | digit | whitespace | special_char | unicode_char
+letter_no_upper_e = 'A' | 'B' | 'C' | 'D' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+                  | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
 
 @generate: resolve_posix_class_name($1)
 @semantic_value: $1

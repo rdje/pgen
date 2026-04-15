@@ -1,4 +1,90 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-15 - Regex bounded lookbehind, Unicode names, and orphan class \E
+### Context
+RGX filed three additional PCRE2-conformance reports against the published regex parser handoff `1.1.22` / contract `1.1.24`.
+
+- `PGEN-RGX-0058` showed that `(?<=a(*ACCEPT)b)c` was rejected by PGEN's generated-host compile contract as variable-length lookbehind even though PCRE2 accepts bounded variable-length lookbehind and treats `(*ACCEPT)` as a control verb, not as a quantifier.
+- `PGEN-RGX-0059` showed that `(?'ABáC'...)\g{ABáC}` was rejected even though PCRE2 UTF mode allows Unicode letters/digits in capture names, with `MAX_NAME_SIZE=128`, non-empty names, and no leading digit.
+- `PGEN-RGX-0060` showed that `^[\Eabc]` was rejected even though PCRE2's class scanner ignores orphan `\E` as a zero-width marker inside a class.
+
+As before, these are source-derived PCRE2 fixes, not literal sample patches. PCRE2's authority remains prose docs for intent, `src/pcre2_compile.c` for scanner/parser edge cases, and PCRE2 testdata plus oracle gates for regression evidence.
+
+### Source-Derived Findings
+- PCRE2 10.47 accepts bounded variable-length lookbehind. The important PGEN-side line is therefore not "variable length is always rejected"; it is "unbounded lookbehind remains rejected."
+- Star-parenthesized forms such as `(*ACCEPT)` are PCRE2 directive/control-verb groups and must not be mistaken for `*` quantifiers during lookbehind validation.
+- In UTF mode, capture names may use Unicode alphabetic and numeric characters plus underscore, but the first character must not be a digit and the byte length must not exceed `MAX_NAME_SIZE=128`.
+- Inside a character class, orphan `\E` is ignored by the PCRE2 scanner. It contributes no class atom, so `[\Eabc]` is valid but `[\E]` still has no substantive item.
+
+### Decision
+- Publish the change as regex parser release `1.1.23` / integration contract `1.1.25`, preserving regex AST schema version `1`.
+- Model Unicode capture-name syntax in [grammars/regex.ebnf](grammars/regex.ebnf) and enforce PCRE2 name limits in [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs).
+- Keep unbounded-lookbehind rejection in the compile-contract layer rather than over-constraining the context-free grammar.
+- Treat orphan class `\E` as a zero-width class marker in both grammar and compile validation, while still rejecting classes/ranges that have no substantive atom.
+- Keep the regex live row `Done`; this is downstream compatibility maintenance over an already-closed family.
+- Preserve strict `Done` semantics by raising the regex family-contract target-drive budget to a transparent bounded default of `10000`, allowing the enlarged grammar surface to close to `final_targets=0` instead of relaxing the status gate.
+
+### What Was Changed
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - `name_start` now includes `unicode_char`
+  - `class_item` now includes `stray_class_end_quote`
+  - `class_range` permits zero-width markers around the dash
+  - range endpoints avoid treating orphan uppercase `\E` as a substantive escaped endpoint
+- Regenerated:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - replaced the broad variable-lookbehind rejection with an unbounded-quantifier detector
+  - skipped PCRE2 `(*...)` directive groups when looking for lookbehind quantifiers
+  - added PCRE2 capture-name validation and malformed `\k` rejection
+  - treated orphan class `\E` as zero-width and skipped it before substantive range endpoints
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs) and [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - contract version `1.1.25`
+  - parser release version `1.1.23`
+  - `80` success samples
+  - `19` failure samples
+- Updated [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - baseline version `5`
+  - `MIN_MATCH_TOTAL=1828`
+  - `MAX_MISMATCH_TOTAL=367`
+  - `MAX_FALSE_ACCEPT_TOTAL=309`
+  - `MAX_FALSE_REJECT_TOTAL=58`
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](rust/scripts/regex_parser_family_contract_gate.sh):
+  - default target-drive budget `10000`
+  - budget surfaced as `stimuli_target_max_attempts` in text and JSON summaries
+- Updated [rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env](rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env):
+  - forwards the same `10000` target-drive budget into aggregate SOTA telemetry
+  - prevents the combined telemetry gate from recomputing regex status from an older generic `5000`-attempt EBNF stimuli sidecar
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_compile_validation`
+  - `parseability_probe --parse regex .../PGEN-RGX-0058/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex .../PGEN-RGX-0059/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex .../PGEN-RGX-0060/repro_input.txt --profile regex_default`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_status_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_combined_telemetry_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- Clippy note:
+  - source all-targets clippy passed
+  - generated all-targets clippy remains non-strict and currently reports generated-parser lint debt, including generated regex/RTL parser template patterns
+- Latest regex family status summary:
+  - `regex_status=Done`
+  - `regex_tracker_alignment_ok=true`
+  - `regex_stimuli_parseability_attempts_total=5238`
+  - `regex_stimuli_parseability_accepted_total=4538`
+  - `regex_stimuli_parseability_parser_rejections_total=700`
+  - `regex_stimuli_initial_targets=734`
+  - `regex_stimuli_resolved_targets=734`
+  - `regex_stimuli_final_targets=0`
+  - `regex_stimuli_target_attempts=5759`
+  - aggregate SOTA required failures `0`, informational failures `0`, all failures `0`
+
 ## 2026-04-15 - rtl_frontend generate-for structural text proof
 ### Context
 After the generate `if/else` structural proof tightening, the sibling generate `for` samples still had the same kind of leaf-heavy retained-text proof. They exact-locked the loop header/body through `generate_for` and retained local-net or instantiation leaves, but did not yet exact-lock:

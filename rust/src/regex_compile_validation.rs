@@ -4,6 +4,8 @@ pub struct RegexCompileValidationError {
     pub byte_offset: usize,
 }
 
+const PCRE2_MAX_NAME_SIZE: usize = 128;
+
 impl RegexCompileValidationError {
     fn new(byte_offset: usize, message: impl Into<String>) -> Self {
         Self {
@@ -18,6 +20,9 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
         return Err(error);
     }
     if let Some(error) = find_invalid_property_escape(input) {
+        return Err(error);
+    }
+    if let Some(error) = find_invalid_named_escape_or_group_name(input) {
         return Err(error);
     }
     if let Some(error) = find_invalid_counted_quantifier(input) {
@@ -38,7 +43,7 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     if let Some(error) = find_invalid_scan_substring_capture_list(input) {
         return Err(error);
     }
-    if let Some(error) = find_variable_length_lookbehind(input) {
+    if let Some(error) = find_unbounded_quantified_lookbehind(input) {
         return Err(error);
     }
     if let Some(error) = find_invalid_keep_out_escape_in_lookaround(input) {
@@ -162,6 +167,133 @@ fn find_invalid_property_escape(input: &str) -> Option<RegexCompileValidationErr
     }
 
     None
+}
+
+fn find_invalid_named_escape_or_group_name(input: &str) -> Option<RegexCompileValidationError> {
+    let bytes = input.as_bytes();
+    let mut index = 0usize;
+
+    while index < bytes.len() {
+        match bytes[index] {
+            b'\\' => match bytes.get(index + 1).copied() {
+                Some(b'Q') => {
+                    index = skip_quoted_literal_escape(bytes, index);
+                }
+                Some(b'k') => {
+                    let name_start = index + 2;
+                    let Some((name, after_name)) = read_delimited_name_at(bytes, name_start) else {
+                        return Some(RegexCompileValidationError::new(
+                            index,
+                            "malformed named backreference escape",
+                        ));
+                    };
+                    if !is_pcre2_capture_name(name) {
+                        return Some(RegexCompileValidationError::new(
+                            index,
+                            "invalid named backreference escape",
+                        ));
+                    }
+                    index = after_name;
+                }
+                _ => index = skip_regex_escape(bytes, index),
+            },
+            b'[' if !is_extended_class_start(bytes, index) => {
+                index = skip_char_class_for_group(bytes, index)
+                    .map(|end| end + 1)
+                    .unwrap_or(index + 1);
+            }
+            b'(' => {
+                if let Some((name, after_name)) = read_named_group_name_at(bytes, index) {
+                    if !is_pcre2_capture_name(name) {
+                        return Some(RegexCompileValidationError::new(
+                            index,
+                            "invalid capture group name",
+                        ));
+                    }
+                    index = after_name;
+                } else {
+                    index += 1;
+                }
+            }
+            _ => index += 1,
+        }
+    }
+
+    None
+}
+
+fn read_delimited_name_at(bytes: &[u8], start: usize) -> Option<(&str, usize)> {
+    let (name_start, terminator) = match bytes.get(start).copied()? {
+        b'<' => (start + 1, b'>'),
+        b'\'' => (start + 1, b'\''),
+        b'{' => (start + 1, b'}'),
+        _ => return None,
+    };
+    let close = bytes[name_start..]
+        .iter()
+        .position(|byte| *byte == terminator)
+        .map(|offset| name_start + offset)?;
+
+    let mut trimmed_start = name_start;
+    let mut trimmed_end = close;
+    if terminator == b'}' {
+        while matches!(bytes.get(trimmed_start), Some(b' ' | b'\t')) && trimmed_start < close {
+            trimmed_start += 1;
+        }
+        while trimmed_end > trimmed_start
+            && matches!(bytes.get(trimmed_end - 1), Some(b' ' | b'\t'))
+        {
+            trimmed_end -= 1;
+        }
+    }
+
+    let name = std::str::from_utf8(&bytes[trimmed_start..trimmed_end]).ok()?;
+    Some((name, close + 1))
+}
+
+fn read_named_group_name_at(bytes: &[u8], start: usize) -> Option<(&str, usize)> {
+    if bytes.get(start) != Some(&b'(') || bytes.get(start + 1) != Some(&b'?') {
+        return None;
+    }
+
+    match bytes.get(start + 2).copied()? {
+        b'<' => {
+            if matches!(bytes.get(start + 3), Some(b'=') | Some(b'!')) {
+                return None;
+            }
+            read_delimited_name_at(bytes, start + 2)
+        }
+        b'\'' => read_delimited_name_at(bytes, start + 2),
+        b'P' if bytes.get(start + 3) == Some(&b'<') => read_delimited_name_at(bytes, start + 3),
+        _ => None,
+    }
+}
+
+fn is_pcre2_capture_name(name: &str) -> bool {
+    if name.is_empty() || name.len() > PCRE2_MAX_NAME_SIZE {
+        return false;
+    }
+
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if is_pcre2_name_digit(first) {
+        return false;
+    }
+    if !is_pcre2_name_char(first) {
+        return false;
+    }
+
+    chars.all(is_pcre2_name_char)
+}
+
+fn is_pcre2_name_char(ch: char) -> bool {
+    ch == '_' || ch.is_alphabetic() || is_pcre2_name_digit(ch)
+}
+
+fn is_pcre2_name_digit(ch: char) -> bool {
+    ch.is_ascii_digit() || (!ch.is_ascii() && ch.is_numeric())
 }
 
 fn is_short_unicode_property_letter(byte: u8) -> bool {
@@ -645,10 +777,14 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
             && !dash_is_trailing_literal(bytes, index)
             && let Some(left) = previous_atom
         {
-            let (right, after_right) = read_class_atom(bytes, index + 1)?;
-            if matches!(left, ClassAtomKind::NonLiteral)
-                || matches!(right, ClassAtomKind::ZeroWidth)
-            {
+            let (right, after_right) = read_substantive_class_atom(bytes, index + 1)?;
+            let Some(right) = right else {
+                return Err(RegexCompileValidationError::new(
+                    index,
+                    "invalid character class range is not accepted by the regex compile contract",
+                ));
+            };
+            if matches!(left, ClassAtomKind::NonLiteral) {
                 return Err(RegexCompileValidationError::new(
                     index,
                     "invalid character class range is not accepted by the regex compile contract",
@@ -688,13 +824,13 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
             && bytes.get(after_left + 1) != Some(&b']')
             && !dash_is_trailing_literal(bytes, after_left)
         {
-            let (right_atom, after_right) = read_class_atom(bytes, after_left + 1)?;
-            if matches!(right_atom, ClassAtomKind::ZeroWidth) {
+            let (right_atom, after_right) = read_substantive_class_atom(bytes, after_left + 1)?;
+            let Some(right_atom) = right_atom else {
                 return Err(RegexCompileValidationError::new(
                     after_left,
                     "invalid character class range is not accepted by the regex compile contract",
                 ));
-            }
+            };
             if let (ClassAtomKind::Literal(left), ClassAtomKind::Literal(right)) =
                 (left_atom, right_atom)
                 && left > right
@@ -738,9 +874,12 @@ fn read_class_atom(
         if next == b'Q' {
             return Ok(read_quoted_class_atom(bytes, index));
         }
+        if next == b'E' {
+            return Ok((ClassAtomKind::ZeroWidth, index + 2));
+        }
         if matches!(
             next,
-            b'A' | b'B' | b'C' | b'E' | b'G' | b'K' | b'Q' | b'R' | b'X' | b'Z' | b'z'
+            b'A' | b'B' | b'C' | b'G' | b'K' | b'Q' | b'R' | b'X' | b'Z' | b'z'
         ) {
             return Err(RegexCompileValidationError::new(
                 index,
@@ -754,6 +893,23 @@ fn read_class_atom(
         return Ok((ClassAtomKind::Literal(next), after_escape));
     }
     Ok((ClassAtomKind::Literal(bytes[index]), index + 1))
+}
+
+fn read_substantive_class_atom(
+    bytes: &[u8],
+    mut index: usize,
+) -> Result<(Option<ClassAtomKind>, usize), RegexCompileValidationError> {
+    while index < bytes.len() && bytes[index] != b']' {
+        let (atom, after_atom) = read_class_atom(bytes, index)?;
+        if atom.is_substantive() {
+            return Ok((Some(atom), after_atom));
+        }
+        if after_atom <= index {
+            return Ok((None, after_atom));
+        }
+        index = after_atom;
+    }
+    Ok((None, index))
 }
 
 fn read_quoted_class_atom(bytes: &[u8], start: usize) -> (ClassAtomKind, usize) {
@@ -787,6 +943,10 @@ fn dash_is_trailing_literal(bytes: &[u8], dash_index: usize) -> bool {
                 index = after_quote;
                 continue;
             }
+        }
+        if bytes.get(index) == Some(&b'\\') && bytes.get(index + 1) == Some(&b'E') {
+            index += 2;
+            continue;
         }
         break;
     }
@@ -1076,7 +1236,7 @@ fn quantifier_starts_at(bytes: &[u8], index: usize) -> Option<usize> {
     }
 }
 
-fn find_variable_length_lookbehind(input: &str) -> Option<RegexCompileValidationError> {
+fn find_unbounded_quantified_lookbehind(input: &str) -> Option<RegexCompileValidationError> {
     let bytes = input.as_bytes();
     let mut index = 0usize;
 
@@ -1088,10 +1248,10 @@ fn find_variable_length_lookbehind(input: &str) -> Option<RegexCompileValidation
         {
             let body_start = index + 4;
             let body_end = find_matching_group_end(bytes, index)?;
-            if contains_variable_length_quantifier(bytes, body_start, body_end) {
+            if contains_unbounded_quantifier(bytes, body_start, body_end) {
                 return Some(RegexCompileValidationError::new(
                     index,
-                    "variable-length lookbehind is not accepted by the regex compile contract",
+                    "unbounded variable-length lookbehind is not accepted by the regex compile contract",
                 ));
             }
             index = body_end + 1;
@@ -1261,43 +1421,33 @@ fn skip_char_class_for_group(bytes: &[u8], start: usize) -> Option<usize> {
     None
 }
 
-fn contains_variable_length_quantifier(bytes: &[u8], start: usize, end: usize) -> bool {
+fn contains_unbounded_quantifier(bytes: &[u8], start: usize, end: usize) -> bool {
     let mut index = start;
-    let mut in_char_class = false;
 
     while index < end {
-        if in_char_class {
-            if bytes[index] == b'\\' {
-                index = skip_regex_escape(bytes, index);
-                continue;
-            }
-            if bytes[index] == b']' {
-                in_char_class = false;
-            }
-            index += 1;
-            continue;
-        }
-
         match bytes[index] {
             b'\\' => index = skip_regex_escape(bytes, index),
             b'[' => {
-                in_char_class = true;
-                index += 1;
+                index = skip_char_class_for_group(bytes, index)
+                    .map(|class_end| class_end + 1)
+                    .unwrap_or(index + 1);
+            }
+            b'(' if bytes.get(index + 1) == Some(&b'*') => {
+                if let Some(group_end) = star_directive_group_end_at(bytes, index) {
+                    index = group_end + 1;
+                } else {
+                    index += 2;
+                }
             }
             b'*' | b'+' => return true,
-            b'?' => {
-                if bytes.get(index.wrapping_sub(1)) != Some(&b'(') {
-                    return true;
-                }
-                index += 1;
-            }
+            b'?' => index += 1,
             b'{' => {
                 if let Some(close) = bytes[index + 1..end].iter().position(|byte| *byte == b'}') {
                     let close = index + 1 + close;
                     let body = std::str::from_utf8(&bytes[index + 1..close])
                         .ok()
                         .unwrap_or("");
-                    if counted_quantifier_is_variable(body) {
+                    if counted_quantifier_has_unbounded_max(body) {
                         return true;
                     }
                     index = close + 1;
@@ -1312,21 +1462,42 @@ fn contains_variable_length_quantifier(bytes: &[u8], start: usize, end: usize) -
     false
 }
 
-fn counted_quantifier_is_variable(body: &str) -> bool {
-    let body = body.trim();
-    if body.is_empty() {
-        return false;
+fn star_directive_group_end_at(bytes: &[u8], start: usize) -> Option<usize> {
+    if bytes.get(start) != Some(&b'(') || bytes.get(start + 1) != Some(&b'*') {
+        return None;
     }
+
+    let name_start = start + 2;
+    let mut cursor = name_start;
+    while let Some(byte) = bytes.get(cursor).copied() {
+        if matches!(byte, b':' | b')' | b'=') {
+            break;
+        }
+        cursor += 1;
+    }
+
+    let delimiter = bytes.get(cursor).copied()?;
+    let name = std::str::from_utf8(&bytes[name_start..cursor]).ok()?;
+
+    if is_non_verb_star_group_name(name) {
+        return None;
+    }
+
+    if name.is_empty() {
+        return (delimiter == b':').then(|| find_star_verb_end(bytes, start))?;
+    }
+
+    if is_pcre2_start_option_name(name) || pcre2_verb_argument_rule(name).is_some() {
+        return find_star_verb_end(bytes, start);
+    }
+
+    None
+}
+
+fn counted_quantifier_has_unbounded_max(body: &str) -> bool {
     let parts: Vec<&str> = body.split(',').map(str::trim).collect();
     match parts.as_slice() {
-        [single] => single.is_empty(),
-        [left, right] => {
-            if left.is_empty() || right.is_empty() {
-                true
-            } else {
-                left != right
-            }
-        }
+        [_, ""] => true,
         _ => false,
     }
 }
@@ -1421,9 +1592,22 @@ mod tests {
     }
 
     #[test]
-    fn rejects_orphan_quote_end_in_character_class() {
+    fn allows_orphan_quote_end_in_non_empty_character_class() {
+        for input in [
+            r"^[\Eabc]",
+            r"^[a-\Ec]",
+            r"^[a\E\E-\Ec]",
+            r"^[\E\Qa\E-\Qz\E]+",
+        ] {
+            validate_regex_compile_contract(input)
+                .unwrap_or_else(|err| panic!("{input:?} should be accepted: {err:?}"));
+        }
+    }
+
+    #[test]
+    fn rejects_orphan_quote_end_only_character_class() {
         let error = validate_regex_compile_contract(r"[\E]AAA")
-            .expect_err("orphan quote-end escape remains invalid in this contract");
+            .expect_err("orphan quote-end escape does not create a class atom by itself");
         assert!(error.message.contains("class"));
     }
 
@@ -1540,6 +1724,32 @@ mod tests {
     }
 
     #[test]
+    fn allows_unicode_capture_names_and_named_backreferences() {
+        validate_regex_compile_contract("(?'ABáC'...)\u{5c}g{ABáC}")
+            .expect("PCRE2 UTF-mode names may contain Unicode letters");
+        validate_regex_compile_contract("(?<ABáC>...)\u{5c}k<ABáC>")
+            .expect("named backreference accepts the same Unicode name shape");
+    }
+
+    #[test]
+    fn rejects_malformed_named_backreference_escapes() {
+        for input in [r"\k", r"\kabc", r"\k''", r"\k<>", r"\k{}"] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("malformed named backreference must be rejected");
+            assert!(error.message.contains("named backreference"));
+        }
+    }
+
+    #[test]
+    fn rejects_capture_names_beyond_pcre2_limit() {
+        let too_long_name = "abcdefghijklmnopqrstuvwxyzABCDEFGabcdefghijklmnopqrstuvwxyzABCDEabcdefghijklmnopqrstuvwxyzABCDEabcdefghijklmnopqrstuvwxyzABCDEFGH";
+        let input = format!("(?'{too_long_name}'toolong)");
+        let error = validate_regex_compile_contract(&input)
+            .expect_err("PCRE2 limits capture names to MAX_NAME_SIZE bytes");
+        assert!(error.message.contains("capture group name"));
+    }
+
+    #[test]
     fn rejects_descending_class_range() {
         let error = validate_regex_compile_contract("[z-a]").expect_err("must reject [z-a]");
         assert!(error.message.contains("descending"));
@@ -1552,10 +1762,36 @@ mod tests {
     }
 
     #[test]
-    fn rejects_variable_length_lookbehind() {
-        let error = validate_regex_compile_contract("(?<=a+)b")
-            .expect_err("must reject variable lookbehind");
-        assert!(error.message.contains("lookbehind"));
+    fn allows_pcre2_variable_length_lookbehind_at_contract_layer() {
+        for input in [
+            "(?<=a{1,3})b",
+            "(?<=ab?c)d",
+            "(?<=a(*ACCEPT)b)c",
+            "(?<=a(*COMMIT)b)c",
+            "(?<=a(*FAIL)b)c",
+            "(?<=a(*PRUNE)b)c",
+            "(?<=a(*SKIP)b)c",
+            "(?<=a(*THEN)b)c",
+            "(?<=a(*:MARK)b)c",
+        ] {
+            validate_regex_compile_contract(input)
+                .unwrap_or_else(|err| panic!("{input:?} should be accepted: {err:?}"));
+        }
+    }
+
+    #[test]
+    fn rejects_unbounded_variable_length_lookbehind() {
+        for input in [
+            "(?<=a+)b",
+            "(?<=a*)b",
+            "(?<=a{2,})b",
+            "(?<=ab(c+)d)ef",
+            "(?<=ab(?<=c+)d)ef",
+        ] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("unbounded lookbehind length must remain rejected");
+            assert!(error.message.contains("lookbehind"));
+        }
     }
 
     #[test]
