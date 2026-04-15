@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-12
+Last updated: 2026-04-15
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -3391,6 +3391,10 @@ Why `rtl_frontend` exists:
   - Progress (2026-04-14): tightened the generated-contract proof for the same plain unpacked-array element actual lane:
     - retained `child u_child (.a(banks[IDX]), .y(y));` through exact parent instantiation/port text plus subset `signal_reference` text,
     - retained a nearby malformed `banks[]` named-port actual as a negative sample,
+    - kept the live `rtl_frontend` row at `In Progress` because this is proof tightening, not full handwritten-baseline parity closure.
+  - Progress (2026-04-15): tightened the generated-contract proof for existing generate `if/else` lanes:
+    - `generate_if_else_with_dataflow` now exact-locks `generate_region`, `generate_if`, and both branch-level `generate_body` spans,
+    - `generate_if_else_with_local_net_declarations` now exact-locks the same structural spans around local declaration branches,
     - kept the live `rtl_frontend` row at `In Progress` because this is proof tightening, not full handwritten-baseline parity closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,

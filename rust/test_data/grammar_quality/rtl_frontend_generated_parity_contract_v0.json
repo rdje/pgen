@@ -2183,6 +2183,16 @@
         "kw_else": [
           "else"
         ],
+        "generate_region": [
+          "generate\n    if (SEL) begin : gen_true\n        assign mid = a;\n    end else begin : gen_false\n        assign mid = 0;\n    end\nendgenerate"
+        ],
+        "generate_if": [
+          "if (SEL) begin : gen_true\n        assign mid = a;\n    end else begin : gen_false\n        assign mid = 0;\n    end"
+        ],
+        "generate_body": [
+          "begin : gen_true\n        assign mid = a;\n    end",
+          "begin : gen_false\n        assign mid = 0;\n    end"
+        ],
         "continuous_assign": [
           "assign mid = a;",
           "assign mid = 0;",
@@ -2215,6 +2225,16 @@
       "expected_rule_texts": {
         "kw_else": [
           "else"
+        ],
+        "generate_region": [
+          "generate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\nendgenerate"
+        ],
+        "generate_if": [
+          "if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end"
+        ],
+        "generate_body": [
+          "begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end",
+          "begin : no_extra\n        logic dummy;\n    end"
         ],
         "net_declaration": [
           "logic [TOTAL-1:0] extra;",

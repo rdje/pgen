@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-15 - rtl_frontend generate-if/else structural text proof
+### Context
+The `rtl_frontend` generated contract already retained representative generate `if/else` samples for both continuous-dataflow branches and local-net declaration branches. Those samples proved rule presence plus important leaf text, but they did not yet lock the complete generated structural spans for:
+
+- the surrounding `generate_region`
+- the `generate_if` item
+- the true and false branch-level `generate_body` nodes
+
+That left a small proof gap: the generated parser could keep accepting the samples while accidentally narrowing, widening, or reshaping the retained structural spans around the generate construct.
+
+### Decision
+- Strengthen the existing generated-contract samples instead of adding another near-duplicate generate example.
+- Use exact `expected_rule_texts` for the structural generate spans because these two samples are compact and deterministic.
+- Keep this as proof tightening only; it does not promote `rtl_frontend` beyond `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `generate_if_else_with_dataflow` now exact-locks `generate_region`, `generate_if`, and both `generate_body` spans.
+  - `generate_if_else_with_local_net_declarations` now exact-locks `generate_region`, `generate_if`, and both `generate_body` spans.
+  - Existing `kw_else`, `continuous_assign`, and `net_declaration` text locks remain in place.
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not run for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-14 - Regex short Unicode properties and quoted class literals
 ### Context
 RGX filed two PCRE2-conformance reports against the published regex parser handoff `1.1.21` / contract `1.1.23`.
