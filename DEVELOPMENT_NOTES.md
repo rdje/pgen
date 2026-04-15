@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-15 - rtl_frontend generate-for structural text proof
+### Context
+After the generate `if/else` structural proof tightening, the sibling generate `for` samples still had the same kind of leaf-heavy retained-text proof. They exact-locked the loop header/body through `generate_for` and retained local-net or instantiation leaves, but did not yet exact-lock:
+
+- the surrounding `generate_region`
+- the branch-level `generate_body`
+
+That made `generate_for` the next natural bounded Phase S proof slice.
+
+### Decision
+- Strengthen the existing generated-contract samples rather than add a near-duplicate generate-for case.
+- Use exact `expected_rule_texts` for the compact structural spans.
+- Keep this as proof tightening only; it does not promote `rtl_frontend` beyond `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `generate_for_with_local_net_declaration` now exact-locks `generate_region` and `generate_body` spans.
+  - `generate_for_named_instantiation_and_dataflow` now exact-locks `generate_region` and `generate_body` spans.
+  - Existing `generate_for`, `net_declaration`, `genvar_declaration`, `port_connection`, and `continuous_assign` text locks remain in place.
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not run for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-15 - rtl_frontend generate-if/else structural text proof
 ### Context
 The `rtl_frontend` generated contract already retained representative generate `if/else` samples for both continuous-dataflow branches and local-net declaration branches. Those samples proved rule presence plus important leaf text, but they did not yet lock the complete generated structural spans for:

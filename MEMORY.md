@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-15 (+0200, task: rtl-frontend-generate-if-else-structural-proof)
+Last updated: 2026-04-15 (+0200, task: rtl-frontend-generate-for-structural-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,29 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` generated-contract proof for generate `for` structural retained text:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - generated-contract labels strengthened:
+    - `generate_for_with_local_net_declaration`
+    - `generate_for_named_instantiation_and_dataflow`
+  - proof tightening:
+    - exact `expected_rule_texts` now cover `generate_region`
+    - exact `expected_rule_texts` now cover branch-level `generate_body`
+    - existing `generate_for`, local-net, genvar, hierarchy, port-connection, and continuous-assign text locks remain in place
+  - validation:
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` was not run because no Rust source or generated Rust artifacts changed
 - Tightened `rtl_frontend` generated-contract proof for generate `if/else` structural retained text:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

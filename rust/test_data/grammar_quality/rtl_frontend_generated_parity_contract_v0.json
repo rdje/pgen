@@ -2266,8 +2266,14 @@
         "continuous_assign"
       ],
       "expected_rule_texts": {
+        "generate_region": [
+          "generate\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate"
+        ],
         "generate_for": [
           "for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end"
+        ],
+        "generate_body": [
+          "begin : lanes\n        logic tap;\n    end"
         ],
         "net_declaration": [
           "logic tap;"
@@ -2304,8 +2310,14 @@
         "genvar_declaration": [
           "genvar i;"
         ],
+        "generate_region": [
+          "generate\n    for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end\nendgenerate"
+        ],
         "generate_for": [
           "for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end"
+        ],
+        "generate_body": [
+          "begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end"
         ],
         "port_connection": [
           ".a(a)",

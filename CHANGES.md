@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-15 - Tighten rtl_frontend generate-for structural proof
+### Achievement Summary
+Tightened the `rtl_frontend` generated contract so the retained generate `for` samples now prove full structural retained text for the surrounding generate region and loop body.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `generate_for_with_local_net_declaration`
+  - strengthened `generate_for_named_instantiation_and_dataflow`
+  - exact-locked the surrounding `generate_region` spans
+  - exact-locked the `generate_body` spans
+  - kept the existing `generate_for`, local-net, genvar, hierarchy, port-connection, and continuous-assign text locks
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Note:
+  - `clippy_on_rust_change` was not run because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-15 - Tighten rtl_frontend generate-if/else structural proof
 ### Achievement Summary
 Tightened the `rtl_frontend` generated contract so the retained generate `if/else` samples now prove full structural retained text for the generate region, conditional item, and branch bodies.
