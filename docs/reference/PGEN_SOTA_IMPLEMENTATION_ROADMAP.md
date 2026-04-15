@@ -3393,6 +3393,11 @@ Why `rtl_frontend` exists:
     - `generate_for_with_local_net_declaration` now exact-locks `generate_region` and branch-level `generate_body` spans,
     - `generate_for_named_instantiation_and_dataflow` now exact-locks the same structural spans around the looped instantiation body,
     - kept the live `rtl_frontend` row at `In Progress` because this is proof tightening, not full handwritten-baseline parity closure.
+  - Progress (2026-04-16): promoted compact hierarchy retained-text checks from subset assertions to exact generated-contract proof:
+    - package-backed constant-flow samples now exact-lock their full `module_instantiation` spans,
+    - `unpacked_array_struct_member_actual` now exact-locks its `instance_item` span,
+    - `generate_if_with_dataflow_and_named_instantiation` and `generate_for_named_instantiation_and_dataflow` now exact-lock their generate-contained `instance_item` spans, and the generate-for sample also exact-locks its `module_instantiation` span,
+    - kept `required_rule_texts` focused on recursive expression or signal-reference spans while leaving the live `rtl_frontend` row at `In Progress`.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend exact hierarchy retained-text proof
+### Context
+The `rtl_frontend` generated contract already had a useful split between exact retained-text assertions and subset retained-text assertions:
+
+- `expected_rule_texts` proves the full retained-text vector for compact, stable rules.
+- `required_rule_texts` proves selected salient spans for recursive expression-like rules where exact full-vector locks would be brittle.
+
+After the previous generate `if` / `for` proof slices, a few hierarchy rules still sat in the subset bucket even though their retained spans were compact and single-occurrence in their samples. That made the contract slightly weaker than it needed to be for hierarchy/instantiation proof.
+
+### Decision
+- Promote compact hierarchy retained-text checks from `required_rule_texts` to exact `expected_rule_texts`.
+- Keep subset retained-text assertions for recursive expression and signal-reference spans.
+- Keep this as proof tightening only; it does not promote `rtl_frontend` beyond `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - exact-locked `module_instantiation` in the package-qualified, header-wildcard-imported, and module-named-imported package constant flow samples.
+  - exact-locked `instance_item` in the unpacked-array struct-member actual sample.
+  - exact-locked `instance_item` in the single-branch generate-if named-instantiation sample.
+  - exact-locked both `module_instantiation` and `instance_item` in the generate-for named-instantiation/dataflow sample.
+  - retained subset checks only for recursive expression or signal-reference spans where exact full-vector locking would overfit incidental subtrees.
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Clippy note:
+  - not required for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-15 - rtl_frontend generate-if instantiation structural text proof
 ### Context
 After the generate `if/else` and generate `for` structural proof tightening, the single-branch `generate_if_with_dataflow_and_named_instantiation` sample still had a weaker proof shape. It required `generate_region` and `generate_if` presence, retained the nested instance item as subset text, and exact-locked important leaf/value surfaces, but it did not exact-lock:

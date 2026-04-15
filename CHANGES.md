@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-04-16 - Promote rtl_frontend hierarchy text locks to exact proof
+### Achievement Summary
+Tightened the `rtl_frontend` generated contract by moving the remaining hierarchy retained-text checks for compact instantiation spans from subset assertions into exact `expected_rule_texts`.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - promoted `module_instantiation` text locks to exact checks for:
+    - `package_qualified_constant_parameter_flow`
+    - `header_wildcard_imported_package_constant_flow`
+    - `module_named_imported_package_constant_flow`
+    - `generate_for_named_instantiation_and_dataflow`
+  - promoted `instance_item` text locks to exact checks for:
+    - `unpacked_array_struct_member_actual`
+    - `generate_if_with_dataflow_and_named_instantiation`
+    - `generate_for_named_instantiation_and_dataflow`
+  - left `required_rule_texts` focused on recursive expression or signal-reference spans where the salient retained text should be proven without freezing every incidental subtree.
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Note:
+  - `clippy_on_rust_change` is not required because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-15 - Tighten rtl_frontend generate-if instantiation structural proof
 ### Achievement Summary
 Tightened the `rtl_frontend` generated contract so the retained single-branch generate `if` sample with a parameterized named instantiation now proves the complete generate and instantiation retained-text surface.
