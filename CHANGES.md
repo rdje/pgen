@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend builtin integral typed-net proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract sample for builtin integral atom typed net declarations so it now proves retained datatype and keyword text for `byte`, `shortint`, and `longint`, not only the surrounding net declarations.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `builtin_integral_atom_typed_net_declarations`
+  - now requires `port_group` rule evidence in addition to the existing module, port-list, builtin-data-type, net-declaration, and keyword evidence
+  - exact-locks:
+    - builtin data-type retained text for `logic`, `byte`, `shortint`, and `longint`
+    - keyword retained text for `byte`, `shortint`, and `longint`
+    - the simple `output logic y` port-list and port-group shell
+    - the existing `byte lane;`, `shortint offset;`, and `longint cycles;` net declarations
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic width/evaluation closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_builtin_integral_atom_typed_net_declarations.sv /tmp/rtl_frontend_builtin_integral_atom_typed_net_declarations_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+
 ## 2026-04-16 - Tighten rtl_frontend unpacked-array port/net proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract sample for unpacked-array ports and nets so it now proves the retained dimensional declaration text, not only rule presence and net-item names.

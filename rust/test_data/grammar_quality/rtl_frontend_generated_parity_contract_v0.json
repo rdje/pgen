@@ -996,6 +996,7 @@
       "required_rule_names": [
         "module_declaration",
         "port_list",
+        "port_group",
         "builtin_data_type",
         "net_declaration",
         "kw_byte",
@@ -1010,10 +1011,31 @@
         "typedef_declaration"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "byte",
+          "shortint",
+          "longint"
+        ],
+        "kw_byte": [
+          "byte"
+        ],
+        "kw_longint": [
+          "longint"
+        ],
+        "kw_shortint": [
+          "shortint"
+        ],
         "net_declaration": [
           "byte lane;",
           "shortint offset;",
           "longint cycles;"
+        ],
+        "port_group": [
+          "output logic y"
+        ],
+        "port_list": [
+          "output logic y"
         ]
       },
       "sample": "module top (\n    output logic y\n);\nbyte lane;\nshortint offset;\nlongint cycles;\nendmodule\n"

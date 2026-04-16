@@ -3427,6 +3427,10 @@ Why `rtl_frontend` exists:
     - `unpacked_array_ports_and_nets` now exact-locks the full ANSI port list, individual port groups, full module-body net declaration, net items, and retained packed/unpacked dimension spans,
     - recursive expression assertions now prove `DEPTH-1` and the repeated `DEPTH` references while leaving semantic shape evaluation outside this generated-parser slice,
     - kept the live `rtl_frontend` row at `In Progress` because this is proof tightening, not full generated semantic closure.
+  - Progress (2026-04-16): tightened builtin integral atom typed-net retained-text proof:
+    - `builtin_integral_atom_typed_net_declarations` now exact-locks the `builtin_data_type` vector for `logic`, `byte`, `shortint`, and `longint`,
+    - keyword retained text is now exact-locked for `byte`, `shortint`, and `longint`, alongside the `output logic y` shell and the three builtin typed net declarations,
+    - kept the live `rtl_frontend` row at `In Progress` because this is syntax/AST retained-text proof tightening, not semantic builtin-width evaluation closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

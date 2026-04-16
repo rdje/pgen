@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend builtin integral typed-net retained-text tightening
+### Context
+The handwritten `rtl_frontend` baseline includes builtin integral atom typed net handling for `byte`, `shortint`, and `longint`, including known widths used by later semantic/elaboration checks.
+
+The generated contract already had a positive `builtin_integral_atom_typed_net_declarations` sample, but it mostly proved the three net-declaration retained texts plus keyword rule presence. It did not exact-lock the `builtin_data_type` vector, the keyword retained text, or the simple output port shell.
+
+### Decision
+- Tighten the existing sample rather than add a duplicate.
+- Exact-lock the compact retained texts that matter for generated-parser parity:
+  - `builtin_data_type`: `logic`, `byte`, `shortint`, `longint`
+  - keyword spans: `byte`, `shortint`, `longint`
+  - `output logic y` through both `port_list` and `port_group`
+  - the existing builtin typed net declarations
+- Keep width semantics out of this generated-parser claim; the generated contract is proving syntax/AST retention, not semantic width evaluation.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `port_group` required rule evidence to `builtin_integral_atom_typed_net_declarations`
+  - exact-locked builtin datatype, keyword, port-list, port-group, and net-declaration retained text for the sample
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_builtin_integral_atom_typed_net_declarations.sv /tmp/rtl_frontend_builtin_integral_atom_typed_net_declarations_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend unpacked-array port/net retained-text tightening
 ### Context
 The handwritten `rtl_frontend` baseline includes `parses_unpacked_array_ports_and_nets`, which is a foundational declaration-shape test for:
