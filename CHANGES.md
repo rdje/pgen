@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend inline enum logic proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract sample for inline enum logic typed net declarations so it now proves the retained enum base, packed range, datatype vector, enum body, and port shell.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `inline_enum_logic_typed_net_declaration`
+  - now requires `port_group` and `packed_range` rule evidence in addition to the existing module, port-list, enum, builtin-data-type, and net-declaration evidence
+  - exact-locks:
+    - both retained `logic` builtin datatype spans
+    - enum base type `logic`
+    - packed range `[1:0]`
+    - the full inline enum type body
+    - the simple `output logic y` port-list and port-group shell
+    - the existing full inline enum net declaration
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic enum-value/type evaluation closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_inline_enum_logic_typed_net_declaration.sv /tmp/rtl_frontend_inline_enum_logic_typed_net_declaration_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+
 ## 2026-04-16 - Tighten rtl_frontend builtin integral typed-net proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract sample for builtin integral atom typed net declarations so it now proves retained datatype and keyword text for `byte`, `shortint`, and `longint`, not only the surrounding net declarations.

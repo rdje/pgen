@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend inline enum logic retained-text tightening
+### Context
+The generated contract already had a positive `inline_enum_logic_typed_net_declaration` sample for `enum logic [1:0] { ... } state;`, but it mostly locked the enum base type, enum items, and full net declaration. It did not require the packed-range rule, did not exact-lock the enum type body separately from the declaration, and did not prove the duplicate `logic` datatype spans from the output port and enum base.
+
+### Decision
+- Tighten the existing sample rather than add a duplicate.
+- Exact-lock the compact retained texts that matter for generated-parser parity:
+  - two `builtin_data_type` spans, both `logic`
+  - `enum_base_type` as `logic`
+  - `packed_range` as `[1:0]`
+  - full `enum_type` body without the net name
+  - `output logic y` through both `port_list` and `port_group`
+  - the existing full inline enum net declaration
+- Keep enum value/type semantics out of this generated-parser claim; this slice proves syntax/AST retention only.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `port_group` and `packed_range` required rule evidence to `inline_enum_logic_typed_net_declaration`
+  - exact-locked builtin datatype, enum-type, enum-base, packed-range, port-list, port-group, and net-declaration retained text for the sample
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_inline_enum_logic_typed_net_declaration.sv /tmp/rtl_frontend_inline_enum_logic_typed_net_declaration_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend builtin integral typed-net retained-text tightening
 ### Context
 The handwritten `rtl_frontend` baseline includes builtin integral atom typed net handling for `byte`, `shortint`, and `longint`, including known widths used by later semantic/elaboration checks.

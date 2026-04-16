@@ -1078,10 +1078,12 @@
       "required_rule_names": [
         "module_declaration",
         "port_list",
+        "port_group",
         "enum_type",
         "enum_base_type",
         "enum_item",
         "builtin_data_type",
+        "packed_range",
         "net_declaration"
       ],
       "forbidden_rule_names": [
@@ -1091,6 +1093,10 @@
         "named_data_type"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "logic"
+        ],
         "enum_base_type": [
           "logic"
         ],
@@ -1098,8 +1104,20 @@
           "IDLE = 0",
           "BUSY = 1"
         ],
+        "enum_type": [
+          "enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n}"
+        ],
         "net_declaration": [
           "enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state;"
+        ],
+        "packed_range": [
+          "[1:0]"
+        ],
+        "port_group": [
+          "output logic y"
+        ],
+        "port_list": [
+          "output logic y"
         ]
       },
       "sample": "module top (\n    output logic y\n);\nenum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state;\nendmodule\n"
