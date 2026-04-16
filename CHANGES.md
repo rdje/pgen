@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend indexed unpacked-array actual proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for indexed unpacked-array actuals so they now prove more of the retained struct body, array declaration, packed/unpacked dimensions, and member-path actual text while preserving the existing hierarchy and connection checks.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `unpacked_array_struct_member_actual`
+  - strengthened `unpacked_array_element_actual`
+  - strengthened `unpacked_array_struct_member_bitselect_actual`
+  - now requires and exact-locks the full module-instantiation text for the indexed struct-member actual lane
+  - now subset-locks `cfgs[IDX].data`, `cfgs[IDX].data[BIT]`, the inline `struct packed { ... }` body, `logic [7:0] banks [0:DEPTH-1];`, `[7:0]`, and `[0:1]` on the relevant indexed unpacked-array lanes
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic array indexing, member legality, parameter evaluation, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend inline struct-member actual proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for inline struct-member named-port actuals so they now prove the retained inline struct body, relevant declaration or dimension text, and salient member-path actual text in addition to the existing hierarchy and connection evidence.

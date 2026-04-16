@@ -3475,6 +3475,10 @@ Why `rtl_frontend` exists:
     - `unindexed_unpacked_array_struct_member_actual_parse_surface` and `unknown_inline_struct_member_actual_parse_surface` now subset-lock the inline `struct packed { ... }` body in addition to existing hierarchy and port-connection evidence,
     - the unindexed unpacked-array lane now subset-locks `cfgs.data` and `[0:1]`, while the unknown inline-member lane subset-locks `struct packed { ... } cfg;`,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic unindexed-array member legality, unknown-member rejection, or elaboration closure.
+  - Progress (2026-04-17): tightened indexed unpacked-array actual retained-text proof:
+    - `unpacked_array_struct_member_actual`, `unpacked_array_element_actual`, and `unpacked_array_struct_member_bitselect_actual` now prove richer retained syntax around indexed member paths, array declarations, dimensions, and hierarchy,
+    - salient retained text now includes `cfgs[IDX].data`, `cfgs[IDX].data[BIT]`, the inline `struct packed { ... }` body, `logic [7:0] banks [0:DEPTH-1];`, `[7:0]`, `[0:1]`, and the indexed struct-member `module_instantiation` span,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic array indexing, member legality, parameter evaluation, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

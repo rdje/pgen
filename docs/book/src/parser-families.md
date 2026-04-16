@@ -76,6 +76,8 @@ The named-port union-member actual lane now exact-locks the inline packed-union 
 
 The inline struct-member actual lane now also subset-locks the inline `struct packed { ... }` body for both unindexed unpacked-array and unknown inline-member parse surfaces. The unindexed unpacked-array sample additionally locks `cfgs.data` and `[0:1]`, while the unknown inline-member sample locks `struct packed { ... } cfg;`; these remain parser-retained-text proofs, not semantic legality or elaboration closure claims.
 
+The indexed unpacked-array actual lane now further locks `unpacked_array_struct_member_actual`, `unpacked_array_element_actual`, and `unpacked_array_struct_member_bitselect_actual`: the contract proves member-path actuals such as `cfgs[IDX].data` and `cfgs[IDX].data[BIT]`, the inline struct body, the array declaration `logic [7:0] banks [0:DEPTH-1];`, and the key `[7:0]` / `[0:1]` dimension text. This keeps indexed-array and parameter semantics in elaboration while making the generated parser's retained syntax evidence sharper.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

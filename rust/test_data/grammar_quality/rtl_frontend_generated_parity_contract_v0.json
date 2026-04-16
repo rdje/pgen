@@ -2314,17 +2314,30 @@
         "parameter_declaration_sequence",
         "struct_type",
         "struct_union_field",
+        "module_instantiation",
         "instance_item",
         "port_connection",
-        "unpacked_dimension"
+        "unpacked_dimension",
+        "signal_reference"
       ],
       "forbidden_rule_names": [
         "typedef_declaration"
       ],
+      "required_rule_texts": {
+        "signal_reference": [
+          "cfgs[IDX].data"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ]
+      },
       "expected_rule_texts": {
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "module_instantiation": [
+          "child u_child (.a(cfgs[IDX].data), .y(y));"
         ],
         "instance_item": [
           "u_child (.a(cfgs[IDX].data), .y(y))"
@@ -2332,6 +2345,9 @@
         "port_connection": [
           ".a(cfgs[IDX].data)",
           ".y(y)"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
         ]
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data), .y(y));\nendmodule\n"
@@ -2363,6 +2379,12 @@
         "generate_region"
       ],
       "required_rule_texts": {
+        "net_declaration": [
+          "logic [7:0] banks [0:DEPTH-1];"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
         "signal_reference": [
           "banks[IDX]"
         ]
@@ -2395,6 +2417,7 @@
       "expected_parse_ok": true,
       "require_ast_json": true,
       "required_rule_names": [
+        "struct_type",
         "struct_union_field",
         "module_instantiation",
         "instance_item",
@@ -2414,6 +2437,9 @@
       "required_rule_texts": {
         "signal_reference": [
           "cfgs[IDX].data[BIT]"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
         ]
       },
       "expected_rule_texts": {

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl_frontend-inline-struct-member-actual-proof-tightening)
+Last updated: 2026-04-17 (+0200, task: rtl_frontend-indexed-unpacked-array-actual-proof-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,34 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for indexed unpacked-array actuals:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained samples:
+    - `unpacked_array_struct_member_actual`
+    - `unpacked_array_element_actual`
+    - `unpacked_array_struct_member_bitselect_actual`
+  - proof tightening:
+    - adds `module_instantiation` and `signal_reference` evidence to the indexed struct-member actual lane
+    - subset-locks `cfgs[IDX].data`, `cfgs[IDX].data[BIT]`, the inline `struct packed { ... }` body, `logic [7:0] banks [0:DEPTH-1];`, and `[7:0]`
+    - exact-locks `child u_child (.a(cfgs[IDX].data), .y(y));` and `[0:1]` where the contract already uses stable exact full-vector retained text
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not semantic array indexing, member legality, parameter evaluation, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened the curated `rtl_frontend` generated contract for inline struct-member named-port actuals:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
