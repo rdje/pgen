@@ -82,6 +82,8 @@ The named-port actual expression lane now tightens `named_port_bitselect_and_con
 
 The continuous struct-member assignment lane now tightens retained evidence around bit-select targets, unknown-member target/value parse surfaces, concatenated targets, and concatenation values. Those samples now prove the inline `struct packed { ... } cfg;` declaration, the simple `input logic d` port context, and `parameter BIT = 1` where present, while preserving the existing exact locks for `assign ...` text, assignment targets, concatenations, and signal references.
 
+The same continuous struct-member assignment lane also now exact-locks the inline field declarations `logic [7:0] data;` and `logic valid;` across the bit-select, unknown-member, concatenated-target, and concatenation-value samples. This gives the generated parser proof a cleaner bridge from aggregate field syntax to member-path assignment syntax.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

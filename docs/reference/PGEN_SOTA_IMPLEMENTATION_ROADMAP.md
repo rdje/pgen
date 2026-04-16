@@ -3487,6 +3487,10 @@ Why `rtl_frontend` exists:
     - `continuous_struct_member_bitselect_assignment_target`, `continuous_unknown_struct_member_target_parse_surface`, `continuous_unknown_struct_member_value_parse_surface`, `continuous_unknown_struct_member_concatenated_target_parse_surface`, `continuous_struct_member_concatenation_assignment_target`, and `continuous_struct_member_concatenation_value` now prove richer retained context around continuous assignment targets and values,
     - salient retained text now includes `struct packed { ... } cfg;`, `input logic d`, and `parameter BIT = 1`, while existing exact assignment-target, assignment, concatenation, and signal-reference locks stay in place,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic continuous-assignment typing, member legality, parameter evaluation, or elaboration closure.
+  - Progress (2026-04-17): tightened continuous struct-member field retained-text proof:
+    - the same continuous struct-member assignment samples now exact-lock `logic [7:0] data;` and `logic valid;` as `struct_union_field` retained text,
+    - this closes a small proof gap between the inline struct declaration context and the member-path assignment evidence, while keeping semantic member legality and elaboration out of the generated-parser proof claim,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic continuous-assignment typing, member legality, parameter evaluation, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

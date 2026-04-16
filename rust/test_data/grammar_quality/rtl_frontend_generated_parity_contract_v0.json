@@ -3736,6 +3736,10 @@
         ]
       },
       "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
         "assignment_target": [
           "cfg.data[BIT]"
         ],
@@ -3785,6 +3789,10 @@
         ]
       },
       "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
         "assignment_target": [
           "cfg.missing"
         ],
@@ -3833,6 +3841,10 @@
         ]
       },
       "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
         "assignment_target": [
           "cfg.valid"
         ],
@@ -3884,6 +3896,10 @@
         ]
       },
       "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
         "assignment_target": [
           "{cfg.data, cfg.missing}",
           "cfg.data",
@@ -3939,6 +3955,10 @@
         ]
       },
       "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
         "assignment_target": [
           "{cfg.data[BIT], cfg.valid}",
           "cfg.data[BIT]",
@@ -3996,6 +4016,10 @@
         ]
       },
       "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
         "assignment_target": [
           "cfg.valid"
         ],
