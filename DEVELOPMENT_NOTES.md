@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend inline struct-member actual retained-text tightening
+### Context
+The generated contract already covered inline struct-member named-port actuals, including the syntax-only unindexed unpacked-array struct-member surface and the syntax-only unknown inline struct-member surface. Those samples proved broad rule presence plus hierarchy and port-connection text, but they did not yet prove the retained inline struct body and the key declaration/member-path spans that make the samples useful as struct-member parser evidence.
+
+### Decision
+- Tighten the existing samples rather than add duplicate fixtures:
+  - `unindexed_unpacked_array_struct_member_actual_parse_surface`
+  - `unknown_inline_struct_member_actual_parse_surface`
+- Use `required_rule_texts` instead of `expected_rule_texts` for the newly locked spans because these rules can contain additional incidental occurrences that are not part of the proof claim.
+- Lock the generated AST retained text that matters for parser parity:
+  - inline `struct packed { ... }` body on both lanes
+  - unindexed `cfgs.data` member-path actual
+  - `[0:1]` unpacked dimension on the unpacked-array lane
+  - `struct packed { ... } cfg;` declaration on the unknown inline member lane
+- Keep semantic unindexed-array member legality, unknown-member rejection, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added subset retained-text checks for `struct_type`, `unpacked_dimension`, and `signal_reference` on `unindexed_unpacked_array_struct_member_actual_parse_surface`
+  - added subset retained-text checks for `struct_type` and `net_declaration` on `unknown_inline_struct_member_actual_parse_surface`
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend union-member actual retained-text tightening
 ### Context
 The generated contract already covered inline union-member named-port actuals and the syntax-only unknown union-member parse surface. Those lanes proved broad rule presence plus hierarchy and port-connection text, but they did not exact-lock the inline union body or the `payload` declaration that make the member access meaningful as a union-member surface.

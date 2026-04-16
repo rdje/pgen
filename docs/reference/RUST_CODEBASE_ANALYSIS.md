@@ -1,6 +1,6 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-04-16
+Last updated: 2026-04-17
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -34,6 +34,7 @@ This is a live document, not an archival write-up. It should be amended whenever
   - current Phase S `rtl_frontend` generated-contract work is proof tightening rather than closure promotion:
     - `expected_rule_texts` in `rtl_frontend_generated_contract_probe` remains the exact full-vector retained-text assertion
     - `required_rule_texts` remains for subset retained-text assertions over recursive rules such as `conditional_expr`, `additive_expr`, `shift_expr`, and `signal_reference`, where the salient span should be proven without freezing every incidental scalar expression subtree
+    - the generated contract now tightens `unindexed_unpacked_array_struct_member_actual_parse_surface` and `unknown_inline_struct_member_actual_parse_surface` so inline struct-member actual lanes subset-lock the inline struct body, with `cfgs.data` plus `[0:1]` proven on the unindexed unpacked-array lane and `struct packed { ... } cfg;` proven on the unknown inline-member lane
     - the generated contract now tightens `named_port_union_member_actual` and `named_port_unknown_union_member_actual_parse_surface` so inline union-member actual lanes exact-lock the union body and `payload` net declaration, with the known-member lane also exact-locking the successful `payload.data` signal-reference path
     - the generated contract now tightens `packed_union_width_mismatch_parse_surface` and `builtin_integral_packed_union_width_mismatch_parse_surface` so inline and builtin-integral packed-union mismatch lanes exact-lock full module declarations, simple output-port shells, union bodies, datatype/range or builtin keyword spans, and final net declarations while leaving semantic width evaluation in elaboration
     - the generated contract now tightens `typedef_backed_struct_member_actual`, `file_scope_typedef_backed_struct_member_actual`, `package_wildcard_import_typedef_backed_struct_member_actual`, `package_named_import_typedef_backed_struct_member_actual`, `header_named_import_typedef_backed_struct_member_actual`, `unknown_typedef_backed_struct_member_actual_parse_surface`, and `typedef_backed_packed_union_width_mismatch_parse_surface` so typedef-backed struct-member actual lanes exact-lock typedef declarations and struct bodies, while the typedef-backed packed-union mismatch lane exact-locks typedef declaration, union body, and packed ranges

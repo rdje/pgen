@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend inline struct-member actual proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for inline struct-member named-port actuals so they now prove the retained inline struct body, relevant declaration or dimension text, and salient member-path actual text in addition to the existing hierarchy and connection evidence.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `unindexed_unpacked_array_struct_member_actual_parse_surface`
+  - strengthened `unknown_inline_struct_member_actual_parse_surface`
+  - now subset-locks the inline `struct packed { ... }` body on both lanes
+  - now subset-locks `cfgs.data` plus `[0:1]` on the unindexed unpacked-array struct-member parse surface
+  - now subset-locks `struct packed { ... } cfg;` on the unknown inline struct-member parse surface
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic unindexed-array member legality, unknown-member rejection, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend union member actual proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for inline union-member named-port actuals so they now prove the retained inline union body and payload declaration in addition to their existing hierarchy and connection evidence.

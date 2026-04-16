@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-16
+Last updated: 2026-04-17
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -3471,6 +3471,10 @@ Why `rtl_frontend` exists:
     - `named_port_union_member_actual` and `named_port_unknown_union_member_actual_parse_surface` now exact-lock the inline packed-union body and `payload` declaration in addition to existing hierarchy and port-connection evidence,
     - `named_port_union_member_actual` now also exact-locks the successful `payload.data` signal-reference vector,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic union-member legality or elaboration closure.
+  - Progress (2026-04-17): tightened inline struct-member actual retained-text proof:
+    - `unindexed_unpacked_array_struct_member_actual_parse_surface` and `unknown_inline_struct_member_actual_parse_surface` now subset-lock the inline `struct packed { ... }` body in addition to existing hierarchy and port-connection evidence,
+    - the unindexed unpacked-array lane now subset-locks `cfgs.data` and `[0:1]`, while the unknown inline-member lane subset-locks `struct packed { ... } cfg;`,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic unindexed-array member legality, unknown-member rejection, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

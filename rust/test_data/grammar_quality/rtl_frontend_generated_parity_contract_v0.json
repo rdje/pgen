@@ -2460,6 +2460,17 @@
         "continuous_assign",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "signal_reference": [
+          "cfgs.data"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ]
+      },
       "expected_rule_texts": {
         "struct_union_field": [
           "logic [7:0] data;",
@@ -2502,6 +2513,14 @@
         "continuous_assign",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ]
+      },
       "expected_rule_texts": {
         "struct_union_field": [
           "logic [7:0] data;",

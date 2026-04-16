@@ -74,6 +74,8 @@ It now also retains syntax-only unindexed unpacked-array, plain indexed unpacked
 
 The named-port union-member actual lane now exact-locks the inline packed-union body and `payload` declaration for both known and unknown member parse surfaces; the known-member sample also exact-locks `payload.data` signal-reference text. This is still generated-parser retained-text proof, not a claim that generated elaboration has closed all union-member legality decisions.
 
+The inline struct-member actual lane now also subset-locks the inline `struct packed { ... }` body for both unindexed unpacked-array and unknown inline-member parse surfaces. The unindexed unpacked-array sample additionally locks `cfgs.data` and `[0:1]`, while the unknown inline-member sample locks `struct packed { ... } cfg;`; these remain parser-retained-text proofs, not semantic legality or elaboration closure claims.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`
