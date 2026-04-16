@@ -1129,6 +1129,7 @@
       "required_rule_names": [
         "module_declaration",
         "port_list",
+        "port_group",
         "enum_type",
         "enum_base_type",
         "enum_item",
@@ -1143,6 +1144,10 @@
         "named_data_type"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "byte"
+        ],
         "enum_base_type": [
           "byte"
         ],
@@ -1150,8 +1155,20 @@
           "IDLE = 0",
           "BUSY = 1"
         ],
+        "enum_type": [
+          "enum byte {\n    IDLE = 0,\n    BUSY = 1\n}"
+        ],
+        "kw_byte": [
+          "byte"
+        ],
         "net_declaration": [
           "enum byte {\n    IDLE = 0,\n    BUSY = 1\n} state;"
+        ],
+        "port_group": [
+          "output logic y"
+        ],
+        "port_list": [
+          "output logic y"
         ]
       },
       "sample": "module top (\n    output logic y\n);\nenum byte {\n    IDLE = 0,\n    BUSY = 1\n} state;\nendmodule\n"
