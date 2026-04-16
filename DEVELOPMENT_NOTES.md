@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend union-member actual retained-text tightening
+### Context
+The generated contract already covered inline union-member named-port actuals and the syntax-only unknown union-member parse surface. Those lanes proved broad rule presence plus hierarchy and port-connection text, but they did not exact-lock the inline union body or the `payload` declaration that make the member access meaningful as a union-member surface.
+
+### Decision
+- Tighten the existing samples rather than add duplicate fixtures:
+  - `named_port_union_member_actual`
+  - `named_port_unknown_union_member_actual_parse_surface`
+- Exact-lock the generated AST retained text that matters for parser parity:
+  - inline packed-union type body
+  - `payload` net declaration
+  - successful `payload.data` signal-reference path for the known-member lane
+  - existing module-instantiation, instance-item, and port-connection locks remain in place
+- Keep semantic union-member legality and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact retained-text checks for `union_type` and `net_declaration` on both union-member actual lanes
+  - added exact retained-text checks for the known-member `signal_reference` vector
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend packed-union mismatch retained-text tightening
 ### Context
 The generated contract already retained inline and builtin-integral packed-union width-mismatch parse surfaces. Those lanes intentionally remain parse-surface evidence because semantic width rejection belongs to elaboration, but their retained-text checks were weaker than the typedef-backed packed-union mismatch sibling.

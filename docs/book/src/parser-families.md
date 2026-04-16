@@ -72,6 +72,8 @@ The `rtl_frontend` generated-parser proof surface is still not fully closed, but
 
 It now also retains syntax-only unindexed unpacked-array, plain indexed unpacked-array element actuals with malformed empty-index rejection, module-local/file-scope/body-wildcard-import/body-named-import/header-named-import known and inline/module-local-typedef unknown struct-member actuals with exact typedef/body locks for the typedef-backed forms, unknown parent-identifier named-port actuals, and inline, builtin-integral, plus typedef-backed packed-union field-width mismatch declarations with exact union-body locks, exact datatype/range or builtin-keyword locks where applicable, and exact typedef locks for the typedef-backed form. Those lanes prove parser acceptance for `child u_child (.a(cfgs.data), .y(y));`, `child u_child (.a(banks[IDX]), .y(y));`, `child u_child (.a(cfg.data), .y(y));`, `child u_child (.a(cfg.missing), .y(y));`, `child u_child (.a(missing_signal), .y(y));`, `union packed { logic [7:0] data; logic [15:0] word; } payload;`, `union packed { byte data; shortint word; } payload;`, and `typedef union packed { logic [7:0] data; logic [15:0] word; } payload_t; payload_t payload;` while keeping the corresponding semantic acceptance/rejection decisions in elaboration.
 
+The named-port union-member actual lane now exact-locks the inline packed-union body and `payload` declaration for both known and unknown member parse surfaces; the known-member sample also exact-locks `payload.data` signal-reference text. This is still generated-parser retained-text proof, not a claim that generated elaboration has closed all union-member legality decisions.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

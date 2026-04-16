@@ -3467,6 +3467,10 @@ Why `rtl_frontend` exists:
     - `packed_union_width_mismatch_parse_surface` and `builtin_integral_packed_union_width_mismatch_parse_surface` now exact-lock full module declarations, simple output-port shells, inline union bodies, datatype/range or builtin keyword spans, and final net declarations,
     - this keeps semantic packed-union width evaluation outside the generated-parser proof claim while bringing the inline and builtin mismatch lanes up to the typedef-backed mismatch lane's retained-text standard,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic packed-union width evaluation or elaboration closure.
+  - Progress (2026-04-17): tightened inline union-member actual retained-text proof:
+    - `named_port_union_member_actual` and `named_port_unknown_union_member_actual_parse_surface` now exact-lock the inline packed-union body and `payload` declaration in addition to existing hierarchy and port-connection evidence,
+    - `named_port_union_member_actual` now also exact-locks the successful `payload.data` signal-reference vector,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic union-member legality or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,
