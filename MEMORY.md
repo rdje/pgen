@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: rtl-frontend-exact-hierarchy-retained-text-proof)
+Last updated: 2026-04-16 (+0200, task: rtl-frontend-parameter-statement-text-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` generated-contract proof for statement-level parameter/localparam retained text:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - generated-contract labels strengthened:
+    - `module_local_parameter_and_localparam_items`
+    - `package_qualified_constant_parameter_flow`
+    - `header_wildcard_imported_package_constant_flow`
+    - `module_named_imported_package_constant_flow`
+  - proof tightening:
+    - exact `expected_rule_texts` now cover true semicolon-terminated `parameter_declaration_statement` spans
+    - existing `parameter_declaration_head` / `parameter_declaration_tail` evidence remains responsible for header parameter-port declarations
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened `rtl_frontend` generated-contract proof by promoting compact hierarchy retained-text checks from subset assertions into exact `expected_rule_texts`:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

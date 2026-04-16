@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend parameter statement text proof
+### Achievement Summary
+Tightened the `rtl_frontend` generated contract so retained parameter/localparam statement surfaces are exact-locked at the enclosing statement level, not only through declaration-head spans.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact `parameter_declaration_statement` retained-text locks for `module_local_parameter_and_localparam_items`
+  - added exact `parameter_declaration_statement` retained-text locks for package-backed constant-flow samples:
+    - `package_qualified_constant_parameter_flow`
+    - `header_wildcard_imported_package_constant_flow`
+    - `module_named_imported_package_constant_flow`
+  - intentionally kept header parameter-port declarations covered by existing `parameter_declaration_head` / `parameter_declaration_tail` locks because those are not semicolon-terminated statement forms.
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Note:
+  - `clippy_on_rust_change` is not required because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - Promote rtl_frontend hierarchy text locks to exact proof
 ### Achievement Summary
 Tightened the `rtl_frontend` generated contract by moving the remaining hierarchy retained-text checks for compact instantiation spans from subset assertions into exact `expected_rule_texts`.

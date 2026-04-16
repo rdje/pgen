@@ -3398,6 +3398,10 @@ Why `rtl_frontend` exists:
     - `unpacked_array_struct_member_actual` now exact-locks its `instance_item` span,
     - `generate_if_with_dataflow_and_named_instantiation` and `generate_for_named_instantiation_and_dataflow` now exact-lock their generate-contained `instance_item` spans, and the generate-for sample also exact-locks its `module_instantiation` span,
     - kept `required_rule_texts` focused on recursive expression or signal-reference spans while leaving the live `rtl_frontend` row at `In Progress`.
+  - Progress (2026-04-16): tightened statement-level parameter/localparam retained-text proof:
+    - `module_local_parameter_and_localparam_items` now exact-locks its true semicolon-terminated `parameter_declaration_statement` spans,
+    - `package_qualified_constant_parameter_flow`, `header_wildcard_imported_package_constant_flow`, and `module_named_imported_package_constant_flow` now exact-lock their package-local and module-local parameter/localparam statement spans,
+    - kept header parameter-port declarations covered by the existing head/tail locks while leaving the live `rtl_frontend` row at `In Progress`.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

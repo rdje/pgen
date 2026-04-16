@@ -659,6 +659,10 @@
         "generate_region"
       ],
       "expected_rule_texts": {
+        "parameter_declaration_statement": [
+          "parameter EXTRA = DEPTH + 1;",
+          "localparam TOTAL = WIDTH * 2;"
+        ],
         "parameter_declaration_head": [
           "parameter WIDTH = 8",
           "parameter EXTRA = DEPTH + 1",
@@ -1342,6 +1346,11 @@
         "module_instantiation": [
           "child #(.W(TOTAL)) u_child (.a(data[cfg_pkg::DEPTH-1:0]), .y(y));"
         ],
+        "parameter_declaration_statement": [
+          "localparam WIDTH = 8;",
+          "parameter DEPTH = WIDTH + 2;",
+          "localparam TOTAL = cfg_pkg::DEPTH + LANES;"
+        ],
         "parameter_declaration_head": [
           "localparam WIDTH = 8",
           "parameter DEPTH = WIDTH + 2",
@@ -1398,6 +1407,11 @@
         "import_declaration": [
           "import cfg_pkg::*;"
         ],
+        "parameter_declaration_statement": [
+          "localparam WIDTH = 8;",
+          "localparam DEPTH = WIDTH + 1;",
+          "localparam TOTAL = DEPTH + LANES;"
+        ],
         "parameter_declaration_head": [
           "localparam WIDTH = 8",
           "localparam DEPTH = WIDTH + 1",
@@ -1452,6 +1466,10 @@
         ],
         "import_declaration": [
           "import cfg_pkg::WIDTH;"
+        ],
+        "parameter_declaration_statement": [
+          "localparam WIDTH = 8;",
+          "localparam TOTAL = WIDTH + 1;"
         ],
         "parameter_declaration_head": [
           "localparam WIDTH = 8",

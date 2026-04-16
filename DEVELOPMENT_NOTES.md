@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend parameter/localparam statement text proof
+### Context
+The generated contract already exact-locked `parameter_declaration_head` and, where needed, `parameter_declaration_tail` spans for the module-local and package-backed constant-flow samples. That proved the declaration heads, but it did not prove the enclosing semicolon-terminated `parameter_declaration_statement` spans.
+
+For compact statement rules, exact full-vector retained-text proof is stronger and appropriate. Header parameter-port declarations remain intentionally covered by head/tail evidence because they are comma-separated parameter-port syntax, not `parameter_declaration_statement` syntax.
+
+### Decision
+- Add exact `parameter_declaration_statement` locks for true statement forms with semicolons.
+- Do not force header parameter-port declarations into statement-shaped evidence.
+- Keep this as proof tightening only; it does not promote `rtl_frontend` beyond `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `module_local_parameter_and_localparam_items` now exact-locks:
+    - `parameter EXTRA = DEPTH + 1;`
+    - `localparam TOTAL = WIDTH * 2;`
+  - `package_qualified_constant_parameter_flow` now exact-locks its package-local and module-local parameter/localparam statements.
+  - `header_wildcard_imported_package_constant_flow` now exact-locks its package-local and module-local parameter/localparam statements.
+  - `module_named_imported_package_constant_flow` now exact-locks its package-local and module-local localparam statements.
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Clippy note:
+  - not required for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-16 - rtl_frontend exact hierarchy retained-text proof
 ### Context
 The `rtl_frontend` generated contract already had a useful split between exact retained-text assertions and subset retained-text assertions:
