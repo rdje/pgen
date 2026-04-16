@@ -1,4 +1,72 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - Regex single-byte escape and conditional callout assertions
+### Context
+RGX filed two additional PCRE2-conformance reports against the published regex parser handoff `1.1.23` / contract `1.1.25`.
+
+- `PGEN-RGX-0061` showed that `ab\Cde` parsed successfully but transported `\C` as `escape -> escape_unit -> simple_escape("C")`. PCRE2 treats `\C` outside a character class as a dedicated "match one code unit" escape, not as a generic literal/simple escape.
+- `PGEN-RGX-0062` showed that `^(?(?C25)(?=abc)abcd|xyz)` failed at the conditional group even though PCRE2 accepts an explicit callout immediately before an assertion condition.
+
+### Source-Derived Findings
+- `pcre2pattern(3)` documents `\C` under "matching a single code unit". It is compile-option-sensitive and has UTF/lookbehind restrictions, but its parser-side syntax is a real PCRE2 escape family.
+- `pcre2_compile.c` handles `ESC_C` as a dedicated escape and records `PCRE2_HASBKC`; it is not parsed as ordinary escaped `C`.
+- `pcre2pattern(3)` explicitly documents the conditional-callout assertion shape with examples like `(?(?C9)(?=a)abc|def)`.
+- `pcre2_compile.c` tracks `expect_cond_assert` so that a callout may appear before the assertion that supplies the conditional test.
+- PCRE2 `testdata/testinput2` includes both numeric and string callout assertion-condition witnesses: `^(?(?C25)(?=abc)abcd|xyz)` and `^(?(?C$abc$)(?=abc)abcd|xyz)`.
+
+### Decision
+- Publish the change as regex parser release `1.1.24` / integration contract `1.1.26`, preserving regex AST schema version `1`.
+- Model `\C` in [grammars/regex.ebnf](grammars/regex.ebnf) as `single_byte_escape` and place it before `simple_escape` so downstream adapters can distinguish PCRE2 single-code-unit matching from generic escape fallback.
+- Model callout-prefixed assertion conditions through `condition_callout_assertion`, reusing the existing `callout_arg` payload grammar for numeric and string callouts.
+- Keep generated-host semantic restrictions separate: this slice fixes parser/AST transport. Compile-option-sensitive behavior such as `PCRE2_NEVER_BACKSLASH_C` or UTF lookbehind constraints belongs in the host validation layer if PGEN later exposes those profile options.
+- Keep the regex live row `Done`; this is downstream compatibility maintenance over an already-closed family.
+
+### What Was Changed
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - `escape_unit` now tries `single_byte_escape` before generic `simple_escape`
+  - `single_byte_escape = "C"`
+  - `condition` now includes `condition_callout_assertion`
+  - `condition_callout_assertion = condition_callout "(" condition_assertion`
+  - `condition_callout = "?C" callout_arg? ")"`
+- Regenerated:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs) and [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - contract version `1.1.26`
+  - parser release version `1.1.24`
+  - `83` success samples
+  - `19` failure samples
+  - new AST locks for `single_byte_escape`
+  - new AST locks for numeric and string `condition_callout_assertion`
+- Updated [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - baseline version `6`
+  - `MIN_MATCH_TOTAL=1832`
+  - `MAX_MISMATCH_TOTAL=363`
+  - `MAX_FALSE_ACCEPT_TOTAL=309`
+  - `MAX_FALSE_REJECT_TOTAL=54`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `parseability_probe --parse regex .../PGEN-RGX-0061/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex .../PGEN-RGX-0062/repro_input.txt --profile regex_default`
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+- Refreshed family-contract summary:
+  - `dual_run_regex_perl_rule_count=100`
+  - `dual_run_regex_rust_rule_count=188`
+  - `stimuli_regex_parseability_attempts_total=5266`
+  - `stimuli_regex_parseability_accepted_total=4615`
+  - `stimuli_regex_parseability_parser_rejections_total=651`
+  - `stimuli_regex_initial_targets=750`
+  - `stimuli_regex_resolved_targets=750`
+  - `stimuli_regex_final_targets=0`
+  - `stimuli_regex_target_attempts=5812`
+- Important continuity detail:
+  - no live parser-family label changes; `regex` remains `Done`
+  - this is compatibility maintenance over the existing regex family proof, not a reopening of the family row
+
 ## 2026-04-16 - rtl_frontend aggregate net declaration text proof
 ### Context
 The aggregate type-family samples already proved their inner structure:

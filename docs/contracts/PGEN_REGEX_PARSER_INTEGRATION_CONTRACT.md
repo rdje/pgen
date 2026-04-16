@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.25`
+  - `1.1.26`
 - Parser release version:
-  - `1.1.23`
+  - `1.1.24`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-04-15`
+  - `2026-04-16`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -27,6 +27,16 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.24 / Contract 1.1.26 Highlights
+- `1.1.24` is a PCRE2 source-derived grammar and AST-contract maintenance release over parser release `1.1.23`; regex AST dump schema version stays `1`.
+- This specifically covers RGX PCRE2 conformance reports `PGEN-RGX-0061` and `PGEN-RGX-0062`.
+- PCRE2 `\C` now transports through `escape` -> `escape_unit` -> `single_byte_escape`, not through generic `simple_escape("C")`. This preserves the downstream distinction between PCRE2 single-code-unit matching and ordinary escaped literal fallback.
+- Conditional assertion tests may now be preceded by an explicit callout, matching PCRE2's documented and source-implemented form. Representative accepted forms are `^(?(?C25)(?=abc)abcd|xyz)` and `^(?(?C$abc$)(?=abc)abcd|xyz)`.
+- The conditional-callout assertion contract preserves both pieces: `condition_callout` carries the numeric or string callout payload via the existing `callout_arg` shape, and `condition_assertion` carries the following assertion body.
+- The regex integration contract now has `83` success samples and `19` failure samples, including `single_byte_escape_code_unit`, `conditional_numeric_callout_assertion`, and `conditional_string_callout_assertion`.
+- The maintained `regex_pcre2_compile_oracle_gate` baseline is ratcheted to the measured `pcre2-10.47` slice: `2195` cases executed, `1613` compile-ok cases, `582` compile-fail cases, `1832` expectation matches, `363` mismatches, `309` false accepts, and `54` false rejects.
+- The refreshed regex family proof still computes `Done` with frontend overall `pass`, dual-run overall `pass`, `perl_rule_count=100`, `rust_rule_count=188`, parser-backed stimuli `5266/4615/651`, diagnostic target-drive parser rejections `651`, and closed target debt `750 -> 0` after `5812` target-drive attempts.
 
 ## Release 1.1.23 / Contract 1.1.25 Highlights
 - `1.1.23` is a PCRE2 source-derived grammar and compile-contract maintenance release over parser release `1.1.22`; regex AST dump schema version stays `1`.
@@ -409,6 +419,11 @@ This is the document downstream projects such as RGX should read first when deci
   - `^[\Eabc]` transports orphan class `\E` through `stray_class_end_quote` while keeping the substantive class atoms as literals
   - `^[a-\Ec]` permits zero-width class markers before the range right endpoint without treating `\E` as a substantive escaped endpoint
   - malformed `\k` named-reference spellings and overlong capture names are rejected by the generated-host compile contract
+- Integration contract `1.1.26` explicitly guarantees the single-code-unit escape and conditional-callout assertion PCRE2 source slice:
+  - `ab\Cde` transports `\C` as `single_byte_escape`, not `simple_escape`
+  - `^(?(?C25)(?=abc)abcd|xyz)` transports the condition through `condition_callout_assertion`, preserving `condition_callout = "?C25)"`, `callout_arg = "25"`, and `condition_assertion = "?=abc"`
+  - `^(?(?C$abc$)(?=abc)abcd|xyz)` uses the same conditional-callout assertion shape while preserving the dollar-delimited string callout payload through `callout_arg`, `callout_string`, and `callout_dollar_string`
+  - compile-option-sensitive behavior for `\C`, such as PCRE2's `PCRE2_NEVER_BACKSLASH_C` mode or UTF lookbehind restrictions, remains outside the stable `regex_default` syntax contract unless PGEN publishes a profile option for it
 - Integration contract `1.1.20` explicitly guarantees PCRE2 braced `\k{...}` named backreferences with optional space/tab padding:
   - `(?'name'ab)\k{ name }(?P=name)` transports the padded named backreference as `backreference` -> `braced_name_ref`
   - the named payload transports under `name = "name"` while the enclosing `braced_name_ref` rule text remains `{ name }`
@@ -444,7 +459,10 @@ This is the document downstream projects such as RGX should read first when deci
   - `[[:digit:]-]+` transports `[:digit:]` through `posix_class` with `posix_name = "digit"` and the trailing `-` as a separate `class_literal`
   - `[[:digit:]-   ]` extends the same guarantee to the PCRE2 class item shape where the trailing `-` and ordinary spaces are separate `class_literal` items rather than a `class_range`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
-- Contract `1.1.25` publishes parser release `1.1.23` PCRE2 bounded-lookbehind, Unicode-name, and orphan-class-`\E` support, carries forward parser release `1.1.22` PCRE2 short-property and quoted-class literal support, parser release `1.1.21` PCRE2 source-derived syntax and compile-contract alignment, and parser release `1.1.20` resource-depth resilience for legal deep PCRE2 conformance inputs, contract `1.1.21` for the `[[:digit:]-   ]` POSIX-class-plus-literals AST shape, parser release `1.1.19` PCRE2-compatible braced `\k{...}` named backreference whitespace handling, parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Contract `1.1.26` publishes parser release `1.1.24` PCRE2 single-code-unit `\C` transport and callout-prefixed conditional assertion support, carries forward parser release `1.1.23` PCRE2 bounded-lookbehind, Unicode-name, and orphan-class-`\E` support, parser release `1.1.22` PCRE2 short-property and quoted-class literal support, parser release `1.1.21` PCRE2 source-derived syntax and compile-contract alignment, and parser release `1.1.20` resource-depth resilience for legal deep PCRE2 conformance inputs, contract `1.1.21` for the `[[:digit:]-   ]` POSIX-class-plus-literals AST shape, parser release `1.1.19` PCRE2-compatible braced `\k{...}` named backreference whitespace handling, parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `ab\Cde` now transports `\C` as `single_byte_escape`
+  - `^(?(?C25)(?=abc)abcd|xyz)` now transports the condition through `condition_callout_assertion`
+  - `^(?(?C$abc$)(?=abc)abcd|xyz)` now preserves the same conditional-callout assertion shape with a string callout payload
   - `(?<=a{1,3})b` and `(?<=a(*ACCEPT)b)c` now pass the generated-host compile contract
   - `(?<=a+)b`, `(?<=a*)b`, and `(?<=a{2,})b` remain rejected as unbounded variable-length lookbehind
   - `(?'ABáC'...)\g{ABáC}` now transports through the Unicode-name path instead of failing at the first non-ASCII name byte
@@ -504,10 +522,10 @@ This is the document downstream projects such as RGX should read first when deci
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1828`
-  - `parse_expectation_mismatch_total=367`
+  - `parse_expectation_match_total=1832`
+  - `parse_expectation_mismatch_total=363`
   - `false_accept_total=309`
-  - `false_reject_total=58`
+  - `false_reject_total=54`
 - This does not reopen the closed `regex` family row by itself, but it is the main maintained future hardening lane for downstream trust widening.
 
 ## Published Regex Flavor Summary
@@ -528,6 +546,7 @@ This is the document downstream projects such as RGX should read first when deci
   - char classes, negated char classes, ranges, quoted class literals, orphan class `\E` as a zero-width marker, and POSIX classes
   - negated POSIX classes such as `[[:^alnum:]]`
   - anchors including `^`, `$`, `\A`, `\Z`, `\z`, `\b`, `\B`, and `\G`
+  - PCRE2 single-code-unit escape `\C`, transported as `single_byte_escape`
   - Unicode property escapes including braced forms such as `\p{L}` and short forms such as `\pL`
   - backreferences including `\1`, `\k<name>`, `\k'name'`, and `\k{name}`, with numeric forms preserved as backreference constructs rather than generic escapes
   - Unicode capture names and named references such as `(?'ABáC'...)\g{ABáC}`, under PCRE2's non-empty, non-leading-digit, and `128`-byte name contract
@@ -542,6 +561,7 @@ This is the document downstream projects such as RGX should read first when deci
     - digits
     - signed digits
     - a recursion condition such as `R`, `R1`, or `R&name`
+    - a callout-prefixed assertion such as `?C25)(?=abc` inside `^(?(?C25)(?=abc)abcd|xyz)`
   - explicit conditional false-branch transport, so `(?(1)a|b)` preserves distinct `yes_branch` and `no_branch` spans
   - named recursion conditions such as `(?(R&word)a|b)`
   - embedded code-block syntax such as `(?{...})` and language-tagged variants
@@ -674,7 +694,7 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.23");
+assert_eq!(contract.regex_parser_release_version, "1.1.24");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```

@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.23`
+  - `1.1.24`
 - integration contract version:
-  - `1.1.25`
+  - `1.1.26`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3817,15 +3817,15 @@ Current measured operational baseline:
 - family status:
   - `Done`
 - parser-backed family proof:
-  - `parseability_attempts_total=5238`
-  - `parseability_accepted_total=4538`
-  - `parseability_rejected_total=700`
-  - `parseability_parser_rejections_total=700`
-  - `parseability_acceptance_rate_percent=86.64`
-  - `initial_targets=734`
-  - `resolved_targets=734`
+  - `parseability_attempts_total=5266`
+  - `parseability_accepted_total=4615`
+  - `parseability_rejected_total=651`
+  - `parseability_parser_rejections_total=651`
+  - `parseability_acceptance_rate_percent=87.64`
+  - `initial_targets=750`
+  - `resolved_targets=750`
   - `final_targets=0`
-  - `target_attempts=5759`
+  - `target_attempts=5812`
   - the retained parser-rejection count is target-drive diagnostic evidence from the stimuli-quality lane, not an open family-status blocker
 - broader checked-in corpus proof:
   - `cases_executed=44`
@@ -3884,6 +3884,7 @@ Accepted syntax families in the current published flavor:
   - final-atom binding across literal runs, so `ab+` is transported as literal `a` followed by quantified `b`
 - escapes:
   - simple escaped characters such as `\n`, `\t`, `\\`
+  - PCRE2 single-code-unit escape `\C`, transported as `single_byte_escape`
   - hexadecimal forms such as `\xA`, `\xFF`, `\x{FFFF}`, and `\x{ 41 }`
   - Unicode forms such as `\u{FFFF}`
   - octal escapes, including braced forms such as `\o{101}` and `\o{ 101 }`
@@ -3933,6 +3934,7 @@ Accepted syntax families in the current published flavor:
 - scoped inline modifier forms
 - conditional forms:
   - condition may be a lookaround, a PCRE2 VERSION comparison, a bare name, an explicit name reference, digits, signed digits, or a recursion condition
+  - assertion conditions may be preceded by an explicit callout, such as `^(?(?C25)(?=abc)abcd|xyz)` or `^(?(?C$abc$)(?=abc)abcd|xyz)`
   - VERSION comparisons use PCRE2's compact source form, such as `VERSION>=10.0` or `VERSION=10`; whitespace-bearing forms such as `VERSION >= 10` are rejected
   - recursion conditions currently include plain `R`, numeric forms like `R1`, and named forms like `R&word`
   - explicit false branches are preserved separately, so `(?(1)a|b)` transports `a` and `b` as distinct yes/no branches
@@ -3977,12 +3979,15 @@ Representative accepted examples:
 - `(a)(?(R1)b|c)`
 - `(?(R&word)a|b)`
 - `\Kword`
+- `ab\Cde`
 - `\xA`
 - `\x{ 41 }`
 - `\o{ 101 }`
 - `(?C1)`
 - `(?C"alpha""beta")`
 - `(?C{left}}right})`
+- `^(?(?C25)(?=abc)abcd|xyz)`
+- `^(?(?C$abc$)(?=abc)abcd|xyz)`
 - `(?*foo)`
 - `(*napla:foo)`
 - `(*atomic:foo)`
@@ -4037,7 +4042,10 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.23` specifically adds PCRE2 bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling while carrying forward the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.24` specifically adds PCRE2 single-code-unit escape `\C` transport and callout-prefixed conditional assertions while carrying forward the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+  - `ab\Cde` now transports `\C` as `single_byte_escape`, not as `simple_escape("C")`
+  - `^(?(?C25)(?=abc)abcd|xyz)` now transports the condition through `condition_callout_assertion`, preserving both `condition_callout` and `condition_assertion`
+  - `^(?(?C$abc$)(?=abc)abcd|xyz)` preserves the same condition-callout assertion shape for string callout payloads
   - `(?<=a{1,3})b` and `(?<=a(*ACCEPT)b)c` now pass the generated-host compile contract; unbounded forms such as `(?<=a+)b` remain rejected
   - `(?'ABáC'...)\g{ABáC}` now transports through `named_group`, `name`, `unicode_char`, `backreference`, and `braced_subroutine_ref`
   - `^[\Eabc]` treats orphan class `\E` as zero-width while retaining `a`, `b`, and `c` as `class_literal` items
@@ -4152,14 +4160,15 @@ Important interpretation:
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1828`
-  - `parse_expectation_mismatch_total=367`
+  - `parse_expectation_match_total=1832`
+  - `parse_expectation_mismatch_total=363`
   - `false_accept_total=309`
-  - `false_reject_total=58`
+  - `false_reject_total=54`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.23`
-  - integration contract version `1.1.25`
+  - parser release version `1.1.24`
+  - integration contract version `1.1.26`
 - the current improvement came from complementary changes:
+  - the grammar now distinguishes PCRE2 `\C` as a dedicated single-code-unit escape and accepts callout-prefixed conditional assertion tests
   - the grammar and compile-contract layer now accept PCRE2 bounded variable-length lookbehind, Unicode capture names, and orphan `\E` as a zero-width class marker while still rejecting unbounded lookbehind, malformed named references, overlong names, and classes with no substantive atom
   - the grammar now accepts more real PCRE2 surface such as short Unicode property escapes, quoted class literals, `\K`, string callouts, one-digit and whitespace-braced hex/octal escapes, non-atomic lookarounds, script-run groups, scan-substring groups, and strict VERSION conditionals, while treating `{,}` as literal text
   - the host path now rejects obvious compile-invalid forms such as malformed short Unicode property escapes, empty quoted class regions with no substantive class item, `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, unbounded variable-length lookbehind, invalid verbs/start-options, bad scan-substring capture lists, `\K` in lookarounds, and unsupported default-mode escapes

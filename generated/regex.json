@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-15T18:03:46.812940+00:00",
+    "generated_at": "2026-04-16T01:11:55.498102+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "../grammars/regex.ebnf",
@@ -3208,7 +3208,7 @@
       ],
       [
         "rule_reference",
-        "simple_escape"
+        "single_byte_escape"
       ],
       [
         "operator",
@@ -3249,6 +3249,52 @@
       [
         "rule_reference",
         "property_escape"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "simple_escape"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "single_byte_escape"
+      ],
+      [
+        "semantic_annotation",
+        [
+          "type",
+          "\"single_byte_escape\""
+        ]
+      ],
+      [
+        "semantic_annotation",
+        [
+          "description",
+          "\"PCRE2 \\\\C escape that matches one code unit\""
+        ]
+      ],
+      [
+        "semantic_annotation",
+        [
+          "effect",
+          "\"matches_single_code_unit\""
+        ]
+      ],
+      [
+        "semantic_annotation",
+        [
+          "constraint",
+          "\"may be disabled by compile options or UTF/lookbehind validation\""
+        ]
+      ],
+      [
+        "quoted_string",
+        "C"
       ]
     ],
     [
@@ -5708,6 +5754,14 @@
       ],
       [
         "rule_reference",
+        "condition_callout_assertion"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
         "condition_assertion"
       ],
       [
@@ -5825,6 +5879,46 @@
       [
         "operator",
         "?"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "condition_callout_assertion"
+      ],
+      [
+        "rule_reference",
+        "condition_callout"
+      ],
+      [
+        "quoted_string",
+        "("
+      ],
+      [
+        "rule_reference",
+        "condition_assertion"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "condition_callout"
+      ],
+      [
+        "quoted_string",
+        "?C"
+      ],
+      [
+        "rule_reference",
+        "callout_arg"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "quoted_string",
+        ")"
       ]
     ],
     [

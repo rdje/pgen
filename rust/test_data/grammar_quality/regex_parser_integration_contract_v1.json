@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.25",
-  "parser_release_version": "1.1.23",
+  "integration_contract_version": "1.1.26",
+  "parser_release_version": "1.1.24",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -125,6 +125,17 @@
       "expected_rule_texts": {
         "property_escape": ["pL", "PN"],
         "short_prop_letter": ["L", "N"]
+      },
+      "forbidden_rule_names": ["simple_escape"]
+    },
+    {
+      "name": "single_byte_escape_code_unit",
+      "input": "ab\\Cde",
+      "required_rule_names": ["escape", "escape_unit", "single_byte_escape"],
+      "expected_rule_texts": {
+        "escape": ["\\C"],
+        "escape_unit": ["C"],
+        "single_byte_escape": ["C"]
       },
       "forbidden_rule_names": ["simple_escape"]
     },
@@ -310,6 +321,56 @@
         "alpha_condition_assertion": ["*pla:foo"],
         "atomic_alpha_lookaround_name": ["pla"],
         "counted_quantifier": ["{6}"]
+      }
+    },
+    {
+      "name": "conditional_numeric_callout_assertion",
+      "input": "^(?(?C25)(?=abc)abcd|xyz)",
+      "required_rule_names": [
+        "conditional",
+        "condition",
+        "condition_callout_assertion",
+        "condition_callout",
+        "callout_arg",
+        "condition_assertion",
+        "yes_branch",
+        "no_branch"
+      ],
+      "expected_rule_texts": {
+        "condition": ["?C25)(?=abc"],
+        "condition_callout_assertion": ["?C25)(?=abc"],
+        "condition_callout": ["?C25)"],
+        "callout_arg": ["25"],
+        "condition_assertion": ["?=abc"],
+        "yes_branch": ["abcd"],
+        "no_branch": ["xyz"]
+      }
+    },
+    {
+      "name": "conditional_string_callout_assertion",
+      "input": "^(?(?C$abc$)(?=abc)abcd|xyz)",
+      "required_rule_names": [
+        "conditional",
+        "condition",
+        "condition_callout_assertion",
+        "condition_callout",
+        "callout_arg",
+        "callout_string",
+        "callout_dollar_string",
+        "condition_assertion",
+        "yes_branch",
+        "no_branch"
+      ],
+      "expected_rule_texts": {
+        "condition": ["?C$abc$)(?=abc"],
+        "condition_callout_assertion": ["?C$abc$)(?=abc"],
+        "condition_callout": ["?C$abc$)"],
+        "callout_arg": ["$abc$"],
+        "callout_string": ["$abc$"],
+        "callout_dollar_string": ["$abc$"],
+        "condition_assertion": ["?=abc"],
+        "yes_branch": ["abcd"],
+        "no_branch": ["xyz"]
       }
     },
     {

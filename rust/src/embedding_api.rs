@@ -22,10 +22,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.25";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.26";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.23";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.24";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2102,7 +2102,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 80);
+        assert_eq!(manifest.success_samples.len(), 83);
         assert_eq!(manifest.failure_samples.len(), 19);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2284,6 +2284,12 @@ mod tests {
             manifest
                 .success_samples
                 .iter()
+                .any(|sample| sample.name == "single_byte_escape_code_unit")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
                 .any(|sample| sample.name == "quoted_class_literal_embedded_close_bracket")
         );
         assert!(
@@ -2357,6 +2363,18 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "alpha_lookahead_condition_short")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "conditional_numeric_callout_assertion")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "conditional_string_callout_assertion")
         );
         assert!(
             manifest
@@ -3063,6 +3081,24 @@ mod tests {
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]
+    fn regex_parser_integration_contract_classifies_single_byte_escape() {
+        let input = "ab\\Cde";
+        let parsed = regex_ast_dump_json(input);
+
+        assert_eq!(regex_rule_spans(&parsed, "escape"), vec![(2, 4)]);
+        assert_eq!(regex_rule_spans(&parsed, "escape_unit"), vec![(3, 4)]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "single_byte_escape"),
+            vec![(3, 4)]
+        );
+        assert!(
+            regex_rule_spans(&parsed, "simple_escape").is_empty(),
+            "\\C must transport as PCRE2's dedicated single-code-unit escape"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
     fn regex_parser_integration_contract_classifies_numeric_angle_subroutine_ref() {
         let parsed = regex_ast_dump_json("\\g<1>");
 
@@ -3253,6 +3289,65 @@ mod tests {
             assert!(
                 regex_rule_spans(&parsed, "name").is_empty(),
                 "VERSION conditionals must not fall back to bare name parsing for '{}'",
+                input
+            );
+        }
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_callout_assertion_conditionals() {
+        for (input, callout_text, callout_arg_text, condition_text) in [
+            ("^(?(?C25)(?=abc)abcd|xyz)", "?C25)", "25", "?C25)(?=abc"),
+            (
+                "^(?(?C$abc$)(?=abc)abcd|xyz)",
+                "?C$abc$)",
+                "$abc$",
+                "?C$abc$)(?=abc",
+            ),
+        ] {
+            let parsed = regex_ast_dump_json(input);
+
+            assert_eq!(
+                regex_rule_spans(&parsed, "conditional"),
+                vec![(1, input.len() as u64)],
+                "conditional with leading callout must classify for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "condition_callout_assertion"),
+                vec![condition_text],
+                "condition must retain callout plus following assertion for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "condition_callout"),
+                vec![callout_text],
+                "condition callout payload must retain its prefixless callout body for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "callout_arg"),
+                vec![callout_arg_text],
+                "condition callout argument must be visible for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "condition_assertion"),
+                vec!["?=abc"],
+                "condition callout must be followed by a real assertion for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "yes_branch"),
+                vec!["abcd"],
+                "conditional yes branch must be preserved for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "no_branch"),
+                vec!["xyz"],
+                "conditional no branch must be preserved for '{}'",
                 input
             );
         }

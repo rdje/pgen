@@ -1,4 +1,67 @@
 # CHANGES.md
+## 2026-04-16 - Publish regex single-byte escape and conditional callout fixes
+### Achievement Summary
+Published regex parser release `1.1.24` with integration contract `1.1.26` for RGX reports `PGEN-RGX-0061` and `PGEN-RGX-0062`.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - added `single_byte_escape` so PCRE2 `\C` transports as a dedicated single-code-unit escape instead of falling through as `simple_escape("C")`
+  - reordered `escape_unit` so specific escape families are tried before generic `simple_escape`
+  - added `condition_callout_assertion` / `condition_callout` so assertion conditions may be preceded by an explicit PCRE2 callout, matching forms such as `^(?(?C25)(?=abc)abcd|xyz)` and `^(?(?C$abc$)(?=abc)abcd|xyz)`
+  - kept the fix shape general: the condition-callout payload reuses the existing numeric/string `callout_arg` grammar rather than matching only the reported numeric witness
+- Regenerated tracked parser artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs) and [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - bumped regex parser release to `1.1.24`
+  - bumped regex integration contract to `1.1.26`
+  - increased success samples from `80` to `83`
+  - added `single_byte_escape_code_unit`
+  - added numeric and string conditional-callout assertion samples
+  - added focused generated-parser tests for the new AST rule shapes
+- Ratcheted [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - baseline version `6`
+  - `MIN_MATCH_TOTAL=1832`
+  - `MAX_MISMATCH_TOTAL=363`
+  - `MAX_FALSE_ACCEPT_TOTAL=309`
+  - `MAX_FALSE_REJECT_TOTAL=54`
+- Refreshed the regex parser-family proof:
+  - frontend overall `pass`
+  - dual-run overall `pass`
+  - `perl_rule_count=100`
+  - `rust_rule_count=188`
+  - parser-backed stimuli `5266/4615/651`
+  - diagnostic target-drive parser rejections `651`
+  - closed target debt `750 -> 0`
+  - target-drive attempts `5812`
+- Updated public/continuity documentation:
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Status impact:
+  - no live parser-family label changed
+  - `regex` remains `Done`
+  - this is PCRE2 compatibility maintenance over the already-published regex contract, not a reopening of the family row
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `parseability_probe --parse regex .../PGEN-RGX-0061/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex .../PGEN-RGX-0062/repro_input.txt --profile regex_default`
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+
 ## 2026-04-16 - Tighten rtl_frontend aggregate net declaration proof
 ### Achievement Summary
 Tightened the `rtl_frontend` generated contract so aggregate typed net declarations retain exact `net_declaration` text, not only their nested enum/union/typedef evidence.

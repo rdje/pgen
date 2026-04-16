@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: rtl-frontend-aggregate-net-declaration-text-proof)
+Last updated: 2026-04-16 (+0200, task: regex-single-byte-and-conditional-callout-release)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,57 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Published regex parser release `1.1.24` / integration contract `1.1.26` for RGX PCRE2 reports `PGEN-RGX-0061` and `PGEN-RGX-0062`:
+  - changed:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - PCRE2 source-derived grammar/AST widening:
+    - `\C` now transports as `escape` -> `escape_unit` -> `single_byte_escape` instead of `simple_escape("C")`
+    - conditionals now accept a callout immediately before an assertion condition, covering numeric and string callout payloads through the existing `callout_arg` shape
+  - contract/proof updates:
+    - regex parser release `1.1.24`
+    - regex integration contract `1.1.26`
+    - regex integration manifest now has `83` success samples and `19` failure samples
+    - PCRE2 compile-oracle lightweight baseline version `6`
+    - `MIN_MATCH_TOTAL=1832`
+    - `MAX_MISMATCH_TOTAL=363`
+    - `MAX_FALSE_ACCEPT_TOTAL=309`
+    - `MAX_FALSE_REJECT_TOTAL=54`
+    - refreshed regex family proof:
+      - `dual_run_regex_perl_rule_count=100`
+      - `dual_run_regex_rust_rule_count=188`
+      - parser-backed stimuli `5266/4615/651`
+      - diagnostic target-drive parser rejections `651`
+      - closed target debt `750 -> 0`
+      - target-drive attempts `5812`
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `parseability_probe --parse regex .../PGEN-RGX-0061/repro_input.txt --profile regex_default`
+    - `parseability_probe --parse regex .../PGEN-RGX-0062/repro_input.txt --profile regex_default`
+    - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `regex` remains `Done`
+    - this is compatibility maintenance over the existing regex family proof, not a reopening of the family row
 - Tightened `rtl_frontend` generated-contract proof for aggregate typed `net_declaration` retained text:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
