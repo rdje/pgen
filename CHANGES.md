@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend unpacked-array port/net proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract sample for unpacked-array ports and nets so it now proves the retained dimensional declaration text, not only rule presence and net-item names.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `unpacked_array_ports_and_nets`
+  - now requires port-list, port-group, net-item, recursive expression, and signal-reference rule evidence in addition to the existing module/parameter/net/range evidence
+  - exact-locks:
+    - `parameter DEPTH = 4`
+    - the full ANSI port list and all three port groups
+    - `logic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];`
+    - both `net_item` spans
+    - all retained packed-range and unpacked-dimension spans for the sample
+  - subset-locks the symbolic `DEPTH-1` expression and four `DEPTH` signal-reference appearances
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract proof tightening, not semantic shape-evaluation closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_unpacked_array_ports_and_nets.sv /tmp/rtl_frontend_unpacked_array_ports_and_nets_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+
 ## 2026-04-16 - Tighten rtl_frontend parameterized instance-array proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract sample for parameterized instance arrays so it now proves the symbolic instance range and parameter context, not just the high-level instantiation shape.

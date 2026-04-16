@@ -3423,6 +3423,10 @@ Why `rtl_frontend` exists:
     - `parameterized_instance_array_with_named_ports` now exact-locks child/top parameter declarations and both scalar ANSI port lists/groups,
     - the existing hierarchy locks remain in place for `child #(.WIDTH(LANES)) lane[0:LANES-1] (.a(a), .y(y));`,
     - recursive expression assertions now prove `LANES-1` plus both `LANES` signal-reference appearances without claiming generated semantic instance-array expansion.
+  - Progress (2026-04-16): tightened unpacked-array port/net retained-text proof:
+    - `unpacked_array_ports_and_nets` now exact-locks the full ANSI port list, individual port groups, full module-body net declaration, net items, and retained packed/unpacked dimension spans,
+    - recursive expression assertions now prove `DEPTH-1` and the repeated `DEPTH` references while leaving semantic shape evaluation outside this generated-parser slice,
+    - kept the live `rtl_frontend` row at `In Progress` because this is proof tightening, not full generated semantic closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

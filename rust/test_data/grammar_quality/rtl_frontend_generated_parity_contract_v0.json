@@ -617,17 +617,74 @@
         "module_declaration",
         "parameter_declaration_sequence",
         "parameter_declaration_group",
+        "parameter_declaration_head",
+        "port_list",
+        "port_group",
         "net_declaration",
+        "net_item",
         "packed_range",
-        "unpacked_dimension"
+        "unpacked_dimension",
+        "conditional_expr",
+        "relational_expr",
+        "additive_expr",
+        "signal_reference"
       ],
       "expected_rule_texts": {
-        "parameter_declaration_head": [
-          "parameter DEPTH = 4"
+        "net_declaration": [
+          "logic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];"
         ],
         "net_item": [
           "bank0 [0:DEPTH-1]",
           "bank1 [1:DEPTH]"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[0:DEPTH-1]",
+          "[7:0]",
+          "[1:DEPTH]",
+          "[7:0]",
+          "[0:DEPTH-1]",
+          "[1:DEPTH]"
+        ],
+        "parameter_declaration_group": [
+          "parameter DEPTH = 4"
+        ],
+        "parameter_declaration_head": [
+          "parameter DEPTH = 4"
+        ],
+        "parameter_declaration_sequence": [
+          "parameter DEPTH = 4"
+        ],
+        "port_group": [
+          "input logic [7:0] a [0:DEPTH-1]",
+          "input logic [7:0] b [1:DEPTH]",
+          "output logic y"
+        ],
+        "port_list": [
+          "input logic [7:0] a [0:DEPTH-1],\n    input logic [7:0] b [1:DEPTH],\n    output logic y"
+        ],
+        "unpacked_dimension": [
+          "[0:DEPTH-1]",
+          "[1:DEPTH]",
+          "[0:DEPTH-1]",
+          "[1:DEPTH]"
+        ]
+      },
+      "required_rule_texts": {
+        "additive_expr": [
+          "DEPTH-1"
+        ],
+        "conditional_expr": [
+          "DEPTH-1"
+        ],
+        "relational_expr": [
+          "DEPTH-1"
+        ],
+        "signal_reference": [
+          "DEPTH",
+          "DEPTH",
+          "DEPTH",
+          "DEPTH"
         ]
       },
       "sample": "module top #(\n    parameter DEPTH = 4\n) (\n    input logic [7:0] a [0:DEPTH-1],\n    input logic [7:0] b [1:DEPTH],\n    output logic y\n);\nlogic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];\nendmodule\n"

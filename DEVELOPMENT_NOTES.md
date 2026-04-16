@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend unpacked-array port/net retained-text tightening
+### Context
+The handwritten `rtl_frontend` baseline includes `parses_unpacked_array_ports_and_nets`, which is a foundational declaration-shape test for:
+
+- packed byte-wide ports
+- unpacked-array port dimensions driven by `DEPTH`
+- unpacked-array net declarations in the module body
+- computed shape evidence for both `[0:DEPTH-1]` and `[1:DEPTH]`
+
+The generated contract already had a positive `unpacked_array_ports_and_nets` sample, but it mostly proved rule presence plus the two `net_item` names. It did not exact-lock the port-list/port-group retained text, the full net declaration, or the dimensional ranges.
+
+### Decision
+- Tighten the existing sample rather than add a duplicate sample.
+- Exact-lock compact declaration spans:
+  - parameter declaration
+  - full ANSI port list and individual port groups
+  - full net declaration and net items
+  - retained packed-range / unpacked-dimension vectors
+- Use subset retained-text checks for recursive expression and signal-reference evidence so `DEPTH-1` and the repeated `DEPTH` references stay proven without freezing every numeric literal leaf.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added required rule evidence for `port_list`, `port_group`, `net_item`, `conditional_expr`, `relational_expr`, `additive_expr`, and `signal_reference`
+  - exact-locked the retained port-list/port-group, net-declaration/net-item, parameter-declaration, packed-range, and unpacked-dimension spans
+  - subset-locked `DEPTH-1` and four `DEPTH` signal-reference occurrences
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_unpacked_array_ports_and_nets.sv /tmp/rtl_frontend_unpacked_array_ports_and_nets_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend parameterized instance-array retained-text tightening
 ### Context
 The existing generated-contract sample `parameterized_instance_array_with_named_ports` already covered the handwritten `elaborate_top_expands_instance_arrays` syntax shape:
