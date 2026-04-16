@@ -33,6 +33,7 @@ atom           = literal
                | backreference
                | quoted_literal
                | escape
+               | posix_word_boundary_alias
                | char_class
                | subroutine_call
                | inline_modifiers
@@ -90,6 +91,8 @@ name_continue  = name_start | digit
 brace_ws       = (' ' | '\t')+
 
 # Character classes with actionable code generation
+posix_word_boundary_alias = "[[:<:]]" | "[[:>:]]"
+
 @generate: generate_char_class_matcher(has_negation($2), collect_class_items($2))
 @optimize: count(flatten($2)) > 8 ? "lookup_table" : "linear_checks"
 @validate: all(extract_ranges($2), r => valid_range(r.start, r.end))

@@ -1,4 +1,69 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - Regex RGX 0063/0064 PCRE2 exact-alias and DEFINE lookbehind maintenance
+### Context
+RGX filed two PCRE2 conformance reports against the published regex handoff:
+
+- `PGEN-RGX-0063`: `[[:<:]]red[[:>:]]` should be accepted. PCRE2 implements `[[:<:]]` / `[[:>:]]` as BSD/POSIX compatibility word-boundary aliases.
+- `PGEN-RGX-0064`: `(?<=X(?(DEFINE)(.*))Y).` should be accepted. `(?(DEFINE)...)` is declarative and zero-width, so the runtime lookbehind body is fixed width `XY`.
+
+The PCRE2 oracle also caught an important nuance during validation: `[a[:<:]] should give error` must remain invalid. PCRE2 accepts only the exact alias sequences; it does not treat `<` and `>` as general POSIX class names.
+
+### Decision
+- Model exact aliases in [grammars/regex.ebnf](grammars/regex.ebnf) as atom-level `posix_word_boundary_alias` productions:
+  - `[[:<:]]`
+  - `[[:>:]]`
+- Keep ordinary `posix_name` limited to standard POSIX names such as `alpha`, `digit`, `space`, `word`, and `xdigit`.
+- Teach the generated-host compile validation layer to skip exact aliases before generic character-class scanning, so accepted aliases survive while mixed classes still hit the unknown-POSIX-class path.
+- Skip `(?(DEFINE)...)` groups while scanning lookbehind bodies for unbounded quantifiers, because DEFINE bodies declare subpatterns and do not consume lookbehind width.
+- Publish the slice as regex parser release `1.1.25` / integration contract `1.1.27`, with regex AST schema version unchanged at `1`.
+
+### What Was Changed
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - added `posix_word_boundary_alias`
+  - routed `atom` through the exact alias production before `char_class`
+  - removed `<` and `>` from ordinary `posix_name`
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - added exact alias skipping for `[[:<:]]` / `[[:>:]]`
+  - kept mixed aliases invalid through the existing POSIX validator
+  - added zero-width skipping for `DEFINE` conditionals in the lookbehind unbounded-quantifier scan
+  - added focused positive/negative unit tests
+- Regenerated [generated/regex.json](generated/regex.json) and [generated/regex_parser.rs](generated/regex_parser.rs).
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs) and [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - contract version `1.1.27`
+  - parser release `1.1.25`
+  - `85` success samples
+  - `20` failure samples
+  - retained samples for exact aliases, DEFINE-in-lookbehind, and mixed-alias rejection
+- Ratcheted the PCRE2 compile-oracle baseline in [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - `MIN_MATCH_TOTAL=1834`
+  - `MAX_MISMATCH_TOTAL=361`
+  - `MAX_FALSE_ACCEPT_TOTAL=309`
+  - `MAX_FALSE_REJECT_TOTAL=52`
+- Refreshed the current regex family proof references:
+  - `dual_run_regex_rust_rule_count=189`
+  - parser-backed stimuli `5292/4677/615`
+  - diagnostic target-drive parser rejections `615`
+  - closed target debt `758 -> 0`
+  - target-drive attempts `5825`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation --lib`
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex .../PGEN-RGX-0063/repro_input.txt --profile regex_default`
+  - `rust/target/debug/parseability_probe --parse regex .../PGEN-RGX-0064/repro_input.txt --profile regex_default`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown added-line absolute-path leak check returned no matches
+- Clippy note:
+  - source clippy passed
+  - generated-parser clippy still reports non-strict generated lint debt; the `clippy_on_rust_change` wrapper completed successfully by design
+
 ## 2026-04-16 - rtl_frontend inline enum byte retained-text tightening
 ### Context
 The generated contract already had a positive `inline_enum_byte_base_typed_net_declaration` sample for `enum byte { ... } state;`, but it mostly locked the enum base type, enum items, and full net declaration. It did not exact-lock the `builtin_data_type` vector, the byte keyword retained text, the enum type body separately from the declaration, or the simple output port shell.

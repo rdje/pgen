@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.24`
+  - `1.1.25`
 - integration contract version:
-  - `1.1.26`
+  - `1.1.27`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3817,15 +3817,15 @@ Current measured operational baseline:
 - family status:
   - `Done`
 - parser-backed family proof:
-  - `parseability_attempts_total=5266`
-  - `parseability_accepted_total=4615`
-  - `parseability_rejected_total=651`
-  - `parseability_parser_rejections_total=651`
-  - `parseability_acceptance_rate_percent=87.64`
-  - `initial_targets=750`
-  - `resolved_targets=750`
+  - `parseability_attempts_total=5292`
+  - `parseability_accepted_total=4677`
+  - `parseability_rejected_total=615`
+  - `parseability_parser_rejections_total=615`
+  - `parseability_acceptance_rate_percent=88.38`
+  - `initial_targets=758`
+  - `resolved_targets=758`
   - `final_targets=0`
-  - `target_attempts=5812`
+  - `target_attempts=5825`
   - the retained parser-rejection count is target-drive diagnostic evidence from the stimuli-quality lane, not an open family-status blocker
 - broader checked-in corpus proof:
   - `cases_executed=44`
@@ -4042,7 +4042,10 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.24` specifically adds PCRE2 single-code-unit escape `\C` transport and callout-prefixed conditional assertions while carrying forward the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.25` specifically adds exact PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind zero-width handling while carrying forward the `1.1.24` single-code-unit escape `\C` transport and callout-prefixed conditional assertions, the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+  - `[[:<:]]red[[:>:]]` now transports PCRE2 word-boundary aliases as exact `posix_word_boundary_alias` atoms rather than ordinary `posix_class` names
+  - mixed classes such as `[a[:<:]]` remain rejected, matching PCRE2's "only exact character sequences" rule for these BSD/POSIX compatibility aliases
+  - `(?<=X(?(DEFINE)(.*))Y).` now passes the generated-host lookbehind compile contract because `DEFINE` conditionals are declarative and zero-width for length analysis
   - `ab\Cde` now transports `\C` as `single_byte_escape`, not as `simple_escape("C")`
   - `^(?(?C25)(?=abc)abcd|xyz)` now transports the condition through `condition_callout_assertion`, preserving both `condition_callout` and `condition_assertion`
   - `^(?(?C$abc$)(?=abc)abcd|xyz)` preserves the same condition-callout assertion shape for string callout payloads
@@ -4160,14 +4163,15 @@ Important interpretation:
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1832`
-  - `parse_expectation_mismatch_total=363`
+  - `parse_expectation_match_total=1834`
+  - `parse_expectation_mismatch_total=361`
   - `false_accept_total=309`
-  - `false_reject_total=54`
+  - `false_reject_total=52`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.24`
-  - integration contract version `1.1.26`
+  - parser release version `1.1.25`
+  - integration contract version `1.1.27`
 - the current improvement came from complementary changes:
+  - the grammar and compile-contract layer now accept only the exact PCRE2 POSIX word-boundary aliases `[[:<:]]` / `[[:>:]]`, reject mixed uses such as `[a[:<:]]`, and treat `DEFINE` conditionals as declarative zero-width groups while scanning lookbehind for unbounded quantifiers
   - the grammar now distinguishes PCRE2 `\C` as a dedicated single-code-unit escape and accepts callout-prefixed conditional assertion tests
   - the grammar and compile-contract layer now accept PCRE2 bounded variable-length lookbehind, Unicode capture names, and orphan `\E` as a zero-width class marker while still rejecting unbounded lookbehind, malformed named references, overlong names, and classes with no substantive atom
   - the grammar now accepts more real PCRE2 surface such as short Unicode property escapes, quoted class literals, `\K`, string callouts, one-digit and whitespace-braced hex/octal escapes, non-atomic lookarounds, script-run groups, scan-substring groups, and strict VERSION conditionals, while treating `{,}` as literal text

@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-04-16 - Publish regex 1.1.25 for RGX 0063/0064
+### Achievement Summary
+Published regex parser release `1.1.25` / integration contract `1.1.27` for RGX PCRE2 reports `PGEN-RGX-0063` and `PGEN-RGX-0064`.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf) so `[[:<:]]` and `[[:>:]]` are exact PCRE2 word-boundary alias atoms via `posix_word_boundary_alias`, not ordinary `posix_name` alternatives inside mixed character classes.
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs) so exact aliases pass, mixed forms such as `[a[:<:]]` still fail, and `(?(DEFINE)...)` groups are skipped as zero-width declarations during lookbehind unbounded-quantifier scanning.
+- Regenerated [generated/regex.json](generated/regex.json) and [generated/regex_parser.rs](generated/regex_parser.rs).
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json) to retain:
+  - `pcre2_posix_word_boundary_aliases`
+  - `define_conditional_is_zero_width_for_lookbehind_length`
+  - `mixed_posix_word_boundary_alias_is_not_pcre2`
+- Ratcheted [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - `MIN_MATCH_TOTAL=1834`
+  - `MAX_MISMATCH_TOTAL=361`
+  - `MAX_FALSE_ACCEPT_TOTAL=309`
+  - `MAX_FALSE_REJECT_TOTAL=52`
+- Updated public/continuity docs and the local workflow audit literals for the current regex handoff and refreshed family proof:
+  - parser-backed stimuli `5292/4677/615`
+  - closed target debt `758 -> 0`
+  - target-drive attempts `5825`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation --lib`
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex .../PGEN-RGX-0063/repro_input.txt --profile regex_default`
+  - `rust/target/debug/parseability_probe --parse regex .../PGEN-RGX-0064/repro_input.txt --profile regex_default`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown added-line absolute-path leak check returned no matches
+- Clippy note:
+  - the clippy workflow completed successfully; source clippy passed, while the generated-parser clippy substage remains non-strict and still reports existing generated lint debt
+
 ## 2026-04-16 - Tighten rtl_frontend inline enum byte proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract sample for inline enum byte-base typed net declarations so it now proves retained enum base, keyword, datatype vector, enum body, and port shell.

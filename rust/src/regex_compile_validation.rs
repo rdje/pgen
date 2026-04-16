@@ -717,6 +717,10 @@ fn find_invalid_char_class_construct(input: &str) -> Option<RegexCompileValidati
         match bytes[index] {
             b'\\' => index = skip_regex_escape(bytes, index),
             b'[' if !is_extended_class_start(bytes, index) => {
+                if let Some(after_alias) = skip_pcre2_posix_word_boundary_alias(bytes, index) {
+                    index = after_alias;
+                    continue;
+                }
                 let end = match scan_char_class(bytes, index) {
                     Ok(end) => end,
                     Err(error) => return Some(error),
@@ -725,6 +729,19 @@ fn find_invalid_char_class_construct(input: &str) -> Option<RegexCompileValidati
             }
             _ => index += 1,
         }
+    }
+    None
+}
+
+fn skip_pcre2_posix_word_boundary_alias(bytes: &[u8], start: usize) -> Option<usize> {
+    const START_WORD_ALIAS: &[u8] = b"[[:<:]]";
+    const END_WORD_ALIAS: &[u8] = b"[[:>:]]";
+    let rest = bytes.get(start..)?;
+    if rest.starts_with(START_WORD_ALIAS) {
+        return Some(start + START_WORD_ALIAS.len());
+    }
+    if rest.starts_with(END_WORD_ALIAS) {
+        return Some(start + END_WORD_ALIAS.len());
     }
     None
 }
@@ -1432,6 +1449,13 @@ fn contains_unbounded_quantifier(bytes: &[u8], start: usize, end: usize) -> bool
                     .map(|class_end| class_end + 1)
                     .unwrap_or(index + 1);
             }
+            b'(' if is_define_conditional_group_start(bytes, index) => {
+                if let Some(group_end) = find_matching_group_end(bytes, index) {
+                    index = group_end + 1;
+                } else {
+                    index += 1;
+                }
+            }
             b'(' if bytes.get(index + 1) == Some(&b'*') => {
                 if let Some(group_end) = star_directive_group_end_at(bytes, index) {
                     index = group_end + 1;
@@ -1460,6 +1484,14 @@ fn contains_unbounded_quantifier(bytes: &[u8], start: usize, end: usize) -> bool
     }
 
     false
+}
+
+fn is_define_conditional_group_start(bytes: &[u8], start: usize) -> bool {
+    const DEFINE_CONDITIONAL_PREFIX: &[u8] = b"(?(DEFINE)";
+
+    bytes
+        .get(start..start + DEFINE_CONDITIONAL_PREFIX.len())
+        .is_some_and(|candidate| candidate == DEFINE_CONDITIONAL_PREFIX)
 }
 
 fn star_directive_group_end_at(bytes: &[u8], start: usize) -> Option<usize> {
@@ -1659,6 +1691,21 @@ mod tests {
     }
 
     #[test]
+    fn allows_pcre2_posix_word_boundary_aliases() {
+        for input in ["[[:<:]]red[[:>:]]", "[[:<:]]+red", "red[[:>:]]+"] {
+            validate_regex_compile_contract(input)
+                .unwrap_or_else(|err| panic!("{input:?} should be accepted: {err:?}"));
+        }
+    }
+
+    #[test]
+    fn rejects_mixed_pcre2_posix_word_boundary_alias() {
+        let error = validate_regex_compile_contract("[a[:<:]] should give error")
+            .expect_err("PCRE2 only accepts exact [[:<:]]/[[:>:]] aliases");
+        assert!(error.message.contains("POSIX"));
+    }
+
+    #[test]
     fn rejects_invalid_pcre2_verb_shapes() {
         for input in ["a(*MARK)b", "abc(*MARK:)pqr", "abc(*:)pqr", "(*ploo:abc)"] {
             let error =
@@ -1700,6 +1747,14 @@ mod tests {
     fn allows_valid_pcre2_start_options() {
         validate_regex_compile_contract("(*CRLF)(*LIMIT_MATCH=123)abc")
             .expect("start-option prefix should be accepted");
+    }
+
+    #[test]
+    fn allows_define_conditionals_in_lookbehind_length_scan() {
+        for input in ["(?<=X(?(DEFINE)(.*))Y).", "(?<!X(?(DEFINE)(.*))Y)."] {
+            validate_regex_compile_contract(input)
+                .unwrap_or_else(|err| panic!("{input:?} should be accepted: {err:?}"));
+        }
     }
 
     #[test]

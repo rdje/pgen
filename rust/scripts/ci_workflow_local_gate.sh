@@ -450,10 +450,10 @@ audit_embedding_api_surface() {
     'pub const EMBEDDING_API_VERSION: &str = "1.2.0";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.26";'
+    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.27";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.24";'
+    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.25";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;'
@@ -597,7 +597,7 @@ audit_embedding_api_surface() {
     '### Regex Parser Flavor'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
-    '`parseability_attempts_total=5266`'
+    '`parseability_attempts_total=5292`'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '`(?<name>[a-z]+)`'
@@ -652,7 +652,7 @@ audit_embedding_api_surface() {
     '- `Contract Identity`'
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
-    '| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.24`, integration contract `1.1.26`. |'
+    '| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.25`, integration contract `1.1.27`. |'
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
@@ -715,7 +715,7 @@ audit_embedding_api_surface() {
     'Published Regex Flavor Summary'
   assert_file_contains \
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    '## Release 1.1.24 / Contract 1.1.26 Highlights'
+    '## Release 1.1.25 / Contract 1.1.27 Highlights'
   assert_file_contains \
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'raw regex bodies, not host-language delimiter wrappers'

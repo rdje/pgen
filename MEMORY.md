@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: rtl-frontend-inline-enum-byte-proof-tightening)
+Last updated: 2026-04-16 (+0200, task: regex-rgx-0063-0064-maintenance-release)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,57 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Published regex parser release `1.1.25` / integration contract `1.1.27` for RGX reports `PGEN-RGX-0063` and `PGEN-RGX-0064`:
+  - changed:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - PCRE2-derived behavior:
+    - `[[:<:]]red[[:>:]]` now parses through exact atom-level `posix_word_boundary_alias` nodes
+    - mixed classes such as `[a[:<:]]` remain rejected, matching PCRE2's exact-sequence-only rule for these aliases
+    - `(?<=X(?(DEFINE)(.*))Y).` now passes because `(?(DEFINE)...)` is skipped as a zero-width declaration during lookbehind length scanning
+  - refreshed contract/proof surface:
+    - parser release `1.1.25`
+    - integration contract `1.1.27`
+    - regex AST dump schema remains `1`
+    - integration manifest now has `85` success samples and `20` failure samples
+    - PCRE2 compile oracle baseline is now `1834` matches, `361` mismatches, `309` false accepts, and `52` false rejects over `2195` cases
+    - regex family proof now records `rust_rule_count=189`, parser-backed stimuli `5292/4677/615`, and target debt `758 -> 0` after `5825` attempts
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation --lib`
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex .../PGEN-RGX-0063/repro_input.txt --profile regex_default`
+    - `rust/target/debug/parseability_probe --parse regex .../PGEN-RGX-0064/repro_input.txt --profile regex_default`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash regex_pcre2_compile_oracle_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+    - markdown added-line absolute-path leak check returned no matches
+  - clippy note:
+    - source clippy passed
+    - generated-parser clippy remains non-strict and still reports generated lint debt; the wrapper completed successfully
+  - important continuity detail:
+    - no live parser-family label changed; `regex` remains `Done`
+    - this is compatibility maintenance over the already-closed regex row, not a reopening of regex family status
 - Tightened the curated `rtl_frontend` generated contract for inline enum byte-base typed net declarations:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

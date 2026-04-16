@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.26",
-  "parser_release_version": "1.1.24",
+  "integration_contract_version": "1.1.27",
+  "parser_release_version": "1.1.25",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -97,6 +97,15 @@
         "posix_name": ["digit"]
       },
       "forbidden_rule_names": ["class_range"]
+    },
+    {
+      "name": "pcre2_posix_word_boundary_aliases",
+      "input": "[[:<:]]red[[:>:]]",
+      "required_rule_names": ["posix_word_boundary_alias"],
+      "expected_rule_texts": {
+        "posix_word_boundary_alias": ["[[:<:]]", "[[:>:]]"]
+      },
+      "forbidden_rule_names": ["char_class", "posix_class"]
     },
     {
       "name": "quoted_literal_metacharacters",
@@ -207,6 +216,16 @@
         "directive_verb": ["(*ACCEPT)"],
         "directive_named": ["ACCEPT"],
         "directive_name": ["ACCEPT"]
+      }
+    },
+    {
+      "name": "define_conditional_is_zero_width_for_lookbehind_length",
+      "input": "(?<=X(?(DEFINE)(.*))Y).",
+      "required_rule_names": ["lookaround", "lookbehind_pos", "conditional", "define_condition"],
+      "expected_rule_texts": {
+        "lookbehind_pos": ["(?<=X(?(DEFINE)(.*))Y)"],
+        "conditional": ["(?(DEFINE)(.*))"],
+        "define_condition": ["DEFINE"]
       }
     },
     {
@@ -891,6 +910,10 @@
     {
       "name": "invalid_short_unicode_property_escape",
       "input": "\\pA"
+    },
+    {
+      "name": "mixed_posix_word_boundary_alias_is_not_pcre2",
+      "input": "[a[:<:]] should give error"
     },
     {
       "name": "empty_quoted_class_literal_is_not_a_class_atom",
