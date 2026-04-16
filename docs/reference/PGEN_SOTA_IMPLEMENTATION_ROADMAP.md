@@ -3451,6 +3451,10 @@ Why `rtl_frontend` exists:
     - `package_qualified_typedef_struct_port`, `package_wildcard_import_typedef_struct_named_net`, and `package_named_import_typedef_struct_named_net` now exact-lock compact package struct typedef declarations and struct bodies, builtin datatype vectors, packed ranges, package-qualified or named data-type uses, ANSI port-list/group shells, and imported `cfg_t cfg;` net declarations where applicable,
     - this keeps package/import type-resolution semantics outside the generated-parser proof claim while making the retained syntax surface harder to regress,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic package/import type-resolution closure.
+  - Progress (2026-04-16): tightened local/file-scope/multi-module/package struct typedef retained-text proof:
+    - `typedef_struct_named_net_declaration`, `file_scope_typedef_struct_named_net`, `file_scope_typedef_struct_port_and_net_multimodule`, and `package_typedef_struct_port_and_wildcard_net_multimodule` now exact-lock local, file-scope, and package struct typedef declarations, struct bodies, builtin datatype vectors, packed ranges, ANSI port-list/group shells, full child/top module declarations, and `cfg_t cfg;` net declarations where applicable,
+    - this keeps semantic typedef visibility, package import resolution, and elaboration outside the generated-parser proof claim while closing another brittle retained-text gap,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic typedef/import/elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

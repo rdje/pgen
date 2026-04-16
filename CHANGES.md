@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend struct typedef scope proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for local, file-scope, multi-module, and package-backed struct typedef port/net lanes so they now prove exact typedef, struct, module, port, datatype, range, and net retained text.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `typedef_struct_named_net_declaration`
+  - strengthened `file_scope_typedef_struct_named_net`
+  - strengthened `file_scope_typedef_struct_port_and_net_multimodule`
+  - strengthened `package_typedef_struct_port_and_wildcard_net_multimodule`
+  - now exact-locks local/file-scope/package struct typedef declarations, struct bodies, builtin datatype vectors, packed ranges, ANSI port-list/port-group shells, full module declarations, and `cfg_t cfg;` net declarations where applicable
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic typedef visibility, package import resolution, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-16 - Tighten rtl_frontend package struct typedef proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for package-qualified, wildcard-imported, and named-imported struct typedef port/net lanes so they now prove exact port or net shells in addition to typedef/import shape.

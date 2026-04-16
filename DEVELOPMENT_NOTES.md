@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend local/file-scope struct typedef retained-text tightening
+### Context
+The generated contract already retained local, file-scope, multi-module, and package-backed struct typedef samples. Those samples proved the broad typedef/net/module shapes, but their exact retained-text checks did not yet consistently lock the full typedef body, module shell, ANSI port shell, builtin datatype vector, packed range, and net declaration together across the related scope variants.
+
+### Decision
+- Tighten the existing scope-spanning struct typedef samples together:
+  - `typedef_struct_named_net_declaration`
+  - `file_scope_typedef_struct_named_net`
+  - `file_scope_typedef_struct_port_and_net_multimodule`
+  - `package_typedef_struct_port_and_wildcard_net_multimodule`
+- Exact-lock the generated AST retained text that matters for parser parity:
+  - local, file-scope, and package struct typedef declarations
+  - compact `struct_type` bodies and `struct_union_field` entries
+  - builtin datatype vectors and packed ranges
+  - ANSI `port_list` / `port_group` shells
+  - full `module_declaration` spans for child/top multi-module cases
+  - `cfg_t cfg;` named-type net declarations
+- Keep semantic typedef visibility, package import resolution, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added missing `port_list`, `port_group`, `builtin_data_type`, and `packed_range` evidence where applicable
+  - exact-locked retained text for the local/file-scope/multi-module/package struct typedef port and net lanes
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend package struct typedef retained-text tightening
 ### Context
 The generated contract already retained package-qualified, wildcard-imported, and named-imported struct typedef lanes. Those samples proved the broad package/import/type shape, but their exact retained-text checks did not yet lock the full port shell for the package-qualified port lane or the port/net shells for the wildcard/named import net lanes.
