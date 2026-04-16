@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend symbolic non-unit generate-for stride proof
+### Context
+The handwritten `rtl_frontend` baseline has a semantic unit test, `generate_for_unrolls_with_bounded_iteration`, for the shape `i < LIMIT` with a non-unit step `i + 2`. Existing generated-contract samples retained generate-for loops, but all of the focused loop samples used unit stride (`i = i + 1`) and mostly literal loop bounds.
+
+### Decision
+- Add a new positive generated-contract sample, `generate_for_symbolic_limit_nonunit_stride`.
+- Treat it as syntax/AST proof only. It proves the generated parser retains the symbolic bound and non-unit step expression; it does not claim generated semantic unrolling.
+- Exact-lock the compact structural spans for the generate region, loop, body, and local net.
+- Use subset retained-text checks for recursive expression spans so `i < LIMIT` and `i + 2` stay proven without freezing every incidental scalar expression leaf.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `generate_for_symbolic_limit_nonunit_stride`
+  - requires `parameter_declaration_sequence`, `generate_region`, `generate_for`, `generate_body`, `kw_for`, `kw_genvar`, `net_declaration`, `net_item`, and recursive expression rule evidence
+  - exact-locks `generate_region`, `generate_for`, `generate_body`, `net_declaration`, `net_item`, and `parameter_declaration_head`
+  - subset-locks `i < LIMIT` and `i + 2`
+  - forbids unrelated hierarchy/procedural/dataflow rules on this local-net loop sample
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_generate_for_symbolic_nonunit_stride.sv /tmp/rtl_frontend_generate_for_symbolic_nonunit_stride_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend integrated child/generate hierarchy proof
 ### Context
 The handwritten `rtl_frontend` baseline includes `elaborate_top_resolves_child_parameters_and_generate_instances`, which is a compact hierarchy/elaboration shape:

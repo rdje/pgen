@@ -2549,6 +2549,68 @@
       "sample": "module top;\ngenerate\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate\nendmodule\n"
     },
     {
+      "label": "generate_for_symbolic_limit_nonunit_stride",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "parameter_declaration_group",
+        "parameter_declaration_head",
+        "generate_region",
+        "generate_for",
+        "generate_body",
+        "kw_generate",
+        "kw_for",
+        "kw_genvar",
+        "net_declaration",
+        "net_item",
+        "conditional_expr",
+        "relational_expr",
+        "additive_expr"
+      ],
+      "forbidden_rule_names": [
+        "module_instantiation",
+        "procedural_block",
+        "continuous_assign"
+      ],
+      "expected_rule_texts": {
+        "generate_region": [
+          "generate\n    for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2\n        logic tap;\n    end\nendgenerate"
+        ],
+        "generate_for": [
+          "for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2\n        logic tap;\n    end"
+        ],
+        "generate_body": [
+          "begin : step2\n        logic tap;\n    end"
+        ],
+        "net_declaration": [
+          "logic tap;"
+        ],
+        "net_item": [
+          "tap"
+        ],
+        "parameter_declaration_head": [
+          "parameter LIMIT = 5"
+        ]
+      },
+      "required_rule_texts": {
+        "conditional_expr": [
+          "i < LIMIT",
+          "i + 2"
+        ],
+        "relational_expr": [
+          "i < LIMIT",
+          "i + 2"
+        ],
+        "additive_expr": [
+          "i + 2"
+        ]
+      },
+      "sample": "module top #(\n    parameter LIMIT = 5\n);\ngenerate\n    for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2\n        logic tap;\n    end\nendgenerate\nendmodule\n"
+    },
+    {
       "label": "generate_for_named_instantiation_and_dataflow",
       "expected_parse_ok": true,
       "require_ast_json": true,

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: rtl-frontend-integrated-child-generate-hierarchy-proof)
+Last updated: 2026-04-16 (+0200, task: rtl-frontend-symbolic-nonunit-generate-for-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,36 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Widened the curated `rtl_frontend` generated contract with a symbolic non-unit generate-for stride sample:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - new retained sample:
+    - `generate_for_symbolic_limit_nonunit_stride`
+  - proof widening:
+    - covers `parameter LIMIT = 5` plus `for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2`
+    - exact-locks `generate_region`, `generate_for`, branch-level `generate_body`, `net_declaration`, `net_item`, and `parameter_declaration_head`
+    - subset-locks salient recursive expression spans `i < LIMIT` and `i + 2`
+    - forbids unrelated instantiation/procedural/dataflow rules on this local-net loop sample
+  - validation:
+    - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_generate_for_symbolic_nonunit_stride.sv /tmp/rtl_frontend_generate_for_symbolic_nonunit_stride_ast.json`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+    - markdown absolute-path leak check over the changed docs returned no matches
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is syntax/AST generated-contract proof widening, not semantic generate-for unroll/evaluation closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Widened the curated `rtl_frontend` generated contract with an integrated child/generate hierarchy sample from the handwritten baseline:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

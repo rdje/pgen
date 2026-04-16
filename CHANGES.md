@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-16 - Retain rtl_frontend symbolic generate-for stride baseline
+### Achievement Summary
+Widened the `rtl_frontend` generated contract with a symbolic, non-unit generate-for stride sample inspired by the handwritten `generate_for_unrolls_with_bounded_iteration` baseline shape.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `generate_for_symbolic_limit_nonunit_stride`
+  - retained `parameter LIMIT = 5` plus `for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2`
+  - exact-locked `generate_region`, `generate_for`, branch-level `generate_body`, `net_declaration`, `net_item`, and `parameter_declaration_head` spans
+  - subset-locked salient recursive expression spans for `i < LIMIT` and `i + 2`
+  - forbids unrelated instantiation, procedural, and continuous-assign rules on this local-net generate-for sample
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused syntax/AST generated-contract proof widening, not semantic unroll/evaluation closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_generate_for_symbolic_nonunit_stride.sv /tmp/rtl_frontend_generate_for_symbolic_nonunit_stride_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+
 ## 2026-04-16 - Retain rtl_frontend child generate hierarchy baseline
 ### Achievement Summary
 Widened the `rtl_frontend` generated contract with an integrated hierarchy sample from the handwritten baseline: direct child instantiation, generate-if child instantiation, and generate-for child instantiation, all carrying named parameter overrides and named port connections.

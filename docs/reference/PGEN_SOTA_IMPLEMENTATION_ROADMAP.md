@@ -3415,6 +3415,10 @@ Why `rtl_frontend` exists:
     - `integrated_child_parameter_generate_instances` retains a two-module `leaf` / `top` design with direct, generate-if, and generate-for child instantiations,
     - the sample exact-locks hierarchy/generate spans for `module_instantiation`, `instance_item`, `parameter_override`, `port_connection`, `generate_region`, `generate_if`, `generate_for`, and branch-level `generate_body`,
     - this is syntax/AST generated-contract proof only; parameter evaluation, generated instance path expansion, and child elaboration remain outside this slice.
+  - Progress (2026-04-16): widened the generated contract with symbolic non-unit generate-for stride syntax:
+    - `generate_for_symbolic_limit_nonunit_stride` retains `parameter LIMIT = 5` plus `for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2`,
+    - the sample exact-locks `generate_region`, `generate_for`, branch-level `generate_body`, `net_declaration`, `net_item`, and parameter declaration spans,
+    - recursive expression assertions stay subset-based for `i < LIMIT` and `i + 2`; generated semantic unrolling remains outside this slice.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,
