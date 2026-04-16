@@ -3463,6 +3463,10 @@ Why `rtl_frontend` exists:
     - `typedef_backed_struct_member_actual`, `file_scope_typedef_backed_struct_member_actual`, `package_wildcard_import_typedef_backed_struct_member_actual`, `package_named_import_typedef_backed_struct_member_actual`, `header_named_import_typedef_backed_struct_member_actual`, and `unknown_typedef_backed_struct_member_actual_parse_surface` now exact-lock typedef declarations and struct bodies in addition to their existing net, hierarchy, port-connection, and signal-reference evidence,
     - `typedef_backed_packed_union_width_mismatch_parse_surface` now exact-locks the typedef declaration, union body, and packed ranges for the syntax-level width-mismatch parse surface,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic typedef visibility, member legality, packed-union width evaluation, or elaboration closure.
+  - Progress (2026-04-16): tightened inline and builtin-integral packed-union mismatch retained-text proof:
+    - `packed_union_width_mismatch_parse_surface` and `builtin_integral_packed_union_width_mismatch_parse_surface` now exact-lock full module declarations, simple output-port shells, inline union bodies, datatype/range or builtin keyword spans, and final net declarations,
+    - this keeps semantic packed-union width evaluation outside the generated-parser proof claim while bringing the inline and builtin mismatch lanes up to the typedef-backed mismatch lane's retained-text standard,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic packed-union width evaluation or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

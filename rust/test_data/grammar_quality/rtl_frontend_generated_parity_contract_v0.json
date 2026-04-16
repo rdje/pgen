@@ -1433,8 +1433,11 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "port_list",
+        "port_group",
         "union_type",
         "struct_union_field",
+        "builtin_data_type",
         "net_declaration",
         "packed_range"
       ],
@@ -1448,12 +1451,33 @@
         "generate_region"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "logic",
+          "logic"
+        ],
+        "module_declaration": [
+          "module top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload;\nendmodule"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[15:0]"
+        ],
+        "port_group": [
+          "output logic y"
+        ],
+        "port_list": [
+          "output logic y"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic [15:0] word;"
         ],
         "net_declaration": [
           "union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload;"
+        ],
+        "union_type": [
+          "union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n}"
         ]
       },
       "sample": "module top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload;\nendmodule\n"
@@ -1464,6 +1488,8 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "port_list",
+        "port_group",
         "union_type",
         "struct_union_field",
         "builtin_data_type",
@@ -1482,12 +1508,35 @@
         "generate_region"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "byte",
+          "shortint"
+        ],
+        "kw_byte": [
+          "byte"
+        ],
+        "kw_shortint": [
+          "shortint"
+        ],
+        "module_declaration": [
+          "module top (\n    output logic y\n);\nunion packed {\n    byte data;\n    shortint word;\n} payload;\nendmodule"
+        ],
+        "port_group": [
+          "output logic y"
+        ],
+        "port_list": [
+          "output logic y"
+        ],
         "struct_union_field": [
           "byte data;",
           "shortint word;"
         ],
         "net_declaration": [
           "union packed {\n    byte data;\n    shortint word;\n} payload;"
+        ],
+        "union_type": [
+          "union packed {\n    byte data;\n    shortint word;\n}"
         ]
       },
       "sample": "module top (\n    output logic y\n);\nunion packed {\n    byte data;\n    shortint word;\n} payload;\nendmodule\n"
