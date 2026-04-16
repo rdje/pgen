@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.27",
-  "parser_release_version": "1.1.25",
+  "integration_contract_version": "1.1.28",
+  "parser_release_version": "1.1.26",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -771,6 +771,48 @@
         "capturing_group": ["(.)"],
         "scan_substring_name": ["scs"],
         "returned_capture_group_list": ["(1)"]
+      },
+      "forbidden_rule_names": ["directive_verb"]
+    },
+    {
+      "name": "pcre2_utf8_start_option_alias",
+      "input": "(*UTF8)\\x{1234}",
+      "required_rule_names": ["directive_verb", "directive_named", "directive_name", "escape", "hex_escape", "hex_digits"],
+      "expected_rule_texts": {
+        "directive_verb": ["(*UTF8)"],
+        "directive_named": ["UTF8"],
+        "directive_name": ["UTF8"],
+        "escape": ["\\x{1234}"],
+        "hex_escape": ["x{1234}"],
+        "hex_digits": ["1234"]
+      }
+    },
+    {
+      "name": "scan_substring_forward_numeric_capture_ref",
+      "input": "(*scs:(1)a)(a)|x",
+      "required_rule_names": ["scan_substring_group", "scan_substring_name", "returned_capture_group_list", "returned_capture_group", "signed_digits", "capturing_group"],
+      "expected_rule_texts": {
+        "scan_substring_group": ["(*scs:(1)a)"],
+        "scan_substring_name": ["scs"],
+        "returned_capture_group_list": ["(1)"],
+        "returned_capture_group": ["1"],
+        "signed_digits": ["1"],
+        "capturing_group": ["(a)"]
+      },
+      "forbidden_rule_names": ["directive_verb"]
+    },
+    {
+      "name": "scan_substring_forward_named_capture_ref",
+      "input": "(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)",
+      "required_rule_names": ["scan_substring_group", "scan_substring_name", "returned_capture_group_list", "returned_capture_group", "name_ref", "name", "named_group"],
+      "expected_rule_texts": {
+        "scan_substring_group": ["(*scs:(<GOOD_NAME>)a)"],
+        "scan_substring_name": ["scs"],
+        "returned_capture_group_list": ["(<GOOD_NAME>)"],
+        "returned_capture_group": ["<GOOD_NAME>"],
+        "name_ref": ["<GOOD_NAME>"],
+        "name": ["GOOD_NAME", "GOOD_NAME"],
+        "named_group": ["(?<GOOD_NAME>a)"]
       },
       "forbidden_rule_names": ["directive_verb"]
     },

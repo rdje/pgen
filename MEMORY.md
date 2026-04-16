@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: rtl-frontend-aggregate-typed-net-proof-tightening)
+Last updated: 2026-04-16 (+0200, task: regex-rgx-0065-0066-maintenance)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,54 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Published regex parser release `1.1.26` / integration contract `1.1.28` for RGX reports `PGEN-RGX-0065` and `PGEN-RGX-0066`:
+  - changed:
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - PCRE2-derived behavior:
+    - `(*UTF8)\x{1234}` now passes the generated-host start-option validator as a UTF width alias; `UTF16` and `UTF32` are accepted in the same width-alias table
+    - `(*scs:(1)a)(a)|x` now passes scan-substring validation because absolute references use the full pattern capture inventory
+    - `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)` now passes named scan-substring validation against a later named group
+    - forward positive-relative scan-substring entries such as `+1` and `+2` are accepted when they resolve into the full inventory, while negative relative references still require enough prior captures
+  - refreshed contract surface:
+    - parser release `1.1.26`
+    - integration contract `1.1.28`
+    - regex AST dump schema remains `1`
+    - integration manifest now has `88` success samples and `20` failure samples
+    - PCRE2 compile oracle baseline is now `1840` matches, `355` mismatches, `309` false accepts, and `46` false rejects over `2195` cases
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation --lib`
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex .../PGEN-RGX-0065/repro_input.txt --profile regex_default`
+    - `rust/target/debug/parseability_probe --parse regex .../PGEN-RGX-0066/repro_input.txt --profile regex_default`
+    - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash regex_pcre2_compile_oracle_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+    - markdown added-line absolute-path leak check returned no matches
+  - clippy note:
+    - `clippy_on_rust_change` completed successfully; source all-targets passed, while generated all-targets remains non-strict and reported the existing generated-parser lint surface
+  - important continuity detail:
+    - no live parser-family label changed; `regex` remains `Done`
+    - this is compatibility maintenance over the already-closed regex row, not a reopening of regex family status
 - Tightened the curated `rtl_frontend` generated contract for inline aggregate typed nets and typedef-backed aggregate named nets:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

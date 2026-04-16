@@ -578,6 +578,9 @@ fn is_pcre2_start_option_name(name: &str) -> bool {
     matches!(
         name,
         "UTF"
+            | "UTF8"
+            | "UTF16"
+            | "UTF32"
             | "UCP"
             | "NOTEMPTY"
             | "NOTEMPTY_ATSTART"
@@ -1018,6 +1021,7 @@ fn is_valid_posix_class_name(name: &str) -> bool {
 fn find_invalid_scan_substring_capture_list(input: &str) -> Option<RegexCompileValidationError> {
     let bytes = input.as_bytes();
     let mut index = 0usize;
+    let full_inventory = capture_inventory_before(bytes, bytes.len());
 
     while index + 6 < bytes.len() {
         match bytes[index] {
@@ -1036,10 +1040,14 @@ fn find_invalid_scan_substring_capture_list(input: &str) -> Option<RegexCompileV
                     index += 1;
                     continue;
                 };
-                let inventory = capture_inventory_before(bytes, index);
-                if let Some(error) =
-                    validate_scan_substring_capture_refs(bytes, list_start + 1, list_end, inventory)
-                {
+                let prior_inventory = capture_inventory_before(bytes, index);
+                if let Some(error) = validate_scan_substring_capture_refs(
+                    bytes,
+                    list_start + 1,
+                    list_end,
+                    &prior_inventory,
+                    &full_inventory,
+                ) {
                     return Some(error);
                 }
                 index = list_end + 1;
@@ -1094,6 +1102,15 @@ fn capture_inventory_before(bytes: &[u8], end: usize) -> CaptureInventory {
                     index = after_name;
                 } else {
                     index += 1;
+                }
+            }
+            b'(' if bytes.get(index + 1) == Some(&b'*') => {
+                if let Some(list_start) = scan_substring_capture_list_start(bytes, index)
+                    && let Some(list_end) = find_matching_group_end(bytes, list_start)
+                {
+                    index = list_end + 1;
+                } else {
+                    index += 2;
                 }
             }
             b'(' => {
@@ -1154,7 +1171,8 @@ fn validate_scan_substring_capture_refs(
     bytes: &[u8],
     start: usize,
     end: usize,
-    inventory: CaptureInventory,
+    prior_inventory: &CaptureInventory,
+    full_inventory: &CaptureInventory,
 ) -> Option<RegexCompileValidationError> {
     let raw = std::str::from_utf8(&bytes[start..end]).ok()?;
     for item in raw.split(',').map(str::trim) {
@@ -1169,7 +1187,7 @@ fn validate_scan_substring_capture_refs(
                     .and_then(|value| value.strip_suffix('\''))
             })
         {
-            if !inventory.names.contains(name) {
+            if !full_inventory.names.contains(name) {
                 return Some(RegexCompileValidationError::new(
                     start,
                     "scan_substring capture list references an unknown named capture",
@@ -1178,13 +1196,27 @@ fn validate_scan_substring_capture_refs(
             continue;
         }
 
-        let Ok(reference) = item.parse::<isize>() else {
+        let numeric_reference = item
+            .strip_prefix('+')
+            .or_else(|| item.strip_prefix('-'))
+            .unwrap_or(item);
+        let Ok(reference) = numeric_reference.parse::<usize>() else {
             continue;
         };
-        if reference == 0
-            || (reference > 0 && reference as usize > inventory.count)
-            || (reference < 0 && reference.unsigned_abs() > inventory.count)
-        {
+
+        let resolved_reference = if item.starts_with('+') {
+            prior_inventory.count.saturating_add(reference)
+        } else if item.starts_with('-') {
+            if reference > prior_inventory.count {
+                0
+            } else {
+                prior_inventory.count + 1 - reference
+            }
+        } else {
+            reference
+        };
+
+        if resolved_reference == 0 || resolved_reference > full_inventory.count {
             return Some(RegexCompileValidationError::new(
                 start,
                 "scan_substring capture list references an unavailable capture",
@@ -1745,8 +1777,15 @@ mod tests {
 
     #[test]
     fn allows_valid_pcre2_start_options() {
-        validate_regex_compile_contract("(*CRLF)(*LIMIT_MATCH=123)abc")
-            .expect("start-option prefix should be accepted");
+        for input in [
+            "(*CRLF)(*LIMIT_MATCH=123)abc",
+            "(*UTF8)\\x{1234}",
+            "(*UTF16)\\x{1234}",
+            "(*UTF32)\\x{1234}",
+        ] {
+            validate_regex_compile_contract(input)
+                .unwrap_or_else(|err| panic!("{input:?} should be accepted: {err:?}"));
+        }
     }
 
     #[test]
@@ -1776,6 +1815,20 @@ mod tests {
     fn allows_scan_substring_known_capture_refs() {
         validate_regex_compile_contract("(?<name>a)(*scs:(1,<name>)b)")
             .expect("scan_substring may reference already declared captures");
+    }
+
+    #[test]
+    fn allows_scan_substring_forward_capture_refs() {
+        for input in [
+            "(*scs:(1)a)(a)|x",
+            "(*scs:(1)a)?(a)",
+            "(*scs:(1)a)??(a)",
+            "(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)",
+            "f(?:(*scs:(+1,+2)(?<=(.)))|()){16}",
+        ] {
+            validate_regex_compile_contract(input)
+                .unwrap_or_else(|err| panic!("{input:?} should be accepted: {err:?}"));
+        }
     }
 
     #[test]

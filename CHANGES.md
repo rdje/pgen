@@ -115,6 +115,48 @@ Tightened the existing `rtl_frontend` generated-contract sample for empty no-por
   - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
   - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
 
+## 2026-04-16 - Publish regex 1.1.26 for RGX 0065/0066
+### Achievement Summary
+Published regex parser release `1.1.26` / integration contract `1.1.28` for RGX PCRE2 reports `PGEN-RGX-0065` and `PGEN-RGX-0066`.
+
+### Scope of Changes
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs) so the generated-host PCRE2 start-option validator accepts UTF width aliases `UTF8`, `UTF16`, and `UTF32` alongside generic `UTF`.
+- Updated scan-substring capture-list validation so absolute and named references are checked against the full pattern capture inventory, allowing PCRE2-compatible forward references such as `(*scs:(1)a)(a)|x` and `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)`.
+- Preserved directional semantics for scan-substring relative references: forward `+n` resolves against the full inventory, while `-n` still requires enough prior captures before the scan-substring group.
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json) to retain:
+  - `pcre2_utf8_start_option_alias`
+  - `scan_substring_forward_numeric_capture_ref`
+  - `scan_substring_forward_named_capture_ref`
+- Ratcheted [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - baseline version `8`
+  - `MIN_MATCH_TOTAL=1840`
+  - `MAX_MISMATCH_TOTAL=355`
+  - `MAX_FALSE_ACCEPT_TOTAL=309`
+  - `MAX_FALSE_REJECT_TOTAL=46`
+- Updated public/continuity docs and the local workflow audit literals for the current regex handoff:
+  - parser release `1.1.26`
+  - integration contract `1.1.28`
+  - `88` success samples
+  - `20` failure samples
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation --lib`
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex .../PGEN-RGX-0065/repro_input.txt --profile regex_default`
+  - `rust/target/debug/parseability_probe --parse regex .../PGEN-RGX-0066/repro_input.txt --profile regex_default`
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown added-line absolute-path leak check returned no matches
+- Clippy note:
+  - `clippy_on_rust_change` completed successfully; its source all-targets stage passed, while the generated all-targets stage remains a non-strict generated-lint debt reporter and emitted the repository's existing generated-parser lint surface.
+
 ## 2026-04-16 - Publish regex 1.1.25 for RGX 0063/0064
 ### Achievement Summary
 Published regex parser release `1.1.25` / integration contract `1.1.27` for RGX PCRE2 reports `PGEN-RGX-0063` and `PGEN-RGX-0064`.

@@ -22,10 +22,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.27";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.28";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.25";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.26";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2102,7 +2102,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 85);
+        assert_eq!(manifest.success_samples.len(), 88);
         assert_eq!(manifest.failure_samples.len(), 20);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2412,6 +2412,24 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "scan_substring_group_short_alias")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "pcre2_utf8_start_option_alias")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "scan_substring_forward_numeric_capture_ref")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "scan_substring_forward_named_capture_ref")
         );
         assert!(
             manifest

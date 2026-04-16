@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.25`
+  - `1.1.26`
 - integration contract version:
-  - `1.1.27`
+  - `1.1.28`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3918,6 +3918,7 @@ Accepted syntax families in the current published flavor:
   - `(*atomic:abc)` atomic groups
   - script-run groups such as `(*sr:abc)` and `(*atomic_script_run:abc)`
   - scan-substring groups such as `(.)(*scs:(1)abc)`
+  - scan-substring forward numeric and named capture references such as `(*scs:(1)a)(a)|x` and `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)`
 - lookarounds:
   - positive lookahead
   - negative lookahead
@@ -3946,6 +3947,8 @@ Accepted syntax families in the current published flavor:
   - language-tagged `(?{rhai: ...})`
   - language-tagged `(?{native: ...})`
   - language-tagged `(?{wasm: ...})`
+- pattern-start options:
+  - UTF start options such as `(*UTF)` and the PCRE2 width aliases `(*UTF8)`, `(*UTF16)`, and `(*UTF32)`
 
 Representative accepted examples:
 - ``
@@ -3988,11 +3991,14 @@ Representative accepted examples:
 - `(?C{left}}right})`
 - `^(?(?C25)(?=abc)abcd|xyz)`
 - `^(?(?C$abc$)(?=abc)abcd|xyz)`
+- `(*UTF8)\\x{1234}`
 - `(?*foo)`
 - `(*napla:foo)`
 - `(*atomic:foo)`
 - `(*sr:foo)`
 - `(.)(*scs:(1)foo)`
+- `(*scs:(1)a)(a)|x`
+- `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)`
 - `(?<A>foo)-\\k{A}`
 - `(?<A>a)?(?(A)b|c)`
 - `a{,4}`
@@ -4042,7 +4048,11 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.25` specifically adds exact PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind zero-width handling while carrying forward the `1.1.24` single-code-unit escape `\C` transport and callout-prefixed conditional assertions, the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.26` specifically adds PCRE2 UTF width start-option aliases and scan-substring forward-reference validation while carrying forward the `1.1.25` exact PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind zero-width handling, the `1.1.24` single-code-unit escape `\C` transport and callout-prefixed conditional assertions, the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+  - `(*UTF8)\x{1234}` now passes the generated-host PCRE2 start-option validator as a UTF width alias rather than being rejected as an unknown verb/start option
+  - `(*scs:(1)a)(a)|x` now passes scan-substring capture-list validation because absolute references are resolved against the whole-pattern capture inventory
+  - `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)` now passes named scan-substring capture-list validation against a later named group
+  - forward relative scan-substring entries such as `+1` and `+2` are accepted when they resolve into the whole-pattern capture inventory; negative relative entries still require an already-available prior capture
   - `[[:<:]]red[[:>:]]` now transports PCRE2 word-boundary aliases as exact `posix_word_boundary_alias` atoms rather than ordinary `posix_class` names
   - mixed classes such as `[a[:<:]]` remain rejected, matching PCRE2's "only exact character sequences" rule for these BSD/POSIX compatibility aliases
   - `(?<=X(?(DEFINE)(.*))Y).` now passes the generated-host lookbehind compile contract because `DEFINE` conditionals are declarative and zero-width for length analysis
@@ -4104,7 +4114,7 @@ Diagnostics and AST behavior:
   - empty class quote regions when they would leave no substantive class atom or form an invalid range endpoint
   - malformed named backreference escapes such as bare `\k` and overlong capture group names
   - invalid POSIX class names
-  - scan-substring references to captures that do not exist yet
+  - scan-substring references to captures that do not exist in the whole pattern, while allowing PCRE2-compatible forward absolute/named/positive-relative references
   - unsupported default-mode escapes such as `\F`, `\l`, `\L`, `\u`, and `\U`
 
 Current non-promises and boundaries:
@@ -4163,14 +4173,15 @@ Important interpretation:
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1834`
-  - `parse_expectation_mismatch_total=361`
+  - `parse_expectation_match_total=1840`
+  - `parse_expectation_mismatch_total=355`
   - `false_accept_total=309`
-  - `false_reject_total=52`
+  - `false_reject_total=46`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.25`
-  - integration contract version `1.1.27`
+  - parser release version `1.1.26`
+  - integration contract version `1.1.28`
 - the current improvement came from complementary changes:
+  - the generated-host compile-contract layer now accepts PCRE2 UTF width aliases such as `(*UTF8)` and validates scan-substring capture lists against the whole-pattern capture inventory for forward absolute, named, and positive-relative references
   - the grammar and compile-contract layer now accept only the exact PCRE2 POSIX word-boundary aliases `[[:<:]]` / `[[:>:]]`, reject mixed uses such as `[a[:<:]]`, and treat `DEFINE` conditionals as declarative zero-width groups while scanning lookbehind for unbounded quantifiers
   - the grammar now distinguishes PCRE2 `\C` as a dedicated single-code-unit escape and accepts callout-prefixed conditional assertion tests
   - the grammar and compile-contract layer now accept PCRE2 bounded variable-length lookbehind, Unicode capture names, and orphan `\E` as a zero-width class marker while still rejecting unbounded lookbehind, malformed named references, overlong names, and classes with no substantive atom
