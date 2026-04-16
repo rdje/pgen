@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend aggregate typed-net proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for inline struct/union typed nets and typedef-backed enum/union named nets so they now prove exact module, port, datatype, range, aggregate type, typedef, named-use, and net retained text.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `inline_struct_typed_net_declaration`
+  - strengthened `inline_union_typed_net_declaration`
+  - strengthened `typedef_union_named_net_declaration`
+  - strengthened `typedef_enum_named_net_declaration`
+  - now exact-locks simple `output logic y` port shells, full module declarations, builtin datatype vectors, packed ranges, aggregate type bodies, typedef declarations, named data-type uses, and final net declarations where applicable
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not aggregate semantic width, enum-value, typedef visibility, or elaboration closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_inline_struct_typed_net_declaration.sv /tmp/rtl_inline_struct_typed_net_declaration_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_inline_union_typed_net_declaration.sv /tmp/rtl_inline_union_typed_net_declaration_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_typedef_union_named_net_declaration.sv /tmp/rtl_typedef_union_named_net_declaration_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_typedef_enum_named_net_declaration.sv /tmp/rtl_typedef_enum_named_net_declaration_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-16 - Tighten rtl_frontend struct typedef scope proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for local, file-scope, multi-module, and package-backed struct typedef port/net lanes so they now prove exact typedef, struct, module, port, datatype, range, and net retained text.

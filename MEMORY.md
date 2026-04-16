@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: rtl-frontend-struct-typedef-scope-proof-tightening)
+Last updated: 2026-04-16 (+0200, task: rtl-frontend-aggregate-typed-net-proof-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,37 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for inline aggregate typed nets and typedef-backed aggregate named nets:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained samples:
+    - `inline_struct_typed_net_declaration`
+    - `inline_union_typed_net_declaration`
+    - `typedef_union_named_net_declaration`
+    - `typedef_enum_named_net_declaration`
+  - proof tightening:
+    - exact-locks full module declarations and simple `output logic y` port shells
+    - exact-locks builtin datatype vectors and packed ranges
+    - exact-locks aggregate type bodies, typedef declarations, named data-type uses, and final net declarations where applicable
+  - validation:
+    - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_inline_struct_typed_net_declaration.sv /tmp/rtl_inline_struct_typed_net_declaration_ast.json`
+    - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_inline_union_typed_net_declaration.sv /tmp/rtl_inline_union_typed_net_declaration_ast.json`
+    - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_typedef_union_named_net_declaration.sv /tmp/rtl_typedef_union_named_net_declaration_ast.json`
+    - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_typedef_enum_named_net_declaration.sv /tmp/rtl_typedef_enum_named_net_declaration_ast.json`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not aggregate semantic width, enum-value, typedef visibility, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened the curated `rtl_frontend` generated contract for local, file-scope, multi-module, and package-backed struct typedef port/net lanes:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend aggregate typed-net retained-text tightening
+### Context
+The generated contract already retained inline aggregate typed-net declarations and typedef-backed aggregate named-net declarations. The earlier locks focused on high-signal aggregate fields/items and the final net declaration, but several lanes did not yet consistently prove the full enclosing module, port shell, datatype vector, packed range, type body, and typedef body.
+
+### Decision
+- Tighten the existing aggregate typed-net samples together:
+  - `inline_struct_typed_net_declaration`
+  - `inline_union_typed_net_declaration`
+  - `typedef_union_named_net_declaration`
+  - `typedef_enum_named_net_declaration`
+- Exact-lock the generated AST retained text that matters for parser parity:
+  - full `module_declaration` spans
+  - simple `output logic y` `port_list` / `port_group` shells
+  - aggregate type bodies for inline struct/union and typedef-backed enum/union
+  - builtin datatype vectors and packed ranges
+  - typedef declarations and named data-type uses where applicable
+  - final net declarations
+- Keep aggregate semantic width checks, enum value/base-width evaluation, typedef visibility, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added missing `port_list`, `port_group`, `builtin_data_type`, `packed_range`, and `enum_base_type` evidence where applicable
+  - exact-locked retained text for the inline struct/union and typedef-backed enum/union named-net lanes
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_inline_struct_typed_net_declaration.sv /tmp/rtl_inline_struct_typed_net_declaration_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_inline_union_typed_net_declaration.sv /tmp/rtl_inline_union_typed_net_declaration_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_typedef_union_named_net_declaration.sv /tmp/rtl_typedef_union_named_net_declaration_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_typedef_enum_named_net_declaration.sv /tmp/rtl_typedef_enum_named_net_declaration_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend local/file-scope struct typedef retained-text tightening
 ### Context
 The generated contract already retained local, file-scope, multi-module, and package-backed struct typedef samples. Those samples proved the broad typedef/net/module shapes, but their exact retained-text checks did not yet consistently lock the full typedef body, module shell, ANSI port shell, builtin datatype vector, packed range, and net declaration together across the related scope variants.

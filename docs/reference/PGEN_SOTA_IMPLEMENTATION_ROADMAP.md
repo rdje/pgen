@@ -3455,6 +3455,10 @@ Why `rtl_frontend` exists:
     - `typedef_struct_named_net_declaration`, `file_scope_typedef_struct_named_net`, `file_scope_typedef_struct_port_and_net_multimodule`, and `package_typedef_struct_port_and_wildcard_net_multimodule` now exact-lock local, file-scope, and package struct typedef declarations, struct bodies, builtin datatype vectors, packed ranges, ANSI port-list/group shells, full child/top module declarations, and `cfg_t cfg;` net declarations where applicable,
     - this keeps semantic typedef visibility, package import resolution, and elaboration outside the generated-parser proof claim while closing another brittle retained-text gap,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic typedef/import/elaboration closure.
+  - Progress (2026-04-16): tightened inline aggregate typed-net and typedef-backed aggregate named-net retained-text proof:
+    - `inline_struct_typed_net_declaration`, `inline_union_typed_net_declaration`, `typedef_union_named_net_declaration`, and `typedef_enum_named_net_declaration` now exact-lock full module declarations, simple `output logic y` port-list/group shells, builtin datatype vectors, packed ranges, aggregate type bodies, typedef declarations, named data-type uses, and final net declarations where applicable,
+    - this keeps aggregate semantic width checks, enum value/base-width evaluation, typedef visibility, and elaboration outside the generated-parser proof claim while hardening the aggregate declaration surface,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not aggregate semantic/elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,
