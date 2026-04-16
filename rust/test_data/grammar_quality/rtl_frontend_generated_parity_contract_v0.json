@@ -681,6 +681,113 @@
       "sample": "module arithmetic #(\n    parameter WIDTH = 8,\n    parameter DEPTH = WIDTH + 4\n) (\n    output logic [DEPTH-1:0] y\n);\nparameter EXTRA = DEPTH + 1;\nlocalparam TOTAL = WIDTH * 2;\nlogic [TOTAL-1:0] data;\nassign y = EXTRA > TOTAL ? EXTRA : TOTAL;\nendmodule\n"
     },
     {
+      "label": "arithmetic_integrated_generate_and_procedural_flow",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "port_group",
+        "parameter_declaration_sequence",
+        "parameter_declaration_statement",
+        "parameter_declaration_head",
+        "parameter_declaration_tail",
+        "net_declaration",
+        "continuous_assign",
+        "procedural_block",
+        "statement",
+        "assignment_target",
+        "assignment_operator",
+        "kw_always_comb",
+        "kw_if",
+        "kw_else",
+        "generate_region",
+        "generate_if",
+        "generate_for",
+        "generate_body",
+        "kw_for",
+        "kw_genvar",
+        "conditional_expr",
+        "relational_expr",
+        "additive_expr",
+        "multiplicative_expr"
+      ],
+      "expected_rule_texts": {
+        "assignment_operator": [
+          "=",
+          "=",
+          "="
+        ],
+        "assignment_target": [
+          "y",
+          "data",
+          "scratch",
+          "scratch"
+        ],
+        "continuous_assign": [
+          "assign y = DEPTH > WIDTH ? DEPTH : WIDTH;"
+        ],
+        "generate_body": [
+          "begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end",
+          "begin : no_extra\n        logic dummy;\n    end",
+          "begin : lanes\n        logic tap;\n    end"
+        ],
+        "generate_for": [
+          "for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end"
+        ],
+        "generate_if": [
+          "if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end"
+        ],
+        "generate_region": [
+          "generate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate"
+        ],
+        "net_declaration": [
+          "logic [WIDTH-1:0] data, scratch;",
+          "logic [TOTAL-1:0] extra;",
+          "logic dummy;",
+          "logic tap;"
+        ],
+        "parameter_declaration_head": [
+          "parameter WIDTH = 8",
+          "parameter EXTRA = DEPTH + 1",
+          "localparam TOTAL = WIDTH * 2"
+        ],
+        "parameter_declaration_statement": [
+          "parameter EXTRA = DEPTH + 1;",
+          "localparam TOTAL = WIDTH * 2;"
+        ],
+        "parameter_declaration_tail": [
+          "parameter DEPTH = WIDTH + 4"
+        ],
+        "port_group": [
+          "input logic [WIDTH-1:0] a",
+          "input logic [WIDTH-1:0] b",
+          "output logic [DEPTH-1:0] y"
+        ],
+        "procedural_block": [
+          "always_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend"
+        ]
+      },
+      "required_rule_texts": {
+        "conditional_expr": [
+          "DEPTH > WIDTH ? DEPTH : WIDTH",
+          "WIDTH + TOTAL",
+          "EXTRA > 0",
+          "WIDTH > 4",
+          "i < 3",
+          "i + 1"
+        ],
+        "relational_expr": [
+          "DEPTH > WIDTH",
+          "EXTRA > 0",
+          "WIDTH > 4",
+          "i < 3"
+        ]
+      },
+      "sample": "module arithmetic #(\n    parameter WIDTH = 8,\n    parameter DEPTH = WIDTH + 4\n) (\n    input logic [WIDTH-1:0] a,\n    input logic [WIDTH-1:0] b,\n    output logic [DEPTH-1:0] y\n);\nparameter EXTRA = DEPTH + 1;\nlocalparam TOTAL = WIDTH * 2;\nlogic [WIDTH-1:0] data, scratch;\nassign y = DEPTH > WIDTH ? DEPTH : WIDTH;\nalways_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend\ngenerate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate\nendmodule\n"
+    },
+    {
       "label": "multiple_empty_modules_without_port_lists",
       "expected_parse_ok": true,
       "require_ast_json": true,

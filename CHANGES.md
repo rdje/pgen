@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-16 - Retain rtl_frontend integrated arithmetic baseline
+### Achievement Summary
+Widened the `rtl_frontend` generated contract with an integrated handwritten-baseline arithmetic sample that combines dependent parameters, ANSI port ranges, local parameter statements, packed nets, continuous ternary dataflow, labeled `always_comb`, generate `if/else`, and generate `for`.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `arithmetic_integrated_generate_and_procedural_flow`
+  - locked required AST rule presence for module, port, parameter/localparam, net, continuous-assign, procedural, assignment-target, generate-region, generate-if, generate-for, generate-body, and expression rules
+  - exact-locked high-signal retained text for `port_group`, `parameter_declaration_statement`, `parameter_declaration_head`, `parameter_declaration_tail`, `net_declaration`, `continuous_assign`, `procedural_block`, `assignment_target`, `assignment_operator`, `generate_region`, `generate_if`, `generate_for`, and branch-level `generate_body`
+  - subset-locked recursive `conditional_expr` / `relational_expr` spans for salient ternary, comparison, and loop expressions without freezing every incidental scalar expression leaf
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - refreshed stale regex public-surface audit literals from parser release `1.1.21` / contract `1.1.23` to the current release `1.1.24` / contract `1.1.26`
+  - refreshed the expected regex user-guide parseability total from `1554` to `5266`
+  - preserved the audit intent: local workflow parity should fail on real documentation/API drift, but it must track the current published contract
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_arithmetic_baseline.sv /tmp/rtl_frontend_arithmetic_baseline_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-16 - Publish regex single-byte escape and conditional callout fixes
 ### Achievement Summary
 Published regex parser release `1.1.24` with integration contract `1.1.26` for RGX reports `PGEN-RGX-0061` and `PGEN-RGX-0062`.

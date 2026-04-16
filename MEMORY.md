@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: regex-single-byte-and-conditional-callout-release)
+Last updated: 2026-04-16 (+0200, task: rtl-frontend-integrated-arithmetic-contract-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Widened the curated `rtl_frontend` generated contract with the integrated handwritten-baseline arithmetic/procedural/generate sample:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - new retained sample:
+    - `arithmetic_integrated_generate_and_procedural_flow`
+  - proof widening:
+    - combines dependent parameters, ANSI port ranges, module-local `parameter` / `localparam` statements, packed nets, continuous ternary dataflow, labeled `always_comb`, generate `if/else`, and generate `for` in one sample
+    - exact-locks compact high-signal retained text for port groups, parameter statements/head/tail, net declarations, continuous assignment, procedural block, assignment targets/operators, generate region, generate-if, generate-for, and generate bodies
+    - subset-locks salient recursive `conditional_expr` / `relational_expr` spans without over-freezing scalar expression leaves
+    - refreshed stale local workflow audit expectations to the current regex parser release `1.1.24`, regex integration contract `1.1.26`, and user-guide regex parseability total `5266`
+  - validation:
+    - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_arithmetic_baseline.sv /tmp/rtl_frontend_arithmetic_baseline_ast.json`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Published regex parser release `1.1.24` / integration contract `1.1.26` for RGX PCRE2 reports `PGEN-RGX-0061` and `PGEN-RGX-0062`:
   - changed:
     - [grammars/regex.ebnf](grammars/regex.ebnf)

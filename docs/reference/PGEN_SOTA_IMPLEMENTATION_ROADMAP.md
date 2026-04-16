@@ -3407,6 +3407,10 @@ Why `rtl_frontend` exists:
     - inline enum and inline union samples now exact-lock their enclosing `net_declaration` spans,
     - typedef-backed struct, enum, and union named-net samples now exact-lock their named-type `net_declaration` uses,
     - kept the live `rtl_frontend` row at `In Progress` because this is proof tightening, not full handwritten-baseline parity closure.
+  - Progress (2026-04-16): widened the generated contract with an integrated handwritten-baseline arithmetic/procedural/generate sample:
+    - `arithmetic_integrated_generate_and_procedural_flow` combines dependent parameters, ANSI port ranges, module-body parameter/localparam statements, packed nets, continuous ternary dataflow, labeled `always_comb`, generate `if/else`, and generate `for` in one parser-backed proof,
+    - the sample exact-locks compact retained-text spans for port groups, parameter statements/head/tail, net declarations, continuous assignment, procedural block, assignment targets/operators, generate region, generate-if, generate-for, and generate bodies,
+    - recursive expression assertions stay subset-based for salient `conditional_expr` / `relational_expr` spans, and the live `rtl_frontend` row remains `In Progress`.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

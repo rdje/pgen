@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend integrated arithmetic/procedural/generate proof
+### Context
+The handwritten `rtl_frontend` crate has a baseline `parses_module_shape_and_evaluates_constants` test that is more integrated than most single-lane generated-contract samples. It combines:
+
+- dependent module parameters (`DEPTH = WIDTH + 4`)
+- ANSI port ranges driven by those parameters
+- module-body `parameter` / `localparam` statements
+- packed multi-net declarations
+- continuous ternary dataflow
+- a labeled `always_comb` block with `if/else`
+- an explicit `generate` region containing both generate `if/else` and generate `for`
+
+The generated contract already covered many of those features in separate slices. The gap was not a parser false negative; it was that the curated generated-contract surface did not retain this integrated handwritten-baseline shape as a single proof sample.
+
+### Decision
+- Add a new positive generated-contract sample, `arithmetic_integrated_generate_and_procedural_flow`.
+- Treat it as syntax/AST proof only. This does not claim full semantic elaboration parity.
+- Use exact retained-text assertions for compact, high-signal rules and subset retained-text assertions for recursive expression rules.
+- Keep the live `rtl_frontend` row at `In Progress` because broader handwritten-baseline parity/proof closure is still outstanding.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - requires module, port, parameter/localparam, net, continuous-assign, procedural, assignment-target/operator, generate-region, generate-if, generate-for, generate-body, and expression rule evidence
+  - exact-locks `port_group`, `parameter_declaration_statement`, `parameter_declaration_head`, `parameter_declaration_tail`, `net_declaration`, `continuous_assign`, `procedural_block`, `assignment_target`, `assignment_operator`, `generate_region`, `generate_if`, `generate_for`, and `generate_body` retained text
+  - subset-locks salient recursive `conditional_expr` and `relational_expr` texts such as `DEPTH > WIDTH ? DEPTH : WIDTH`, `WIDTH + TOTAL`, `EXTRA > 0`, `WIDTH > 4`, `i < 3`, and `i + 1`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - while replaying the filtered `rtl-frontend-generated-contract-gate`, the local workflow audit exposed stale regex public-surface literals left behind after the latest regex maintenance release
+  - refreshed the audit expectations to parser release `1.1.24` / integration contract `1.1.26`
+  - refreshed the expected user-guide regex parseability total to `5266`
+  - kept these as strict drift checks rather than weakening the audit
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_arithmetic_baseline.sv /tmp/rtl_frontend_arithmetic_baseline_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest, shell audit literals, and documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - Regex single-byte escape and conditional callout assertions
 ### Context
 RGX filed two additional PCRE2-conformance reports against the published regex parser handoff `1.1.23` / contract `1.1.25`.
