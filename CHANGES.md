@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend package struct typedef proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for package-qualified, wildcard-imported, and named-imported struct typedef port/net lanes so they now prove exact port or net shells in addition to typedef/import shape.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `package_qualified_typedef_struct_port`
+  - strengthened `package_wildcard_import_typedef_struct_named_net`
+  - strengthened `package_named_import_typedef_struct_named_net`
+  - now exact-locks package struct typedef declarations, struct bodies, builtin datatype vectors, packed ranges, package-qualified or named data-type uses, port-list/port-group shells, and named net declarations where applicable
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic package/import type-resolution closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_pkg_qualified_struct_port.sv /tmp/rtl_pkg_qualified_struct_port_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_pkg_wildcard_struct_net.sv /tmp/rtl_pkg_wildcard_struct_net_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_pkg_named_struct_net.sv /tmp/rtl_pkg_named_struct_net_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-16 - Tighten rtl_frontend header-import typedef ports
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for header-imported enum, union, and struct typedef ports so the generated parser now proves the imported named-type port shell, not just the import and typedef body.

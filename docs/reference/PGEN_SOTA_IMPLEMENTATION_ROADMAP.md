@@ -3447,6 +3447,10 @@ Why `rtl_frontend` exists:
     - `header_imported_enum_typedef_port`, `header_imported_union_typedef_port`, and `header_imported_struct_typedef_port` now exact-lock imported named-type uses, ANSI port-list/group shells, compact typedef/type bodies, relevant builtin datatype vectors, and packed ranges,
     - the existing import and aggregate field/item locks remain in place for the package typedef sources,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic named-type visibility or elaboration closure.
+  - Progress (2026-04-16): tightened package/import struct typedef retained-text proof:
+    - `package_qualified_typedef_struct_port`, `package_wildcard_import_typedef_struct_named_net`, and `package_named_import_typedef_struct_named_net` now exact-lock compact package struct typedef declarations and struct bodies, builtin datatype vectors, packed ranges, package-qualified or named data-type uses, ANSI port-list/group shells, and imported `cfg_t cfg;` net declarations where applicable,
+    - this keeps package/import type-resolution semantics outside the generated-parser proof claim while making the retained syntax surface harder to regress,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic package/import type-resolution closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

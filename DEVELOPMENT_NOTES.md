@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend package struct typedef retained-text tightening
+### Context
+The generated contract already retained package-qualified, wildcard-imported, and named-imported struct typedef lanes. Those samples proved the broad package/import/type shape, but their exact retained-text checks did not yet lock the full port shell for the package-qualified port lane or the port/net shells for the wildcard/named import net lanes.
+
+### Decision
+- Tighten the existing package struct typedef samples together:
+  - `package_qualified_typedef_struct_port`
+  - `package_wildcard_import_typedef_struct_named_net`
+  - `package_named_import_typedef_struct_named_net`
+- Exact-lock the generated AST retained text that matters for parser parity:
+  - compact `typedef struct packed { ... } cfg_t;` declarations
+  - compact `struct_type` bodies
+  - builtin datatype vectors and packed ranges
+  - package-qualified or named data-type uses
+  - ANSI `port_list` / `port_group` shells
+  - `cfg_t cfg;` net declarations for imported named-type net lanes
+- Keep semantic package/import type-resolution closure outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added missing `port_group`, `builtin_data_type`, and `packed_range` evidence where applicable
+  - exact-locked retained text for package-qualified struct ports and wildcard/named imported struct nets
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_pkg_qualified_struct_port.sv /tmp/rtl_pkg_qualified_struct_port_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_pkg_wildcard_struct_net.sv /tmp/rtl_pkg_wildcard_struct_net_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_pkg_named_struct_net.sv /tmp/rtl_pkg_named_struct_net_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend header-imported typedef port retained-text tightening
 ### Context
 The generated contract already retained header-imported enum, union, and struct typedef port samples. Those samples proved the package typedef/import surfaces, but the enum and union lanes did not yet exact-lock the actual named-type ANSI port shell, and the struct lane did not exact-lock the individual port groups or compact typedef/type bodies.

@@ -1611,7 +1611,10 @@
         "struct_union_field",
         "package_qualified_type",
         "module_declaration",
-        "port_list"
+        "port_list",
+        "port_group",
+        "builtin_data_type",
+        "packed_range"
       ],
       "forbidden_rule_names": [
         "enum_type",
@@ -1620,12 +1623,33 @@
         "net_declaration"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "logic",
+          "logic"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
         "package_qualified_type": [
           "cfg_pkg::cfg_t"
+        ],
+        "port_group": [
+          "input cfg_pkg::cfg_t cfg",
+          "output logic y"
+        ],
+        "port_list": [
+          "input cfg_pkg::cfg_t cfg,\n    output logic y"
+        ],
+        "struct_type": [
+          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
         ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
         ]
       },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    input cfg_pkg::cfg_t cfg,\n    output logic y\n);\nendmodule\n"
@@ -1641,8 +1665,12 @@
         "struct_union_field",
         "import_declaration",
         "module_declaration",
+        "port_list",
+        "port_group",
         "named_data_type",
-        "net_declaration"
+        "net_declaration",
+        "builtin_data_type",
+        "packed_range"
       ],
       "forbidden_rule_names": [
         "enum_type",
@@ -1650,15 +1678,38 @@
         "package_qualified_type"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "logic",
+          "logic"
+        ],
         "import_declaration": [
           "import cfg_pkg::*;"
         ],
         "named_data_type": [
           "cfg_t"
         ],
+        "net_declaration": [
+          "cfg_t cfg;"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "port_group": [
+          "output logic y"
+        ],
+        "port_list": [
+          "output logic y"
+        ],
+        "struct_type": [
+          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
         ]
       },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::*;\ncfg_t cfg;\nendmodule\n"
@@ -1674,8 +1725,12 @@
         "struct_union_field",
         "import_declaration",
         "module_declaration",
+        "port_list",
+        "port_group",
         "named_data_type",
-        "net_declaration"
+        "net_declaration",
+        "builtin_data_type",
+        "packed_range"
       ],
       "forbidden_rule_names": [
         "enum_type",
@@ -1683,15 +1738,38 @@
         "package_qualified_type"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "logic",
+          "logic"
+        ],
         "import_declaration": [
           "import cfg_pkg::cfg_t;"
         ],
         "named_data_type": [
           "cfg_t"
         ],
+        "net_declaration": [
+          "cfg_t cfg;"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "port_group": [
+          "output logic y"
+        ],
+        "port_list": [
+          "output logic y"
+        ],
+        "struct_type": [
+          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
         ]
       },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::cfg_t;\ncfg_t cfg;\nendmodule\n"
