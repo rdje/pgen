@@ -3703,6 +3703,8 @@
       "required_rule_names": [
         "module_declaration",
         "parameter_declaration_sequence",
+        "parameter_declaration_group",
+        "parameter_declaration_head",
         "port_list",
         "struct_type",
         "struct_union_field",
@@ -3719,6 +3721,20 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
+      "required_rule_texts": {
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
+        ],
+        "parameter_declaration_head": [
+          "parameter BIT = 1"
+        ],
+        "port_list": [
+          "input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_target": [
           "cfg.data[BIT]"
@@ -3757,6 +3773,17 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
+      "required_rule_texts": {
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
+        ],
+        "port_list": [
+          "input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_target": [
           "cfg.missing"
@@ -3794,6 +3821,17 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
+      "required_rule_texts": {
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
+        ],
+        "port_list": [
+          "input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_target": [
           "cfg.valid"
@@ -3834,6 +3872,17 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
+      "required_rule_texts": {
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
+        ],
+        "port_list": [
+          "input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_target": [
           "{cfg.data, cfg.missing}",
@@ -3858,6 +3907,8 @@
       "required_rule_names": [
         "module_declaration",
         "parameter_declaration_sequence",
+        "parameter_declaration_group",
+        "parameter_declaration_head",
         "port_list",
         "struct_type",
         "struct_union_field",
@@ -3873,6 +3924,20 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
+      "required_rule_texts": {
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
+        ],
+        "parameter_declaration_head": [
+          "parameter BIT = 1"
+        ],
+        "port_list": [
+          "input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_target": [
           "{cfg.data[BIT], cfg.valid}",
@@ -3898,6 +3963,8 @@
       "required_rule_names": [
         "module_declaration",
         "parameter_declaration_sequence",
+        "parameter_declaration_group",
+        "parameter_declaration_head",
         "port_list",
         "struct_type",
         "struct_union_field",
@@ -3914,6 +3981,20 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
+      "required_rule_texts": {
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
+        ],
+        "parameter_declaration_head": [
+          "parameter BIT = 1"
+        ],
+        "port_list": [
+          "input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_target": [
           "cfg.valid"

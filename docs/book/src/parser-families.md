@@ -80,6 +80,8 @@ The indexed unpacked-array actual lane now further locks `unpacked_array_struct_
 
 The named-port actual expression lane now tightens `named_port_bitselect_and_concat_actuals`, `named_port_member_bitselect_and_repeat_actuals`, and `named_port_actual_ternary_member_paths` by proving declaration and parameter context around actuals such as `bus[IDX]`, `{a, b}`, `cfg.data[IDX]`, `{LANES{a}}`, and `SEL ? cfg.data : backup.data`. This is still syntax-retention proof; actual expression typing, member legality, and parameter evaluation remain elaboration work.
 
+The continuous struct-member assignment lane now tightens retained evidence around bit-select targets, unknown-member target/value parse surfaces, concatenated targets, and concatenation values. Those samples now prove the inline `struct packed { ... } cfg;` declaration, the simple `input logic d` port context, and `parameter BIT = 1` where present, while preserving the existing exact locks for `assign ...` text, assignment targets, concatenations, and signal references.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

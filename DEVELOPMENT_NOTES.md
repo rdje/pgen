@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend continuous struct-member assignment retained-text tightening
+### Context
+The generated contract already covered continuous struct-member assignment targets and values, including bit-select targets, concatenated targets, concatenated values, and syntax-only unknown-member parse surfaces. Those lanes proved the assignment text and member references, but their surrounding inline struct declaration, port-list, and parameter-context retained text was weaker than the neighboring named-port actual and indexed-array lanes.
+
+### Decision
+- Tighten existing samples rather than add duplicate fixtures:
+  - `continuous_struct_member_bitselect_assignment_target`
+  - `continuous_unknown_struct_member_target_parse_surface`
+  - `continuous_unknown_struct_member_value_parse_surface`
+  - `continuous_unknown_struct_member_concatenated_target_parse_surface`
+  - `continuous_struct_member_concatenation_assignment_target`
+  - `continuous_struct_member_concatenation_value`
+- Use `required_rule_texts` for the newly added declaration and context spans so the proof can require the salient retained text without freezing unrelated incidental occurrences.
+- Keep existing exact retained-text checks for:
+  - `assignment_target`
+  - `continuous_assign`
+  - `concatenation_expr`
+  - `signal_reference`
+- Keep semantic continuous-assignment typing, member legality, parameter evaluation, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added subset retained-text checks for the inline struct body and `struct packed { ... } cfg;` declaration across the continuous struct-member lanes
+  - added subset retained-text checks for the simple `input logic d` port-list context
+  - added `parameter_declaration_group` / `parameter_declaration_head` requirements plus retained `parameter BIT = 1` evidence for the `BIT`-parameterized continuous assignment lanes
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend named-port actual expression retained-text tightening
 ### Context
 The generated contract already covered named-port actual expression forms for bit-selects, concatenations, repetitions, and ternary member paths. Those lanes proved the actual expression text well, but some surrounding declaration and parameter context was still only implicit.

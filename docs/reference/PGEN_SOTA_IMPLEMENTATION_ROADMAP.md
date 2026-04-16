@@ -3483,6 +3483,10 @@ Why `rtl_frontend` exists:
     - `named_port_bitselect_and_concat_actuals`, `named_port_member_bitselect_and_repeat_actuals`, and `named_port_actual_ternary_member_paths` now prove declaration and parameter context around bit-select, concatenation, repetition, and ternary member-path actuals,
     - salient retained text now includes `logic [7:0] bus;`, `logic cfg;`, `logic cfg, backup;`, `parameter IDX = 3`, `parameter IDX = 1`, `parameter SEL = 1`, and `[7:0]`, while existing exact actual-expression locks stay in place,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic actual expression typing, member legality, parameter evaluation, or elaboration closure.
+  - Progress (2026-04-17): tightened continuous struct-member assignment retained-text proof:
+    - `continuous_struct_member_bitselect_assignment_target`, `continuous_unknown_struct_member_target_parse_surface`, `continuous_unknown_struct_member_value_parse_surface`, `continuous_unknown_struct_member_concatenated_target_parse_surface`, `continuous_struct_member_concatenation_assignment_target`, and `continuous_struct_member_concatenation_value` now prove richer retained context around continuous assignment targets and values,
+    - salient retained text now includes `struct packed { ... } cfg;`, `input logic d`, and `parameter BIT = 1`, while existing exact assignment-target, assignment, concatenation, and signal-reference locks stay in place,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic continuous-assignment typing, member legality, parameter evaluation, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

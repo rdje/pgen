@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend continuous struct-member assignment proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for continuous struct-member assignment lanes so they now prove the retained inline struct declaration, input-port context, and `BIT` parameter context around the continuous assignment targets and values.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `continuous_struct_member_bitselect_assignment_target`
+  - strengthened `continuous_unknown_struct_member_target_parse_surface`
+  - strengthened `continuous_unknown_struct_member_value_parse_surface`
+  - strengthened `continuous_unknown_struct_member_concatenated_target_parse_surface`
+  - strengthened `continuous_struct_member_concatenation_assignment_target`
+  - strengthened `continuous_struct_member_concatenation_value`
+  - now subset-locks the inline `struct packed { ... }` body, `struct packed { ... } cfg;`, and `input logic d` port-list context across the continuous struct-member lanes
+  - now requires and subset-locks `parameter BIT = 1` on the `BIT`-parameterized continuous assignment lanes
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic continuous-assignment typing, member legality, parameter evaluation, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend named-port actual expression proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for named-port actual expression forms so they now prove more declaration and parameter context around bit-select, concatenation, repetition, and ternary member-path actuals.
