@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: rtl-frontend-parameter-statement-text-proof)
+Last updated: 2026-04-16 (+0200, task: rtl-frontend-aggregate-net-declaration-text-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` generated-contract proof for aggregate typed `net_declaration` retained text:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - generated-contract labels strengthened:
+    - `inline_enum_logic_typed_net_declaration`
+    - `inline_enum_byte_base_typed_net_declaration`
+    - `inline_union_typed_net_declaration`
+    - `typedef_union_named_net_declaration`
+    - `typedef_struct_named_net_declaration`
+    - `typedef_enum_named_net_declaration`
+  - proof tightening:
+    - exact `expected_rule_texts` now cover inline enum/union `net_declaration` spans
+    - exact `expected_rule_texts` now cover typedef-backed named aggregate net declaration uses
+    - existing enum item/base, struct/union field, and named data type evidence remains in place
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened `rtl_frontend` generated-contract proof for statement-level parameter/localparam retained text:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

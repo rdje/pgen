@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend aggregate net declaration text proof
+### Context
+The aggregate type-family samples already proved their inner structure:
+
+- inline enum samples exact-locked `enum_base_type` and `enum_item` spans
+- inline union samples exact-locked `struct_union_field` spans
+- typedef-backed aggregate samples exact-locked `named_data_type` plus inner aggregate evidence
+
+However, several of those samples only required `net_declaration` by rule presence. That left a compact retained-text gap: the generated parser could preserve the inner enum/union/type leaves while reshaping the enclosing declaration span.
+
+### Decision
+- Add exact `net_declaration` locks for the compact aggregate typed net declarations.
+- Keep the slice bounded to inline enum/union and typedef-backed aggregate net declarations.
+- Keep this as proof tightening only; it does not promote `rtl_frontend` beyond `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `inline_enum_logic_typed_net_declaration` now exact-locks the full `enum logic [1:0] ... state;` net declaration.
+  - `inline_enum_byte_base_typed_net_declaration` now exact-locks the full `enum byte ... state;` net declaration.
+  - `inline_union_typed_net_declaration` now exact-locks the full inline packed union `payload` net declaration.
+  - `typedef_union_named_net_declaration`, `typedef_struct_named_net_declaration`, and `typedef_enum_named_net_declaration` now exact-lock their named-type net declaration uses.
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Clippy note:
+  - not required for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-16 - rtl_frontend parameter/localparam statement text proof
 ### Context
 The generated contract already exact-locked `parameter_declaration_head` and, where needed, `parameter_declaration_tail` spans for the module-local and package-backed constant-flow samples. That proved the declaration heads, but it did not prove the enclosing semicolon-terminated `parameter_declaration_statement` spans.

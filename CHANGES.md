@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend aggregate net declaration proof
+### Achievement Summary
+Tightened the `rtl_frontend` generated contract so aggregate typed net declarations retain exact `net_declaration` text, not only their nested enum/union/typedef evidence.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact `net_declaration` retained-text locks for inline aggregate declarations:
+    - `inline_enum_logic_typed_net_declaration`
+    - `inline_enum_byte_base_typed_net_declaration`
+    - `inline_union_typed_net_declaration`
+  - added exact `net_declaration` retained-text locks for typedef-backed aggregate net uses:
+    - `typedef_union_named_net_declaration`
+    - `typedef_struct_named_net_declaration`
+    - `typedef_enum_named_net_declaration`
+  - preserved the existing `enum_item`, `enum_base_type`, `struct_union_field`, and `named_data_type` evidence around those samples.
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Note:
+  - `clippy_on_rust_change` is not required because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - Tighten rtl_frontend parameter statement text proof
 ### Achievement Summary
 Tightened the `rtl_frontend` generated contract so retained parameter/localparam statement surfaces are exact-locked at the enclosing statement level, not only through declaration-head spans.
