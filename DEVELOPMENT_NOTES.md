@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend typedef-backed member-actual retained-text tightening
+### Context
+The generated contract already covered typedef-backed struct-member named-port actuals across local, file-scope, body-import, named-import, header-import, and unknown-member parse-surface variants. Those samples proved the broad rules and retained hierarchy/connection text, but the typedef declarations and aggregate type bodies were not exact-locked on the member-actual lanes themselves.
+
+### Decision
+- Tighten the existing samples rather than add near-duplicate fixtures:
+  - `typedef_backed_struct_member_actual`
+  - `file_scope_typedef_backed_struct_member_actual`
+  - `package_wildcard_import_typedef_backed_struct_member_actual`
+  - `package_named_import_typedef_backed_struct_member_actual`
+  - `header_named_import_typedef_backed_struct_member_actual`
+  - `unknown_typedef_backed_struct_member_actual_parse_surface`
+  - `typedef_backed_packed_union_width_mismatch_parse_surface`
+- Exact-lock the generated AST retained text that matters for parser parity:
+  - typedef declarations
+  - struct/union type bodies
+  - packed ranges for the typedef-backed packed-union mismatch parse surface
+  - the existing named data-type, net declaration, module-instantiation, instance-item, port-connection, and signal-reference locks stay in place
+- Keep semantic typedef visibility, member legality, packed-union width evaluation, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact retained-text checks for typedef declarations and aggregate type bodies on typedef-backed struct-member actual lanes
+  - added exact retained-text checks for typedef declaration, union body, and packed ranges on the typedef-backed packed-union width-mismatch parse surface
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend aggregate typed-net retained-text tightening
 ### Context
 The generated contract already retained inline aggregate typed-net declarations and typedef-backed aggregate named-net declarations. The earlier locks focused on high-signal aggregate fields/items and the final net declaration, but several lanes did not yet consistently prove the full enclosing module, port shell, datatype vector, packed range, type body, and typedef body.

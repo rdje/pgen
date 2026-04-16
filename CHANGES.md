@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend typedef member-actual proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for typedef-backed struct-member actuals and typedef-backed packed-union width-mismatch declarations so they now prove the retained typedef/type bodies in addition to their existing net, hierarchy, and connection evidence.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `typedef_backed_packed_union_width_mismatch_parse_surface`
+  - strengthened `typedef_backed_struct_member_actual`
+  - strengthened `file_scope_typedef_backed_struct_member_actual`
+  - strengthened `package_wildcard_import_typedef_backed_struct_member_actual`
+  - strengthened `package_named_import_typedef_backed_struct_member_actual`
+  - strengthened `header_named_import_typedef_backed_struct_member_actual`
+  - strengthened `unknown_typedef_backed_struct_member_actual_parse_surface`
+  - now exact-locks typedef declarations and aggregate type bodies for typedef-backed struct-member actual lanes, plus typedef declaration, union body, and packed ranges for the typedef-backed packed-union mismatch lane
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic typedef visibility, member legality, packed-union width evaluation, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-16 - Tighten rtl_frontend aggregate typed-net proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for inline struct/union typed nets and typedef-backed enum/union named nets so they now prove exact module, port, datatype, range, aggregate type, typedef, named-use, and net retained text.

@@ -1575,12 +1575,22 @@
         "named_data_type": [
           "payload_t"
         ],
+        "packed_range": [
+          "[7:0]",
+          "[15:0]"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic [15:0] word;"
         ],
         "net_declaration": [
           "payload_t payload;"
+        ],
+        "typedef_declaration": [
+          "typedef union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload_t;"
+        ],
+        "union_type": [
+          "union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n}"
         ]
       },
       "sample": "module top (\n    output logic y\n);\ntypedef union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload_t;\npayload_t payload;\nendmodule\n"
@@ -2494,9 +2504,15 @@
         "named_data_type": [
           "cfg_t"
         ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
         ],
         "net_declaration": [
           "cfg_t cfg;"
@@ -2548,9 +2564,15 @@
         "named_data_type": [
           "cfg_t"
         ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
         ],
         "net_declaration": [
           "cfg_t cfg;"
@@ -2607,9 +2629,15 @@
         "named_data_type": [
           "cfg_t"
         ],
+        "struct_type": [
+          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
         ],
         "net_declaration": [
           "cfg_t cfg;"
@@ -2666,9 +2694,15 @@
         "named_data_type": [
           "cfg_t"
         ],
+        "struct_type": [
+          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
         ],
         "net_declaration": [
           "cfg_t cfg;"
@@ -2725,9 +2759,15 @@
         "named_data_type": [
           "cfg_t"
         ],
+        "struct_type": [
+          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
         ],
         "net_declaration": [
           "cfg_t cfg;"
@@ -2778,9 +2818,15 @@
         "named_data_type": [
           "cfg_t"
         ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
         ],
         "module_instantiation": [
           "child u_child (.a(cfg.missing), .y(y));"

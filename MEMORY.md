@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: regex-rgx-0065-0066-maintenance)
+Last updated: 2026-04-16 (+0200, task: rtl_frontend-typedef-member-actual-proof-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,38 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for typedef-backed struct-member actuals and typedef-backed packed-union mismatch proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained samples:
+    - `typedef_backed_packed_union_width_mismatch_parse_surface`
+    - `typedef_backed_struct_member_actual`
+    - `file_scope_typedef_backed_struct_member_actual`
+    - `package_wildcard_import_typedef_backed_struct_member_actual`
+    - `package_named_import_typedef_backed_struct_member_actual`
+    - `header_named_import_typedef_backed_struct_member_actual`
+    - `unknown_typedef_backed_struct_member_actual_parse_surface`
+  - proof tightening:
+    - exact-locks typedef declarations and aggregate type bodies for the typedef-backed struct-member actual lanes
+    - exact-locks the typedef declaration, union body, and packed ranges for the typedef-backed packed-union width-mismatch parse surface
+    - keeps existing net, hierarchy, port-connection, and signal-reference retained-text locks in place
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not semantic typedef visibility, member legality, packed-union width evaluation, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Published regex parser release `1.1.26` / integration contract `1.1.28` for RGX reports `PGEN-RGX-0065` and `PGEN-RGX-0066`:
   - changed:
     - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)

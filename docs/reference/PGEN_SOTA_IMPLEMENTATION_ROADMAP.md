@@ -3459,6 +3459,10 @@ Why `rtl_frontend` exists:
     - `inline_struct_typed_net_declaration`, `inline_union_typed_net_declaration`, `typedef_union_named_net_declaration`, and `typedef_enum_named_net_declaration` now exact-lock full module declarations, simple `output logic y` port-list/group shells, builtin datatype vectors, packed ranges, aggregate type bodies, typedef declarations, named data-type uses, and final net declarations where applicable,
     - this keeps aggregate semantic width checks, enum value/base-width evaluation, typedef visibility, and elaboration outside the generated-parser proof claim while hardening the aggregate declaration surface,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not aggregate semantic/elaboration closure.
+  - Progress (2026-04-16): tightened typedef-backed struct-member actual and typedef-backed packed-union mismatch retained-text proof:
+    - `typedef_backed_struct_member_actual`, `file_scope_typedef_backed_struct_member_actual`, `package_wildcard_import_typedef_backed_struct_member_actual`, `package_named_import_typedef_backed_struct_member_actual`, `header_named_import_typedef_backed_struct_member_actual`, and `unknown_typedef_backed_struct_member_actual_parse_surface` now exact-lock typedef declarations and struct bodies in addition to their existing net, hierarchy, port-connection, and signal-reference evidence,
+    - `typedef_backed_packed_union_width_mismatch_parse_surface` now exact-locks the typedef declaration, union body, and packed ranges for the syntax-level width-mismatch parse surface,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic typedef visibility, member legality, packed-union width evaluation, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,
