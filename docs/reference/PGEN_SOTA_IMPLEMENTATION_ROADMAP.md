@@ -3443,6 +3443,10 @@ Why `rtl_frontend` exists:
     - `multiple_empty_modules_without_port_lists` now exact-locks both `module` keyword spans, module identifiers `first` and `second`, and both `endmodule` keyword spans,
     - the existing full `module_declaration` locks and forbidden-rule checks remain in place for the no-port/no-item shape,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not broad handwritten-baseline parity closure.
+  - Progress (2026-04-16): tightened header-imported enum/union/struct typedef-port retained-text proof:
+    - `header_imported_enum_typedef_port`, `header_imported_union_typedef_port`, and `header_imported_struct_typedef_port` now exact-lock imported named-type uses, ANSI port-list/group shells, compact typedef/type bodies, relevant builtin datatype vectors, and packed ranges,
+    - the existing import and aggregate field/item locks remain in place for the package typedef sources,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic named-type visibility or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

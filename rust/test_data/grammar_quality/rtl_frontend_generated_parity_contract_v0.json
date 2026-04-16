@@ -1197,18 +1197,46 @@
         "typedef_declaration",
         "enum_type",
         "import_declaration",
-        "module_declaration"
+        "module_declaration",
+        "port_list",
+        "port_group",
+        "named_data_type",
+        "builtin_data_type",
+        "packed_range"
       ],
       "forbidden_rule_names": [
         "struct_type"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "logic"
+        ],
+        "enum_type": [
+          "enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    }"
+        ],
         "import_declaration": [
           "import state_pkg::state_t;"
         ],
         "enum_item": [
           "IDLE = 0",
           "BUSY = 1"
+        ],
+        "named_data_type": [
+          "state_t"
+        ],
+        "packed_range": [
+          "[1:0]"
+        ],
+        "port_group": [
+          "input state_t state",
+          "output logic y"
+        ],
+        "port_list": [
+          "input state_t state,\n    output logic y"
+        ],
+        "typedef_declaration": [
+          "typedef enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    } state_t;"
         ]
       },
       "sample": "package state_pkg;\n    typedef enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    } state_t;\nendpackage\n\nmodule top import state_pkg::state_t; (\n    input state_t state,\n    output logic y\n);\nendmodule\n"
@@ -1223,19 +1251,49 @@
         "union_type",
         "struct_union_field",
         "import_declaration",
-        "module_declaration"
+        "module_declaration",
+        "port_list",
+        "port_group",
+        "named_data_type",
+        "builtin_data_type",
+        "packed_range"
       ],
       "forbidden_rule_names": [
         "enum_type",
         "struct_type"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "logic",
+          "logic"
+        ],
         "import_declaration": [
           "import payload_pkg::payload_t;"
+        ],
+        "named_data_type": [
+          "payload_t"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[7:0]"
+        ],
+        "port_group": [
+          "input payload_t payload",
+          "output logic y"
+        ],
+        "port_list": [
+          "input payload_t payload,\n    output logic y"
         ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic [7:0] byte;"
+        ],
+        "typedef_declaration": [
+          "typedef union packed {\n        logic [7:0] data;\n        logic [7:0] byte;\n    } payload_t;"
+        ],
+        "union_type": [
+          "union packed {\n        logic [7:0] data;\n        logic [7:0] byte;\n    }"
         ]
       },
       "sample": "package payload_pkg;\n    typedef union packed {\n        logic [7:0] data;\n        logic [7:0] byte;\n    } payload_t;\nendpackage\n\nmodule top import payload_pkg::payload_t; (\n    input payload_t payload,\n    output logic y\n);\nendmodule\n"
@@ -1252,6 +1310,9 @@
         "import_declaration",
         "module_declaration",
         "port_list",
+        "port_group",
+        "builtin_data_type",
+        "packed_range",
         "named_data_type"
       ],
       "forbidden_rule_names": [
@@ -1261,15 +1322,36 @@
         "net_declaration"
       ],
       "expected_rule_texts": {
+        "builtin_data_type": [
+          "logic",
+          "logic",
+          "logic"
+        ],
         "import_declaration": [
           "import cfg_pkg::cfg_t;"
         ],
         "named_data_type": [
           "cfg_t"
         ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "port_group": [
+          "input cfg_t cfg",
+          "output logic y"
+        ],
+        "port_list": [
+          "input cfg_t cfg,\n    output logic y"
+        ],
+        "struct_type": [
+          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
         ]
       },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top import cfg_pkg::cfg_t; (\n    input cfg_t cfg,\n    output logic y\n);\nendmodule\n"

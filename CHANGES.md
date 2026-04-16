@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend header-import typedef ports
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for header-imported enum, union, and struct typedef ports so the generated parser now proves the imported named-type port shell, not just the import and typedef body.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `header_imported_enum_typedef_port`
+  - strengthened `header_imported_union_typedef_port`
+  - strengthened `header_imported_struct_typedef_port`
+  - now exact-locks named data-type uses, ANSI port-list and port-group retained text, compact typedef/type bodies, relevant builtin datatype spans, and packed ranges for these header-imported typedef port lanes
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic named-type visibility or elaboration closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_header_enum_typedef_port.sv /tmp/rtl_header_enum_typedef_port_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_header_union_typedef_port.sv /tmp/rtl_header_union_typedef_port_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_header_struct_typedef_port.sv /tmp/rtl_header_struct_typedef_port_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-16 - Tighten rtl_frontend no-port module proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract sample for empty no-port multi-module declarations so it now proves exact module keywords, module names, and endmodule keywords in addition to the two full module declarations.

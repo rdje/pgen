@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend header-imported typedef port retained-text tightening
+### Context
+The generated contract already retained header-imported enum, union, and struct typedef port samples. Those samples proved the package typedef/import surfaces, but the enum and union lanes did not yet exact-lock the actual named-type ANSI port shell, and the struct lane did not exact-lock the individual port groups or compact typedef/type bodies.
+
+### Decision
+- Tighten the existing three header-imported typedef port samples together because they share the same downstream proof shape:
+  - `header_imported_enum_typedef_port`
+  - `header_imported_union_typedef_port`
+  - `header_imported_struct_typedef_port`
+- Exact-lock the generated AST retained text that matters for parser parity:
+  - named data-type uses: `state_t`, `payload_t`, `cfg_t`
+  - ANSI `port_list` / `port_group` shells
+  - compact typedef declarations and enum/union/struct type bodies
+  - relevant builtin datatype vectors and packed ranges
+- Keep semantic named-type resolution and elaboration visibility outside this generated-parser claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added missing `port_list`, `port_group`, `named_data_type`, `builtin_data_type`, and `packed_range` evidence where applicable
+  - exact-locked retained text for the enum, union, and struct header-imported typedef port lanes
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_header_enum_typedef_port.sv /tmp/rtl_header_enum_typedef_port_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_header_union_typedef_port.sv /tmp/rtl_header_union_typedef_port_ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_header_struct_typedef_port.sv /tmp/rtl_header_struct_typedef_port_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend no-port multi-module retained-text tightening
 ### Context
 The generated contract already retained `multiple_empty_modules_without_port_lists`, covering two legal no-port module declarations in one source file. That proof exact-locked the enclosing `module_declaration` spans and forbade port-list, parameter, net, instantiation, procedural, and generate evidence, but it did not separately prove the terminal module-header identity pieces.
