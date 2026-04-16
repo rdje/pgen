@@ -971,7 +971,10 @@
       "require_ast_json": true,
       "required_rule_names": [
         "rtl_frontend_file",
-        "module_declaration"
+        "module_declaration",
+        "kw_module",
+        "identifier",
+        "kw_endmodule"
       ],
       "forbidden_rule_names": [
         "port_list",
@@ -982,6 +985,18 @@
         "generate_region"
       ],
       "expected_rule_texts": {
+        "kw_module": [
+          "module",
+          "module"
+        ],
+        "identifier": [
+          "first",
+          "second"
+        ],
+        "kw_endmodule": [
+          "endmodule",
+          "endmodule"
+        ],
         "module_declaration": [
           "module first;\nendmodule",
           "module second;\nendmodule"

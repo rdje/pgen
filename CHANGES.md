@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend no-port module proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract sample for empty no-port multi-module declarations so it now proves exact module keywords, module names, and endmodule keywords in addition to the two full module declarations.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `multiple_empty_modules_without_port_lists`
+  - now requires `kw_module`, `identifier`, and `kw_endmodule` rule evidence in addition to the existing file/module evidence
+  - exact-locks:
+    - both `module` keyword spans
+    - module identifiers `first` and `second`
+    - both `endmodule` keyword spans
+    - the existing full `module first; endmodule` and `module second; endmodule` declarations
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_multiple_empty_modules_without_port_lists.sv /tmp/rtl_frontend_multiple_empty_modules_without_port_lists_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-16 - Publish regex 1.1.25 for RGX 0063/0064
 ### Achievement Summary
 Published regex parser release `1.1.25` / integration contract `1.1.27` for RGX PCRE2 reports `PGEN-RGX-0063` and `PGEN-RGX-0064`.

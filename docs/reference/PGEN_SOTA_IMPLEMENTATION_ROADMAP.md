@@ -3439,6 +3439,10 @@ Why `rtl_frontend` exists:
     - `inline_enum_byte_base_typed_net_declaration` now exact-locks the retained `logic` / `byte` builtin datatype spans, enum base type `byte`, keyword text `byte`, full inline enum type body, and `output logic y` shell,
     - the existing full net-declaration lock remains in place for `enum byte { ... } state;`,
     - kept the live `rtl_frontend` row at `In Progress` because this is syntax/AST retained-text proof tightening, not semantic enum-value/base-width evaluation closure.
+  - Progress (2026-04-16): tightened empty no-port multi-module retained-text proof:
+    - `multiple_empty_modules_without_port_lists` now exact-locks both `module` keyword spans, module identifiers `first` and `second`, and both `endmodule` keyword spans,
+    - the existing full `module_declaration` locks and forbidden-rule checks remain in place for the no-port/no-item shape,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not broad handwritten-baseline parity closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

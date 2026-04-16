@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend no-port multi-module retained-text tightening
+### Context
+The generated contract already retained `multiple_empty_modules_without_port_lists`, covering two legal no-port module declarations in one source file. That proof exact-locked the enclosing `module_declaration` spans and forbade port-list, parameter, net, instantiation, procedural, and generate evidence, but it did not separately prove the terminal module-header identity pieces.
+
+### Decision
+- Tighten the existing sample rather than adding a duplicate.
+- Add exact retained-text proof for the compact module syntax components:
+  - `kw_module`: `module`, `module`
+  - `identifier`: `first`, `second`
+  - `kw_endmodule`: `endmodule`, `endmodule`
+- Preserve the existing exact `module_declaration` locks and forbidden-rule checks.
+- Keep the live `rtl_frontend` row at `In Progress`; this is proof tightening for generated syntax/AST retention, not closure of broad handwritten-baseline parity or semantic elaboration.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `kw_module`, `identifier`, and `kw_endmodule` required rule evidence to `multiple_empty_modules_without_port_lists`
+  - exact-locked the two module keywords, module identifiers, and endmodule keywords for the no-port multi-module sample
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_multiple_empty_modules_without_port_lists.sv /tmp/rtl_frontend_multiple_empty_modules_without_port_lists_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - Regex RGX 0063/0064 PCRE2 exact-alias and DEFINE lookbehind maintenance
 ### Context
 RGX filed two PCRE2 conformance reports against the published regex handoff:

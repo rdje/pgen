@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-16 (+0200, task: regex-rgx-0063-0064-maintenance-release)
+Last updated: 2026-04-16 (+0200, task: rtl-frontend-no-port-module-proof-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for empty no-port multi-module declarations:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained sample:
+    - `multiple_empty_modules_without_port_lists`
+  - proof tightening:
+    - exact-locks both `module` keyword spans
+    - exact-locks module identifiers `first` and `second`
+    - exact-locks both `endmodule` keyword spans
+    - keeps the existing exact full `module_declaration` spans and forbidden-rule checks for no-port/no-item syntax
+  - validation:
+    - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_multiple_empty_modules_without_port_lists.sv /tmp/rtl_frontend_multiple_empty_modules_without_port_lists_ast.json`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Published regex parser release `1.1.25` / integration contract `1.1.27` for RGX reports `PGEN-RGX-0063` and `PGEN-RGX-0064`:
   - changed:
     - [grammars/regex.ebnf](grammars/regex.ebnf)
