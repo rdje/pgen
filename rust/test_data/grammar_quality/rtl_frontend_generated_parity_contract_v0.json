@@ -3455,11 +3455,20 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "parameter_declaration_group",
+        "parameter_declaration_head",
+        "port_list",
+        "port_group",
         "module_instantiation",
         "parameter_override",
         "instance_item",
         "unpacked_dimension",
-        "port_connection"
+        "port_connection",
+        "conditional_expr",
+        "relational_expr",
+        "additive_expr",
+        "signal_reference"
       ],
       "forbidden_rule_names": [
         "procedural_block",
@@ -3472,6 +3481,20 @@
         "parameter_override": [
           ".WIDTH(LANES)"
         ],
+        "parameter_declaration_head": [
+          "parameter WIDTH = 1",
+          "parameter LANES = 2"
+        ],
+        "port_group": [
+          "input logic a",
+          "output logic y",
+          "input logic a",
+          "output logic y"
+        ],
+        "port_list": [
+          "input logic a,\n    output logic y",
+          "input logic a,\n    output logic y"
+        ],
         "instance_item": [
           "lane[0:LANES-1] (.a(a), .y(y))"
         ],
@@ -3481,6 +3504,21 @@
         "port_connection": [
           ".a(a)",
           ".y(y)"
+        ]
+      },
+      "required_rule_texts": {
+        "conditional_expr": [
+          "LANES-1"
+        ],
+        "relational_expr": [
+          "LANES-1"
+        ],
+        "additive_expr": [
+          "LANES-1"
+        ],
+        "signal_reference": [
+          "LANES",
+          "LANES"
         ]
       },
       "sample": "module child #(\n    parameter WIDTH = 1\n) (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter LANES = 2\n) (\n    input logic a,\n    output logic y\n);\nchild #(.WIDTH(LANES)) lane[0:LANES-1] (.a(a), .y(y));\nendmodule\n"

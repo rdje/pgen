@@ -3419,6 +3419,10 @@ Why `rtl_frontend` exists:
     - `generate_for_symbolic_limit_nonunit_stride` retains `parameter LIMIT = 5` plus `for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2`,
     - the sample exact-locks `generate_region`, `generate_for`, branch-level `generate_body`, `net_declaration`, `net_item`, and parameter declaration spans,
     - recursive expression assertions stay subset-based for `i < LIMIT` and `i + 2`; generated semantic unrolling remains outside this slice.
+  - Progress (2026-04-16): tightened parameterized instance-array retained-text proof:
+    - `parameterized_instance_array_with_named_ports` now exact-locks child/top parameter declarations and both scalar ANSI port lists/groups,
+    - the existing hierarchy locks remain in place for `child #(.WIDTH(LANES)) lane[0:LANES-1] (.a(a), .y(y));`,
+    - recursive expression assertions now prove `LANES-1` plus both `LANES` signal-reference appearances without claiming generated semantic instance-array expansion.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

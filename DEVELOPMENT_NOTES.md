@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend parameterized instance-array retained-text tightening
+### Context
+The existing generated-contract sample `parameterized_instance_array_with_named_ports` already covered the handwritten `elaborate_top_expands_instance_arrays` syntax shape:
+
+- child module with a parameter
+- top module with `LANES`
+- parameterized child instance array
+- named port connections
+
+However, the contract only exact-locked the broad instantiation pieces. It did not prove the parameter-declaration context, scalar port-list context, or the symbolic instance-range expression `LANES-1` as retained AST text.
+
+### Decision
+- Tighten the existing sample instead of adding a duplicate sample.
+- Exact-lock compact parameter and port declaration spans.
+- Keep exact hierarchy locks already present.
+- Add subset retained-text assertions for recursive expression and signal-reference spans so the symbolic `LANES-1` range is proven without freezing incidental scalar leaves.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added required rule evidence for `parameter_declaration_sequence`, `parameter_declaration_group`, `parameter_declaration_head`, `port_list`, `port_group`, `conditional_expr`, `relational_expr`, `additive_expr`, and `signal_reference`
+  - exact-locked `parameter WIDTH = 1`, `parameter LANES = 2`, and both scalar ANSI port lists/groups
+  - subset-locked `LANES-1` under the recursive expression rules
+  - subset-locked both `LANES` signal-reference appearances
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_parameterized_instance_array_with_named_ports.sv /tmp/rtl_frontend_parameterized_instance_array_with_named_ports_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend symbolic non-unit generate-for stride proof
 ### Context
 The handwritten `rtl_frontend` baseline has a semantic unit test, `generate_for_unrolls_with_bounded_iteration`, for the shape `i < LIMIT` with a non-unit step `i + 2`. Existing generated-contract samples retained generate-for loops, but all of the focused loop samples used unit stride (`i = i + 1`) and mostly literal loop bounds.

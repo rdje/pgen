@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-04-16 - Tighten rtl_frontend parameterized instance-array proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract sample for parameterized instance arrays so it now proves the symbolic instance range and parameter context, not just the high-level instantiation shape.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `parameterized_instance_array_with_named_ports`
+  - now requires parameter declaration, port list/group, recursive expression, and signal-reference rule evidence
+  - exact-locks child/top parameter declarations and both scalar ANSI port lists/groups
+  - keeps exact locks for `module_instantiation`, `parameter_override`, `instance_item`, `unpacked_dimension`, and `port_connection`
+  - subset-locks the symbolic instance range expression `LANES-1`
+  - subset-locks both `LANES` signal-reference uses from the parameter override and instance range
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract proof tightening, not semantic instance-array expansion closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_parameterized_instance_array_with_named_ports.sv /tmp/rtl_frontend_parameterized_instance_array_with_named_ports_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+
 ## 2026-04-16 - Retain rtl_frontend symbolic generate-for stride baseline
 ### Achievement Summary
 Widened the `rtl_frontend` generated contract with a symbolic, non-unit generate-for stride sample inspired by the handwritten `generate_for_unrolls_with_bounded_iteration` baseline shape.
