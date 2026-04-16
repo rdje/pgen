@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-16 - Retain rtl_frontend child generate hierarchy baseline
+### Achievement Summary
+Widened the `rtl_frontend` generated contract with an integrated hierarchy sample from the handwritten baseline: direct child instantiation, generate-if child instantiation, and generate-for child instantiation, all carrying named parameter overrides and named port connections.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `integrated_child_parameter_generate_instances`
+  - retained a two-module `leaf` / `top` design with:
+    - child module parameter defaults and packed port ranges
+    - top module parameter defaults and packed port ranges
+    - direct `leaf #(.WIDTH(TOP_W)) direct (...)` instantiation
+    - generate-if `leaf #(.WIDTH(TOP_W - 1)) gated (...)` instantiation
+    - generate-for `leaf #(.WIDTH(i + 1)) lane (...)` instantiation
+  - exact-locked high-signal retained text for `module_instantiation`, `instance_item`, `parameter_override`, `port_connection`, `generate_region`, `generate_if`, `generate_for`, branch-level `generate_body`, `port_list`, `port_group`, packed ranges, and parameter declaration heads/tails
+  - subset-locked salient recursive expression spans for `TOP_W - 1`, `i < 2`, and `i + 1`
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure or semantic elaboration closure
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_integrated_child_generate_instances.sv /tmp/rtl_frontend_integrated_child_generate_instances_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+
 ## 2026-04-16 - Retain rtl_frontend integrated arithmetic baseline
 ### Achievement Summary
 Widened the `rtl_frontend` generated contract with an integrated handwritten-baseline arithmetic sample that combines dependent parameters, ANSI port ranges, local parameter statements, packed nets, continuous ternary dataflow, labeled `always_comb`, generate `if/else`, and generate `for`.

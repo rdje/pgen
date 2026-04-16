@@ -3411,6 +3411,10 @@ Why `rtl_frontend` exists:
     - `arithmetic_integrated_generate_and_procedural_flow` combines dependent parameters, ANSI port ranges, module-body parameter/localparam statements, packed nets, continuous ternary dataflow, labeled `always_comb`, generate `if/else`, and generate `for` in one parser-backed proof,
     - the sample exact-locks compact retained-text spans for port groups, parameter statements/head/tail, net declarations, continuous assignment, procedural block, assignment targets/operators, generate region, generate-if, generate-for, and generate bodies,
     - recursive expression assertions stay subset-based for salient `conditional_expr` / `relational_expr` spans, and the live `rtl_frontend` row remains `In Progress`.
+  - Progress (2026-04-16): widened the generated contract with an integrated child/generate hierarchy sample:
+    - `integrated_child_parameter_generate_instances` retains a two-module `leaf` / `top` design with direct, generate-if, and generate-for child instantiations,
+    - the sample exact-locks hierarchy/generate spans for `module_instantiation`, `instance_item`, `parameter_override`, `port_connection`, `generate_region`, `generate_if`, `generate_for`, and branch-level `generate_body`,
+    - this is syntax/AST generated-contract proof only; parameter evaluation, generated instance path expansion, and child elaboration remain outside this slice.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

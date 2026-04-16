@@ -788,6 +788,127 @@
       "sample": "module arithmetic #(\n    parameter WIDTH = 8,\n    parameter DEPTH = WIDTH + 4\n) (\n    input logic [WIDTH-1:0] a,\n    input logic [WIDTH-1:0] b,\n    output logic [DEPTH-1:0] y\n);\nparameter EXTRA = DEPTH + 1;\nlocalparam TOTAL = WIDTH * 2;\nlogic [WIDTH-1:0] data, scratch;\nassign y = DEPTH > WIDTH ? DEPTH : WIDTH;\nalways_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend\ngenerate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate\nendmodule\n"
     },
     {
+      "label": "integrated_child_parameter_generate_instances",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "port_group",
+        "parameter_declaration_sequence",
+        "parameter_declaration_group",
+        "parameter_declaration_head",
+        "parameter_declaration_tail",
+        "module_instantiation",
+        "instance_item",
+        "parameter_override",
+        "port_connection",
+        "generate_region",
+        "generate_if",
+        "generate_for",
+        "generate_body",
+        "kw_generate",
+        "kw_if",
+        "kw_for",
+        "kw_genvar",
+        "packed_range",
+        "conditional_expr",
+        "relational_expr",
+        "additive_expr"
+      ],
+      "forbidden_rule_names": [
+        "continuous_assign",
+        "procedural_block",
+        "net_declaration",
+        "always_ff_assignment_operator",
+        "assignment_operator"
+      ],
+      "expected_rule_texts": {
+        "generate_body": [
+          "begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end",
+          "begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end"
+        ],
+        "generate_for": [
+          "for (genvar i = 0; i < 2; i = i + 1) begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end"
+        ],
+        "generate_if": [
+          "if (USE_LEAF) begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end"
+        ],
+        "generate_region": [
+          "generate\n    if (USE_LEAF) begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end\n    for (genvar i = 0; i < 2; i = i + 1) begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end\nendgenerate"
+        ],
+        "instance_item": [
+          "direct (.a(a), .y(y))",
+          "gated (.a(a), .y(y))",
+          "lane (.a(a), .y(y))"
+        ],
+        "module_instantiation": [
+          "leaf #(.WIDTH(TOP_W)) direct (.a(a), .y(y));",
+          "leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));",
+          "leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));"
+        ],
+        "packed_range": [
+          "[WIDTH-1:0]",
+          "[OFFSET-1:0]",
+          "[TOP_W-1:0]",
+          "[TOP_W:0]"
+        ],
+        "parameter_declaration_head": [
+          "parameter WIDTH = 1",
+          "parameter TOP_W = 8"
+        ],
+        "parameter_declaration_tail": [
+          "parameter OFFSET = WIDTH + 1",
+          "parameter USE_LEAF = 1"
+        ],
+        "parameter_override": [
+          ".WIDTH(TOP_W)",
+          ".WIDTH(TOP_W - 1)",
+          ".WIDTH(i + 1)"
+        ],
+        "port_connection": [
+          ".a(a)",
+          ".y(y)",
+          ".a(a)",
+          ".y(y)",
+          ".a(a)",
+          ".y(y)"
+        ],
+        "port_group": [
+          "input logic [WIDTH-1:0] a",
+          "output logic [OFFSET-1:0] y",
+          "input logic [TOP_W-1:0] a",
+          "output logic [TOP_W:0] y"
+        ],
+        "port_list": [
+          "input logic [WIDTH-1:0] a,\n    output logic [OFFSET-1:0] y",
+          "input logic [TOP_W-1:0] a,\n    output logic [TOP_W:0] y"
+        ]
+      },
+      "required_rule_texts": {
+        "additive_expr": [
+          "WIDTH + 1",
+          "TOP_W - 1",
+          "i + 1"
+        ],
+        "conditional_expr": [
+          "TOP_W",
+          "USE_LEAF",
+          "TOP_W - 1",
+          "i < 2",
+          "i + 1"
+        ],
+        "relational_expr": [
+          "USE_LEAF",
+          "TOP_W - 1",
+          "i < 2",
+          "i + 1"
+        ]
+      },
+      "sample": "module leaf #(\n    parameter WIDTH = 1,\n    parameter OFFSET = WIDTH + 1\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [OFFSET-1:0] y\n);\nendmodule\n\nmodule top #(\n    parameter TOP_W = 8,\n    parameter USE_LEAF = 1\n) (\n    input logic [TOP_W-1:0] a,\n    output logic [TOP_W:0] y\n);\nleaf #(.WIDTH(TOP_W)) direct (.a(a), .y(y));\ngenerate\n    if (USE_LEAF) begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end\n    for (genvar i = 0; i < 2; i = i + 1) begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end\nendgenerate\nendmodule\n"
+    },
+    {
       "label": "multiple_empty_modules_without_port_lists",
       "expected_parse_ok": true,
       "require_ast_json": true,

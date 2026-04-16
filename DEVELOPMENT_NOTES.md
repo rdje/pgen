@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-16 - rtl_frontend integrated child/generate hierarchy proof
+### Context
+The handwritten `rtl_frontend` baseline includes `elaborate_top_resolves_child_parameters_and_generate_instances`, which is a compact hierarchy/elaboration shape:
+
+- a parameterized child module
+- a parameterized top module
+- one direct child instantiation
+- one generate-if child instantiation
+- one generate-for child instantiation
+- named parameter overrides on all three child instances
+- named port connections on all three child instances
+
+Earlier generated-contract samples covered direct hierarchy, generate-if hierarchy, generate-for hierarchy, and parameter/port connection forms separately. The remaining useful proof gap was the integrated multi-instance shape in one generated-parser sample.
+
+### Decision
+- Add a new positive generated-contract sample, `integrated_child_parameter_generate_instances`.
+- Treat it as syntax/AST proof only. Elaboration behavior such as parameter evaluation, child path expansion, and generated instance unrolling remains owned by the handwritten baseline / future generated semantic layer, not by this parser contract slice.
+- Exact-lock compact hierarchy and generate retained-text spans.
+- Keep recursive expression checks subset-based for salient expressions.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `integrated_child_parameter_generate_instances`
+  - exact-locks:
+    - direct, generate-if, and generate-for `module_instantiation` spans
+    - matching `instance_item` spans
+    - all named `parameter_override` spans
+    - all named `port_connection` spans
+    - `generate_region`, `generate_if`, `generate_for`, and branch-level `generate_body` spans
+    - packed port ranges and parameter declaration head/tail spans
+  - subset-locks expression evidence for `TOP_W - 1`, `i < 2`, and `i + 1`
+  - forbids unrelated procedural/dataflow/net-declaration rules on this hierarchy-only sample
+
+### Validation
+- Passed:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_integrated_child_generate_instances.sv /tmp/rtl_frontend_integrated_child_generate_instances_ast.json`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown absolute-path leak check over the changed docs returned no matches
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-16 - rtl_frontend integrated arithmetic/procedural/generate proof
 ### Context
 The handwritten `rtl_frontend` crate has a baseline `parses_module_shape_and_evaluates_constants` test that is more integrated than most single-lane generated-contract samples. It combines:
