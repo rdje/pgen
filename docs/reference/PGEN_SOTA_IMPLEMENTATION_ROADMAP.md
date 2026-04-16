@@ -3479,6 +3479,10 @@ Why `rtl_frontend` exists:
     - `unpacked_array_struct_member_actual`, `unpacked_array_element_actual`, and `unpacked_array_struct_member_bitselect_actual` now prove richer retained syntax around indexed member paths, array declarations, dimensions, and hierarchy,
     - salient retained text now includes `cfgs[IDX].data`, `cfgs[IDX].data[BIT]`, the inline `struct packed { ... }` body, `logic [7:0] banks [0:DEPTH-1];`, `[7:0]`, `[0:1]`, and the indexed struct-member `module_instantiation` span,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic array indexing, member legality, parameter evaluation, or elaboration closure.
+  - Progress (2026-04-17): tightened named-port actual expression retained-text proof:
+    - `named_port_bitselect_and_concat_actuals`, `named_port_member_bitselect_and_repeat_actuals`, and `named_port_actual_ternary_member_paths` now prove declaration and parameter context around bit-select, concatenation, repetition, and ternary member-path actuals,
+    - salient retained text now includes `logic [7:0] bus;`, `logic cfg;`, `logic cfg, backup;`, `parameter IDX = 3`, `parameter IDX = 1`, `parameter SEL = 1`, and `[7:0]`, while existing exact actual-expression locks stay in place,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic actual expression typing, member legality, parameter evaluation, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

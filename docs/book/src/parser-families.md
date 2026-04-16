@@ -78,6 +78,8 @@ The inline struct-member actual lane now also subset-locks the inline `struct pa
 
 The indexed unpacked-array actual lane now further locks `unpacked_array_struct_member_actual`, `unpacked_array_element_actual`, and `unpacked_array_struct_member_bitselect_actual`: the contract proves member-path actuals such as `cfgs[IDX].data` and `cfgs[IDX].data[BIT]`, the inline struct body, the array declaration `logic [7:0] banks [0:DEPTH-1];`, and the key `[7:0]` / `[0:1]` dimension text. This keeps indexed-array and parameter semantics in elaboration while making the generated parser's retained syntax evidence sharper.
 
+The named-port actual expression lane now tightens `named_port_bitselect_and_concat_actuals`, `named_port_member_bitselect_and_repeat_actuals`, and `named_port_actual_ternary_member_paths` by proving declaration and parameter context around actuals such as `bus[IDX]`, `{a, b}`, `cfg.data[IDX]`, `{LANES{a}}`, and `SEL ? cfg.data : backup.data`. This is still syntax-retention proof; actual expression typing, member legality, and parameter evaluation remain elaboration work.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

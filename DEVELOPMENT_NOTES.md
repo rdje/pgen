@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend named-port actual expression retained-text tightening
+### Context
+The generated contract already covered named-port actual expression forms for bit-selects, concatenations, repetitions, and ternary member paths. Those lanes proved the actual expression text well, but some surrounding declaration and parameter context was still only implicit.
+
+### Decision
+- Tighten existing samples rather than add duplicate fixtures:
+  - `named_port_bitselect_and_concat_actuals`
+  - `named_port_member_bitselect_and_repeat_actuals`
+  - `named_port_actual_ternary_member_paths`
+- Use `required_rule_texts` for the newly added context so the proof can require the salient declaration/parameter spans without freezing every incidental occurrence in the sample.
+- Keep the existing exact retained-text checks for:
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `concatenation_expr`
+  - `repetition_expr`
+  - `conditional_expr`
+  - `signal_reference`
+- Keep semantic actual expression typing, member legality, parameter evaluation, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added declaration and parameter-context rule requirements for the three named-port actual expression samples
+  - subset-locked `logic [7:0] bus;`, `logic cfg;`, `logic cfg, backup;`, `parameter IDX = 3`, `parameter IDX = 1`, and `parameter SEL = 1`
+  - subset-locked `[7:0]` for the bit-select/concat sample's packed-range context
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend indexed unpacked-array actual retained-text tightening
 ### Context
 The generated contract already covered indexed unpacked-array actuals, including struct-member actuals, plain array-element actuals, and struct-member bit-select actuals. Those samples proved the broad parse surface and retained hierarchy/port-connection text, but their retained-text proof was weaker than the surrounding inline/typedef aggregate member lanes.

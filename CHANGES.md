@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend named-port actual expression proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract samples for named-port actual expression forms so they now prove more declaration and parameter context around bit-select, concatenation, repetition, and ternary member-path actuals.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `named_port_bitselect_and_concat_actuals`
+  - strengthened `named_port_member_bitselect_and_repeat_actuals`
+  - strengthened `named_port_actual_ternary_member_paths`
+  - now subset-locks declaration and parameter context such as `logic [7:0] bus;`, `logic cfg;`, `logic cfg, backup;`, `parameter IDX = 3`, `parameter IDX = 1`, and `parameter SEL = 1`
+  - keeps existing exact locks for module-instantiation, instance-item, port-connection, concatenation, repetition, conditional-expression, and signal-reference retained text
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic actual expression typing, member legality, parameter evaluation, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend indexed unpacked-array actual proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for indexed unpacked-array actuals so they now prove more of the retained struct body, array declaration, packed/unpacked dimensions, and member-path actual text while preserving the existing hierarchy and connection checks.
