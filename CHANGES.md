@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-18 - Publish regex 1.1.29 for bare-octal class range ordering
+### Achievement Summary
+Published regex parser release `1.1.29` / integration contract `1.1.31` for RGX PCRE2 report `PGEN-RGX-0072`, closing the remaining bare-octal endpoint residual in the generated-host character-class range validator.
+
+### Scope of Changes
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs) so bare octal escapes `\NNN` are consumed as one escape token during class scanning and decoded as octal codepoints during range-order comparison.
+- Added explicit positive coverage for ascending bare-octal/bare-octal, literal/bare-octal, and bare-octal/hex endpoint pairs such as `[\000-\037]`, `[a-\377]`, `[\001-\x1f]`, and `[\001-\x{1f}]`.
+- Added explicit negative coverage for descending decoded endpoint pairs, including the RGX false-accept residual `[\x1f-\0]`.
+- Bumped the regex public handoff to parser release `1.1.29` / integration contract `1.1.31` in [rust/src/embedding_api.rs](rust/src/embedding_api.rs), [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json), and the contract docs.
+- Updated the public book/user-guide surface, released-parser bug ledger, local workflow audit literals, live tracker, roadmap, Rust architecture notes, and continuity docs.
+- Status impact:
+  - no live parser-family label changed
+  - `regex` remains `Done`
+  - this is compatibility maintenance over the already-closed regex family row, not a reopening of regex closure
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation::tests:: --lib`
+  - `cargo test --manifest-path rust/Cargo.toml regex_parser_integration_contract --lib`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex <RGX-PGEN-RGX-0072-artifact>/repro_input.txt --profile regex_default`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+- Clippy note:
+  - the Rust-change clippy workflow completed successfully; its generated-parser phase remains non-strict and still reports pre-existing generated clippy debt outside this patch
+
 ## 2026-04-18 - Align rtl_frontend rich-expression parse parity
 ### Achievement Summary
 Closed the current curated `rtl_frontend` generated/handwritten parse-surface divergence set by teaching the handwritten baseline to parse selector/concat-rich runtime expression text without pretending those forms are elaboration-time constants.

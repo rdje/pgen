@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.28`
+  - `1.1.29`
 - integration contract version:
-  - `1.1.30`
+  - `1.1.31`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3971,6 +3971,8 @@ Representative accepted examples:
 - `\\pL`
 - `[z\\Qa-d]\\E]`
 - `^[\\Qa\\E-\\Qz\\E]+`
+- `[\\000-\\037]`
+- `[a-\\377]`
 - `^[\\Eabc]`
 - `^[a-\\Ec]`
 - `(?<=a{1,3})b`
@@ -4053,7 +4055,10 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.28` specifically fixes the generated-host compile-contract ordering of escaped character-class range endpoints so braced hex endpoints are compared by decoded codepoint value; it carries forward parser release `1.1.27` PCRE2 class `\N` rejection, single-character quoted class range endpoints, nonliteral class-range endpoint rejection, and literal backslash preservation inside `\Q...\E`, the `1.1.26` UTF width start-option aliases and scan-substring forward-reference validation, the `1.1.25` exact PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind zero-width handling, the `1.1.24` single-code-unit escape `\C` transport and callout-prefixed conditional assertions, the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.29` specifically fixes the generated-host compile-contract ordering of bare-octal character-class range endpoints so `\NNN` endpoints are consumed atomically and compared by decoded octal codepoint value; it carries forward parser release `1.1.28` braced-hex endpoint ordering, parser release `1.1.27` PCRE2 class `\N` rejection, single-character quoted class range endpoints, nonliteral class-range endpoint rejection, and literal backslash preservation inside `\Q...\E`, the `1.1.26` UTF width start-option aliases and scan-substring forward-reference validation, the `1.1.25` exact PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind zero-width handling, the `1.1.24` single-code-unit escape `\C` transport and callout-prefixed conditional assertions, the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+  - `[\000-\037]` and `[a-\377]` are accepted because bare octal endpoints are compared as decoded codepoints
+  - `[\001-\x1f]` and `[\001-\x{1f}]` are accepted because bare-octal endpoints compare correctly against single-byte and braced hex endpoints
+  - `[\x1f-\0]` is rejected as a descending class range
   - `[z-\x{100}]` is accepted because `z` is compared against decoded codepoint `0x100`, not the byte value for the escaped `x`
   - `[\x{100}-z]` remains rejected as a descending class range
   - `a[\NB]c` is rejected because plain `\N` is not accepted inside PCRE2 character classes unless it is the braced named-character form
@@ -4191,10 +4196,10 @@ Important interpretation:
   - `false_accept_total=307`
   - `false_reject_total=45`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.28`
-  - integration contract version `1.1.30`
+  - parser release version `1.1.29`
+  - integration contract version `1.1.31`
 - the current improvement came from complementary changes:
-  - the generated-host compile-contract layer now compares literal class range endpoints by decoded escape value for braced hex, single-byte hex, braced octal, control escapes, and simple escaped literals
+  - the generated-host compile-contract layer now compares literal class range endpoints by decoded escape value for bare octal, braced hex, single-byte hex, braced octal, control escapes, and simple escaped literals
   - the grammar and generated-host compile-contract layer now reject plain class `\N`, model single-character quoted class range endpoints, reject shorthand/property class range endpoints, and preserve literal backslashes inside quoted literal bodies
   - the generated-host compile-contract layer now accepts PCRE2 UTF width aliases such as `(*UTF8)` and validates scan-substring capture lists against the whole-pattern capture inventory for forward absolute, named, and positive-relative references
   - the grammar and compile-contract layer now accept only the exact PCRE2 POSIX word-boundary aliases `[[:<:]]` / `[[:>:]]`, reject mixed uses such as `[a[:<:]]`, and treat `DEFINE` conditionals as declarative zero-width groups while scanning lookbehind for unbounded quantifiers

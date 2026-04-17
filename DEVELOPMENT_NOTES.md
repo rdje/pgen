@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - regex 1.1.29 bare-octal class range endpoint ordering
+### Context
+RGX filed `PGEN-RGX-0072` after PGEN `1.1.28` fixed braced-hex class range endpoint ordering but left a residual in the same generated-host compile-contract family: bare octal class-range endpoints such as `\000`, `\037`, and `\377`.
+
+The syntax parser accepted the reported pattern family. The failure happened after parse success in [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs), where the host compile-contract layer validates PCRE2-like range ordering.
+
+### Root Cause
+- `skip_regex_escape` did not consume bare octal `\NNN` as one escape. It consumed only the leading backslash plus one digit, leaving trailing octal digits to be scanned as separate class atoms.
+- `class_escape_literal_codepoint` decoded bare octal only through the special `\0...` path, so endpoints such as `\377` compared as the literal escaped byte `3` instead of octal codepoint `255`.
+- This produced false descending-range rejects for valid ascending ranges such as `[\000-\037]`, `[a-\377]`, `[\001-\x1f]`, and `[\001-\x{1f}]`.
+- The same asymmetry produced at least one false accept: `[\x1f-\0]` was accepted even though decoded endpoints are `31..0`.
+
+### Decision
+- Keep this in the generated-host compile-contract layer rather than changing [grammars/regex.ebnf](grammars/regex.ebnf), because grammar transport was already correct and the bug was endpoint decoding/order semantics.
+- Treat bare octal as part of the same decoded literal endpoint family already covered for braced hex, single-byte hex, braced octal, control escapes, common simple escapes, and plain literal codepoints.
+- Add tests for both accepted and rejected examples so future one-form residuals fail locally before RGX sees them.
+
+### What Was Changed
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - `skip_regex_escape` now consumes `\NNN` as one escape with one to three octal digits
+  - `class_escape_literal_codepoint` now decodes any first octal digit `0..7`, not only the `\0...` family
+  - added regression tests for ascending bare-octal endpoint families and descending decoded endpoint pairs
+- Updated the regex public handoff to parser release `1.1.29` / integration contract `1.1.31`:
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation::tests:: --lib`
+  - `cargo test --manifest-path rust/Cargo.toml regex_parser_integration_contract --lib`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex <RGX-PGEN-RGX-0072-artifact>/repro_input.txt --profile regex_default`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Clippy Note
+- The Rust-change clippy workflow completed successfully.
+- Its generated-parser phase remains non-strict and still reports pre-existing generated clippy debt outside this patch.
+
+### Continuity Notes
+- `regex` remains `Done`.
+- This is a generated-host compile-contract fix, not a new `regex.ebnf` production.
+- The regex contract manifest now carries `93` success samples and `25` failure samples.
+
 ## 2026-04-18 - rtl_frontend generated/handwritten parse parity reaches zero manifest divergences
 ### Context
 After the mixed-list and `always_ff` parse-boundary slices, the shared `rtl_frontend` generated contract still carried `11` explicit generated-positive / handwritten-negative divergence annotations. The remaining failures were not unrelated grammar bugs; they all came from the handwritten parser feeding selector/concat-rich runtime expression syntax into `rtl_const_expr`, whose scope is elaboration-time constant expressions.

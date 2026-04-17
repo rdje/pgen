@@ -29,7 +29,7 @@ Issue-reporting protocol for any integrated parser:
 | `systemverilog` | `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Nexsim-facing host profile contract. |
 | `systemverilog_preprocessor` | `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` | `rust/src/sv_preprocessor.rs` runtime stage | Explicitly documents that a generic public embedding API is not published yet. |
 | `vhdl` | `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Nexsim-facing host profile contract. |
-| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.28`, integration contract `1.1.30`. |
+| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.29`, integration contract `1.1.31`. |
 | `return_annotation` | `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` annotation parse API | Family-specific contract layered on top of the aggregate annotation proof spine. |
 | `semantic_annotation` | `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` annotation parse API | Family-specific contract layered on top of the aggregate annotation proof spine. |
 

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl-frontend-rich-expression-parse-parity)
+Last updated: 2026-04-18 (+0200, task: regex-bare-octal-class-range-endpoint-ordering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,51 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Published regex parser release `1.1.29` / integration contract `1.1.31` for RGX report `PGEN-RGX-0072`:
+  - changed:
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - root cause:
+    - `skip_regex_escape` consumed only `\` plus the first octal digit, leaving trailing digits in `\NNN` to be scanned as separate class atoms
+    - `class_escape_literal_codepoint` decoded bare octal only through the `\0...` path, so `\377` compared as escaped byte `3` instead of octal codepoint `255`
+  - fix:
+    - bare octal escapes `\NNN` are now consumed atomically with one to three octal digits
+    - class-range endpoint comparison decodes any bare-octal first digit `0..7`
+    - positive tests now cover `[\000-\037]`, `[a-\377]`, `[\001-\x1f]`, and `[\001-\x{1f}]`
+    - negative tests now cover descending decoded pairs including `[\x1f-\0]`
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+    - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation::tests:: --lib`
+    - `cargo test --manifest-path rust/Cargo.toml regex_parser_integration_contract --lib`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `parseability_probe --parse regex <RGX-PGEN-RGX-0072-artifact>/repro_input.txt --profile regex_default`
+    - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `git diff --check`
+    - markdown checkout-specific absolute-path audit returned no matches
+  - clippy note:
+    - the Rust-change clippy workflow completed successfully; its generated-parser phase remains non-strict and still reports pre-existing generated clippy debt outside this patch
+  - important continuity detail:
+    - no live parser-family label changes; `regex` remains `Done`
+    - this is a generated-host compile-contract fix, not a `regex.ebnf` syntax change
+    - the regex manifest now carries `93` success samples and `25` failure samples
 - Closed the current `rtl_frontend` curated generated/handwritten parse-surface divergence set:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

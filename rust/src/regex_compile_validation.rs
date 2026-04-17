@@ -93,6 +93,14 @@ fn skip_regex_escape(bytes: &[u8], start: usize) -> usize {
         return start.saturating_add(3).min(bytes.len());
     }
 
+    if matches!(next, b'0'..=b'7') {
+        let mut end = start + 2;
+        while end < bytes.len() && end < start + 4 && matches!(bytes[end], b'0'..=b'7') {
+            end += 1;
+        }
+        return end;
+    }
+
     start.saturating_add(2).min(bytes.len())
 }
 
@@ -1008,13 +1016,14 @@ fn class_escape_literal_codepoint(
         let control = bytes.get(index + 2).copied().unwrap_or_default();
         return Ok((control as u32) & 0x1f);
     }
-    if next == b'0' {
-        let mut end = index + 2;
-        while end < bytes.len() && end < index + 5 && matches!(bytes[end], b'0'..=b'7') {
-            end += 1;
-        }
-        if end > index + 2 {
-            let digits = std::str::from_utf8(&bytes[index + 2..end]).unwrap_or("");
+    if matches!(next, b'0'..=b'7') && after_escape > index + 1 {
+        let digits = std::str::from_utf8(&bytes[index + 1..after_escape]).unwrap_or("");
+        if !digits.is_empty()
+            && digits
+                .as_bytes()
+                .iter()
+                .all(|byte| matches!(byte, b'0'..=b'7'))
+        {
             return u32::from_str_radix(digits, 8).map_err(|_| {
                 RegexCompileValidationError::new(
                     index,
@@ -1824,6 +1833,27 @@ mod tests {
     }
 
     #[test]
+    fn allows_bare_octal_literal_class_range_endpoints() {
+        for input in [
+            r"[\000-\037]",
+            r"[\000-\017]",
+            r"[\010-\037]",
+            r"[\000-\047]",
+            r"[\000-\057]",
+            r"[a-\377]",
+            r"[A-\377]",
+            r"[4-\377]",
+            r"[\001-\x1f]",
+            r"[\001-\x{1f}]",
+            r"[\001-z]",
+        ] {
+            validate_regex_compile_contract(input).unwrap_or_else(|err| {
+                panic!("{input:?} should compare bare octal endpoints by codepoint: {err:?}")
+            });
+        }
+    }
+
+    #[test]
     fn rejects_descending_wide_braced_hex_literal_class_range_endpoint() {
         let error = validate_regex_compile_contract(r"[\x{100}-z]")
             .expect_err("must reject descending braced-hex class range");
@@ -1835,6 +1865,22 @@ mod tests {
         let error = validate_regex_compile_contract(r"[A-\x40]")
             .expect_err("must reject descending single-byte hex class range");
         assert!(error.message.contains("descending"));
+    }
+
+    #[test]
+    fn rejects_descending_decoded_class_range_endpoints() {
+        for input in [
+            r"[\037-\000]",
+            r"[\x1f-\0]",
+            r"[\377-a]",
+            r"[\x{100}-\377]",
+            r"[\cZ-\cA]",
+            r"[\e-\a]",
+        ] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("must reject descending decoded class range endpoint");
+            assert!(error.message.contains("descending"));
+        }
     }
 
     #[test]
