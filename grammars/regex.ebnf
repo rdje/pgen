@@ -56,7 +56,9 @@ atom           = literal
 literal        = literal_char
 whitespace_literal = whitespace
 quoted_literal = "\\Q" quoted_literal_char* "\\E"
-quoted_literal_char = letter | digit | whitespace | class_safe_special | ']'
+quoted_literal_char = quoted_literal_escaped_char | letter | digit | whitespace | class_safe_special | ']' | unicode_char
+quoted_literal_escaped_char = "\\" quoted_literal_escape_tail
+quoted_literal_escape_tail = letter_no_upper_e | digit | whitespace | class_safe_special | ']' | unicode_char
 literal_char   = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
                | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
                | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
@@ -115,14 +117,15 @@ class_body     = class_item*
     "posix": generate_posix_check($1.name)
 }
 class_item     = posix_class
-               | quoted_class_literal
                | stray_class_end_quote
                | class_range
+               | quoted_class_literal
                | class_literal
                | class_escape
 
 quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
-quoted_class_literal_char = letter | digit | whitespace | class_safe_special | ']' | unicode_char
+quoted_class_literal_char = quoted_class_literal_escaped_char | letter | digit | whitespace | class_safe_special | ']' | unicode_char
+quoted_class_literal_escaped_char = "\\" quoted_literal_escape_tail
 stray_class_end_quote = "\\E"
 
 @generate: "ch >= '" + escape_char($1) + "' && ch <= '" + escape_char($5) + "'"
@@ -160,16 +163,18 @@ posix_negation = "^"
 
 @generate: extract_char_value($1)
 @semantic_value: {type: "atom", value: $1}
-class_atom     = class_range_escape | class_literal
+class_atom     = quoted_class_range_atom | class_range_escape | class_literal
+quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"
 class_range_escape = "\\" class_range_escape_unit
 class_range_escape_unit = hex_escape
                         | unicode_escape
                         | octal_escape
                         | control_escape
-                        | property_escape
                         | class_range_simple_escape
 class_range_simple_escape = class_range_any_char_no_orphan_quote_end
-class_range_any_char_no_orphan_quote_end = letter_no_upper_e | digit | whitespace | special_char | unicode_char
+class_range_any_char_no_orphan_quote_end = class_range_literal_escape_letter | digit | whitespace | special_char | unicode_char
+class_range_literal_escape_letter = 'A' | 'F' | 'G' | 'I' | 'J' | 'L' | 'M' | 'O' | 'T' | 'U' | 'V' | 'Y'
+                                  | 'a' | 'b' | 'e' | 'f' | 'g' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'q' | 'r' | 't' | 'u' | 'v' | 'x' | 'y' | 'z'
 letter_no_upper_e = 'A' | 'B' | 'C' | 'D' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
                   | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
 

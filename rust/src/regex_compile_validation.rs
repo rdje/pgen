@@ -65,11 +65,20 @@ fn skip_regex_escape(bytes: &[u8], start: usize) -> usize {
         return skip_quoted_literal_escape(bytes, start);
     }
 
-    if matches!(next, b'x' | b'u' | b'o' | b'p' | b'P' | b'k' | b'g')
+    if matches!(next, b'x' | b'u' | b'o' | b'p' | b'P' | b'k' | b'g' | b'N')
         && bytes.get(start + 2) == Some(&b'{')
         && let Some(close) = bytes[start + 3..].iter().position(|byte| *byte == b'}')
     {
         return start + 4 + close;
+    }
+
+    if matches!(next, b'p' | b'P')
+        && bytes
+            .get(start + 2)
+            .copied()
+            .is_some_and(is_short_unicode_property_letter)
+    {
+        return start + 3;
     }
 
     if next == b'c' && bytes.get(start + 2).is_some() {
@@ -795,6 +804,7 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
         if bytes[index] == b'-'
             && bytes.get(index + 1) != Some(&b']')
             && !dash_is_trailing_literal(bytes, index)
+            && !dash_starts_alt_extended_class_operator(bytes, index)
             && let Some(left) = previous_atom
         {
             let (right, after_right) = read_substantive_class_atom(bytes, index + 1)?;
@@ -805,6 +815,12 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
                 ));
             };
             if matches!(left, ClassAtomKind::NonLiteral) {
+                return Err(RegexCompileValidationError::new(
+                    index,
+                    "invalid character class range is not accepted by the regex compile contract",
+                ));
+            }
+            if matches!(right, ClassAtomKind::NonLiteral) {
                 return Err(RegexCompileValidationError::new(
                     index,
                     "invalid character class range is not accepted by the regex compile contract",
@@ -843,6 +859,7 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
             && bytes[after_left] == b'-'
             && bytes.get(after_left + 1) != Some(&b']')
             && !dash_is_trailing_literal(bytes, after_left)
+            && !dash_starts_alt_extended_class_operator(bytes, after_left)
         {
             let (right_atom, after_right) = read_substantive_class_atom(bytes, after_left + 1)?;
             let Some(right_atom) = right_atom else {
@@ -851,6 +868,14 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
                     "invalid character class range is not accepted by the regex compile contract",
                 ));
             };
+            if matches!(left_atom, ClassAtomKind::NonLiteral)
+                || matches!(right_atom, ClassAtomKind::NonLiteral)
+            {
+                return Err(RegexCompileValidationError::new(
+                    after_left,
+                    "invalid character class range is not accepted by the regex compile contract",
+                ));
+            }
             if let (ClassAtomKind::Literal(left), ClassAtomKind::Literal(right)) =
                 (left_atom, right_atom)
                 && left > right
@@ -897,6 +922,12 @@ fn read_class_atom(
         if next == b'E' {
             return Ok((ClassAtomKind::ZeroWidth, index + 2));
         }
+        if next == b'N' && bytes.get(index + 2) != Some(&b'{') {
+            return Err(RegexCompileValidationError::new(
+                index,
+                "\\N is not accepted inside a character class by the regex compile contract",
+            ));
+        }
         if matches!(
             next,
             b'A' | b'B' | b'C' | b'G' | b'K' | b'Q' | b'R' | b'X' | b'Z' | b'z'
@@ -907,12 +938,20 @@ fn read_class_atom(
             ));
         }
         let after_escape = skip_regex_escape(bytes, index);
-        if after_escape > index + 2 {
+        if is_nonliteral_class_escape(bytes, index, after_escape) {
             return Ok((ClassAtomKind::NonLiteral, after_escape));
         }
         return Ok((ClassAtomKind::Literal(next), after_escape));
     }
     Ok((ClassAtomKind::Literal(bytes[index]), index + 1))
+}
+
+fn is_nonliteral_class_escape(bytes: &[u8], index: usize, after_escape: usize) -> bool {
+    let Some(next) = bytes.get(index + 1).copied() else {
+        return false;
+    };
+    matches!(next, b'd' | b'D' | b'h' | b'H' | b's' | b'S' | b'w' | b'W')
+        || matches!(next, b'p' | b'P') && after_escape > index + 2
 }
 
 fn read_substantive_class_atom(
@@ -971,6 +1010,11 @@ fn dash_is_trailing_literal(bytes: &[u8], dash_index: usize) -> bool {
         break;
     }
     bytes.get(index) == Some(&b']')
+}
+
+fn dash_starts_alt_extended_class_operator(bytes: &[u8], dash_index: usize) -> bool {
+    bytes.get(dash_index + 1) == Some(&b'[')
+        || (bytes.get(dash_index + 1) == Some(&b'|') && bytes.get(dash_index + 2) == Some(&b'|'))
 }
 
 fn scan_posix_class(
@@ -1631,6 +1675,62 @@ mod tests {
     fn rejects_keep_out_escape_in_character_class() {
         let error = validate_regex_compile_contract(r"[\K]").expect_err("must reject \\K");
         assert!(error.message.contains("class"));
+    }
+
+    #[test]
+    fn rejects_not_newline_escape_in_character_class() {
+        let error =
+            validate_regex_compile_contract(r"a[\NB]c").expect_err("must reject \\N in class");
+        assert!(error.message.contains("\\N"));
+    }
+
+    #[test]
+    fn rejects_nonliteral_class_range_endpoints() {
+        for input in [
+            r"[\d-x]",
+            r"[\D-x]",
+            r"[\h-x]",
+            r"[\H-x]",
+            r"[\s-x]",
+            r"[\S-x]",
+            r"[\w-x]",
+            r"[\W-x]",
+            r"[\pL-x]",
+            r"[\PN-x]",
+            r"[a-\d]",
+            r"[a-\p{Lu}]",
+        ] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("must reject nonliteral range endpoint");
+            assert!(error.message.contains("range"));
+        }
+    }
+
+    #[test]
+    fn allows_single_literal_quoted_class_range_endpoints() {
+        validate_regex_compile_contract(r"^[\Qa\E-\Qz\E]+")
+            .expect("single literal quoted endpoints form a PCRE2 class range");
+    }
+
+    #[test]
+    fn allows_braced_hex_literal_class_range_endpoints() {
+        validate_regex_compile_contract(r"[\x{7f}-\x{ff}]")
+            .expect("braced hex escapes are literal PCRE2 class range endpoints");
+    }
+
+    #[test]
+    fn allows_alt_extended_class_dash_operators_after_shorthand_escape() {
+        for input in [r"[\d-[z]]", r"[\d-||z]"] {
+            validate_regex_compile_contract(input).unwrap_or_else(|err| {
+                panic!("{input:?} should not be treated as a range: {err:?}")
+            });
+        }
+    }
+
+    #[test]
+    fn allows_literal_backslash_inside_quoted_literal() {
+        validate_regex_compile_contract(r"\Qabc\$xyz\E")
+            .expect("backslash inside quoted literal is literal until \\E");
     }
 
     #[test]

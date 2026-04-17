@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl_frontend-hierarchy-parameter-proof-tightening)
+Last updated: 2026-04-17 (+0200, task: regex-1.1.27-rgx-0067-0070)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,59 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Published regex parser release `1.1.27` / integration contract `1.1.29` for RGX reports `PGEN-RGX-0067` through `PGEN-RGX-0070`:
+  - changed:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - PCRE2-derived fixes:
+    - class `\N` is rejected unless it is a braced named-character spelling
+    - single-character class `\Q...\E` endpoints now emit `quoted_class_range_atom` inside `class_range`
+    - shorthand/property escapes such as `\d` and `\pL` are rejected as class range endpoints
+    - literal backslashes inside `\Q...\E` remain part of `quoted_literal` via `quoted_literal_escaped_char`
+    - braced hex/octal literal range endpoints remain accepted, and extended-class dash operators are shielded from ordinary range validation
+  - public contract state:
+    - parser release `1.1.27`
+    - integration contract `1.1.29`
+    - `90` success samples
+    - `23` failure samples
+    - regex AST dump schema version remains `1`
+  - proof refresh:
+    - PCRE2 compile-oracle baseline version `9`: `1843` matches, `352` mismatches, `307` false accepts, `45` false rejects
+    - regex family proof remains `Done`: frontend `pass`, dual-run `pass`, `perl_rule_count=104`, `rust_rule_count=194`, parser-backed stimuli `5911/5197/714`, target debt `804 -> 0` after `6526` target-drive attempts
+  - validation already completed:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `make -C rust SHELL=/bin/bash regex_parser`
+    - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+    - `cargo test --manifest-path rust/Cargo.toml --lib regex_compile_validation --quiet`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `git diff --check`
+  - validation note:
+    - `clippy_on_rust_change` completed successfully; strict source all-target clippy passed, while generated all-target clippy remains non-strict and reported the existing generated-parser lint surface.
+  - if resuming after a crash:
+    - read [COMMIT.md](COMMIT.md) before staging/committing
+    - commit and push the regex `1.1.27` maintenance slice
 - Tightened the curated `rtl_frontend` generated contract for hierarchy parameter/range retained context:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

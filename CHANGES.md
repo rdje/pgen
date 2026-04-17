@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-17 - Publish regex 1.1.27 for RGX class and quote edge cases
+### Achievement Summary
+Published regex parser release `1.1.27` / integration contract `1.1.29` for RGX PCRE2 reports `PGEN-RGX-0067` through `PGEN-RGX-0070`, tightening the PCRE2-derived `regex.ebnf` syntax and generated-host compile contract around class `\N`, quoted class range endpoints, nonliteral class-range endpoints, and literal backslashes inside `\Q...\E`.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf) so quoted literal bodies can retain escaped quoted characters, single-character class `\Q...\E` regions can become `quoted_class_range_atom` endpoints, `class_range` wins before independent `quoted_class_literal` items, and shorthand/property escapes are no longer grammar-modeled as class range endpoints.
+- Regenerated [generated/regex.json](generated/regex.json) and [generated/regex_parser.rs](generated/regex_parser.rs) from the amended regex grammar.
+- Tightened [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs) so the generated host rejects plain `\N` inside character classes, rejects shorthand/property escapes as ordinary class range endpoints, keeps literal braced hex/octal escapes range-capable, and avoids misclassifying PCRE2 `alt_extended_class` dash operators such as `-[...]` / `-||...` as ordinary ranges.
+- Bumped [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json) to contract `1.1.29` / release `1.1.27` with `90` success and `23` failure samples, including the new RGX witnesses.
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs), [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh), and regex contract docs for the new public handoff.
+- Ratcheted [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env) to compile-oracle baseline version `9`: `1843` matches, `352` mismatches, `307` false accepts, and `45` false rejects over `2195` normalized PCRE2 cases.
+- Refreshed the regex family proof baseline through [regex_family_stimuli_contract.json](rust/test_data/grammar_quality/regex_family_stimuli_contract.json): frontend `pass`, dual-run `pass`, `perl_rule_count=104`, `rust_rule_count=194`, parser-backed stimuli `5911/5197/714`, and closed target debt `804 -> 0` after `6526` target-drive attempts.
+- Updated the public contract, released-parser bug ledger rows `REGEX-0069` through `REGEX-0072`, the book/parser-family surface, user guide, live tracker, roadmap, Rust architecture reference, and continuity docs.
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `make -C rust SHELL=/bin/bash regex_parser`
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `cargo test --manifest-path rust/Cargo.toml --lib regex_compile_validation --quiet`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `git diff --check`
+- Clippy note:
+  - `clippy_on_rust_change` completed successfully; strict source all-target clippy passed, while generated all-target clippy remains non-strict and reported the existing generated-parser lint surface.
+
 ## 2026-04-17 - Tighten rtl_frontend hierarchy parameter proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract hierarchy samples so scalar named-parameter override and parameterized instance-array lanes now prove retained parameter declaration context and packed range context around the already locked instantiation, override, instance-item, and port-connection text.

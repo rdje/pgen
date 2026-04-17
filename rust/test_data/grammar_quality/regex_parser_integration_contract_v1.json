@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.28",
-  "parser_release_version": "1.1.26",
+  "integration_contract_version": "1.1.29",
+  "parser_release_version": "1.1.27",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -117,6 +117,16 @@
       "forbidden_rule_names": ["escape"]
     },
     {
+      "name": "quoted_literal_body_keeps_literal_backslash",
+      "input": "\\Qabc\\$xyz\\E",
+      "required_rule_names": ["quoted_literal", "quoted_literal_escaped_char"],
+      "expected_rule_texts": {
+        "quoted_literal": ["\\Qabc\\$xyz\\E"],
+        "quoted_literal_escaped_char": ["\\$"]
+      },
+      "forbidden_rule_names": ["simple_escape"]
+    },
+    {
       "name": "short_form_unicode_property_escape",
       "input": "\\pL\\PN",
       "required_rule_names": ["escape", "property_escape", "short_prop_letter"],
@@ -167,6 +177,16 @@
         "quoted_class_literal": ["\\Q^$.|?*+(){}\\E"]
       },
       "forbidden_rule_names": ["class_range", "class_escape"]
+    },
+    {
+      "name": "quoted_class_literal_single_char_range_endpoints",
+      "input": "^[\\Qa\\E-\\Qz\\E]+",
+      "required_rule_names": ["char_class", "class_item", "class_range", "quoted_class_range_atom", "quantifier"],
+      "expected_rule_texts": {
+        "class_range": ["\\Qa\\E-\\Qz\\E"],
+        "quoted_class_range_atom": ["\\Qa\\E", "\\Qz\\E"]
+      },
+      "forbidden_rule_names": ["quoted_class_literal"]
     },
     {
       "name": "zero_width_quoted_class_literal_after_class_atom",
@@ -908,6 +928,18 @@
     {
       "name": "invalid_char_class_escape",
       "input": "[\\B]"
+    },
+    {
+      "name": "not_newline_escape_forbidden_in_class",
+      "input": "a[\\NB]c"
+    },
+    {
+      "name": "shorthand_escape_forbidden_as_class_range_endpoint",
+      "input": "[\\d-x]"
+    },
+    {
+      "name": "property_escape_forbidden_as_class_range_endpoint",
+      "input": "[\\pL-x]"
     },
     {
       "name": "descending_char_class_range",

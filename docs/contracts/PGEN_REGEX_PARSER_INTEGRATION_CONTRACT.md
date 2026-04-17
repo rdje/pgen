@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.28`
+  - `1.1.29`
 - Parser release version:
-  - `1.1.26`
+  - `1.1.27`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-04-16`
+  - `2026-04-17`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -27,6 +27,17 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.27 / Contract 1.1.29 Highlights
+- `1.1.27` is a PCRE2 source-derived grammar and generated-host compile-contract maintenance release over parser release `1.1.26`; regex AST dump schema version stays `1`.
+- This specifically covers RGX PCRE2 conformance reports `PGEN-RGX-0067`, `PGEN-RGX-0068`, `PGEN-RGX-0069`, and `PGEN-RGX-0070`.
+- Plain `\N` is now rejected inside character classes by the generated-host compile contract, matching PCRE2's class scanner where `\N` is not a class escape unless it is a braced named-character form.
+- Single-character `\Q...\E` regions inside character classes can now serve as range endpoints. `^[\Qa\E-\Qz\E]+` transports the range as `class_range` with two `quoted_class_range_atom` endpoints rather than as two independent `quoted_class_literal` items around a literal dash.
+- Shorthand and property escapes are rejected as character range endpoints. The contract pins both `[\\d-x]` and `[\\pL-x]` as failures so downstream consumers can rely on the general nonliteral-endpoint rule rather than a one-off repro spelling.
+- Backslashes inside a `\Q...\E` quoted literal body are preserved as literal quoted content until the terminating `\E`. The sample `\Qabc\$xyz\E` transports as one `quoted_literal` and includes `quoted_literal_escaped_char = "\\$"` instead of degrading to `simple_escape`.
+- The regex integration contract now has `90` success samples and `23` failure samples, including `quoted_class_literal_single_char_range_endpoints`, `quoted_literal_body_keeps_literal_backslash`, `not_newline_escape_forbidden_in_class`, `shorthand_escape_forbidden_as_class_range_endpoint`, and `property_escape_forbidden_as_class_range_endpoint`.
+- The maintained `regex_pcre2_compile_oracle_gate` baseline is ratcheted to the measured `pcre2-10.47` slice: `2195` cases executed, `1613` compile-ok cases, `582` compile-fail cases, `1843` expectation matches, `352` mismatches, `307` false accepts, and `45` false rejects.
+- The refreshed regex family proof still computes `Done`: frontend overall `pass`, dual-run overall `pass`, `perl_rule_count=104`, `rust_rule_count=194`, parser-backed stimuli `5911/5197/714`, diagnostic target-drive parser rejections `714`, and closed target debt `804 -> 0` after `6526` target-drive attempts. This release is compatibility maintenance over the already-closed regex family row, not a reopening of the family status.
 
 ## Release 1.1.26 / Contract 1.1.28 Highlights
 - `1.1.26` is a PCRE2 source-derived generated-host compile-contract maintenance release over parser release `1.1.25`; regex AST dump schema version stays `1`.
@@ -454,6 +465,11 @@ This is the document downstream projects such as RGX should read first when deci
   - `(*scs:(1)a)(a)|x` is accepted because absolute scan-substring references are checked against the full pattern capture count, not only captures declared before the scan-substring group
   - `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)` is accepted because named scan-substring references are checked against the full pattern name inventory
   - forward relative scan-substring references such as `+1` and `+2` are accepted when they resolve into the full capture inventory; negative relative references still require an already-available prior capture
+- Integration contract `1.1.29` explicitly guarantees the PCRE2 class-quote and quoted-literal source slice:
+  - `a[\NB]c` is rejected because plain `\N` is not a legal escape inside a character class
+  - `^[\Qa\E-\Qz\E]+` transports the class body as one `class_range` with two `quoted_class_range_atom` endpoints
+  - `[\d-x]` and `[\pL-x]` are rejected because shorthand and property escapes are not literal character range endpoints
+  - `\Qabc\$xyz\E` transports as one `quoted_literal`, preserving the body backslash-dollar through `quoted_literal_escaped_char` rather than `simple_escape`
 - Integration contract `1.1.20` explicitly guarantees PCRE2 braced `\k{...}` named backreferences with optional space/tab padding:
   - `(?'name'ab)\k{ name }(?P=name)` transports the padded named backreference as `backreference` -> `braced_name_ref`
   - the named payload transports under `name = "name"` while the enclosing `braced_name_ref` rule text remains `{ name }`
@@ -489,7 +505,11 @@ This is the document downstream projects such as RGX should read first when deci
   - `[[:digit:]-]+` transports `[:digit:]` through `posix_class` with `posix_name = "digit"` and the trailing `-` as a separate `class_literal`
   - `[[:digit:]-   ]` extends the same guarantee to the PCRE2 class item shape where the trailing `-` and ordinary spaces are separate `class_literal` items rather than a `class_range`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
-- Contract `1.1.28` publishes parser release `1.1.26` PCRE2 UTF width start-option aliases and scan-substring forward-reference validation, carries forward parser release `1.1.25` PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind length handling, parser release `1.1.24` PCRE2 single-code-unit `\C` transport and callout-prefixed conditional assertion support, parser release `1.1.23` PCRE2 bounded-lookbehind, Unicode-name, and orphan-class-`\E` support, parser release `1.1.22` PCRE2 short-property and quoted-class literal support, parser release `1.1.21` PCRE2 source-derived syntax and compile-contract alignment, and parser release `1.1.20` resource-depth resilience for legal deep PCRE2 conformance inputs, contract `1.1.21` for the `[[:digit:]-   ]` POSIX-class-plus-literals AST shape, parser release `1.1.19` PCRE2-compatible braced `\k{...}` named backreference whitespace handling, parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Contract `1.1.29` publishes parser release `1.1.27` PCRE2 character-class quoted range endpoints, literal backslash preservation inside `\Q...\E`, plain-class-`\N` rejection, and nonliteral class-range endpoint rejection, carries forward parser release `1.1.26` PCRE2 UTF width start-option aliases and scan-substring forward-reference validation, parser release `1.1.25` PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind length handling, parser release `1.1.24` PCRE2 single-code-unit `\C` transport and callout-prefixed conditional assertion support, parser release `1.1.23` PCRE2 bounded-lookbehind, Unicode-name, and orphan-class-`\E` support, parser release `1.1.22` PCRE2 short-property and quoted-class literal support, parser release `1.1.21` PCRE2 source-derived syntax and compile-contract alignment, and parser release `1.1.20` resource-depth resilience for legal deep PCRE2 conformance inputs, contract `1.1.21` for the `[[:digit:]-   ]` POSIX-class-plus-literals AST shape, parser release `1.1.19` PCRE2-compatible braced `\k{...}` named backreference whitespace handling, parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `a[\NB]c` is now rejected by the generated-host compile contract because plain `\N` is not legal inside a PCRE2 character class
+  - `^[\Qa\E-\Qz\E]+` now transports the class body as `class_range` with `quoted_class_range_atom` endpoints
+  - `[\d-x]` and `[\pL-x]` are now rejected because shorthand/property escapes are not literal class-range endpoints
+  - `\Qabc\$xyz\E` now transports as one `quoted_literal` preserving `\$` as literal quoted content
   - `(*UTF8)\x{1234}` now passes the generated-host PCRE2 start-option validator as a UTF width alias
   - `(*scs:(1)a)(a)|x` now passes scan-substring capture-list validation even though capture group `1` appears later in the pattern
   - `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)` now passes named scan-substring capture-list validation against a later named group
@@ -557,10 +577,10 @@ This is the document downstream projects such as RGX should read first when deci
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1840`
-  - `parse_expectation_mismatch_total=355`
-  - `false_accept_total=309`
-  - `false_reject_total=46`
+  - `parse_expectation_match_total=1843`
+  - `parse_expectation_mismatch_total=352`
+  - `false_accept_total=307`
+  - `false_reject_total=45`
 - This does not reopen the closed `regex` family row by itself, but it is the main maintained future hardening lane for downstream trust widening.
 
 ## Published Regex Flavor Summary
@@ -734,7 +754,7 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.26");
+assert_eq!(contract.regex_parser_release_version, "1.1.27");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```

@@ -22,10 +22,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.28";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.29";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.26";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.27";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2102,8 +2102,8 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 88);
-        assert_eq!(manifest.failure_samples.len(), 20);
+        assert_eq!(manifest.success_samples.len(), 90);
+        assert_eq!(manifest.failure_samples.len(), 23);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
             manifest
@@ -2278,6 +2278,12 @@ mod tests {
             manifest
                 .success_samples
                 .iter()
+                .any(|sample| sample.name == "quoted_literal_body_keeps_literal_backslash")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
                 .any(|sample| sample.name == "short_form_unicode_property_escape")
         );
         assert!(
@@ -2303,6 +2309,12 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "quoted_class_literal_metacharacters")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "quoted_class_literal_single_char_range_endpoints")
         );
         assert!(
             manifest
@@ -2532,6 +2544,24 @@ mod tests {
                 .failure_samples
                 .iter()
                 .any(|sample| sample.name == "mixed_posix_word_boundary_alias_is_not_pcre2")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "not_newline_escape_forbidden_in_class")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "shorthand_escape_forbidden_as_class_range_endpoint")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "property_escape_forbidden_as_class_range_endpoint")
         );
         assert!(
             manifest

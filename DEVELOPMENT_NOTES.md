@@ -1,4 +1,71 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - regex 1.1.27 PCRE2 class and quote maintenance
+### Context
+RGX filed four additional PCRE2 conformance reports after the previous regex handoff:
+- `PGEN-RGX-0067`: PCRE2 rejects plain `\N` inside character classes, while PGEN accepted `a[\NB]c`.
+- `PGEN-RGX-0068`: PCRE2 treats single-character class `\Q...\E` regions as literal range endpoints, while PGEN emitted two independent quoted class literals around the dash in `^[\Qa\E-\Qz\E]+`.
+- `PGEN-RGX-0069`: PCRE2 rejects shorthand/property escapes as class range endpoints, while PGEN let `[\d-x]` enter a malformed range path.
+- `PGEN-RGX-0070`: PCRE2 treats backslashes inside `\Q...\E` as literal quoted content until the terminating `\E`, while PGEN degraded `\Qabc\$xyz\E` into generic/simple escapes.
+
+The source-of-truth workflow remains unchanged: PCRE2 does not publish a formal EBNF/PEG, so PGEN derives grammar and compile-contract behavior from `pcre2pattern(3)` / `pcre2syntax(3)`, cross-checks edge cases against `src/pcre2_compile.c`, and validates against the normalized PCRE2 testdata compile oracle.
+
+### Decision
+- Publish this as regex parser release `1.1.27` / integration contract `1.1.29`, with regex AST dump schema version still `1`.
+- Keep the split between generated grammar syntax and generated-host compile-contract validation:
+  - grammar owns `quoted_literal_escaped_char`, `quoted_class_range_atom`, class item ordering, and the removal of shorthand/property escapes from `class_range_escape_unit`
+  - generated-host validation owns plain class `\N` rejection, nonliteral endpoint rejection, braced literal escape range behavior, and `alt_extended_class` dash-operator shielding
+- Treat `[\\pL-x]` as an explicit generalized property-endpoint failure witness, not just the literal `[\\d-x]` repro shape.
+- Keep literal braced hex/octal escapes such as `[\x{7f}-\x{ff}]` range-capable; the nonliteral endpoint rule is for shorthand classes and property classes, not every multi-byte escape spelling.
+- Keep `-[...]` and `-||...` in alternate/extended class syntax out of the ordinary range validator so valid PCRE2 set-operator shapes do not regress.
+- Keep the live `regex` row at `Done`; this is compatibility maintenance over a closed parser-family contract, not a reopening of the closure row.
+
+### What Was Changed
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - added escaped quoted-body characters for `quoted_literal` / `quoted_class_literal`
+  - added `quoted_class_range_atom`
+  - made `class_range` take priority before standalone `quoted_class_literal`
+  - restricted class range endpoint escapes so shorthand/property classes are not modeled as literal endpoints
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - rejects plain `\N` inside character classes unless it is the braced form
+  - classifies shorthand/property class escapes as nonliteral endpoints for range validation
+  - preserves braced hex/octal literal endpoint handling
+  - avoids interpreting PCRE2 extended-class dash operators as ordinary ranges
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - release `1.1.27`
+  - integration contract `1.1.29`
+  - `90` success samples
+  - `23` failure samples
+- Updated [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - baseline version `9`
+  - `MIN_MATCH_TOTAL=1843`
+  - `MAX_MISMATCH_TOTAL=352`
+  - `MAX_FALSE_ACCEPT_TOTAL=307`
+  - `MAX_FALSE_REJECT_TOTAL=45`
+- Refreshed the regex family proof baseline:
+  - frontend overall `pass`
+  - dual-run overall `pass`
+  - `perl_rule_count=104`
+  - `rust_rule_count=194`
+  - parser-backed stimuli `5911/5197/714`
+  - closed target debt `804 -> 0`
+  - target-drive attempts `6526`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `make -C rust SHELL=/bin/bash regex_parser`
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `cargo test --manifest-path rust/Cargo.toml --lib regex_compile_validation --quiet`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=regex-parser-integration-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `git diff --check`
+- Clippy note:
+  - `clippy_on_rust_change` completed successfully; strict source all-target clippy passed, while generated all-target clippy remains non-strict and reported the existing generated-parser lint surface.
+
 ## 2026-04-17 - rtl_frontend hierarchy parameter retained-text tightening
 ### Context
 The generated contract already proved the core hierarchy text for scalar named-parameter override and parameterized instance-array samples: module instantiations, parameter overrides, instance items, port connections, symbolic instance-array ranges, expression evidence, and signal references were locked. The local remaining proof gap was the retained parameter declaration and packed range context that makes those hierarchy samples meaningful.

@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-04-09
+Last updated: 2026-04-17
 
 ## Current-State Companion Docs
 - Use `README.md` as the main navigation and command-entry document.
@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.26`
+  - `1.1.27`
 - integration contract version:
-  - `1.1.28`
+  - `1.1.29`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3817,15 +3817,15 @@ Current measured operational baseline:
 - family status:
   - `Done`
 - parser-backed family proof:
-  - `parseability_attempts_total=5292`
-  - `parseability_accepted_total=4677`
-  - `parseability_rejected_total=615`
-  - `parseability_parser_rejections_total=615`
-  - `parseability_acceptance_rate_percent=88.38`
-  - `initial_targets=758`
-  - `resolved_targets=758`
+  - `parseability_attempts_total=5911`
+  - `parseability_accepted_total=5197`
+  - `parseability_rejected_total=714`
+  - `parseability_parser_rejections_total=714`
+  - `parseability_acceptance_rate_percent=87.92`
+  - `initial_targets=804`
+  - `resolved_targets=804`
   - `final_targets=0`
-  - `target_attempts=5825`
+  - `target_attempts=6526`
   - the retained parser-rejection count is target-drive diagnostic evidence from the stimuli-quality lane, not an open family-status blocker
 - broader checked-in corpus proof:
   - `cases_executed=44`
@@ -3908,6 +3908,7 @@ Accepted syntax families in the current published flavor:
   - POSIX classes such as `[[:digit:]]`
   - negated POSIX classes such as `[[:^alnum:]]`
   - quoted class literals such as `[z\Qa-d]\E]`, where the quoted region contributes literal class characters
+  - single-character quoted class regions as range endpoints, such as `^[\Qa\E-\Qz\E]+`
   - orphan class quote-end markers such as `[\Eabc]`, where `\E` is zero-width and the substantive items remain `a`, `b`, and `c`
   - range forms such as `[a-\Ec]`, where zero-width `\E` may appear before the substantive right endpoint
 - groups:
@@ -3949,6 +3950,8 @@ Accepted syntax families in the current published flavor:
   - language-tagged `(?{wasm: ...})`
 - pattern-start options:
   - UTF start options such as `(*UTF)` and the PCRE2 width aliases `(*UTF8)`, `(*UTF16)`, and `(*UTF32)`
+- quoted literals:
+  - `\Q...\E` regions preserve literal backslash-bearing content until the terminating `\E`, including examples such as `\Qabc\$xyz\E`
 
 Representative accepted examples:
 - ``
@@ -3967,6 +3970,7 @@ Representative accepted examples:
 - `\\o{101}`
 - `\\pL`
 - `[z\\Qa-d]\\E]`
+- `^[\\Qa\\E-\\Qz\\E]+`
 - `^[\\Eabc]`
 - `^[a-\\Ec]`
 - `(?<=a{1,3})b`
@@ -3999,6 +4003,7 @@ Representative accepted examples:
 - `(.)(*scs:(1)foo)`
 - `(*scs:(1)a)(a)|x`
 - `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)`
+- `\\Qabc\\$xyz\\E`
 - `(?<A>foo)-\\k{A}`
 - `(?<A>a)?(?(A)b|c)`
 - `a{,4}`
@@ -4048,7 +4053,11 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.26` specifically adds PCRE2 UTF width start-option aliases and scan-substring forward-reference validation while carrying forward the `1.1.25` exact PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind zero-width handling, the `1.1.24` single-code-unit escape `\C` transport and callout-prefixed conditional assertions, the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.27` specifically adds PCRE2 class `\N` rejection, single-character quoted class range endpoints, nonliteral class-range endpoint rejection, and literal backslash preservation inside `\Q...\E` while carrying forward the `1.1.26` UTF width start-option aliases and scan-substring forward-reference validation, the `1.1.25` exact PCRE2 POSIX word-boundary aliases and DEFINE-in-lookbehind zero-width handling, the `1.1.24` single-code-unit escape `\C` transport and callout-prefixed conditional assertions, the `1.1.23` bounded variable-length lookbehind, Unicode capture names, and orphan class `\E` handling, the `1.1.22` short Unicode property and quoted-class support, the `1.1.21` source-derived grammar and compile-contract alignment, the `1.1.20` generated-host resilience for legal PCRE2 conformance inputs, braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+  - `a[\NB]c` is rejected because plain `\N` is not accepted inside PCRE2 character classes unless it is the braced named-character form
+  - `^[\Qa\E-\Qz\E]+` now transports as a `class_range` with two `quoted_class_range_atom` endpoints instead of independent `quoted_class_literal` items
+  - `[\d-x]` and `[\\pL-x]` are rejected because shorthand/property classes are nonliteral class range endpoints, while literal braced hex/octal endpoints remain range-capable
+  - `\Qabc\$xyz\E` now transports as one `quoted_literal` and retains `quoted_literal_escaped_char = "\\$"` rather than degrading to `simple_escape`
   - `(*UTF8)\x{1234}` now passes the generated-host PCRE2 start-option validator as a UTF width alias rather than being rejected as an unknown verb/start option
   - `(*scs:(1)a)(a)|x` now passes scan-substring capture-list validation because absolute references are resolved against the whole-pattern capture inventory
   - `(*scs:(<GOOD_NAME>)a)(?<GOOD_NAME>a)` now passes named scan-substring capture-list validation against a later named group
@@ -4114,6 +4123,8 @@ Diagnostics and AST behavior:
   - empty class quote regions when they would leave no substantive class atom or form an invalid range endpoint
   - malformed named backreference escapes such as bare `\k` and overlong capture group names
   - invalid POSIX class names
+  - plain `\N` inside character classes
+  - shorthand or property escapes used as character-class range endpoints, such as `[\d-x]` and `[\\pL-x]`
   - scan-substring references to captures that do not exist in the whole pattern, while allowing PCRE2-compatible forward absolute/named/positive-relative references
   - unsupported default-mode escapes such as `\F`, `\l`, `\L`, `\u`, and `\U`
 
@@ -4173,14 +4184,15 @@ Important interpretation:
   - `cases_executed=2195`
   - `expected_parse_ok_total=1613`
   - `expected_parse_fail_total=582`
-  - `parse_expectation_match_total=1840`
-  - `parse_expectation_mismatch_total=355`
-  - `false_accept_total=309`
-  - `false_reject_total=46`
+  - `parse_expectation_match_total=1843`
+  - `parse_expectation_mismatch_total=352`
+  - `false_accept_total=307`
+  - `false_reject_total=45`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.26`
-  - integration contract version `1.1.28`
+  - parser release version `1.1.27`
+  - integration contract version `1.1.29`
 - the current improvement came from complementary changes:
+  - the grammar and generated-host compile-contract layer now reject plain class `\N`, model single-character quoted class range endpoints, reject shorthand/property class range endpoints, and preserve literal backslashes inside quoted literal bodies
   - the generated-host compile-contract layer now accepts PCRE2 UTF width aliases such as `(*UTF8)` and validates scan-substring capture lists against the whole-pattern capture inventory for forward absolute, named, and positive-relative references
   - the grammar and compile-contract layer now accept only the exact PCRE2 POSIX word-boundary aliases `[[:<:]]` / `[[:>:]]`, reject mixed uses such as `[a[:<:]]`, and treat `DEFINE` conditionals as declarative zero-width groups while scanning lookbehind for unbounded quantifiers
   - the grammar now distinguishes PCRE2 `\C` as a dedicated single-code-unit escape and accepts callout-prefixed conditional assertion tests
