@@ -3575,7 +3575,12 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
         "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "packed_range",
         "unpacked_dimension",
         "procedural_block",
         "kw_always_comb",
@@ -3585,6 +3590,30 @@
         "continuous_assign",
         "concatenation_expr"
       ],
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter BIT = 2"
+        ],
+        "port_list": [
+          "input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ]
+      },
       "expected_rule_texts": {
         "kw_always_comb": [
           "always_comb"
@@ -3757,6 +3786,10 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "net_declaration",
+        "packed_range",
         "procedural_block",
         "kw_always_comb",
         "kw_begin",
@@ -3769,6 +3802,19 @@
         "ranged_signal_reference"
       ],
       "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1"
+        ],
+        "port_list": [
+          "input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [15:0] y"
+        ],
+        "net_declaration": [
+          "logic [15:0] tmp;"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[15:0]"
+        ],
         "kw_begin": [
           "begin"
         ],
@@ -3814,7 +3860,12 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
         "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "packed_range",
         "unpacked_dimension",
         "procedural_block",
         "kw_always_comb",
@@ -3829,6 +3880,28 @@
         "ranged_signal_reference"
       ],
       "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1"
+        ],
+        "port_list": [
+          "input logic [7:0] d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ],
         "kw_begin": [
           "begin"
         ],
@@ -3879,10 +3952,16 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
         "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "packed_range",
         "unpacked_dimension",
         "procedural_block",
         "kw_always_comb",
+        "kw_begin",
         "assignment_target",
         "assignment_operator",
         "continuous_assign",
@@ -3890,6 +3969,32 @@
         "concatenation_expr"
       ],
       "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1"
+        ],
+        "port_list": [
+          "input logic [7:0] d,\n    output logic [1:0] y"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[1:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ],
+        "kw_begin": [
+          "begin"
+        ],
         "conditional_expr": [
           "SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid}"
         ]
@@ -3936,10 +4041,16 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
         "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "packed_range",
         "unpacked_dimension",
         "procedural_block",
         "kw_always_comb",
+        "kw_begin",
         "assignment_target",
         "assignment_operator",
         "continuous_assign",
@@ -3949,6 +4060,28 @@
         "ranged_signal_reference"
       ],
       "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1"
+        ],
+        "port_list": [
+          "input logic [7:0] d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ],
         "kw_begin": [
           "begin"
         ],

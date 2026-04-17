@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend mixed procedural/dataflow context proof
+### Achievement Summary
+Tightened existing `rtl_frontend` generated-contract mixed procedural/dataflow samples so they now prove retained declaration context around already locked `always_comb`, continuous assignment, expression, ranged/member, and assignment-target spans.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `procedural_and_dataflow_concat_member_paths`
+  - strengthened `procedural_and_dataflow_ternary_binary_exprs`
+  - strengthened `rich_assignment_targets_ternary_exprs`
+  - strengthened `procedural_concatenated_assignment_target_ternary_exprs`
+  - strengthened `continuous_ranged_member_assignment_target_ternary_exprs`
+  - now requires surrounding declaration rules such as `parameter_declaration_sequence`, `port_list`, `struct_union_field`, `net_declaration`, and `packed_range` where applicable
+  - now subset-locks retained context such as header parameter sequences, ANSI port shells, inline `struct packed { ... }` bodies, `logic [7:0] data;`, `logic valid;`, `struct packed { ... } cfgs [0:1];`, `[7:0]`, `[1:0]`, `[15:0]`, and `[0:1]`
+  - preserves existing exact retained proof for procedural blocks, assignment operators, assignment targets, continuous assignments, concatenation expressions, ranged references, and ternary/binary expression spans
+- Updated [README.md](README.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), and maintained reference/continuity docs so the public and live documentation surfaces reflect this proof tightening.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not procedural semantic validation, dataflow typing, member legality, parameter evaluation, width analysis, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend rich procedural context proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract rich plain `always @(*)` and `always_latch` samples so they now prove retained parameter, port, struct-field, net-declaration, packed-range, and unpacked-dimension context around already locked procedural block, assignment target, assignment operator, continuous assignment, and concatenation-expression spans.

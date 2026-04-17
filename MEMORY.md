@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-rich-always-star-latch-context-proof)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-mixed-procedural-dataflow-context-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,34 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for mixed procedural/dataflow retained context:
+  - changed:
+    - [README.md](README.md)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained samples:
+    - `procedural_and_dataflow_concat_member_paths`
+    - `procedural_and_dataflow_ternary_binary_exprs`
+    - `rich_assignment_targets_ternary_exprs`
+    - `procedural_concatenated_assignment_target_ternary_exprs`
+    - `continuous_ranged_member_assignment_target_ternary_exprs`
+  - proof tightening:
+    - subset-locks retained parameter, port, struct type/body, struct field, net declaration, packed-range, and unpacked-dimension context around struct-member mixed procedural/dataflow lanes
+    - subset-locks retained parameter, port, net declaration, and packed-range context around the scalar ternary/binary mixed procedural/dataflow lane
+    - preserves existing exact retained proof for procedural-block text, assignment operator text, assignment target text, continuous assignment text, concatenation-expression text, ranged references, and ternary/binary expression spans
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not procedural semantic validation, dataflow typing, member legality, parameter evaluation, width analysis, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened the curated `rtl_frontend` generated contract for rich plain `always @(*)` and `always_latch` retained context:
   - changed:
     - [README.md](README.md)

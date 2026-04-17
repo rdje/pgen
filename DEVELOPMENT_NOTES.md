@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend mixed procedural/dataflow retained-context tightening
+### Context
+The generated contract already proved the action core of representative mixed procedural/dataflow lanes:
+- `procedural_and_dataflow_concat_member_paths`
+- `procedural_and_dataflow_ternary_binary_exprs`
+- `rich_assignment_targets_ternary_exprs`
+- `procedural_concatenated_assignment_target_ternary_exprs`
+- `continuous_ranged_member_assignment_target_ternary_exprs`
+
+Those samples exact-locked important procedural blocks, assignment operators, assignment targets, continuous assignments, concatenation expressions, ranged references, and ternary/binary expression spans. The remaining local proof gap was the surrounding declaration context that makes the parameterized ranges, struct members, and continuous/procedural target paths meaningful.
+
+### Decision
+- Tighten the existing mixed procedural/dataflow samples rather than add duplicate fixtures.
+- Use `required_rule_texts` for declaration context because these samples already exact-lock their procedural/dataflow action core.
+- Preserve the parser/elaboration boundary:
+  - generated parser proves the retained syntax shape and local context
+  - procedural semantic validation, dataflow typing, member legality, parameter evaluation, width analysis, and elaboration remain outside this generated-parser proof claim
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added parameter/port/struct/net/range/dimension retained-context proof to the struct-member mixed procedural/dataflow samples
+  - added parameter/port/net/range retained-context proof to the scalar ternary/binary mixed procedural/dataflow sample
+  - added explicit `kw_begin` rule presence where that procedural keyword was already used as retained text
+  - preserved existing exact retained proof for procedural blocks, assignment operators, assignment targets, continuous assignments, concatenations, ranged references, and recursive expression spans
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend rich always star/latch retained-context tightening
 ### Context
 The generated contract already proved the core rich non-`always_ff` procedural lanes:
