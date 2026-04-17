@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-parameter-override-context-proof)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-always-ff-context-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for `always_ff` retained context:
+  - changed:
+    - [README.md](README.md)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained samples:
+    - `always_ff_rich_nonblocking_assignment_targets`
+    - `always_ff_struct_member_bitselect_nonblocking_target`
+    - `always_ff_struct_member_concatenation_value`
+    - `always_ff_unknown_event_identifier_parse_surface`
+  - proof tightening:
+    - subset-locks retained parameter, port, struct type/body, struct field, net declaration, packed-range, and unpacked-dimension context around rich and isolated `always_ff` member-path lanes
+    - subset-locks `clk_missing` as retained `signal_reference` text in the syntax-only unknown event-control sample
+    - preserves existing exact retained proof for `always_ff`, event-control lists/items/edges, procedural blocks, nonblocking assignment operators, assignment targets, concatenation values, ranged references, and ternary/binary expression spans
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not event identifier resolution, procedural semantic validation, member legality, parameter evaluation, width analysis, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened the curated `rtl_frontend` generated contract for parameter-override retained context:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

@@ -58,7 +58,12 @@
       "required_rule_names": [
         "rtl_frontend_file",
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
         "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "packed_range",
         "unpacked_dimension",
         "kw_always_ff",
         "event_control_list",
@@ -107,6 +112,30 @@
           "cfgs[0].data[HI:LO]"
         ]
       },
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1"
+        ],
+        "port_list": [
+          "input logic clk,\n    input logic [7:0] d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ]
+      },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic clk,\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].data[HI:LO] <= SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\n    {cfgs[IDX].valid, cfgs[0].valid} <= {d[0], cfgs[IDX].data[BIT]};\nend\nendmodule\n"
     },
     {
@@ -121,6 +150,7 @@
         "struct_type",
         "struct_union_field",
         "net_declaration",
+        "packed_range",
         "unpacked_dimension",
         "kw_always_ff",
         "event_control_list",
@@ -163,6 +193,30 @@
           "always_ff @(posedge clk) begin\n    cfgs[IDX].data[BIT] <= d;\nend"
         ]
       },
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter BIT = 2"
+        ],
+        "port_list": [
+          "input logic clk,\n    input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ]
+      },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic clk,\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].data[BIT] <= d;\nend\nendmodule\n"
     },
     {
@@ -177,6 +231,7 @@
         "struct_type",
         "struct_union_field",
         "net_declaration",
+        "packed_range",
         "unpacked_dimension",
         "kw_always_ff",
         "event_control_list",
@@ -220,6 +275,30 @@
         ],
         "procedural_block": [
           "always_ff @(posedge clk) begin\n    cfgs[IDX].valid <= {cfgs[IDX].data[BIT], d};\nend"
+        ]
+      },
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter BIT = 2"
+        ],
+        "port_list": [
+          "input logic clk,\n    input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
         ]
       },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic clk,\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].valid <= {cfgs[IDX].data[BIT], d};\nend\nendmodule\n"
@@ -326,6 +405,14 @@
         ],
         "procedural_block": [
           "always_ff @(posedge clk_missing) begin\n    q <= 1;\nend"
+        ]
+      },
+      "required_rule_texts": {
+        "port_list": [
+          "output logic q"
+        ],
+        "signal_reference": [
+          "clk_missing"
         ]
       },
       "sample": "module top (\n    output logic q\n);\nalways_ff @(posedge clk_missing) begin\n    q <= 1;\nend\nendmodule\n"

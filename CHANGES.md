@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend always_ff context proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract `always_ff` samples so rich and isolated member-path procedural lanes now prove retained parameter, port, struct-field, net-declaration, packed-range, and unpacked-dimension context around already locked event-control, procedural-block, assignment-target, nonblocking-operator, and expression spans.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_ff_rich_nonblocking_assignment_targets`
+  - strengthened `always_ff_struct_member_bitselect_nonblocking_target`
+  - strengthened `always_ff_struct_member_concatenation_value`
+  - strengthened `always_ff_unknown_event_identifier_parse_surface`
+  - now subset-locks retained context such as `parameter IDX = 1,\n    parameter BIT = 2`, `input logic clk,\n    input logic d`, `struct packed { ... } cfgs [0:1];`, `logic [7:0] data;`, `logic valid;`, `[7:0]`, and `[0:1]`
+  - now proves the syntax-only unknown event-control identifier `clk_missing` as retained `signal_reference` text while preserving the parser/elaboration split
+  - preserves existing exact retained proof for `always_ff`, event-control lists/items/edges, procedural blocks, nonblocking assignment operators, assignment targets, concatenation values, ranged signal references, and ternary/binary expression spans
+- Updated [README.md](README.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), and maintained reference/continuity docs so the public and live documentation surfaces reflect this proof tightening.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not event identifier resolution, procedural semantic validation, member legality, parameter evaluation, width analysis, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend parameter-override context proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract parameter-override expression samples so ordered and named override lanes now prove retained parameter, port, and packed-range context around already locked ternary, binary, and repeat override expressions.

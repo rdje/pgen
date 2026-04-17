@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend always_ff retained-context tightening
+### Context
+The generated contract already proved core `always_ff` procedural/event syntax for:
+- `always_ff_rich_nonblocking_assignment_targets`
+- `always_ff_struct_member_bitselect_nonblocking_target`
+- `always_ff_struct_member_concatenation_value`
+- `always_ff_unknown_event_identifier_parse_surface`
+
+Those samples exact-locked `always_ff`, event-control lists/items/edges, procedural blocks, nonblocking operators, assignment targets, concatenation values, ranged references, and selected expression spans. The remaining local proof gap was the surrounding declaration context for the member-path lanes plus explicit retained text for the syntax-only unknown event identifier.
+
+### Decision
+- Tighten the existing `always_ff` samples rather than add duplicate fixtures.
+- Use `required_rule_texts` for surrounding declaration context because these samples already use exact locks for the procedural/event/action core.
+- Preserve the parser/elaboration boundary:
+  - generated parser proves `clk_missing` as syntax and retained `signal_reference` text
+  - semantic event-identifier resolution remains outside this generated-parser proof claim
+- Keep member legality, parameter evaluation, width analysis, procedural semantic validation, and elaboration outside this slice.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added parameter/port/struct/net/range/dimension retained-context proof to `always_ff_rich_nonblocking_assignment_targets`
+  - added the same declaration-context proof to `always_ff_struct_member_bitselect_nonblocking_target`
+  - added the same declaration-context proof to `always_ff_struct_member_concatenation_value`
+  - added port and `clk_missing` signal-reference retained-text proof to `always_ff_unknown_event_identifier_parse_surface`
+  - preserved exact retained proof for the already locked event-control, procedural-block, nonblocking assignment, assignment-target, concatenation, ranged-reference, and expression surfaces
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend parameter-override retained-context tightening
 ### Context
 The generated contract already proved parameter-override expression parsing for:

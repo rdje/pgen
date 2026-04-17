@@ -3524,6 +3524,10 @@ Why `rtl_frontend` exists:
     - the same continuous struct-member assignment samples now exact-lock `logic [7:0] data;` and `logic valid;` as `struct_union_field` retained text,
     - this closes a small proof gap between the inline struct declaration context and the member-path assignment evidence, while keeping semantic member legality and elaboration out of the generated-parser proof claim,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic continuous-assignment typing, member legality, parameter evaluation, or elaboration closure.
+  - Progress (2026-04-17): tightened `always_ff` retained-context proof:
+    - `always_ff_rich_nonblocking_assignment_targets`, `always_ff_struct_member_bitselect_nonblocking_target`, `always_ff_struct_member_concatenation_value`, and `always_ff_unknown_event_identifier_parse_surface` now prove richer retained context around `always_ff` procedural/event samples,
+    - salient retained text now includes parameter declaration sequences, port lists, inline `struct packed { ... }` bodies, `logic [7:0] data;`, `logic valid;`, `struct packed { ... } cfgs [0:1];`, `[7:0]`, `[0:1]`, and `clk_missing`, while existing exact event-control, procedural-block, assignment-target, nonblocking-operator, concatenation, ranged-reference, and expression locks stay in place,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not event identifier resolution, procedural semantic validation, member legality, parameter evaluation, width analysis, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,
