@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-04-17 - Add rtl_frontend handwritten contract replay
+### Achievement Summary
+Strengthened the `rtl_frontend_generated_contract_gate` so the curated `rtl_frontend` manifest is now checked against both the generated parser and the handwritten `rtl_frontend::parse_design` baseline.
+
+### Scope of Changes
+- Added a dev-only handwritten replay test in [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) that reads [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) and checks all `120` samples against `parse_design`.
+- Added `expected_handwritten_parse_ok` manifest metadata for the `14` known generated/handwritten divergence samples so intentional bootstrap/generated differences are explicit and machine-checked.
+- Wired the handwritten replay into [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh), after the existing generated parser/AST contract probe.
+- Updated the local workflow audit, Make target description, public book, README, live tracker, roadmap/architecture notes, and continuity docs.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is proof-surface hardening, not generated grammar exhaustiveness or elaboration closure
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-17 - Publish regex 1.1.28 for braced-hex class range ordering
 ### Achievement Summary
 Published regex parser release `1.1.28` / integration contract `1.1.30` for RGX PCRE2 report `PGEN-RGX-0071`, fixing the generated-host compile-contract regression that rejected `[z-\x{100}]` as descending.

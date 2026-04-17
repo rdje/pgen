@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: regex-braced-hex-class-range-ordering)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-handwritten-contract-replay)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Strengthened the `rtl_frontend` generated contract gate with handwritten baseline replay:
+  - changed:
+    - [rtl_frontend/Cargo.toml](rtl_frontend/Cargo.toml)
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [rust/Makefile](rust/Makefile)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - implementation:
+    - added dev-only `serde` / `serde_json` to the handwritten `rtl_frontend` crate
+    - added `generated_contract_manifest_matches_handwritten_parse_surface`
+    - the test reads the same `120`-sample generated contract manifest and checks it against `parse_design`
+    - known generated/handwritten divergences are explicit via `expected_handwritten_parse_ok`
+  - discovered/proven:
+    - initial replay exposed `14` honest divergences
+    - those divergences are now manifest metadata rather than narrative handoff
+  - validation:
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this makes the handwritten provenance executable, but does not close generated grammar exhaustiveness or elaboration parity
 - Published regex parser release `1.1.28` / integration contract `1.1.30` for RGX report `PGEN-RGX-0071`:
   - changed:
     - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)

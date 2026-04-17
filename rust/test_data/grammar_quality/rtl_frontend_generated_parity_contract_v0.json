@@ -67,6 +67,7 @@
     {
       "label": "always_ff_rich_nonblocking_assignment_targets",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "rtl_frontend_file",
@@ -391,6 +392,7 @@
     {
       "label": "always_ff_scalar_blocking_assignment_rejected",
       "expected_parse_ok": false,
+      "expected_handwritten_parse_ok": true,
       "require_ast_json": false,
       "sample": "module top (\n    input logic clk,\n    output logic q\n);\nalways_ff @(posedge clk) begin\n    q = 1;\nend\nendmodule\n"
     },
@@ -3295,6 +3297,7 @@
     {
       "label": "generate_if_with_dataflow_and_named_instantiation",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -3822,6 +3825,7 @@
     {
       "label": "procedural_and_dataflow_ternary_binary_exprs",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -3896,6 +3900,7 @@
     {
       "label": "rich_assignment_targets_ternary_exprs",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -3988,6 +3993,7 @@
     {
       "label": "procedural_concatenated_assignment_target_ternary_exprs",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -4077,6 +4083,7 @@
     {
       "label": "continuous_ranged_member_assignment_target_ternary_exprs",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -4832,6 +4839,7 @@
     {
       "label": "ordered_parameter_override_ternary_binary_expr",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -4962,6 +4970,7 @@
     {
       "label": "ordered_port_actuals_ternary_binary_expr",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -5018,6 +5027,7 @@
     {
       "label": "named_parameter_override_repeat_expr",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -5074,6 +5084,7 @@
     {
       "label": "named_parameter_override_ternary_binary_expr",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -5320,6 +5331,7 @@
     {
       "label": "named_port_actuals_ternary_binary_expr",
       "expected_parse_ok": true,
+      "expected_handwritten_parse_ok": false,
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
@@ -5474,12 +5486,14 @@
     {
       "label": "mixed_named_ordered_port_connections",
       "expected_parse_ok": false,
+      "expected_handwritten_parse_ok": true,
       "require_ast_json": false,
       "sample": "module child (\n    input logic a,\n    input logic b,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    input logic b,\n    output logic y\n);\nchild u_child (.a(a), b, .y(y));\nendmodule\n"
     },
     {
       "label": "mixed_ordered_named_parameter_overrides",
       "expected_parse_ok": false,
+      "expected_handwritten_parse_ok": true,
       "require_ast_json": false,
       "sample": "module child #(\n    parameter WIDTH = 1,\n    parameter LANES = 2\n) (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    output logic y\n);\nchild #(8, .LANES(2)) u_child (a, y);\nendmodule\n"
     },

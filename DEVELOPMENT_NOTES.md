@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend generated contract gains handwritten replay proof
+### Context
+The `rtl_frontend` generated contract manifest already documented provenance from local handwritten `rtl_frontend::parse_design` replay, but the maintained gate only executed the generated parser probe. That left the baseline provenance useful but not machine-enforced.
+
+### Decision
+- Keep [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) as the single curated sample manifest.
+- Add a dev-only replay test in the sibling handwritten crate instead of making the main `pgen` crate depend on the handwritten crate.
+- Use optional `expected_handwritten_parse_ok` metadata only where generated-parser expectations intentionally differ from the handwritten parser's parse surface.
+- Treat those differences as explicit, testable evidence rather than forcing generated grammar parity to mean "identical to the older bootstrap parser."
+
+### What Was Changed
+- [rtl_frontend/Cargo.toml](rtl_frontend/Cargo.toml) now has test-only `serde` / `serde_json` dependencies.
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) now has `generated_contract_manifest_matches_handwritten_parse_surface`, which:
+  - reads the generated contract manifest from the repository,
+  - checks all `120` samples against `parse_design`,
+  - defaults handwritten expectation to `expected_parse_ok`,
+  - honors explicit `expected_handwritten_parse_ok` only for known bootstrap/generated divergences,
+  - fails future unannotated drift with a label-level mismatch list.
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) now marks `14` known handwritten/generated divergences explicitly.
+- [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh) now runs both:
+  - generated parser/AST contract probe
+  - handwritten manifest replay test
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now audits that this two-sided gate surface remains wired.
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This is stronger provenance/parity proof for the curated contract, not closure of generated grammar exhaustiveness, semantic elaboration parity, Liberty/SDC parser work, or the broader Phase S parser-stack MVP.
+
 ## 2026-04-17 - regex 1.1.28 braced-hex class range endpoint ordering
 ### Context
 RGX filed `PGEN-RGX-0071` after PCRE2 conformance replay showed a newly introduced PGEN `1.1.27` regression: `[z-\x{100}]` was rejected as a descending character-class range even though PCRE2 accepts it and the endpoints are ordered as `0x7A < 0x100`.

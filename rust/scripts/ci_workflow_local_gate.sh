@@ -798,6 +798,8 @@ audit_rtl_frontend_generated_contract_surface() {
   assert_tracked "generated/rtl_frontend.json"
   assert_tracked "generated/rtl_frontend_parser.rs"
   assert_tracked "grammars/rtl_frontend.ebnf"
+  assert_tracked "rtl_frontend/Cargo.toml"
+  assert_tracked "rtl_frontend/src/lib.rs"
   assert_tracked "rust/src/bin/rtl_frontend_generated_contract_probe.rs"
   assert_tracked "rust/src/parser_registry.rs"
   assert_tracked "rust/scripts/rtl_frontend_generated_contract_gate.sh"
@@ -837,8 +839,20 @@ audit_rtl_frontend_generated_contract_surface() {
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
     '"expected_rule_texts"'
   assert_file_contains \
+    "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
+    '"expected_handwritten_parse_ok"'
+  assert_file_contains \
     "rust/scripts/rtl_frontend_generated_contract_gate.sh" \
     'cargo run --features generated_parsers --bin rtl_frontend_generated_contract_probe'
+  assert_file_contains \
+    "rust/scripts/rtl_frontend_generated_contract_gate.sh" \
+    'cargo test --manifest-path ../rtl_frontend/Cargo.toml'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
+    'fn generated_contract_manifest_matches_handwritten_parse_surface()'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
+    '../rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json'
   assert_file_contains \
     ".github/workflows/rtl-frontend-generated-contract-gate.yml" \
     'make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate'
@@ -847,7 +861,7 @@ audit_rtl_frontend_generated_contract_surface() {
     'path: rust/target/rtl_frontend_generated_contract_gate'
   assert_file_contains \
     "rust/Makefile" \
-    'rtl_frontend_generated_contract_gate - Validate curated generated rtl_frontend parseability/AST contract samples'
+    'rtl_frontend_generated_contract_gate - Validate curated rtl_frontend generated and handwritten contract samples'
   assert_file_contains \
     "rust/Makefile" \
     'cd $(RUST_DIR) && ./scripts/rtl_frontend_generated_contract_gate.sh'

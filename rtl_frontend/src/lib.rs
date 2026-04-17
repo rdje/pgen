@@ -4068,7 +4068,89 @@ mod tests {
         ParameterOverride, PortActual, PortConnection, ProceduralKind, Statement, ValueExpr,
         parse_design, parse_module,
     };
+    use serde::Deserialize;
     use std::collections::HashMap;
+    use std::fs;
+    use std::path::PathBuf;
+
+    #[derive(Debug, Deserialize)]
+    struct GeneratedContractManifest {
+        contract_version: String,
+        grammar_name: String,
+        samples: Vec<GeneratedContractSample>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct GeneratedContractSample {
+        label: String,
+        expected_parse_ok: bool,
+        #[serde(default)]
+        expected_handwritten_parse_ok: Option<bool>,
+        sample: String,
+    }
+
+    fn load_generated_contract_manifest() -> GeneratedContractManifest {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+            "../rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json",
+        );
+        let raw = fs::read_to_string(&path)
+            .unwrap_or_else(|err| panic!("failed to read {}: {err}", path.display()));
+        serde_json::from_str(&raw)
+            .unwrap_or_else(|err| panic!("failed to parse {}: {err}", path.display()))
+    }
+
+    #[test]
+    fn generated_contract_manifest_matches_handwritten_parse_surface() {
+        let manifest = load_generated_contract_manifest();
+        assert_eq!(manifest.contract_version, "0.1.0");
+        assert_eq!(manifest.grammar_name, "rtl_frontend");
+        assert!(
+            !manifest.samples.is_empty(),
+            "generated contract manifest must contain samples"
+        );
+
+        let mut expected_accepts = 0usize;
+        let mut expected_rejects = 0usize;
+        let mut explicit_handwritten_divergences = 0usize;
+        let mut mismatches = Vec::new();
+        for sample in &manifest.samples {
+            let handwritten_ok = parse_design(&sample.sample).is_ok();
+            let expected_handwritten_ok = sample
+                .expected_handwritten_parse_ok
+                .unwrap_or(sample.expected_parse_ok);
+            if sample.expected_parse_ok {
+                expected_accepts += 1;
+            } else {
+                expected_rejects += 1;
+            }
+            if expected_handwritten_ok != sample.expected_parse_ok {
+                explicit_handwritten_divergences += 1;
+            }
+            if handwritten_ok != expected_handwritten_ok {
+                mismatches.push(format!(
+                    "{}: expected {}, handwritten parse returned {}",
+                    sample.label, expected_handwritten_ok, handwritten_ok
+                ));
+            }
+        }
+
+        assert!(
+            !manifest.samples.is_empty() && expected_accepts > 0 && expected_rejects > 0,
+            "generated contract manifest should retain both positive and negative replay samples"
+        );
+        assert!(
+            mismatches.is_empty(),
+            "handwritten rtl_frontend replay drifted from generated contract manifest over {} samples ({} expected accept, {} expected reject):\n{}",
+            manifest.samples.len(),
+            expected_accepts,
+            expected_rejects,
+            mismatches.join("\n")
+        );
+        assert!(
+            explicit_handwritten_divergences > 0,
+            "generated contract manifest should explicitly preserve known handwritten/generated divergence annotations"
+        );
+    }
 
     #[test]
     fn parses_module_shape_and_evaluates_constants() {
