@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-repeat-actual-context-proof)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-parameter-override-context-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for parameter-override retained context:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained samples:
+    - `ordered_parameter_override_ternary_binary_expr`
+    - `named_parameter_override_repeat_expr`
+    - `named_parameter_override_ternary_binary_expr`
+  - proof tightening:
+    - subset-locks child/top parameter declaration context around ordered and named parameter override expression lanes
+    - subset-locks retained port-list and packed-range context around ternary, binary, and repeat override expressions
+    - preserves existing exact retained proof for parameter overrides, module instantiations, port connections, ranged references, repetition expressions, and ternary/binary expression spans
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not parameter evaluation, override typing, width analysis, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened the curated `rtl_frontend` generated contract for repeat-concat actual retained context:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

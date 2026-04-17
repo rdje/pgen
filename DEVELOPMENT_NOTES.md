@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend parameter-override retained-context tightening
+### Context
+The generated contract already proved parameter-override expression parsing for:
+- `ordered_parameter_override_ternary_binary_expr`
+- `named_parameter_override_repeat_expr`
+- `named_parameter_override_ternary_binary_expr`
+
+Those samples exact-locked the salient `parameter_override` vectors plus module instantiation, port connection, ranged-reference, repetition, and ternary/binary expression evidence. The remaining local proof gap was the surrounding declaration context: child/top parameter declarations, port shells, and packed ranges.
+
+### Decision
+- Tighten the existing parameter-override expression samples rather than add new fixtures.
+- Use `required_rule_texts` for recurring declaration/range context because child and top modules can produce repeated `port_list` and `packed_range` vectors.
+- Preserve existing exact locks for `parameter_override`, `module_instantiation`, and the expression-specific rules.
+- Keep parameter evaluation, override typing, width analysis, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added parameter/port/range retained-context proof to `ordered_parameter_override_ternary_binary_expr`
+  - added parameter/port/range retained-context proof to `named_parameter_override_repeat_expr`
+  - added parameter/port/range retained-context proof to `named_parameter_override_ternary_binary_expr`
+  - preserved existing exact retained proof for ordered/named overrides, module instantiations, port connections, ranged signal references, repetition expressions, and ternary/binary expression spans
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend repeat-concat actual retained-context tightening
 ### Context
 The generated contract already proved the core repeat-concatenation actual text for ordered and named instance lanes:

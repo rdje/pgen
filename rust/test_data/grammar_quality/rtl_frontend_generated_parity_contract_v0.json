@@ -4493,6 +4493,9 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "packed_range",
         "module_instantiation",
         "parameter_override",
         "conditional_expr",
@@ -4506,6 +4509,17 @@
         "generate_region"
       ],
       "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter MASK = 0,\n    parameter LANES = 1",
+          "parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2,\n    parameter SEL = 1"
+        ],
+        "port_list": [
+          "input logic [7:0] a,\n    output logic [15:0] y"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[15:0]"
+        ],
         "conditional_expr": [
           "SEL ? (a[HI:LO] + LANES) : (LANES << 1)",
           "(LANES + 1) * 2"
@@ -4665,6 +4679,9 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "packed_range",
         "module_instantiation",
         "parameter_override",
         "port_connection",
@@ -4675,6 +4692,19 @@
         "procedural_block",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter MASK = 0,\n    parameter LANES = 1",
+          "parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2"
+        ],
+        "port_list": [
+          "input logic [7:0] a,\n    output logic [15:0] y"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[15:0]"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child #(\n    .MASK({2{a[HI:LO], LANES}}),\n    .LANES(LANES)\n) u_child (\n    .a(a),\n    .y(y)\n);"
@@ -4705,6 +4735,9 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "packed_range",
         "module_instantiation",
         "parameter_override",
         "conditional_expr",
@@ -4718,6 +4751,17 @@
         "generate_region"
       ],
       "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter MASK = 0,\n    parameter LANES = 1",
+          "parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2,\n    parameter SEL = 1"
+        ],
+        "port_list": [
+          "input logic [7:0] a,\n    output logic [15:0] y"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[15:0]"
+        ],
         "conditional_expr": [
           "SEL ? (a[HI:LO] + LANES) : (LANES << 1)",
           "(LANES + 1) * 2"

@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend parameter-override context proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract parameter-override expression samples so ordered and named override lanes now prove retained parameter, port, and packed-range context around already locked ternary, binary, and repeat override expressions.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `ordered_parameter_override_ternary_binary_expr`
+  - strengthened `named_parameter_override_repeat_expr`
+  - strengthened `named_parameter_override_ternary_binary_expr`
+  - now subset-locks child/top parameter declaration context such as `parameter MASK = 0,\n    parameter LANES = 1`, `parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2`, and the `SEL`-bearing variant
+  - now subset-locks retained port shells and packed ranges around those override samples, including `input logic [7:0] a,\n    output logic [15:0] y`, `[7:0]`, and `[15:0]`
+  - preserves the existing exact retained proof for ordered/named `parameter_override`, module instantiation, port connections, ranged signal references, repetition expressions, and ternary/binary expression spans
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not parameter evaluation, override typing, width analysis, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend repeat-actual context proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract repeat-concatenation actual samples so ordered and named actual lanes now prove retained parameter, port, net, packed-range, unpacked-dimension, and struct-field context around the already locked repeat-concat and ranged member actual text.
