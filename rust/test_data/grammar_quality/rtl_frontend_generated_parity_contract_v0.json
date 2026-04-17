@@ -3280,6 +3280,21 @@
         ],
         "parameter_declaration_head": [
           "parameter LIMIT = 5"
+        ],
+        "parameter_declaration_group": [
+          "parameter LIMIT = 5"
+        ],
+        "parameter_declaration_sequence": [
+          "parameter LIMIT = 5"
+        ],
+        "kw_generate": [
+          "generate"
+        ],
+        "kw_for": [
+          "for"
+        ],
+        "kw_genvar": [
+          "genvar"
         ]
       },
       "required_rule_texts": {

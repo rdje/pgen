@@ -3467,6 +3467,10 @@ Why `rtl_frontend` exists:
     - `packed_union_width_mismatch_parse_surface` and `builtin_integral_packed_union_width_mismatch_parse_surface` now exact-lock full module declarations, simple output-port shells, inline union bodies, datatype/range or builtin keyword spans, and final net declarations,
     - this keeps semantic packed-union width evaluation outside the generated-parser proof claim while bringing the inline and builtin mismatch lanes up to the typedef-backed mismatch lane's retained-text standard,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic packed-union width evaluation or elaboration closure.
+  - Progress (2026-04-17): tightened symbolic generate-for keyword retained-text proof:
+    - `generate_for_symbolic_limit_nonunit_stride` now exact-locks retained `generate`, `for`, and `genvar` keyword spans plus `parameter LIMIT = 5` as both `parameter_declaration_sequence` and `parameter_declaration_group`,
+    - this complements the existing retained expression proof for `i < LIMIT` and `i + 2`,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic generate-for unrolling, parameter evaluation, or elaboration closure.
   - Progress (2026-04-17): tightened generate/dataflow context retained-text proof:
     - `generate_if_with_dataflow_and_named_instantiation`, `generate_if_else_with_dataflow`, and `generate_if_else_with_local_net_declarations` now prove retained context around already locked generate structures,
     - salient retained text now includes `logic [7:0] mid;`, `logic mid;`, `[TOTAL-1:0]`, `parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2`, `output logic y`, and the ternary dataflow expression `en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]}`,

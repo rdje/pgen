@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend symbolic generate-for keyword proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract symbolic non-unit `generate for` sample so it now exact-locks the retained generate/for/genvar keyword text plus the parameter declaration wrapper around the already proven symbolic loop expressions.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `generate_for_symbolic_limit_nonunit_stride`
+  - now exact-locks `kw_generate`, `kw_for`, and `kw_genvar` retained text as `generate`, `for`, and `genvar`
+  - now exact-locks `parameter_declaration_sequence` and `parameter_declaration_group` retained text for `parameter LIMIT = 5`, complementing the existing `parameter_declaration_head` lock
+  - keeps the existing retained expression proof for `i < LIMIT` and `i + 2`
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic generate-for unrolling, parameter evaluation, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend generate dataflow context proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract generate/dataflow samples so they now prove retained declaration, port, packed-range, parameter-sequence, and ternary-expression context around the already locked generate structures.
