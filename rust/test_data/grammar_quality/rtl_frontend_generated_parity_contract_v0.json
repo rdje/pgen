@@ -315,6 +315,7 @@
         "struct_type",
         "struct_union_field",
         "net_declaration",
+        "packed_range",
         "unpacked_dimension",
         "kw_always_comb",
         "procedural_block",
@@ -346,6 +347,30 @@
         ],
         "procedural_block": [
           "always_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;\nend"
+        ]
+      },
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter BIT = 2"
+        ],
+        "port_list": [
+          "input logic d"
+        ],
+        "struct_type": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
+        ],
+        "packed_range": [
+          "[7:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
         ]
       },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;\nend\nendmodule\n"

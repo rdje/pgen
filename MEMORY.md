@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-always-ff-context-proof)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-always-comb-target-context-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,29 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for `always_comb` struct-member concatenated-target retained context:
+  - changed:
+    - [README.md](README.md)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained sample:
+    - `always_comb_struct_member_concatenation_target`
+  - proof tightening:
+    - subset-locks retained parameter, port, struct type/body, struct field, net declaration, packed-range, and unpacked-dimension context around the isolated `always_comb` struct-member concatenated-target lane
+    - preserves existing exact retained proof for `always_comb`, procedural-block text, assignment operator text, and concatenated/member assignment-target text
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not procedural semantic validation, member legality, parameter evaluation, width analysis, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened the curated `rtl_frontend` generated contract for `always_ff` retained context:
   - changed:
     - [README.md](README.md)

@@ -3528,6 +3528,10 @@ Why `rtl_frontend` exists:
     - `always_ff_rich_nonblocking_assignment_targets`, `always_ff_struct_member_bitselect_nonblocking_target`, `always_ff_struct_member_concatenation_value`, and `always_ff_unknown_event_identifier_parse_surface` now prove richer retained context around `always_ff` procedural/event samples,
     - salient retained text now includes parameter declaration sequences, port lists, inline `struct packed { ... }` bodies, `logic [7:0] data;`, `logic valid;`, `struct packed { ... } cfgs [0:1];`, `[7:0]`, `[0:1]`, and `clk_missing`, while existing exact event-control, procedural-block, assignment-target, nonblocking-operator, concatenation, ranged-reference, and expression locks stay in place,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not event identifier resolution, procedural semantic validation, member legality, parameter evaluation, width analysis, or elaboration closure.
+  - Progress (2026-04-17): tightened isolated `always_comb` struct-member target retained-context proof:
+    - `always_comb_struct_member_concatenation_target` now proves richer retained context around its concatenated member assignment target,
+    - salient retained text now includes `parameter IDX = 1,\n    parameter BIT = 2`, `input logic d`, the inline `struct packed { ... }` body, `logic [7:0] data;`, `logic valid;`, `struct packed { ... } cfgs [0:1];`, `[7:0]`, and `[0:1]`, while existing exact `always_comb`, procedural-block, assignment-operator, and assignment-target locks stay in place,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not procedural semantic validation, member legality, parameter evaluation, width analysis, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

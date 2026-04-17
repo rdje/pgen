@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend always_comb target retained-context tightening
+### Context
+The generated contract already proved the core `always_comb_struct_member_concatenation_target` syntax:
+- retained `always_comb`
+- retained procedural block text
+- retained `=` assignment operator
+- retained concatenated assignment target text plus member target elements
+
+The remaining local proof gap was the surrounding declaration context that makes the member-path target meaningful: parameters, port shell, inline struct body, struct fields, net declaration, packed range, and unpacked dimension.
+
+### Decision
+- Tighten the existing `always_comb_struct_member_concatenation_target` sample rather than add another fixture.
+- Use `required_rule_texts` for surrounding context and keep the existing exact `expected_rule_texts` for the procedural/action core.
+- Keep procedural semantic validation, member legality, parameter evaluation, width analysis, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `packed_range` to required rule presence for `always_comb_struct_member_concatenation_target`
+  - added parameter/port/struct/net/range/dimension retained-context proof to that sample
+  - preserved exact retained proof for `always_comb`, procedural-block text, assignment operator text, and concatenated/member assignment-target text
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend always_ff retained-context tightening
 ### Context
 The generated contract already proved core `always_ff` procedural/event syntax for:

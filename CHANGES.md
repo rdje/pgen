@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend always_comb target context proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract `always_comb` struct-member concatenated-target sample so it now proves retained parameter, port, struct-field, net-declaration, packed-range, and unpacked-dimension context around the already locked procedural block, assignment target, assignment operator, and `always_comb` keyword spans.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_comb_struct_member_concatenation_target`
+  - now requires `packed_range` evidence for the sample
+  - now subset-locks retained context such as `parameter IDX = 1,\n    parameter BIT = 2`, `input logic d`, `struct packed { ... } cfgs [0:1];`, `logic [7:0] data;`, `logic valid;`, `[7:0]`, and `[0:1]`
+  - preserves existing exact retained proof for `always_comb`, the procedural block, assignment operator, and concatenated/member assignment targets
+- Updated [README.md](README.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), and maintained reference/continuity docs so the public and live documentation surfaces reflect this proof tightening.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not procedural semantic validation, member legality, parameter evaluation, width analysis, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend always_ff context proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract `always_ff` samples so rich and isolated member-path procedural lanes now prove retained parameter, port, struct-field, net-declaration, packed-range, and unpacked-dimension context around already locked event-control, procedural-block, assignment-target, nonblocking-operator, and expression spans.
