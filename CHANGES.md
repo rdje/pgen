@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend repeat-actual context proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract repeat-concatenation actual samples so ordered and named actual lanes now prove retained parameter, port, net, packed-range, unpacked-dimension, and struct-field context around the already locked repeat-concat and ranged member actual text.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `ordered_parameter_and_port_actual_repetition`
+  - strengthened `ordered_actuals_repeat_concat_member_ranges`
+  - strengthened `named_port_actuals_repeat_member_ranges`
+  - now subset-locks parameter declaration context such as `parameter WIDTH = 1,\n    parameter LANES = 2` and `parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0`
+  - now subset-locks retained port, net, packed-range, unpacked-dimension, and struct-field context around repeat-concat actuals, including `logic [7:0] bus;`, `struct packed { ... } cfgs [0:1];`, `logic [15:0] data;`, `logic [7:0] tag;`, `[15:0]`, `[7:0]`, `[31:0]`, and `[0:1]`
+  - preserves the existing exact retained proof for `child #(8, 2) u_child (bus[3], {2{a}});`, ordered repeat member-range actuals, named repeat member-range actuals, port connections, ranged signal references, and repetition expressions
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not parameter evaluation, actual typing, struct-member legality, width analysis, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-17 - Publish regex 1.1.27 for RGX class and quote edge cases
 ### Achievement Summary
 Published regex parser release `1.1.27` / integration contract `1.1.29` for RGX PCRE2 reports `PGEN-RGX-0067` through `PGEN-RGX-0070`, tightening the PCRE2-derived `regex.ebnf` syntax and generated-host compile contract around class `\N`, quoted class range endpoints, nonliteral class-range endpoints, and literal backslashes inside `\Q...\E`.

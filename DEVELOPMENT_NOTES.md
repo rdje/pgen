@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend repeat-concat actual retained-context tightening
+### Context
+The generated contract already proved the core repeat-concatenation actual text for ordered and named instance lanes:
+- `ordered_parameter_and_port_actual_repetition`
+- `ordered_actuals_repeat_concat_member_ranges`
+- `named_port_actuals_repeat_member_ranges`
+
+Those samples exact-locked the relevant module instantiation, instance item, port connection, repetition expression, and ranged signal reference spans. The remaining local proof gap was the surrounding declaration context that makes those actuals meaningful: parameter declarations, port shells, net declarations, packed ranges, unpacked dimensions, and struct fields.
+
+### Decision
+- Tighten the existing repeat-concat actual samples rather than add duplicate fixtures.
+- Use `required_rule_texts` for context spans because these rules can recur in child/top modules and in nested expressions; the goal is to prove salient retained context without freezing every incidental vector element.
+- Keep the exact `expected_rule_texts` already present for the actual-expression and instantiation surfaces.
+- Keep parameter evaluation, actual typing, struct-member legality, width analysis, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added parameter/port/net/packed-range retained-context proof to `ordered_parameter_and_port_actual_repetition`
+  - added parameter/port/net/struct-field/packed-range/unpacked-dimension retained-context proof to `ordered_actuals_repeat_concat_member_ranges`
+  - added the same retained-context proof to `named_port_actuals_repeat_member_ranges`
+  - preserved the existing exact retained proof for ordered/named repeat-concat actuals, ranged member references, repetition expressions, and port connections
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - regex 1.1.27 PCRE2 class and quote maintenance
 ### Context
 RGX filed four additional PCRE2 conformance reports after the previous regex handoff:

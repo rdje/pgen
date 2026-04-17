@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: regex-1.1.27-rgx-0067-0070)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-repeat-actual-context-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for repeat-concat actual retained context:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained samples:
+    - `ordered_parameter_and_port_actual_repetition`
+    - `ordered_actuals_repeat_concat_member_ranges`
+    - `named_port_actuals_repeat_member_ranges`
+  - proof tightening:
+    - subset-locks parameter declaration context around ordered and named repeat actual lanes
+    - subset-locks port-list, net-declaration, packed-range, unpacked-dimension, and struct-field retained text around repeat-concat actuals
+    - preserves existing exact retained proof for repeat expressions, ranged member references, ordered/named port connections, instance items, and module instantiations
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not parameter evaluation, actual typing, struct-member legality, width analysis, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Published regex parser release `1.1.27` / integration contract `1.1.29` for RGX reports `PGEN-RGX-0067` through `PGEN-RGX-0070`:
   - changed:
     - [grammars/regex.ebnf](grammars/regex.ebnf)

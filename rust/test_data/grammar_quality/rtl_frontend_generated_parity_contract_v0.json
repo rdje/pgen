@@ -4436,6 +4436,10 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "net_declaration",
+        "packed_range",
         "module_instantiation",
         "parameter_override",
         "port_connection",
@@ -4445,6 +4449,23 @@
         "procedural_block",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter WIDTH = 1,\n    parameter LANES = 2"
+        ],
+        "port_list": [
+          "input logic [WIDTH-1:0] a,\n    output logic [15:0] y",
+          "input logic [7:0] a,\n    output logic [15:0] y"
+        ],
+        "net_declaration": [
+          "logic [7:0] bus;"
+        ],
+        "packed_range": [
+          "[WIDTH-1:0]",
+          "[15:0]",
+          "[7:0]"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child #(8, 2) u_child (bus[3], {2{a}});"
@@ -4521,6 +4542,12 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "net_declaration",
+        "struct_union_field",
+        "packed_range",
+        "unpacked_dimension",
         "module_instantiation",
         "port_connection",
         "repetition_expr",
@@ -4530,6 +4557,30 @@
         "parameter_override",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0"
+        ],
+        "port_list": [
+          "input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y",
+          "input logic [7:0] d,\n    output logic [31:0] y"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];"
+        ],
+        "struct_union_field": [
+          "logic [15:0] data;",
+          "logic [7:0] tag;"
+        ],
+        "packed_range": [
+          "[15:0]",
+          "[7:0]",
+          "[31:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child u_child (\n    {2{cfgs[IDX].data[HI:LO], d}},\n    cfgs[0].tag[HI:LO],\n    y\n);"
@@ -4819,6 +4870,12 @@
       "require_ast_json": true,
       "required_rule_names": [
         "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "net_declaration",
+        "struct_union_field",
+        "packed_range",
+        "unpacked_dimension",
         "module_instantiation",
         "port_connection",
         "repetition_expr",
@@ -4828,6 +4885,30 @@
         "parameter_override",
         "generate_region"
       ],
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0"
+        ],
+        "port_list": [
+          "input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y",
+          "input logic [7:0] d,\n    output logic [31:0] y"
+        ],
+        "net_declaration": [
+          "struct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];"
+        ],
+        "struct_union_field": [
+          "logic [15:0] data;",
+          "logic [7:0] tag;"
+        ],
+        "packed_range": [
+          "[15:0]",
+          "[7:0]",
+          "[31:0]"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ]
+      },
       "expected_rule_texts": {
         "module_instantiation": [
           "child u_child (\n    .a({2{cfgs[IDX].data[HI:LO], d}}),\n    .b(cfgs[0].tag[HI:LO]),\n    .y(y)\n);"
