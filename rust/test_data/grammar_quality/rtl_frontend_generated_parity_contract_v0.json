@@ -392,7 +392,6 @@
     {
       "label": "always_ff_scalar_blocking_assignment_rejected",
       "expected_parse_ok": false,
-      "expected_handwritten_parse_ok": true,
       "require_ast_json": false,
       "sample": "module top (\n    input logic clk,\n    output logic q\n);\nalways_ff @(posedge clk) begin\n    q = 1;\nend\nendmodule\n"
     },

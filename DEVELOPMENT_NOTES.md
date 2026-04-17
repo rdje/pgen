@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend handwritten parser rejects always_ff blocking assignments at parse time
+### Context
+After the mixed-list parse-boundary alignment, the shared generated/handwritten manifest still carried `12` explicit divergences. The smallest remaining negative-sample mismatch was `always_ff_scalar_blocking_assignment_rejected`: the generated grammar rejected blocking assignment syntax inside `always_ff`, while the handwritten parser accepted it and deferred the same policy failure to elaboration.
+
+### Decision
+- Move the `always_ff` blocking-assignment policy into the handwritten parse boundary for this synthesizable subset.
+- Keep the existing diagnostic wording so downstream tests and users see the same reason even though the failure now happens earlier.
+- Leave valid nonblocking `always_ff` samples unchanged.
+
+### What Was Changed
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added `first_blocking_assignment_target` to walk statement blocks and if/else branches
+  - `parse_procedural_block` now rejects an `always_ff` statement tree if that helper finds a blocking assignment target
+  - converted the previous elaboration rejection test into `parse_design_rejects_blocking_assignments_in_always_ff_blocks`
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - removed `expected_handwritten_parse_ok: true` from `always_ff_scalar_blocking_assignment_rejected`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml parse_design_rejects_blocking_assignments_in_always_ff_blocks --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- The curated manifest still has `120` samples.
+- The explicit generated/handwritten divergence count is now `11`, down from `12`.
+- The remaining divergence set is generated-positive / handwritten-negative and should be reduced by widening the handwritten parser or generated/handwritten shared proof only when actual parse-surface parity improves.
+
 ## 2026-04-17 - rtl_frontend handwritten parser rejects mixed instance lists at parse time
 ### Context
 The handwritten replay stage exposed `14` explicit generated/handwritten parse-surface divergences. Two of those were not true semantic-boundary differences: the generated grammar rejected mixed positional/named instance lists, and the handwritten elaborator already rejected them later, but `parse_design` still accepted them into the AST.
@@ -6,7 +36,7 @@ The handwritten replay stage exposed `14` explicit generated/handwritten parse-s
 ### Decision
 - Treat mixed positional/named parameter overrides and port connections as syntax-level rejects in the handwritten baseline too.
 - Keep wildcard port connections in the named-style family, matching the existing handwritten elaboration policy.
-- Remove only the two divergence annotations whose behavior now agrees; leave the remaining `12` explicit `expected_handwritten_parse_ok` annotations intact because they still document real generated/handwritten parse-surface differences.
+- Remove only the two divergence annotations whose behavior now agreed at that moment; a later same-day `always_ff` blocking-assignment parse-boundary slice reduced the active explicit divergence count again to `11`.
 
 ### What Was Changed
 - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
@@ -27,7 +57,7 @@ The handwritten replay stage exposed `14` explicit generated/handwritten parse-s
 ### Continuity Notes
 - `rtl_frontend` remains `In Progress`.
 - The curated manifest still has `120` samples.
-- The explicit generated/handwritten divergence count is now `12`, down from `14`.
+- At this step, the explicit generated/handwritten divergence count became `12`, down from `14`; the later same-day `always_ff` blocking-assignment parse-boundary slice reduced it again to `11`.
 - The remaining divergence set is still meaningful and should be reduced only when actual parse-boundary parity improves.
 
 ## 2026-04-17 - rtl_frontend generated contract gains handwritten replay proof
@@ -48,7 +78,7 @@ The `rtl_frontend` generated contract manifest already documented provenance fro
   - defaults handwritten expectation to `expected_parse_ok`,
   - honors explicit `expected_handwritten_parse_ok` only for known bootstrap/generated divergences,
   - fails future unannotated drift with a label-level mismatch list.
-- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) initially marked `14` known handwritten/generated divergences explicitly; a later same-day mixed-list parse-boundary alignment reduced the active count to `12`.
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) initially marked `14` known handwritten/generated divergences explicitly; later same-day parse-boundary alignment reduced the active count to `11`.
 - [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh) now runs both:
   - generated parser/AST contract probe
   - handwritten manifest replay test

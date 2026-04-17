@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-mixed-list-parse-parity)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-always-ff-blocking-parse-parity)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` handwritten/generated parse-boundary parity for `always_ff` blocking assignment rejects:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - implementation:
+    - added a statement-tree helper that finds the first blocking assignment target
+    - `parse_procedural_block` now rejects blocking assignments inside `always_ff` before returning the procedural block
+    - converted the former elaboration rejection test into a parse-time rejection test while preserving diagnostic wording
+  - proof impact:
+    - removed the now-obsolete handwritten divergence override for `always_ff_scalar_blocking_assignment_rejected`
+    - the shared manifest still has `120` samples
+    - explicit generated/handwritten divergence annotations are now `11`, down from `12`
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml parse_design_rejects_blocking_assignments_in_always_ff_blocks --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused parse-boundary parity tightening, not generated grammar exhaustiveness or elaboration closure
 - Tightened `rtl_frontend` handwritten/generated parse-boundary parity for mixed instance lists:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
@@ -26,7 +53,7 @@ Use this file to resume work without replaying full chat history.
   - proof impact:
     - removed the now-obsolete handwritten divergence overrides for `mixed_named_ordered_port_connections` and `mixed_ordered_named_parameter_overrides`
     - the shared manifest still has `120` samples
-    - explicit generated/handwritten divergence annotations are now `12`, down from `14`
+    - explicit generated/handwritten divergence annotations became `12`, down from `14`; a later same-day `always_ff` blocking-assignment parity slice reduced the active count again to `11`
   - validation:
     - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
     - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`

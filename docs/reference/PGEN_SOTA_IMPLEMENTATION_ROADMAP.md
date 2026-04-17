@@ -41,6 +41,7 @@ Execution preference for this roadmap:
   - the current `rtl_frontend_generated_contract_gate` now checks both the generated parser probe and handwritten `parse_design` replay over the same `120`-sample manifest
   - known bootstrap/generated parse-surface differences must be explicit through `expected_handwritten_parse_ok` rather than left as prose-only assumptions
   - recent handwritten-baseline parity tightening moved mixed named/ordered parameter-override and port-connection rejection into `parse_design`, shrinking explicit generated/handwritten divergence annotations from `14` to `12`
+  - a follow-on handwritten-baseline parity slice moved scalar `always_ff` blocking-assignment rejection into `parse_design`, shrinking explicit generated/handwritten divergence annotations from `12` to `11`
   - this is stronger parity/provenance evidence, but the live `rtl_frontend` status remains `In Progress` until generated grammar exhaustiveness and elaboration-facing closure are proven
 - external-corpus grammar debugging should prefer systematic keyword-vs-identifier discrimination and precise branch-shape fixes over corpus-specific hacks, even when the first landed step is a narrow surgical patch.
 - if repeated keyword-vs-identifier debt keeps surfacing in a family such as SystemVerilog, promote that into one shared systematic grammar/annotation mechanism instead of accumulating ad hoc local exclusions indefinitely.

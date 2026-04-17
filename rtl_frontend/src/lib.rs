@@ -684,6 +684,29 @@ fn validate_statement(
     }
 }
 
+fn first_blocking_assignment_target(statement: &Statement) -> Option<&AssignmentTarget> {
+    match statement {
+        Statement::Block { statements, .. } => {
+            statements.iter().find_map(first_blocking_assignment_target)
+        }
+        Statement::If {
+            then_branch,
+            else_branch,
+            ..
+        } => first_blocking_assignment_target(then_branch).or_else(|| {
+            else_branch
+                .as_deref()
+                .and_then(first_blocking_assignment_target)
+        }),
+        Statement::Assignment {
+            target,
+            kind: AssignmentKind::Blocking,
+            ..
+        } => Some(target),
+        Statement::Assignment { .. } | Statement::Empty => None,
+    }
+}
+
 fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
     let mut names = HashSet::new();
 
@@ -3326,6 +3349,17 @@ impl<'a> Parser<'a> {
         };
 
         let statement = self.parse_statement()?;
+        if kind == ProceduralKind::AlwaysFf
+            && let Some(target) = first_blocking_assignment_target(&statement)
+        {
+            return Err(FrontendError::new(
+                format!(
+                    "always_ff block does not allow blocking assignment to '{}'",
+                    target.describe()
+                ),
+                0,
+            ));
+        }
         Ok(ProceduralBlock {
             kind,
             event_control,
@@ -4618,8 +4652,8 @@ mod tests {
     }
 
     #[test]
-    fn elaboration_rejects_blocking_assignments_in_always_ff_blocks() {
-        let design = parse_design(
+    fn parse_design_rejects_blocking_assignments_in_always_ff_blocks() {
+        let error = parse_design(
             r#"
             module top (
                 input logic clk,
@@ -4631,11 +4665,8 @@ mod tests {
             endmodule
             "#,
         )
-        .expect("design should parse");
+        .expect_err("parser should reject blocking assignments in always_ff");
 
-        let error = design
-            .elaborate_top("top", &HashMap::new())
-            .expect_err("elaboration should reject blocking assignments in always_ff");
         assert!(
             error
                 .message
