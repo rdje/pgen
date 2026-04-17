@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend scalar procedural context proof
+### Achievement Summary
+Tightened existing scalar `rtl_frontend` generated-contract procedural samples so they now prove retained port-shell context and selected identifier-reference evidence around already locked `always_ff`, plain `always @(*)`, and `always_latch` procedural blocks.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_ff_well_formed`
+  - strengthened `always_star_scalar_if_else_block`
+  - strengthened `always_latch_scalar_nonblocking_block`
+  - strengthened `always_latch_unknown_body_identifier_parse_surface`
+  - now subset-locks retained port shells such as `input logic clk,\n    input logic rst_n,\n    input logic d,\n    output logic q`, `input logic a,\n    output logic y`, and `input logic en,\n    input logic d,\n    output logic q`
+  - now requires selected `signal_reference` evidence for scalar event/body identifier flow where applicable, including `clk`, `rst_n`, `a`, `en`, `d`, `q`, and `y`
+  - preserves existing exact retained proof for event controls, event edges, procedural blocks, assignment operators, assignment targets, `always_ff`, `always`, `always_latch`, `@(*)`, and the syntax-only unknown latch-body identifier `missing`
+- Updated [README.md](README.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), and maintained reference/continuity docs so the public and live documentation surfaces reflect this proof tightening.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not event identifier resolution, procedural semantic validation, latch/combinational completeness analysis, signal declaration checking, dataflow typing, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend mixed procedural/dataflow context proof
 ### Achievement Summary
 Tightened existing `rtl_frontend` generated-contract mixed procedural/dataflow samples so they now prove retained declaration context around already locked `always_comb`, continuous assignment, expression, ranged/member, and assignment-target spans.

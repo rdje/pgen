@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend scalar procedural retained-context tightening
+### Context
+The generated contract already exact-locked scalar procedural cores for:
+- `always_ff_well_formed`
+- `always_star_scalar_if_else_block`
+- `always_latch_scalar_nonblocking_block`
+- `always_latch_unknown_body_identifier_parse_surface`
+
+Those samples covered event controls, event edges, procedural blocks, assignment operators, assignment targets, and keyword/event text. The remaining local proof gap was the surrounding scalar port context and high-signal identifier-reference evidence, especially for the plain scalar lanes that do not carry the richer struct/range context used by neighboring samples.
+
+### Decision
+- Tighten the existing scalar procedural samples rather than add duplicate fixtures.
+- Use `required_rule_texts` for port shells and selected `signal_reference` spans while keeping exact `expected_rule_texts` for the procedural/event/action core.
+- Preserve the parser/elaboration boundary:
+  - generated parser proves retained scalar syntax, port shells, and selected identifier-reference text
+  - event identifier resolution, procedural semantic validation, latch/combinational completeness, signal declaration checking, dataflow typing, and elaboration remain outside this generated-parser proof claim
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added retained port-list proof to the scalar `always_ff`, `always @(*)`, and `always_latch` samples
+  - added selected `signal_reference` subset proof for event/body/assignment identifier flow where applicable
+  - preserved exact retained proof for event-control lists/items/edges, procedural blocks, assignment operators, assignment targets, and procedural keywords
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend mixed procedural/dataflow retained-context tightening
 ### Context
 The generated contract already proved the action core of representative mixed procedural/dataflow lanes:

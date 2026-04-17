@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-mixed-procedural-dataflow-context-proof)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-scalar-procedural-context-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the curated `rtl_frontend` generated contract for scalar procedural retained context:
+  - changed:
+    - [README.md](README.md)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - strengthened retained samples:
+    - `always_ff_well_formed`
+    - `always_star_scalar_if_else_block`
+    - `always_latch_scalar_nonblocking_block`
+    - `always_latch_unknown_body_identifier_parse_surface`
+  - proof tightening:
+    - subset-locks retained scalar port shells around `always_ff`, plain `always @(*)`, and `always_latch` samples
+    - subset-locks selected `signal_reference` evidence for scalar event/body/assignment identifier flow where applicable
+    - preserves existing exact retained proof for event controls, event edges, procedural-block text, assignment operator text, assignment target text, and procedural keyword/event text
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-contract retained-text proof tightening, not event identifier resolution, procedural semantic validation, latch/combinational completeness analysis, signal declaration checking, dataflow typing, or elaboration closure
+    - `clippy_on_rust_change` is not required because no Rust source or generated Rust artifacts changed
 - Tightened the curated `rtl_frontend` generated contract for mixed procedural/dataflow retained context:
   - changed:
     - [README.md](README.md)

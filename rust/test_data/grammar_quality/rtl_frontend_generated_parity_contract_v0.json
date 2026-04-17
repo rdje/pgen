@@ -11,6 +11,7 @@
       "required_rule_names": [
         "rtl_frontend_file",
         "module_declaration",
+        "port_list",
         "kw_always_ff",
         "event_control_list",
         "event_control_item",
@@ -20,8 +21,20 @@
         "kw_if",
         "kw_else",
         "assignment_target",
-        "always_ff_assignment_operator"
+        "always_ff_assignment_operator",
+        "signal_reference"
       ],
+      "required_rule_texts": {
+        "port_list": [
+          "input logic clk,\n    input logic rst_n,\n    input logic d,\n    output logic q"
+        ],
+        "signal_reference": [
+          "clk",
+          "rst_n",
+          "q",
+          "d"
+        ]
+      },
       "expected_rule_texts": {
         "kw_always_ff": [
           "always_ff"
@@ -541,7 +554,8 @@
         "kw_if",
         "kw_else",
         "assignment_target",
-        "assignment_operator"
+        "assignment_operator",
+        "signal_reference"
       ],
       "forbidden_rule_names": [
         "struct_type",
@@ -550,6 +564,15 @@
         "generate_region",
         "module_instantiation"
       ],
+      "required_rule_texts": {
+        "port_list": [
+          "input logic a,\n    output logic y"
+        ],
+        "signal_reference": [
+          "a",
+          "y"
+        ]
+      },
       "expected_rule_texts": {
         "always_star_event": [
           "@(*)"
@@ -656,7 +679,8 @@
         "kw_begin",
         "kw_if",
         "assignment_target",
-        "assignment_operator"
+        "assignment_operator",
+        "signal_reference"
       ],
       "forbidden_rule_names": [
         "struct_type",
@@ -665,6 +689,16 @@
         "generate_region",
         "module_instantiation"
       ],
+      "required_rule_texts": {
+        "port_list": [
+          "input logic en,\n    input logic d,\n    output logic q"
+        ],
+        "signal_reference": [
+          "en",
+          "q",
+          "d"
+        ]
+      },
       "expected_rule_texts": {
         "kw_always_latch": [
           "always_latch"
@@ -704,6 +738,11 @@
         "generate_region",
         "module_instantiation"
       ],
+      "required_rule_texts": {
+        "port_list": [
+          "input logic en,\n    output logic q"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_operator": [
           "<="
