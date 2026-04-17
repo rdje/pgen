@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend hierarchy parameter retained-text tightening
+### Context
+The generated contract already proved the core hierarchy text for scalar named-parameter override and parameterized instance-array samples: module instantiations, parameter overrides, instance items, port connections, symbolic instance-array ranges, expression evidence, and signal references were locked. The local remaining proof gap was the retained parameter declaration and packed range context that makes those hierarchy samples meaningful.
+
+### Decision
+- Tighten the existing hierarchy samples rather than add duplicate fixtures:
+  - `scalar_named_parameter_override_and_named_ports`
+  - `parameterized_instance_array_with_named_ports`
+- Use `expected_rule_texts` for stable retained vectors:
+  - `parameter_declaration_sequence`
+  - `parameter_declaration_group`
+  - `packed_range`
+- Keep broad `module_declaration` exact locks out of this slice; the valuable proof is the local parameter/range context around already locked hierarchy syntax.
+- Keep parameter evaluation, range evaluation, instance-array elaboration, port typing, and broad handwritten-baseline parity outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact retained-text proof for `parameter WIDTH = 4` and `parameter TOP_W = 8` around the scalar named-override lane
+  - added exact retained-text proof for `[WIDTH-1:0]` and `[TOP_W-1:0]` packed ranges around the scalar child/top port shell
+  - added exact retained-text proof for `parameter WIDTH = 1` and `parameter LANES = 2` as both parameter sequence and group context around the parameterized instance-array lane
+  - preserved the existing hierarchy, override, port, symbolic range, expression, and signal-reference evidence
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend unpacked-array actual parameter retained-text tightening
 ### Context
 The generated contract already proved key unpacked-array actual syntax: `unpacked_array_struct_member_actual` locked the struct fields, member actual `cfgs[IDX].data`, module instantiation, port connections, and unpacked dimension, while `unpacked_array_element_actual` locked `banks[IDX]`, its array declaration, packed/unpacked dimensions, hierarchy, and port connections. The remaining local proof gap was the parameter context that drives the indexed actuals.

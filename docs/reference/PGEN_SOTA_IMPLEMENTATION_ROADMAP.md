@@ -3467,6 +3467,10 @@ Why `rtl_frontend` exists:
     - `packed_union_width_mismatch_parse_surface` and `builtin_integral_packed_union_width_mismatch_parse_surface` now exact-lock full module declarations, simple output-port shells, inline union bodies, datatype/range or builtin keyword spans, and final net declarations,
     - this keeps semantic packed-union width evaluation outside the generated-parser proof claim while bringing the inline and builtin mismatch lanes up to the typedef-backed mismatch lane's retained-text standard,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic packed-union width evaluation or elaboration closure.
+  - Progress (2026-04-17): tightened hierarchy parameter/range retained-text proof:
+    - `scalar_named_parameter_override_and_named_ports` and `parameterized_instance_array_with_named_ports` now prove retained parameter declaration context around already locked hierarchy syntax,
+    - salient retained text now includes `parameter WIDTH = 4`, `parameter TOP_W = 8`, `parameter WIDTH = 1`, `parameter LANES = 2`, `[WIDTH-1:0]`, and `[TOP_W-1:0]` alongside existing named override, named-port connection, symbolic instance-array range, expression, and signal-reference evidence,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not parameter evaluation, range evaluation, instance-array elaboration, port typing, or broad handwritten-baseline parity closure.
   - Progress (2026-04-17): tightened unpacked-array actual parameter retained-text proof:
     - `unpacked_array_struct_member_actual` and `unpacked_array_element_actual` now prove retained parameter context around already locked array actual syntax,
     - salient retained text now includes `parameter IDX = 1` and `parameter DEPTH = 2,\n    parameter IDX = 1` alongside existing `cfgs[IDX].data`, `banks[IDX]`, hierarchy, port-connection, dimension, declaration, and struct-field evidence,

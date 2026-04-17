@@ -94,6 +94,8 @@ The module-local parameter/localparam lane now proves the retained parameter-seq
 
 The unpacked-array actual lane now carries tighter parameter context around existing array actual proofs. `unpacked_array_struct_member_actual` exact-locks `parameter IDX = 1`, and `unpacked_array_element_actual` exact-locks `parameter DEPTH = 2,\n    parameter IDX = 1` as both parameter sequence and group text, while preserving the existing `cfgs[IDX].data` and `banks[IDX]` retained actual evidence without claiming semantic array elaboration.
 
+The hierarchy parameter lane now carries tighter retained parameter and range context around existing scalar and instance-array hierarchy proofs. `scalar_named_parameter_override_and_named_ports` exact-locks `parameter WIDTH = 4`, `parameter TOP_W = 8`, and packed ranges `[WIDTH-1:0]` / `[TOP_W-1:0]`; `parameterized_instance_array_with_named_ports` exact-locks `parameter WIDTH = 1` and `parameter LANES = 2` as both parameter sequence and group text. The existing named override, named-port connection, symbolic instance-array range, expression, and signal-reference proofs stay in place without claiming parameter/range evaluation or instance-array elaboration closure.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

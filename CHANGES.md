@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend hierarchy parameter proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract hierarchy samples so scalar named-parameter override and parameterized instance-array lanes now prove retained parameter declaration context and packed range context around the already locked instantiation, override, instance-item, and port-connection text.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `scalar_named_parameter_override_and_named_ports`
+  - strengthened `parameterized_instance_array_with_named_ports`
+  - now exact-locks `parameter WIDTH = 4`, `parameter TOP_W = 8`, `parameter WIDTH = 1`, and `parameter LANES = 2` as retained parameter declaration context around hierarchy samples
+  - now exact-locks `[WIDTH-1:0]` and `[TOP_W-1:0]` packed range context for the scalar named-override lane
+  - preserves the existing retained proof for `child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));`, `child #(.WIDTH(LANES)) lane[0:LANES-1] (.a(a), .y(y));`, `.WIDTH(...)` overrides, instance items, symbolic instance-array range text, port shells, port connections, expression evidence, and signal references
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not parameter evaluation, range evaluation, instance-array elaboration, port typing, or broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend unpacked-array actual parameter proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract unpacked-array actual samples so they now prove retained parameter declaration context around the already locked array element and struct-member actual text.
