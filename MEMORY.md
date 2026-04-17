@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-scalar-procedural-context-proof)
+Last updated: 2026-04-17 (+0200, task: regex-braced-hex-class-range-ordering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,43 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Published regex parser release `1.1.28` / integration contract `1.1.30` for RGX report `PGEN-RGX-0071`:
+  - changed:
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - root cause:
+    - the generated-host class-range validator compared escaped endpoints by the escaped payload byte, so `\x{100}` was ordered as `x` instead of decoded codepoint `0x100`
+    - `ClassAtomKind::Literal` used `u8`, which was too narrow for braced-hex endpoint ordering
+  - fix:
+    - widened literal endpoint comparison to `u32`
+    - decoded valid braced hex, one/two-digit hex, braced octal, control escapes, and common simple escapes before range-order comparison
+    - kept malformed braced class escapes as literal transport so the PCRE2 `bad_escape_is_literal` oracle lane stays green
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation --lib`
+    - `parseability_probe --parse regex <RGX-PGEN-RGX-0071-artifact>/repro_input.txt --profile regex_default`
+    - `parseability_probe --parse regex /tmp/pgen-rgx-0071-descending.txt --profile regex_default` rejected `[\x{100}-z]` with the expected descending-range diagnostic
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - important continuity detail:
+    - no live parser-family label changes; `regex` remains `Done`
+    - this is a generated-host compile-contract regression fix, not a `regex.ebnf` syntax change
+    - strict source clippy passed; generated-parser clippy still reports existing non-strict generated lint debt
 - Tightened the curated `rtl_frontend` generated contract for scalar procedural retained context:
   - changed:
     - [README.md](README.md)

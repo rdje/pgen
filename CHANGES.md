@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-04-17 - Publish regex 1.1.28 for braced-hex class range ordering
+### Achievement Summary
+Published regex parser release `1.1.28` / integration contract `1.1.30` for RGX PCRE2 report `PGEN-RGX-0071`, fixing the generated-host compile-contract regression that rejected `[z-\x{100}]` as descending.
+
+### Scope of Changes
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs) so character-class range endpoint ordering compares decoded literal escape values instead of the escaped payload's leading byte.
+- Added explicit coverage for ascending wide braced-hex endpoints, descending wide braced-hex endpoints, single-byte hex endpoint ordering, and the PCRE2 `bad_escape_is_literal` oracle class that keeps malformed braced escapes literal.
+- Bumped the regex public handoff to parser release `1.1.28` / integration contract `1.1.30` in [rust/src/embedding_api.rs](rust/src/embedding_api.rs), [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json), and the contract docs.
+- Updated the public book/user-guide surface, released-parser bug ledger, local workflow audit literals, live tracker, roadmap, Rust architecture notes, and continuity docs.
+- Status impact:
+  - no live parser-family label changed
+  - `regex` remains `Done`
+  - this is compatibility maintenance over the already-closed regex family row, not a reopening of regex closure
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation --lib`
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex <RGX-PGEN-RGX-0071-artifact>/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex /tmp/pgen-rgx-0071-descending.txt --profile regex_default` rejected `[\x{100}-z]` with the expected descending-range diagnostic
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- Clippy note:
+  - strict source clippy passed; generated-parser clippy still reports existing non-strict generated lint debt and the maintained script exits successfully in non-strict mode.
+
 ## 2026-04-17 - Tighten rtl_frontend scalar procedural context proof
 ### Achievement Summary
 Tightened existing scalar `rtl_frontend` generated-contract procedural samples so they now prove retained port-shell context and selected identifier-reference evidence around already locked `always_ff`, plain `always @(*)`, and `always_latch` procedural blocks.

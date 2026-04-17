@@ -72,6 +72,14 @@ fn skip_regex_escape(bytes: &[u8], start: usize) -> usize {
         return start + 4 + close;
     }
 
+    if next == b'x' && bytes.get(start + 2).is_some_and(u8::is_ascii_hexdigit) {
+        let mut end = start + 3;
+        if bytes.get(end).is_some_and(u8::is_ascii_hexdigit) {
+            end += 1;
+        }
+        return end;
+    }
+
     if matches!(next, b'p' | b'P')
         && bytes
             .get(start + 2)
@@ -760,7 +768,7 @@ fn skip_pcre2_posix_word_boundary_alias(bytes: &[u8], start: usize) -> Option<us
 
 #[derive(Clone, Copy)]
 enum ClassAtomKind {
-    Literal(u8),
+    Literal(u32),
     NonLiteral,
     ZeroWidth,
 }
@@ -781,7 +789,7 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
     }
     if index < bytes.len() && bytes[index] == b']' {
         has_substantive_item = true;
-        previous_atom = Some(ClassAtomKind::Literal(b']'));
+        previous_atom = Some(ClassAtomKind::Literal(b']' as u32));
         index += 1;
     }
 
@@ -941,9 +949,91 @@ fn read_class_atom(
         if is_nonliteral_class_escape(bytes, index, after_escape) {
             return Ok((ClassAtomKind::NonLiteral, after_escape));
         }
-        return Ok((ClassAtomKind::Literal(next), after_escape));
+        let literal = class_escape_literal_codepoint(bytes, index, after_escape)?;
+        return Ok((ClassAtomKind::Literal(literal), after_escape));
     }
-    Ok((ClassAtomKind::Literal(bytes[index]), index + 1))
+    Ok((ClassAtomKind::Literal(bytes[index] as u32), index + 1))
+}
+
+fn class_escape_literal_codepoint(
+    bytes: &[u8],
+    index: usize,
+    after_escape: usize,
+) -> Result<u32, RegexCompileValidationError> {
+    let next = bytes.get(index + 1).copied().unwrap_or_default();
+    if next == b'x' {
+        if bytes.get(index + 2) == Some(&b'{') && after_escape > index + 4 {
+            let digits = std::str::from_utf8(&bytes[index + 3..after_escape - 1]).unwrap_or("");
+            let digits = digits.trim();
+            if !digits.is_empty() && digits.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+                return u32::from_str_radix(digits, 16).map_err(|_| {
+                    RegexCompileValidationError::new(
+                        index,
+                        "invalid braced hex escape in character class range endpoint",
+                    )
+                });
+            }
+            return Ok(next as u32);
+        }
+        let digit_end = after_escape.min(index + 4);
+        let digits = std::str::from_utf8(&bytes[index + 2..digit_end]).unwrap_or("");
+        if !digits.is_empty() && digits.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+            return u32::from_str_radix(digits, 16).map_err(|_| {
+                RegexCompileValidationError::new(
+                    index,
+                    "invalid hex escape in character class range endpoint",
+                )
+            });
+        }
+    }
+    if next == b'o' && bytes.get(index + 2) == Some(&b'{') && after_escape > index + 4 {
+        let digits = std::str::from_utf8(&bytes[index + 3..after_escape - 1]).unwrap_or("");
+        let digits = digits.trim();
+        if !digits.is_empty()
+            && digits
+                .as_bytes()
+                .iter()
+                .all(|byte| matches!(byte, b'0'..=b'7'))
+        {
+            return u32::from_str_radix(digits, 8).map_err(|_| {
+                RegexCompileValidationError::new(
+                    index,
+                    "invalid braced octal escape in character class range endpoint",
+                )
+            });
+        }
+        return Ok(next as u32);
+    }
+    if next == b'c' && after_escape == index + 3 {
+        let control = bytes.get(index + 2).copied().unwrap_or_default();
+        return Ok((control as u32) & 0x1f);
+    }
+    if next == b'0' {
+        let mut end = index + 2;
+        while end < bytes.len() && end < index + 5 && matches!(bytes[end], b'0'..=b'7') {
+            end += 1;
+        }
+        if end > index + 2 {
+            let digits = std::str::from_utf8(&bytes[index + 2..end]).unwrap_or("");
+            return u32::from_str_radix(digits, 8).map_err(|_| {
+                RegexCompileValidationError::new(
+                    index,
+                    "invalid octal escape in character class range endpoint",
+                )
+            });
+        }
+    }
+    let literal = match next {
+        b'a' => 0x07,
+        b'b' => 0x08,
+        b'e' => 0x1b,
+        b'f' => 0x0c,
+        b'n' => 0x0a,
+        b'r' => 0x0d,
+        b't' => 0x09,
+        _ => next as u32,
+    };
+    Ok(literal)
 }
 
 fn is_nonliteral_class_escape(bytes: &[u8], index: usize, after_escape: usize) -> bool {
@@ -981,7 +1071,7 @@ fn read_quoted_class_atom(bytes: &[u8], start: usize) -> (ClassAtomKind, usize) 
                 .unwrap_or(ClassAtomKind::ZeroWidth);
             return (atom, index + 2);
         }
-        first_literal.get_or_insert(bytes[index]);
+        first_literal.get_or_insert(bytes[index] as u32);
         index += 1;
     }
     let atom = first_literal
@@ -1716,6 +1806,41 @@ mod tests {
     fn allows_braced_hex_literal_class_range_endpoints() {
         validate_regex_compile_contract(r"[\x{7f}-\x{ff}]")
             .expect("braced hex escapes are literal PCRE2 class range endpoints");
+    }
+
+    #[test]
+    fn allows_wide_braced_hex_literal_class_range_endpoint() {
+        for input in [
+            r"[z-\x{100}]",
+            r"[z-\x{200}]",
+            r"[Qz-\x{200}]",
+            r"[\x{7a}-\x{100}]",
+            r"[\x7a-\x{100}]",
+        ] {
+            validate_regex_compile_contract(input).unwrap_or_else(|err| {
+                panic!("{input:?} should compare braced hex endpoints by codepoint: {err:?}")
+            });
+        }
+    }
+
+    #[test]
+    fn rejects_descending_wide_braced_hex_literal_class_range_endpoint() {
+        let error = validate_regex_compile_contract(r"[\x{100}-z]")
+            .expect_err("must reject descending braced-hex class range");
+        assert!(error.message.contains("descending"));
+    }
+
+    #[test]
+    fn rejects_descending_single_byte_hex_literal_class_range_endpoint() {
+        let error = validate_regex_compile_contract(r"[A-\x40]")
+            .expect_err("must reject descending single-byte hex class range");
+        assert!(error.message.contains("descending"));
+    }
+
+    #[test]
+    fn allows_malformed_braced_class_escapes_as_literal_transport() {
+        validate_regex_compile_contract(r"[\j\x{z}\o\gAb\g]")
+            .expect("bad_escape_is_literal oracle class keeps malformed braced escapes literal");
     }
 
     #[test]

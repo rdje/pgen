@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - regex 1.1.28 braced-hex class range endpoint ordering
+### Context
+RGX filed `PGEN-RGX-0071` after PCRE2 conformance replay showed a newly introduced PGEN `1.1.27` regression: `[z-\x{100}]` was rejected as a descending character-class range even though PCRE2 accepts it and the endpoints are ordered as `0x7A < 0x100`.
+
+The retained trace showed the generated regex parser accepted the syntax. The failure came from the generated-host compile-contract layer in [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs).
+
+### Root Cause
+- `ClassAtomKind::Literal` stored endpoint values as `u8`.
+- Escaped class atoms were treated as the byte after the backslash, so `\x{100}` compared as `x` (`0x78`) rather than decoded codepoint `0x100`.
+- The first helper draft correctly decoded braced hex but also rejected malformed braced class escapes such as `[\j\x{z}\o\gAb\g]`; the PCRE2 compile-oracle lane expects that case to remain accepted under `bad_escape_is_literal`.
+
+### Decision
+- Keep this fix in the generated-host compile-contract layer rather than changing [grammars/regex.ebnf](grammars/regex.ebnf), because syntax transport was already correct and the bug was endpoint ordering semantics.
+- Promote class endpoint literals to `u32` so decoded codepoints beyond one byte can be compared correctly.
+- Decode valid escaped literal endpoints for:
+  - braced hex `\x{...}`
+  - one/two-digit hex `\xNN`
+  - braced octal `\o{...}`
+  - control escapes `\cX`
+  - common simple escapes such as `\n`, `\r`, and `\t`
+- For malformed braced payloads, preserve literal escaped transport instead of inventing a new compile-contract rejection in option-sensitive PCRE2 oracle cases.
+
+### What Was Changed
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - widened `ClassAtomKind::Literal` from `u8` to `u32`
+  - taught `skip_regex_escape` to consume non-braced `\xNN` payloads
+  - added endpoint decoding for valid escaped literal class atoms
+  - added regression tests for `[z-\x{100}]`, `[\x{100}-z]`, `[A-\x40]`, and the malformed-braced escape oracle class
+- Updated the regex public handoff to parser release `1.1.28` / integration contract `1.1.30`:
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml regex_compile_validation --lib`
+  - `parseability_probe --parse regex <RGX-PGEN-RGX-0071-artifact>/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex /tmp/pgen-rgx-0071-descending.txt --profile regex_default` rejected `[\x{100}-z]` with the expected descending-range diagnostic
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- Clippy note:
+  - strict source clippy passed; generated-parser clippy remains non-strict and still reports existing generated lint debt.
+
 ## 2026-04-17 - rtl_frontend scalar procedural retained-context tightening
 ### Context
 The generated contract already exact-locked scalar procedural cores for:

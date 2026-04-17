@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.29",
-  "parser_release_version": "1.1.27",
+  "integration_contract_version": "1.1.30",
+  "parser_release_version": "1.1.28",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -503,6 +503,12 @@
       "forbidden_rule_names": ["simple_escape", "quantifier"]
     },
     {
+      "name": "wide_braced_hex_class_range_endpoint",
+      "input": "[z-\\x{100}]",
+      "required_rule_names": ["char_class", "class_item", "class_range", "hex_escape"],
+      "forbidden_rule_names": ["simple_escape"]
+    },
+    {
       "name": "one_digit_hex_escape",
       "input": "\\xA",
       "required_rule_names": ["escape", "hex_escape"],
@@ -944,6 +950,10 @@
     {
       "name": "descending_char_class_range",
       "input": "[z-a]"
+    },
+    {
+      "name": "descending_wide_braced_hex_class_range",
+      "input": "[\\x{100}-z]"
     },
     {
       "name": "quantified_anchor",

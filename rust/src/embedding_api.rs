@@ -22,10 +22,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.29";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.30";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.27";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.28";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2102,8 +2102,8 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 90);
-        assert_eq!(manifest.failure_samples.len(), 23);
+        assert_eq!(manifest.success_samples.len(), 91);
+        assert_eq!(manifest.failure_samples.len(), 24);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
             manifest
@@ -2182,6 +2182,12 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "braced_hex_escape_with_whitespace")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "wide_braced_hex_class_range_endpoint")
         );
         assert!(
             manifest
@@ -2562,6 +2568,12 @@ mod tests {
                 .failure_samples
                 .iter()
                 .any(|sample| sample.name == "property_escape_forbidden_as_class_range_endpoint")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "descending_wide_braced_hex_class_range")
         );
         assert!(
             manifest
