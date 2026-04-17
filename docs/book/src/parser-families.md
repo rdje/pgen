@@ -84,6 +84,8 @@ The continuous struct-member assignment lane now tightens retained evidence arou
 
 The same continuous struct-member assignment lane also now exact-locks the inline field declarations `logic [7:0] data;` and `logic valid;` across the bit-select, unknown-member, concatenated-target, and concatenation-value samples. This gives the generated parser proof a cleaner bridge from aggregate field syntax to member-path assignment syntax.
 
+The generate/dataflow retained-context lane now also proves local declaration and parameter/port/range context around representative generate samples. `generate_if_with_dataflow_and_named_instantiation`, `generate_if_else_with_dataflow`, and `generate_if_else_with_local_net_declarations` exact-lock `logic [7:0] mid;`, `logic mid;`, `[TOTAL-1:0]`, `parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2`, and `output logic y`, while subset-locking the ternary dataflow expression `en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]}` without claiming semantic generate evaluation or elaboration closure.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

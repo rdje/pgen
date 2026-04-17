@@ -3082,6 +3082,9 @@
         "continuous_assign": [
           "assign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};"
         ],
+        "net_declaration": [
+          "logic [7:0] mid;"
+        ],
         "parameter_override": [
           ".WIDTH(8)"
         ],
@@ -3092,6 +3095,11 @@
         "concatenation_expr": [
           "{a[3:0], b[3:0]}",
           "{a[3:0], a[3:0]}"
+        ]
+      },
+      "required_rule_texts": {
+        "conditional_expr": [
+          "en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]}"
         ]
       },
       "sample": "module leaf #(\n    parameter WIDTH = 8\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [WIDTH-1:0] y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] b,\n    input logic en,\n    output logic [7:0] y\n);\nlogic [7:0] mid;\nassign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};\ngenerate\n    if (SEL) begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));\n    end\nendgenerate\nendmodule\n"
@@ -3126,6 +3134,9 @@
         "generate_body": [
           "begin : gen_true\n        assign mid = a;\n    end",
           "begin : gen_false\n        assign mid = 0;\n    end"
+        ],
+        "net_declaration": [
+          "logic mid;"
         ],
         "continuous_assign": [
           "assign mid = a;",
@@ -3169,6 +3180,15 @@
         "generate_body": [
           "begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end",
           "begin : no_extra\n        logic dummy;\n    end"
+        ],
+        "packed_range": [
+          "[TOTAL-1:0]"
+        ],
+        "parameter_declaration_sequence": [
+          "parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2"
+        ],
+        "port_list": [
+          "output logic y"
         ],
         "net_declaration": [
           "logic [TOTAL-1:0] extra;",

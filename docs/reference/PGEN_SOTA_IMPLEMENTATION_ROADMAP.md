@@ -3467,6 +3467,10 @@ Why `rtl_frontend` exists:
     - `packed_union_width_mismatch_parse_surface` and `builtin_integral_packed_union_width_mismatch_parse_surface` now exact-lock full module declarations, simple output-port shells, inline union bodies, datatype/range or builtin keyword spans, and final net declarations,
     - this keeps semantic packed-union width evaluation outside the generated-parser proof claim while bringing the inline and builtin mismatch lanes up to the typedef-backed mismatch lane's retained-text standard,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic packed-union width evaluation or elaboration closure.
+  - Progress (2026-04-17): tightened generate/dataflow context retained-text proof:
+    - `generate_if_with_dataflow_and_named_instantiation`, `generate_if_else_with_dataflow`, and `generate_if_else_with_local_net_declarations` now prove retained context around already locked generate structures,
+    - salient retained text now includes `logic [7:0] mid;`, `logic mid;`, `[TOTAL-1:0]`, `parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2`, `output logic y`, and the ternary dataflow expression `en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]}`,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic generate evaluation, dataflow typing, parameter evaluation, or elaboration closure.
   - Progress (2026-04-17): tightened inline union-member actual retained-text proof:
     - `named_port_union_member_actual` and `named_port_unknown_union_member_actual_parse_surface` now exact-lock the inline packed-union body and `payload` declaration in addition to existing hierarchy and port-connection evidence,
     - `named_port_union_member_actual` now also exact-locks the successful `payload.data` signal-reference vector,

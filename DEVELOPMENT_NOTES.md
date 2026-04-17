@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend generate/dataflow context retained-text tightening
+### Context
+The generated contract already exact-locked the generate shells for representative dataflow samples: `generate_region`, `generate_if`, `generate_body`, hierarchy, assignments, and selected expression structures were covered. A few surrounding context rules were still only presence-checked, leaving the local declaration and parameter/port/range context weaker than the neighboring aggregate and assignment lanes.
+
+### Decision
+- Tighten existing generate/dataflow samples rather than add duplicate fixtures:
+  - `generate_if_with_dataflow_and_named_instantiation`
+  - `generate_if_else_with_dataflow`
+  - `generate_if_else_with_local_net_declarations`
+- Use `expected_rule_texts` for stable declaration/range/port vectors:
+  - `net_declaration`
+  - `packed_range`
+  - `parameter_declaration_sequence`
+  - `port_list`
+- Use `required_rule_texts` for the ternary `conditional_expr`, because recursive expression rules may also surface nested subexpressions and should not be frozen to an incidental full vector.
+- Keep broad `module_declaration` exact locks out of this slice to avoid turning a focused retained-context proof into a brittle full-module text assertion.
+- Keep semantic generate evaluation, dataflow typing, parameter evaluation, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact retained-text checks for `logic [7:0] mid;` and `logic mid;` in the generate/dataflow samples
+  - added exact retained-text checks for `[TOTAL-1:0]`, `parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2`, and `output logic y` in the generate-if/else local-net sample
+  - added subset retained-text proof for `en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]}` as a ternary `conditional_expr`
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend continuous struct-member field retained-text tightening
 ### Context
 The generated contract now proves declaration and port context around the continuous struct-member assignment lanes, but those samples still relied on broad `struct_union_field` rule presence rather than exact field retained text. That left a small proof gap between the inline struct body proof and the actual field declarations used by the member paths.

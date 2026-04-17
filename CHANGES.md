@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend generate dataflow context proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract generate/dataflow samples so they now prove retained declaration, port, packed-range, parameter-sequence, and ternary-expression context around the already locked generate structures.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `generate_if_with_dataflow_and_named_instantiation`
+  - strengthened `generate_if_else_with_dataflow`
+  - strengthened `generate_if_else_with_local_net_declarations`
+  - now exact-locks `logic [7:0] mid;`, `logic mid;`, `[TOTAL-1:0]`, `parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2`, and `output logic y` where those retained spans are stable
+  - now subset-locks the ternary retained expression `en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]}` for the generate-if dataflow sample
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic generate evaluation, dataflow typing, parameter evaluation, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend continuous struct-member field proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract samples for continuous struct-member assignment lanes so they now exact-lock the retained inline struct field declarations in addition to their surrounding declaration/context and assignment evidence.
