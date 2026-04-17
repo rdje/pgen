@@ -1219,6 +1219,8 @@ pub struct ContinuousAssign {
 pub enum ParameterOverride {
     Ordered(Expr),
     Named { name: String, value: Expr },
+    OrderedSyntax(String),
+    NamedSyntax { name: String, value: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1293,6 +1295,7 @@ pub enum ValueExpr {
         value: Box<ValueExpr>,
     },
     Expression(Expr),
+    ExpressionText(String),
 }
 
 impl ValueExpr {
@@ -1328,6 +1331,9 @@ impl ValueExpr {
             ValueExpr::Expression(expr) => {
                 validate_expr_identifiers(expr, visible_names, visible_types, symbols)
             }
+            ValueExpr::ExpressionText(text) => {
+                validate_expression_text_identifiers(text, visible_names, visible_types, symbols)
+            }
         }
     }
 }
@@ -1348,6 +1354,7 @@ impl From<PortActual> for ValueExpr {
                 value: Box::new(ValueExpr::from(*value)),
             },
             PortActual::Expression(expr) => ValueExpr::Expression(expr),
+            PortActual::ExpressionText(text) => ValueExpr::ExpressionText(text),
         }
     }
 }
@@ -1370,6 +1377,7 @@ pub enum PortActual {
         value: Box<PortActual>,
     },
     Expression(Expr),
+    ExpressionText(String),
 }
 
 impl PortActual {
@@ -1404,6 +1412,9 @@ impl PortActual {
             }
             PortActual::Expression(expr) => {
                 validate_expr_identifiers(expr, visible_names, visible_types, symbols)
+            }
+            PortActual::ExpressionText(text) => {
+                validate_expression_text_identifiers(text, visible_names, visible_types, symbols)
             }
         }
     }
@@ -1538,6 +1549,72 @@ impl ModuleInstantiation {
                         )
                     })?;
                     overrides.insert(name.clone(), evaluated);
+                }
+                ParameterOverride::OrderedSyntax(value) => {
+                    if saw_named {
+                        return Err(FrontendError::new(
+                            format!(
+                                "cannot mix positional and named parameter overrides on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    let Some(target) = parameter_targets.get(ordered_index) else {
+                        return Err(FrontendError::new(
+                            format!(
+                                "too many positional parameter overrides on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    };
+                    return Err(FrontendError::new(
+                        format!(
+                            "cannot evaluate syntax-only positional parameter override {} ('{}') for parameter '{}' on instance '{}'",
+                            ordered_index + 1,
+                            value,
+                            target.name,
+                            self.instance_name
+                        ),
+                        0,
+                    ));
+                }
+                ParameterOverride::NamedSyntax { name, value } => {
+                    if saw_ordered {
+                        return Err(FrontendError::new(
+                            format!(
+                                "cannot mix positional and named parameter overrides on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    if overrides.contains_key(name) {
+                        return Err(FrontendError::new(
+                            format!(
+                                "duplicate named parameter override '{}' on instance '{}'",
+                                name, self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    if !parameter_targets.iter().any(|decl| decl.name == *name) {
+                        return Err(FrontendError::new(
+                            format!(
+                                "unknown parameter '{}' on instance '{}' of module '{}'",
+                                name, self.instance_name, module.name
+                            ),
+                            0,
+                        ));
+                    }
+                    return Err(FrontendError::new(
+                        format!(
+                            "cannot evaluate syntax-only named parameter override '{}' ('{}') on instance '{}'",
+                            name, value, self.instance_name
+                        ),
+                        0,
+                    ));
                 }
             }
         }
@@ -2033,11 +2110,22 @@ fn parse_port_actual(input: &str) -> Result<PortActual, FrontendError> {
         return Ok(PortActual::Signal(trimmed.to_string()));
     }
 
-    let expr = parse_expression(trimmed).map_err(map_eval_error)?;
-    Ok(match expr {
-        Expr::Ident(name) => PortActual::Signal(name),
-        other => PortActual::Expression(other),
-    })
+    match parse_expression(trimmed) {
+        Ok(expr) => Ok(match expr {
+            Expr::Ident(name) => PortActual::Signal(name),
+            other => PortActual::Expression(other),
+        }),
+        Err(err) => {
+            parse_rich_expression_text(trimmed).map_err(|rich_err| {
+                if contains_rich_expression_syntax(trimmed) {
+                    rich_err
+                } else {
+                    map_eval_error(err)
+                }
+            })?;
+            Ok(PortActual::ExpressionText(trimmed.to_string()))
+        }
+    }
 }
 
 fn parse_assignment_target(input: &str) -> Result<AssignmentTarget, FrontendError> {
@@ -2089,6 +2177,177 @@ fn parse_assignment_target(input: &str) -> Result<AssignmentTarget, FrontendErro
 
 fn parse_value_expr(input: &str) -> Result<ValueExpr, FrontendError> {
     Ok(ValueExpr::from(parse_port_actual(input)?))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ParameterOverrideValue {
+    Const(Expr),
+    Syntax(String),
+}
+
+fn parse_parameter_override_value(input: &str) -> Result<ParameterOverrideValue, FrontendError> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err(FrontendError::new("expected parameter override value", 0));
+    }
+
+    match parse_expression(trimmed) {
+        Ok(expr) => Ok(ParameterOverrideValue::Const(expr)),
+        Err(err) => {
+            parse_rich_expression_text(trimmed).map_err(|rich_err| {
+                if contains_rich_expression_syntax(trimmed) {
+                    rich_err
+                } else {
+                    map_eval_error(err)
+                }
+            })?;
+            Ok(ParameterOverrideValue::Syntax(trimmed.to_string()))
+        }
+    }
+}
+
+fn contains_rich_expression_syntax(input: &str) -> bool {
+    input.contains('[') || input.contains('{')
+}
+
+fn parse_rich_expression_text(input: &str) -> Result<(), FrontendError> {
+    let trimmed = input.trim();
+    if !contains_rich_expression_syntax(trimmed) {
+        return Err(FrontendError::new(
+            format!("unsupported expression '{}'", trimmed),
+            0,
+        ));
+    }
+    if trimmed.starts_with('{') && trimmed.ends_with('}') && is_wrapped_by(trimmed, '{', '}') {
+        parse_port_actual(trimmed)?;
+        return Ok(());
+    }
+
+    let normalized = normalize_rich_expression_text(trimmed)?;
+    parse_expression(&normalized).map_err(|err| {
+        FrontendError::new(
+            format!("failed to parse expression '{}': {}", trimmed, err.message),
+            err.position,
+        )
+    })?;
+    Ok(())
+}
+
+fn normalize_rich_expression_text(input: &str) -> Result<String, FrontendError> {
+    let mut normalized = String::new();
+    let mut cursor = 0usize;
+    while cursor < input.len() {
+        let ch = input[cursor..]
+            .chars()
+            .next()
+            .ok_or_else(|| FrontendError::new("invalid expression cursor", cursor))?;
+        match ch {
+            '{' => {
+                let next = skip_balanced_delimiter(input, cursor, '{', '}')?;
+                parse_port_actual(&input[cursor..next])?;
+                cursor = next;
+                normalized.push('0');
+            }
+            '[' => {
+                let next = skip_balanced_delimiter(input, cursor, '[', ']')?;
+                validate_selector_text(input, cursor, next)?;
+                cursor = next;
+            }
+            _ => {
+                normalized.push(ch);
+                cursor += ch.len_utf8();
+            }
+        }
+    }
+    Ok(normalized)
+}
+
+fn validate_selector_text(input: &str, start: usize, end: usize) -> Result<(), FrontendError> {
+    let inner_end = end.saturating_sub(']'.len_utf8());
+    let inner = input[start + '['.len_utf8()..inner_end].trim();
+    if inner.is_empty() {
+        return Err(FrontendError::new(
+            format!("empty bracket selector in '{}'", input),
+            start,
+        ));
+    }
+    if let Some((msb, lsb)) = split_top_level_once(inner, ':')? {
+        parse_expression(msb).map_err(map_eval_error)?;
+        parse_expression(lsb).map_err(map_eval_error)?;
+    } else {
+        parse_expression(inner).map_err(map_eval_error)?;
+    }
+    Ok(())
+}
+
+fn skip_balanced_delimiter(
+    input: &str,
+    start: usize,
+    open: char,
+    close: char,
+) -> Result<usize, FrontendError> {
+    let mut depth = 0usize;
+    for (offset, ch) in input[start..].char_indices() {
+        match ch {
+            c if c == open => depth += 1,
+            c if c == close => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return Ok(start + offset + ch.len_utf8());
+                }
+            }
+            _ => {}
+        }
+    }
+    Err(FrontendError::new(
+        format!("unbalanced '{}' in expression '{}'", open, input),
+        start,
+    ))
+}
+
+fn validate_expression_text_identifiers(
+    text: &str,
+    visible_names: &HashSet<String>,
+    visible_types: &HashMap<String, DeclType>,
+    symbols: &HashMap<String, i64>,
+) -> Result<(), FrontendError> {
+    for identifier in collect_expression_text_identifiers(text) {
+        validate_known_identifier(&identifier, visible_names, visible_types, symbols)?;
+    }
+    Ok(())
+}
+
+fn collect_expression_text_identifiers(text: &str) -> HashSet<String> {
+    let mut identifiers = HashSet::new();
+    let mut cursor = 0usize;
+    while cursor < text.len() {
+        let Some(ch) = text[cursor..].chars().next() else {
+            break;
+        };
+        if !is_ident_start(ch) {
+            cursor += ch.len_utf8();
+            continue;
+        }
+
+        let previous = text[..cursor].chars().next_back();
+        let member_segment = previous == Some('.');
+        let based_literal_segment = previous == Some('\'');
+        let (mut identifier, next) = parse_signal_identifier_segment(text, cursor)
+            .map(|(segment, next)| (segment.to_string(), next))
+            .unwrap_or_else(|| (String::new(), cursor + ch.len_utf8()));
+        cursor = next;
+        if text[cursor..].starts_with("::")
+            && let Some((segment, next)) = parse_signal_identifier_segment(text, cursor + 2)
+        {
+            identifier.push_str("::");
+            identifier.push_str(segment);
+            cursor = next;
+        }
+        if !member_segment && !based_literal_segment && !identifier.is_empty() {
+            identifiers.insert(identifier);
+        }
+    }
+    identifiers
 }
 
 fn split_repetition_count_and_value(input: &str) -> Result<Option<(&str, &str)>, FrontendError> {
@@ -3240,9 +3499,17 @@ impl<'a> Parser<'a> {
                 saw_named = true;
                 let name = self.expect_identifier()?;
                 self.expect_symbol('(')?;
-                let value = self.parse_expression_until(&[')'])?;
+                let value_text = self.parse_raw_text_until(&[')'])?;
+                let value = parse_parameter_override_value(&value_text)?;
                 self.expect_symbol(')')?;
-                overrides.push(ParameterOverride::Named { name, value });
+                match value {
+                    ParameterOverrideValue::Const(value) => {
+                        overrides.push(ParameterOverride::Named { name, value });
+                    }
+                    ParameterOverrideValue::Syntax(value) => {
+                        overrides.push(ParameterOverride::NamedSyntax { name, value });
+                    }
+                }
             } else {
                 if saw_named {
                     return Err(FrontendError::new(
@@ -3251,9 +3518,15 @@ impl<'a> Parser<'a> {
                     ));
                 }
                 saw_ordered = true;
-                overrides.push(ParameterOverride::Ordered(
-                    self.parse_expression_until(&[',', ')'])?,
-                ));
+                let value_text = self.parse_raw_text_until(&[',', ')'])?;
+                match parse_parameter_override_value(&value_text)? {
+                    ParameterOverrideValue::Const(value) => {
+                        overrides.push(ParameterOverride::Ordered(value));
+                    }
+                    ParameterOverrideValue::Syntax(value) => {
+                        overrides.push(ParameterOverride::OrderedSyntax(value));
+                    }
+                }
             }
 
             if !self.consume_symbol(',') {
@@ -4212,9 +4485,9 @@ mod tests {
             expected_rejects,
             mismatches.join("\n")
         );
-        assert!(
-            explicit_handwritten_divergences > 0,
-            "generated contract manifest should explicitly preserve known handwritten/generated divergence annotations"
+        assert_eq!(
+            explicit_handwritten_divergences, 0,
+            "current rtl_frontend generated contract samples should parse the same way through the generated and handwritten frontends"
         );
     }
 

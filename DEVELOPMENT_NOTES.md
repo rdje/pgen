@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend generated/handwritten parse parity reaches zero manifest divergences
+### Context
+After the mixed-list and `always_ff` parse-boundary slices, the shared `rtl_frontend` generated contract still carried `11` explicit generated-positive / handwritten-negative divergence annotations. The remaining failures were not unrelated grammar bugs; they all came from the handwritten parser feeding selector/concat-rich runtime expression syntax into `rtl_const_expr`, whose scope is elaboration-time constant expressions.
+
+The affected retained samples included selector/range forms such as `a[HI:LO]`, member/index forms such as `cfgs[IDX].data[BIT]`, ternary/binary RHS values, concatenation-valued RHS expressions, ordered/named port actuals, and ordered/named parameter overrides with repeat-concatenation syntax.
+
+### Decision
+- Keep `rtl_const_expr` as the evaluator for true constant-expression syntax.
+- Add a syntax-only expression-text lane in `rtl_frontend` for runtime expression forms that the synthesizable parser must preserve at parse time but cannot honestly evaluate as constants.
+- Use this syntax-only lane for RHS values, port actuals, and parameter overrides only after ordinary structured parsing / constant parsing fails.
+- Preserve malformed ternary, repeat-concatenation, empty-index, trailing-comma, and missing-comma rejects through the shared manifest instead of accepting arbitrary text.
+- Treat zero active `expected_handwritten_parse_ok` annotations as the current curated parse-parity invariant.
+
+### What Was Changed
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added `ExpressionText` variants for `ValueExpr` and `PortActual`
+  - added syntax-only parameter override variants for non-evaluable but syntactically accepted parameter override values
+  - added rich-expression normalization/proof helpers that strip selector brackets and replace balanced concatenations with neutral atoms before checking outer ternary/binary syntax
+  - added lightweight identifier extraction for syntax-only expression text validation
+  - updated the generated-contract replay test to require zero current generated/handwritten parse divergences
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - removed the remaining `11` `expected_handwritten_parse_ok` overrides
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - stopped requiring the manifest itself to contain divergence annotations
+  - now audits that the handwritten replay still supports optional divergence metadata and asserts the current zero-divergence invariant
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- The curated manifest still has `120` samples.
+- Active explicit generated/handwritten parse divergence annotations are now `0`, down from `11`.
+- This is a curated parse-surface parity milestone. It does not close generated grammar exhaustiveness, full SystemVerilog expression semantics, parameter evaluation for runtime-shaped overrides, width/type analysis, or elaboration parity.
+
 ## 2026-04-17 - rtl_frontend handwritten parser rejects always_ff blocking assignments at parse time
 ### Context
 After the mixed-list parse-boundary alignment, the shared generated/handwritten manifest still carried `12` explicit divergences. The smallest remaining negative-sample mismatch was `always_ff_scalar_blocking_assignment_rejected`: the generated grammar rejected blocking assignment syntax inside `always_ff`, while the handwritten parser accepted it and deferred the same policy failure to elaboration.

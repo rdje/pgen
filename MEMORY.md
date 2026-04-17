@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-always-ff-blocking-parse-parity)
+Last updated: 2026-04-18 (+0200, task: rtl-frontend-rich-expression-parse-parity)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Closed the current `rtl_frontend` curated generated/handwritten parse-surface divergence set:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - implementation:
+    - added syntax-only rich-expression text support for RHS values, port actuals, and parameter overrides
+    - kept simple constant expressions on the `rtl_const_expr` path
+    - kept syntax-only parameter overrides non-evaluable during elaboration, with explicit diagnostics if evaluation is attempted
+    - updated the handwritten replay test to assert zero active curated generated/handwritten parse divergences
+  - proof impact:
+    - removed the remaining `11` `expected_handwritten_parse_ok` overrides
+    - the shared manifest still has `120` samples
+    - explicit generated/handwritten divergence annotations are now `0`, down from `11`
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this closes the current curated parse-parity set, not generated grammar exhaustiveness, expression/elaboration semantics, or Phase S parser-stack closure
 - Tightened `rtl_frontend` handwritten/generated parse-boundary parity for `always_ff` blocking assignment rejects:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

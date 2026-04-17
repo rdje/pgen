@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-18 - Align rtl_frontend rich-expression parse parity
+### Achievement Summary
+Closed the current curated `rtl_frontend` generated/handwritten parse-surface divergence set by teaching the handwritten baseline to parse selector/concat-rich runtime expression text without pretending those forms are elaboration-time constants.
+
+### Scope of Changes
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) with syntax-only expression-text lanes for RHS values, port actuals, and parameter overrides that include selector/range, ternary/binary, concatenation, and repeat-concatenation syntax.
+- Kept simple constant expressions on the existing `rtl_const_expr` path and made syntax-only parameter overrides fail cleanly if later evaluated during elaboration.
+- Tightened the handwritten replay test so the current 120-sample manifest must have zero active generated/handwritten parse divergences.
+- Removed all remaining `expected_handwritten_parse_ok` overrides from [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- Updated the local workflow audit and public/continuity docs to describe the zero-divergence curated parse-parity milestone.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this closes the current curated parse-parity set, not generated grammar exhaustiveness or elaboration closure
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Align rtl_frontend always_ff blocking parse reject
 ### Achievement Summary
 Reduced the explicit `rtl_frontend` generated/handwritten divergence set again by making the handwritten baseline reject blocking assignments inside `always_ff` at parse time, matching the generated grammar contract for that negative sample.

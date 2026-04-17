@@ -839,8 +839,11 @@ audit_rtl_frontend_generated_contract_surface() {
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
     '"expected_rule_texts"'
   assert_file_contains \
-    "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
-    '"expected_handwritten_parse_ok"'
+    "rtl_frontend/src/lib.rs" \
+    'expected_handwritten_parse_ok'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
+    'current rtl_frontend generated contract samples should parse the same way'
   assert_file_contains \
     "rust/scripts/rtl_frontend_generated_contract_gate.sh" \
     'cargo run --features generated_parsers --bin rtl_frontend_generated_contract_probe'
