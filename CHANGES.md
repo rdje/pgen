@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend unpacked-array actual parameter proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract unpacked-array actual samples so they now prove retained parameter declaration context around the already locked array element and struct-member actual text.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `unpacked_array_struct_member_actual`
+  - strengthened `unpacked_array_element_actual`
+  - now exact-locks `parameter IDX = 1` for the unpacked-array struct-member actual lane
+  - now exact-locks `parameter DEPTH = 2,\n    parameter IDX = 1` as both `parameter_declaration_sequence` and `parameter_declaration_group` for the plain unpacked-array element actual lane
+  - preserves the existing retained proof for `cfgs[IDX].data`, `banks[IDX]`, module instantiations, port connections, dimensions, struct fields, and declarations
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not semantic array indexing, parameter evaluation, member legality, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend module-local parameter proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract module-local parameter/localparam sample so it now proves retained header and body parameter sequences, keyword spans, port context, and high-signal expression text around the existing statement, net, and continuous-assignment locks.

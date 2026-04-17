@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend unpacked-array actual parameter retained-text tightening
+### Context
+The generated contract already proved key unpacked-array actual syntax: `unpacked_array_struct_member_actual` locked the struct fields, member actual `cfgs[IDX].data`, module instantiation, port connections, and unpacked dimension, while `unpacked_array_element_actual` locked `banks[IDX]`, its array declaration, packed/unpacked dimensions, hierarchy, and port connections. The remaining local proof gap was the parameter context that drives the indexed actuals.
+
+### Decision
+- Tighten the existing unpacked-array actual samples rather than add duplicate fixtures:
+  - `unpacked_array_struct_member_actual`
+  - `unpacked_array_element_actual`
+- Use `expected_rule_texts` for stable parameter retained text:
+  - `parameter_declaration_sequence`
+  - `parameter_declaration_group`
+- Keep broad `module_declaration` exact locks out of this slice; the valuable proof is the local parameter context around already locked actual syntax.
+- Keep semantic array indexing, parameter evaluation, member legality, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact retained-text proof for `parameter IDX = 1` on `unpacked_array_struct_member_actual`
+  - added exact retained-text proof for `parameter DEPTH = 2,\n    parameter IDX = 1` as both `parameter_declaration_sequence` and `parameter_declaration_group` on `unpacked_array_element_actual`
+  - preserved the existing retained actual, hierarchy, field, declaration, range, and dimension evidence
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend module-local parameter retained-text tightening
 ### Context
 The `module_local_parameter_and_localparam_items` generated-contract sample already exact-locked statement-level parameter/localparam text, declaration heads/tails, the local net declaration, and the downstream continuous assignment. It still only presence-checked the retained parameter-sequence spans, keyword tokens, port-list context, and recursive expression evidence.

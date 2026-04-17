@@ -92,6 +92,8 @@ The labeled `always_comb` retained-context lane now exact-locks `begin`, `if`, a
 
 The module-local parameter/localparam lane now proves the retained parameter-sequence shape for both header parameters and module-body parameter statements. `module_local_parameter_and_localparam_items` exact-locks the header sequence, body `parameter EXTRA = DEPTH + 1`, body `localparam TOTAL = WIDTH * 2`, retained `parameter` / `localparam` keywords, and `output logic [DEPTH-1:0] y`, while subset-locking the relevant arithmetic and ternary expression text without claiming parameter evaluation or expression typing.
 
+The unpacked-array actual lane now carries tighter parameter context around existing array actual proofs. `unpacked_array_struct_member_actual` exact-locks `parameter IDX = 1`, and `unpacked_array_element_actual` exact-locks `parameter DEPTH = 2,\n    parameter IDX = 1` as both parameter sequence and group text, while preserving the existing `cfgs[IDX].data` and `banks[IDX]` retained actual evidence without claiming semantic array elaboration.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

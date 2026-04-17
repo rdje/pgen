@@ -2363,6 +2363,9 @@
         ]
       },
       "expected_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter IDX = 1"
+        ],
         "struct_union_field": [
           "logic [7:0] data;",
           "logic valid;"
@@ -2421,6 +2424,12 @@
         ]
       },
       "expected_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter DEPTH = 2,\n    parameter IDX = 1"
+        ],
+        "parameter_declaration_group": [
+          "parameter DEPTH = 2,\n    parameter IDX = 1"
+        ],
         "module_instantiation": [
           "child u_child (.a(banks[IDX]), .y(y));"
         ],
