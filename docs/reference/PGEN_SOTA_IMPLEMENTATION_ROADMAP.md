@@ -3467,6 +3467,10 @@ Why `rtl_frontend` exists:
     - `packed_union_width_mismatch_parse_surface` and `builtin_integral_packed_union_width_mismatch_parse_surface` now exact-lock full module declarations, simple output-port shells, inline union bodies, datatype/range or builtin keyword spans, and final net declarations,
     - this keeps semantic packed-union width evaluation outside the generated-parser proof claim while bringing the inline and builtin mismatch lanes up to the typedef-backed mismatch lane's retained-text standard,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic packed-union width evaluation or elaboration closure.
+  - Progress (2026-04-17): tightened labeled `always_comb` context retained-text proof:
+    - `labeled_always_comb_block` and `labeled_always_comb_parameter_exprs_and_packed_multi_nets` now exact-lock retained `begin`, `if`, and `else` keyword spans plus local declaration/range/port context around the already locked procedural blocks,
+    - salient retained text now includes `parameter SEL = 1`, `logic data, scratch;`, `logic [WIDTH-1:0] data, scratch;`, `[WIDTH-1:0]`, `output logic y`, and subset expression evidence for `WIDTH + TOTAL`, `TOTAL + 1`, and `EXTRA > 0`,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not procedural semantic evaluation, expression typing, parameter evaluation, or elaboration closure.
   - Progress (2026-04-17): tightened symbolic generate-for keyword retained-text proof:
     - `generate_for_symbolic_limit_nonunit_stride` now exact-locks retained `generate`, `for`, and `genvar` keyword spans plus `parameter LIMIT = 5` as both `parameter_declaration_sequence` and `parameter_declaration_group`,
     - this complements the existing retained expression proof for `i < LIMIT` and `i + 2`,

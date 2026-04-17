@@ -3426,6 +3426,21 @@
         "kw_always_comb": [
           "always_comb"
         ],
+        "kw_begin": [
+          "begin"
+        ],
+        "kw_if": [
+          "if"
+        ],
+        "kw_else": [
+          "else"
+        ],
+        "parameter_declaration_sequence": [
+          "parameter SEL = 1"
+        ],
+        "net_declaration": [
+          "logic data, scratch;"
+        ],
         "assignment_operator": [
           "=",
           "=",
@@ -3476,8 +3491,26 @@
         "kw_always_comb": [
           "always_comb"
         ],
+        "kw_begin": [
+          "begin"
+        ],
+        "kw_if": [
+          "if"
+        ],
+        "kw_else": [
+          "else"
+        ],
+        "parameter_declaration_sequence": [
+          "parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2,\n    parameter EXTRA = TOTAL + 1"
+        ],
+        "port_list": [
+          "output logic y"
+        ],
         "net_declaration": [
           "logic [WIDTH-1:0] data, scratch;"
+        ],
+        "packed_range": [
+          "[WIDTH-1:0]"
         ],
         "net_item": [
           "data",
@@ -3495,6 +3528,15 @@
         ],
         "procedural_block": [
           "always_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend"
+        ]
+      },
+      "required_rule_texts": {
+        "additive_expr": [
+          "WIDTH + TOTAL",
+          "TOTAL + 1"
+        ],
+        "relational_expr": [
+          "EXTRA > 0"
         ]
       },
       "sample": "module top #(\n    parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2,\n    parameter EXTRA = TOTAL + 1\n) (\n    output logic y\n);\nlogic [WIDTH-1:0] data, scratch;\nalways_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend\nendmodule\n"

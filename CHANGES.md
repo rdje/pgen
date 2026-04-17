@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend labeled always_comb context proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract labeled `always_comb` samples so they now prove retained parameter, net, range, port, keyword, and selected expression context around the already locked procedural blocks and assignment targets.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `labeled_always_comb_block`
+  - strengthened `labeled_always_comb_parameter_exprs_and_packed_multi_nets`
+  - now exact-locks retained `begin`, `if`, and `else` keyword spans alongside the existing `always_comb` locks
+  - now exact-locks `parameter SEL = 1`, `logic data, scratch;`, the multi-parameter sequence, `output logic y`, `logic [WIDTH-1:0] data, scratch;`, and `[WIDTH-1:0]`
+  - now subset-locks high-signal recursive expression text for `WIDTH + TOTAL`, `TOTAL + 1`, and `EXTRA > 0`
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not procedural semantic evaluation, expression typing, parameter evaluation, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend symbolic generate-for keyword proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract symbolic non-unit `generate for` sample so it now exact-locks the retained generate/for/genvar keyword text plus the parameter declaration wrapper around the already proven symbolic loop expressions.

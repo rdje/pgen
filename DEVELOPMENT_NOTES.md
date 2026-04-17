@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend labeled always_comb context retained-text tightening
+### Context
+The generated contract already exact-locked the labeled `always_comb` procedural blocks and assignment-target vectors, but two labeled samples still relied on broad rule presence for the surrounding declarations, keyword tokens, range context, and selected recursive expression spans. That made the procedural-block text stronger than the syntax context around it.
+
+### Decision
+- Tighten the existing labeled samples rather than add duplicate fixtures:
+  - `labeled_always_comb_block`
+  - `labeled_always_comb_parameter_exprs_and_packed_multi_nets`
+- Use `expected_rule_texts` for stable keyword and declaration vectors:
+  - `kw_begin`
+  - `kw_if`
+  - `kw_else`
+  - `parameter_declaration_sequence`
+  - `net_declaration`
+  - `port_list`
+  - `packed_range`
+- Use `required_rule_texts` for recursive expression evidence, where exact full-vector locks would overfit incidental expression subtrees.
+- Keep broad `module_declaration` exact locks out of this slice; the value here is tighter local retained evidence around the labeled procedural surface.
+- Keep procedural semantic evaluation, expression typing, parameter evaluation, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact retained-text checks for `begin`, `if`, and `else` keyword spans on both labeled `always_comb` samples
+  - added exact retained-text checks for `parameter SEL = 1`, `logic data, scratch;`, the multi-parameter sequence, `output logic y`, `logic [WIDTH-1:0] data, scratch;`, and `[WIDTH-1:0]`
+  - added subset retained-text proof for `WIDTH + TOTAL`, `TOTAL + 1`, and `EXTRA > 0`
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend symbolic generate-for keyword retained-text tightening
 ### Context
 The `generate_for_symbolic_limit_nonunit_stride` generated-contract sample already proved the structural generate region, generate-for body, local net declaration, net item, parameter head, and recursive expression evidence for `i < LIMIT` and `i + 2`. Its keyword rules and full parameter-wrapper rules were still only presence checks, which made this newer symbolic generate-for lane slightly weaker than neighboring retained-text samples.

@@ -88,6 +88,8 @@ The generate/dataflow retained-context lane now also proves local declaration an
 
 The symbolic non-unit generate-for lane now exact-locks the retained `generate`, `for`, and `genvar` keyword spans plus `parameter LIMIT = 5` as both the parameter declaration sequence and group. This tightens the parser proof around `for (genvar i = 0; i < LIMIT; i = i + 2)` while leaving generate unrolling and parameter evaluation to elaboration.
 
+The labeled `always_comb` retained-context lane now exact-locks `begin`, `if`, and `else` keyword spans, local parameter/net/range/port context, and selected recursive expression evidence around `labeled_always_comb_block` and `labeled_always_comb_parameter_exprs_and_packed_multi_nets`. This sharpens the parser-retained syntax bridge around labeled procedural blocks without claiming expression typing or elaboration closure.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`
