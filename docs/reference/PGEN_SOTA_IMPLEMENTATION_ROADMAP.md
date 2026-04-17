@@ -3532,6 +3532,10 @@ Why `rtl_frontend` exists:
     - `always_comb_struct_member_concatenation_target` now proves richer retained context around its concatenated member assignment target,
     - salient retained text now includes `parameter IDX = 1,\n    parameter BIT = 2`, `input logic d`, the inline `struct packed { ... }` body, `logic [7:0] data;`, `logic valid;`, `struct packed { ... } cfgs [0:1];`, `[7:0]`, and `[0:1]`, while existing exact `always_comb`, procedural-block, assignment-operator, and assignment-target locks stay in place,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not procedural semantic validation, member legality, parameter evaluation, width analysis, or elaboration closure.
+  - Progress (2026-04-17): tightened rich plain `always @(*)` / `always_latch` retained-context proof:
+    - `always_star_rich_assignment_targets` and `always_latch_rich_assignment_targets` now prove richer retained context around their member-path procedural lanes,
+    - salient retained text now includes parameter declaration sequences, port shells, the inline `struct packed { ... }` body, `logic [7:0] data;`, `logic valid;`, `struct packed { ... } cfgs [0:1];`, `[7:0]`, and `[0:1]`, while existing exact procedural-block, assignment-operator, assignment-target, continuous-assign, and concatenation-expression locks stay in place,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not procedural semantic validation, latch/combinational completeness analysis, member legality, parameter evaluation, width analysis, or elaboration closure.
   - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,

@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend rich always star/latch retained-context tightening
+### Context
+The generated contract already proved the core rich non-`always_ff` procedural lanes:
+- `always_star_rich_assignment_targets`
+- `always_latch_rich_assignment_targets`
+
+Those samples exact-locked the procedural blocks, assignment operators, concatenated/member assignment targets, downstream continuous assignments, and concatenation-expression text. The remaining local proof gap was the surrounding declaration context that makes the member-path targets and values meaningful: parameters, port shells, inline struct body, struct fields, net declaration, packed range, and unpacked dimension.
+
+### Decision
+- Tighten the existing rich plain `always @(*)` and `always_latch` samples rather than add duplicate fixtures.
+- Use `required_rule_texts` for surrounding declaration context and keep the existing exact `expected_rule_texts` for the procedural/action core.
+- Keep procedural semantic validation, latch/combinational completeness, member legality, parameter evaluation, width analysis, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added parameter/port/struct/net/range/dimension retained-context proof to `always_star_rich_assignment_targets`
+  - added the same declaration-context proof to `always_latch_rich_assignment_targets`
+  - preserved exact retained proof for `always @(*)`, `always_latch`, procedural blocks, assignment operators, assignment targets, continuous assignments, and concatenation expressions
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend always_comb target retained-context tightening
 ### Context
 The generated contract already proved the core `always_comb_struct_member_concatenation_target` syntax:
