@@ -5486,14 +5486,12 @@
     {
       "label": "mixed_named_ordered_port_connections",
       "expected_parse_ok": false,
-      "expected_handwritten_parse_ok": true,
       "require_ast_json": false,
       "sample": "module child (\n    input logic a,\n    input logic b,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    input logic b,\n    output logic y\n);\nchild u_child (.a(a), b, .y(y));\nendmodule\n"
     },
     {
       "label": "mixed_ordered_named_parameter_overrides",
       "expected_parse_ok": false,
-      "expected_handwritten_parse_ok": true,
       "require_ast_json": false,
       "sample": "module child #(\n    parameter WIDTH = 1,\n    parameter LANES = 2\n) (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    output logic y\n);\nchild #(8, .LANES(2)) u_child (a, y);\nendmodule\n"
     },

@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend handwritten parser rejects mixed instance lists at parse time
+### Context
+The handwritten replay stage exposed `14` explicit generated/handwritten parse-surface divergences. Two of those were not true semantic-boundary differences: the generated grammar rejected mixed positional/named instance lists, and the handwritten elaborator already rejected them later, but `parse_design` still accepted them into the AST.
+
+### Decision
+- Treat mixed positional/named parameter overrides and port connections as syntax-level rejects in the handwritten baseline too.
+- Keep wildcard port connections in the named-style family, matching the existing handwritten elaboration policy.
+- Remove only the two divergence annotations whose behavior now agrees; leave the remaining `12` explicit `expected_handwritten_parse_ok` annotations intact because they still document real generated/handwritten parse-surface differences.
+
+### What Was Changed
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - `parse_parameter_overrides` now tracks named-vs-ordered style and rejects a style switch.
+  - `parse_port_connections` now tracks named/wildcard-vs-ordered style and rejects a style switch.
+  - added focused parser tests for both mixed-list rejects.
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - removed `expected_handwritten_parse_ok: true` from `mixed_named_ordered_port_connections`
+  - removed `expected_handwritten_parse_ok: true` from `mixed_ordered_named_parameter_overrides`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml parse_design_rejects_mixed --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- The curated manifest still has `120` samples.
+- The explicit generated/handwritten divergence count is now `12`, down from `14`.
+- The remaining divergence set is still meaningful and should be reduced only when actual parse-boundary parity improves.
+
 ## 2026-04-17 - rtl_frontend generated contract gains handwritten replay proof
 ### Context
 The `rtl_frontend` generated contract manifest already documented provenance from local handwritten `rtl_frontend::parse_design` replay, but the maintained gate only executed the generated parser probe. That left the baseline provenance useful but not machine-enforced.
@@ -17,7 +48,7 @@ The `rtl_frontend` generated contract manifest already documented provenance fro
   - defaults handwritten expectation to `expected_parse_ok`,
   - honors explicit `expected_handwritten_parse_ok` only for known bootstrap/generated divergences,
   - fails future unannotated drift with a label-level mismatch list.
-- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) now marks `14` known handwritten/generated divergences explicitly.
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) initially marked `14` known handwritten/generated divergences explicitly; a later same-day mixed-list parse-boundary alignment reduced the active count to `12`.
 - [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh) now runs both:
   - generated parser/AST contract probe
   - handwritten manifest replay test

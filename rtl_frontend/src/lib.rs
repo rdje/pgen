@@ -3200,18 +3200,34 @@ impl<'a> Parser<'a> {
 
     fn parse_parameter_overrides(&mut self) -> Result<Vec<ParameterOverride>, FrontendError> {
         let mut overrides = Vec::new();
+        let mut saw_named = false;
+        let mut saw_ordered = false;
         if self.consume_symbol(')') {
             return Ok(overrides);
         }
 
         loop {
             if self.consume_symbol('.') {
+                if saw_ordered {
+                    return Err(FrontendError::new(
+                        "cannot mix positional and named parameter overrides",
+                        self.current().start,
+                    ));
+                }
+                saw_named = true;
                 let name = self.expect_identifier()?;
                 self.expect_symbol('(')?;
                 let value = self.parse_expression_until(&[')'])?;
                 self.expect_symbol(')')?;
                 overrides.push(ParameterOverride::Named { name, value });
             } else {
+                if saw_named {
+                    return Err(FrontendError::new(
+                        "cannot mix positional and named parameter overrides",
+                        self.current().start,
+                    ));
+                }
+                saw_ordered = true;
                 overrides.push(ParameterOverride::Ordered(
                     self.parse_expression_until(&[',', ')'])?,
                 ));
@@ -3228,12 +3244,21 @@ impl<'a> Parser<'a> {
 
     fn parse_port_connections(&mut self) -> Result<Vec<PortConnection>, FrontendError> {
         let mut connections = Vec::new();
+        let mut saw_named_or_wildcard = false;
+        let mut saw_ordered = false;
         if self.consume_symbol(')') {
             return Ok(connections);
         }
 
         loop {
             if self.consume_symbol('.') {
+                if saw_ordered {
+                    return Err(FrontendError::new(
+                        "cannot mix positional and named port connections",
+                        self.current().start,
+                    ));
+                }
+                saw_named_or_wildcard = true;
                 if self.consume_symbol('*') {
                     connections.push(PortConnection::Wildcard);
                 } else {
@@ -3244,6 +3269,13 @@ impl<'a> Parser<'a> {
                     connections.push(PortConnection::Named { port, actual });
                 }
             } else {
+                if saw_named_or_wildcard {
+                    return Err(FrontendError::new(
+                        "cannot mix positional and named port connections",
+                        self.current().start,
+                    ));
+                }
+                saw_ordered = true;
                 let actual = self.parse_optional_port_actual_until(&[',', ')'])?;
                 connections.push(PortConnection::Ordered { actual });
             }
@@ -5300,6 +5332,63 @@ mod tests {
             }
             other => panic!("expected module instantiation, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn parse_design_rejects_mixed_named_and_ordered_port_connections() {
+        let err = parse_design(
+            r#"
+            module child (
+                input logic a,
+                input logic b,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                input logic a,
+                input logic b,
+                output logic y
+            );
+            child u_child (.a(a), b, .y(y));
+            endmodule
+            "#,
+        )
+        .expect_err("mixed named and ordered port connections should fail at parse time");
+
+        assert!(
+            err.message
+                .contains("cannot mix positional and named port connections")
+        );
+    }
+
+    #[test]
+    fn parse_design_rejects_mixed_ordered_and_named_parameter_overrides() {
+        let err = parse_design(
+            r#"
+            module child #(
+                parameter WIDTH = 1,
+                parameter LANES = 2
+            ) (
+                input logic a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                input logic a,
+                output logic y
+            );
+            child #(8, .LANES(2)) u_child (a, y);
+            endmodule
+            "#,
+        )
+        .expect_err("mixed ordered and named parameter overrides should fail at parse time");
+
+        assert!(
+            err.message
+                .contains("cannot mix positional and named parameter overrides")
+        );
     }
 
     #[test]

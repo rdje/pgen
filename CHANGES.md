@@ -1,11 +1,34 @@
 # CHANGES.md
+## 2026-04-17 - Align rtl_frontend mixed-list parse rejects
+### Achievement Summary
+Reduced the explicit `rtl_frontend` generated/handwritten divergence set by making the handwritten baseline reject mixed positional/named instance lists at parse time, matching the generated grammar contract for those two negative samples.
+
+### Scope of Changes
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) so `parse_parameter_overrides` and `parse_port_connections` reject mixed positional/named forms before AST construction.
+- Added focused handwritten parser tests for:
+  - mixed named/ordered port connections
+  - mixed ordered/named parameter overrides
+- Removed the two now-obsolete `expected_handwritten_parse_ok` overrides from [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The manifest still covers all `120` samples, and the explicit generated/handwritten divergence annotations now shrink from `14` to `12`.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused parse-boundary parity tightening, not generated grammar exhaustiveness or elaboration closure
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml parse_design_rejects_mixed --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+
 ## 2026-04-17 - Add rtl_frontend handwritten contract replay
 ### Achievement Summary
 Strengthened the `rtl_frontend_generated_contract_gate` so the curated `rtl_frontend` manifest is now checked against both the generated parser and the handwritten `rtl_frontend::parse_design` baseline.
 
 ### Scope of Changes
 - Added a dev-only handwritten replay test in [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) that reads [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) and checks all `120` samples against `parse_design`.
-- Added `expected_handwritten_parse_ok` manifest metadata for the `14` known generated/handwritten divergence samples so intentional bootstrap/generated differences are explicit and machine-checked.
+- Initially added `expected_handwritten_parse_ok` manifest metadata for the `14` known generated/handwritten divergence samples so intentional bootstrap/generated differences were explicit and machine-checked; a later same-day parity slice reduced the active count to `12`.
 - Wired the handwritten replay into [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh), after the existing generated parser/AST contract probe.
 - Updated the local workflow audit, Make target description, public book, README, live tracker, roadmap/architecture notes, and continuity docs.
 - Status impact:

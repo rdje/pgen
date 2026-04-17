@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-17 (+0200, task: rtl-frontend-handwritten-contract-replay)
+Last updated: 2026-04-17 (+0200, task: rtl-frontend-mixed-list-parse-parity)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` handwritten/generated parse-boundary parity for mixed instance lists:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - implementation:
+    - `parse_parameter_overrides` now rejects mixed positional/named parameter override lists at parse time
+    - `parse_port_connections` now rejects mixed positional/named port connection lists at parse time, with wildcard treated as part of the named-style family
+    - added focused handwritten parser tests for both mixed-list rejects
+  - proof impact:
+    - removed the now-obsolete handwritten divergence overrides for `mixed_named_ordered_port_connections` and `mixed_ordered_named_parameter_overrides`
+    - the shared manifest still has `120` samples
+    - explicit generated/handwritten divergence annotations are now `12`, down from `14`
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml parse_design_rejects_mixed --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_parse_surface --lib`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused parse-boundary parity tightening, not generated grammar exhaustiveness or elaboration closure
 - Strengthened the `rtl_frontend` generated contract gate with handwritten baseline replay:
   - changed:
     - [rtl_frontend/Cargo.toml](rtl_frontend/Cargo.toml)
