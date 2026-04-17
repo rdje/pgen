@@ -90,6 +90,8 @@ The symbolic non-unit generate-for lane now exact-locks the retained `generate`,
 
 The labeled `always_comb` retained-context lane now exact-locks `begin`, `if`, and `else` keyword spans, local parameter/net/range/port context, and selected recursive expression evidence around `labeled_always_comb_block` and `labeled_always_comb_parameter_exprs_and_packed_multi_nets`. This sharpens the parser-retained syntax bridge around labeled procedural blocks without claiming expression typing or elaboration closure.
 
+The module-local parameter/localparam lane now proves the retained parameter-sequence shape for both header parameters and module-body parameter statements. `module_local_parameter_and_localparam_items` exact-locks the header sequence, body `parameter EXTRA = DEPTH + 1`, body `localparam TOTAL = WIDTH * 2`, retained `parameter` / `localparam` keywords, and `output logic [DEPTH-1:0] y`, while subset-locking the relevant arithmetic and ternary expression text without claiming parameter evaluation or expression typing.
+
 For exact current status, always check:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`

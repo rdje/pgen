@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-04-17 - Tighten rtl_frontend module-local parameter proof
+### Achievement Summary
+Tightened the existing `rtl_frontend` generated-contract module-local parameter/localparam sample so it now proves retained header and body parameter sequences, keyword spans, port context, and high-signal expression text around the existing statement, net, and continuous-assignment locks.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `module_local_parameter_and_localparam_items`
+  - now exact-locks the retained `parameter_declaration_sequence` vector for the header parameters plus module-body `parameter EXTRA = DEPTH + 1` and `localparam TOTAL = WIDTH * 2`
+  - now exact-locks retained `parameter` and `localparam` keyword spans and `output logic [DEPTH-1:0] y` port-list context
+  - now subset-locks high-signal recursive expression text for `WIDTH + 4`, `DEPTH + 1`, `WIDTH * 2`, and `EXTRA > TOTAL ? EXTRA : TOTAL`
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is generated-contract retained-text proof tightening, not parameter evaluation, expression typing, dataflow typing, or elaboration closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-17 - Tighten rtl_frontend labeled always_comb context proof
 ### Achievement Summary
 Tightened the existing `rtl_frontend` generated-contract labeled `always_comb` samples so they now prove retained parameter, net, range, port, keyword, and selected expression context around the already locked procedural blocks and assignment targets.

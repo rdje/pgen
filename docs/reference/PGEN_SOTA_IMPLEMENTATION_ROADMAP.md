@@ -3467,6 +3467,10 @@ Why `rtl_frontend` exists:
     - `packed_union_width_mismatch_parse_surface` and `builtin_integral_packed_union_width_mismatch_parse_surface` now exact-lock full module declarations, simple output-port shells, inline union bodies, datatype/range or builtin keyword spans, and final net declarations,
     - this keeps semantic packed-union width evaluation outside the generated-parser proof claim while bringing the inline and builtin mismatch lanes up to the typedef-backed mismatch lane's retained-text standard,
     - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not semantic packed-union width evaluation or elaboration closure.
+  - Progress (2026-04-17): tightened module-local parameter/localparam retained-text proof:
+    - `module_local_parameter_and_localparam_items` now exact-locks retained parameter-sequence spans for header parameters and module-body parameter/localparam items,
+    - salient retained text now includes `parameter` / `localparam` keyword spans, `output logic [DEPTH-1:0] y`, and subset expression evidence for `WIDTH + 4`, `DEPTH + 1`, `WIDTH * 2`, and `EXTRA > TOTAL ? EXTRA : TOTAL`,
+    - kept the live `rtl_frontend` row at `In Progress` because this is generated-contract proof tightening, not parameter evaluation, expression typing, dataflow typing, or elaboration closure.
   - Progress (2026-04-17): tightened labeled `always_comb` context retained-text proof:
     - `labeled_always_comb_block` and `labeled_always_comb_parameter_exprs_and_packed_multi_nets` now exact-lock retained `begin`, `if`, and `else` keyword spans plus local declaration/range/port context around the already locked procedural blocks,
     - salient retained text now includes `parameter SEL = 1`, `logic data, scratch;`, `logic [WIDTH-1:0] data, scratch;`, `[WIDTH-1:0]`, `output logic y`, and subset expression evidence for `WIDTH + TOTAL`, `TOTAL + 1`, and `EXTRA > 0`,

@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-17 - rtl_frontend module-local parameter retained-text tightening
+### Context
+The `module_local_parameter_and_localparam_items` generated-contract sample already exact-locked statement-level parameter/localparam text, declaration heads/tails, the local net declaration, and the downstream continuous assignment. It still only presence-checked the retained parameter-sequence spans, keyword tokens, port-list context, and recursive expression evidence.
+
+### Decision
+- Tighten the existing `module_local_parameter_and_localparam_items` sample rather than add another parameter fixture.
+- Use `expected_rule_texts` for stable retained vectors:
+  - `parameter_declaration_sequence`
+  - `kw_parameter`
+  - `kw_localparam`
+  - `port_list`
+- Keep `required_rule_texts` for recursive expression evidence:
+  - `conditional_expr`
+  - `additive_expr`
+  - `multiplicative_expr`
+- Retain the exact AST-observed `parameter_declaration_sequence` shape:
+  - the header parameter list is one sequence span
+  - the module-body `parameter` statement is a second sequence span
+  - the module-body `localparam` statement is a third sequence span
+- Keep broad `module_declaration` exact locks out of this slice; the proof value is local parameter/dataflow context.
+- Keep parameter evaluation, expression typing, dataflow typing, and elaboration outside this generated-parser proof claim.
+- Keep the live `rtl_frontend` row at `In Progress`.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added exact retained-text checks for the full `parameter_declaration_sequence` vector
+  - added exact retained-text checks for three `parameter` keyword spans and one `localparam` keyword span
+  - added exact retained-text proof for `output logic [DEPTH-1:0] y`
+  - added subset retained-text proof for `WIDTH + 4`, `DEPTH + 1`, `WIDTH * 2`, and `EXTRA > TOTAL ? EXTRA : TOTAL`
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not required for this slice because it changes the generated-contract manifest plus documentation only, not Rust source or generated Rust artifacts.
+
 ## 2026-04-17 - rtl_frontend labeled always_comb context retained-text tightening
 ### Context
 The generated contract already exact-locked the labeled `always_comb` procedural blocks and assignment-target vectors, but two labeled samples still relied on broad rule presence for the surrounding declarations, keyword tokens, range context, and selected recursive expression spans. That made the procedural-block text stronger than the syntax context around it.

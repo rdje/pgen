@@ -716,6 +716,11 @@
         "generate_region"
       ],
       "expected_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter WIDTH = 8,\n    parameter DEPTH = WIDTH + 4",
+          "parameter EXTRA = DEPTH + 1",
+          "localparam TOTAL = WIDTH * 2"
+        ],
         "parameter_declaration_statement": [
           "parameter EXTRA = DEPTH + 1;",
           "localparam TOTAL = WIDTH * 2;"
@@ -728,11 +733,37 @@
         "parameter_declaration_tail": [
           "parameter DEPTH = WIDTH + 4"
         ],
+        "kw_parameter": [
+          "parameter",
+          "parameter",
+          "parameter"
+        ],
+        "kw_localparam": [
+          "localparam"
+        ],
+        "port_list": [
+          "output logic [DEPTH-1:0] y"
+        ],
         "net_declaration": [
           "logic [TOTAL-1:0] data;"
         ],
         "continuous_assign": [
           "assign y = EXTRA > TOTAL ? EXTRA : TOTAL;"
+        ]
+      },
+      "required_rule_texts": {
+        "conditional_expr": [
+          "WIDTH + 4",
+          "DEPTH + 1",
+          "WIDTH * 2",
+          "EXTRA > TOTAL ? EXTRA : TOTAL"
+        ],
+        "additive_expr": [
+          "WIDTH + 4",
+          "DEPTH + 1"
+        ],
+        "multiplicative_expr": [
+          "WIDTH * 2"
         ]
       },
       "sample": "module arithmetic #(\n    parameter WIDTH = 8,\n    parameter DEPTH = WIDTH + 4\n) (\n    output logic [DEPTH-1:0] y\n);\nparameter EXTRA = DEPTH + 1;\nlocalparam TOTAL = WIDTH * 2;\nlogic [TOTAL-1:0] data;\nassign y = EXTRA > TOTAL ? EXTRA : TOTAL;\nendmodule\n"
