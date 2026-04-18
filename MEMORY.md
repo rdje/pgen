@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl_frontend-instance-array-named-port-replay)
+Last updated: 2026-04-18 (+0200, task: rtl_frontend-scalar-named-override-replay)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,44 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added scalar `rtl_frontend` named-override elaboration replay:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - promoted `scalar_named_parameter_override_and_named_ports` into accepted `expected_elaboration`
+    - added a focused handwritten-baseline unit test for `child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));`
+    - locked top parameter `TOP_W = 8`
+    - locked child path `top.u_child`
+    - locked child parameter `WIDTH = 8`
+    - locked named `a` and `y` bindings
+    - raised the replay floor to `43` semantic samples, `33` accepts, `10` rejects, `10` child-path samples, `16` top-parameter checks, `12` child-parameter checks, and `61` child-port-binding checks
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration?.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration?.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration?.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_scalar_named_parameter_overrides --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+    - markdown checkout-specific absolute-path audit returned no matches
+  - important continuity detail:
+    - no live parser-family label changed; `rtl_frontend` remains `In Progress`
+    - `clippy_on_rust_change` skipped because this slice lives in companion crate `rtl_frontend/`; strict `cargo clippy` on that crate is the real lint proof
+    - this slice closes the scalar named-override elaboration seam and makes the `TOP_W -> WIDTH` parameter flow executable in the shared manifest
 - Added descending-range `rtl_frontend` instance-array named-port elaboration replay:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

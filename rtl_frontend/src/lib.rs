@@ -6327,6 +6327,53 @@ mod tests {
     }
 
     #[test]
+    fn elaborate_top_supports_scalar_named_parameter_overrides() {
+        let design = parse_design(
+            r#"
+            module child #(parameter WIDTH = 4) (
+                input logic [WIDTH-1:0] a,
+                output logic [WIDTH-1:0] y
+            );
+            endmodule
+
+            module top #(parameter TOP_W = 8) (
+                input logic [TOP_W-1:0] a,
+                output logic [TOP_W-1:0] y
+            );
+            child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("TOP_W"), Some(&8));
+        assert_eq!(elaborated.child_instances.len(), 1);
+        assert_eq!(elaborated.child_instances[0].instance_name, "u_child");
+        assert_eq!(elaborated.child_instances[0].path, "top.u_child");
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("WIDTH"),
+            Some(&8)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::Signal("a".to_string())),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::Signal("y".to_string())),
+                },
+            ]
+        );
+    }
+
+    #[test]
     fn elaboration_preserves_typed_parent_actuals() {
         let design = parse_design(
             r#"

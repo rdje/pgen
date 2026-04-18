@@ -5115,6 +5115,42 @@
           "[TOP_W-1:0]"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "top_parameters": {
+          "TOP_W": 8
+        },
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.u_child",
+            "name": "WIDTH",
+            "value": 8
+          }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
       "sample": "module child #(parameter WIDTH = 4) (\n    input logic [WIDTH-1:0] a,\n    output logic [WIDTH-1:0] y\n);\nendmodule\n\nmodule top #(parameter TOP_W = 8) (\n    input logic [TOP_W-1:0] a,\n    output logic [TOP_W-1:0] y\n);\nchild #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));\nendmodule\n"
     },
     {
