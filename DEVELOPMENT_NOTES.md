@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend ordered positional repetition replay ratcheted
+### Context
+The generated-contract manifest already had parse-surface coverage for `ordered_parameter_and_port_actual_repetition`, but the handwritten elaboration replay still did not lock the semantic shape of the simplest positional-override and repetition sample. That left both positional parameter evaluation and `Repeat` child-actual preservation outside the shared crash-recoverable ratchet.
+
+### Decision
+- Promote `ordered_parameter_and_port_actual_repetition` into accepted `expected_elaboration`.
+- Lock child path `top.u_child`, child parameters `WIDTH = 8` and `LANES = 2`, ordered actual `bus[3]` as `bit_select`, and ordered actual `{2{a}}` as `repeat`.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `ordered_parameter_and_port_actual_repetition`
+  - locked `child_instance_count = 1`
+  - locked child path `top.u_child`
+  - locked child parameters `WIDTH = 8` and `LANES = 2`
+  - locked ordered actuals `bus[3]` as `bit_select` and `{2{a}}` as `repeat`
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added `elaborate_top_supports_ordered_parameter_overrides_and_repeat_actuals`
+  - proves that handwritten elaboration resolves positional parameter overrides and preserves the expected `BitSelect` and `Repeat` child actuals
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `44` samples, `34` accepts, `10` rejects, `11` child-path samples, `16` top-parameter checks, `14` child-parameter checks, and `63` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration?.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration?.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration?.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_ordered_parameter_overrides_and_repeat_actuals --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` still does not see companion-crate-only edits under `rtl_frontend/`, so strict `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` remains the authoritative lint proof for this slice.
+- This slice closes the ordered positional repetition seam without claiming broader grammar exhaustiveness, full elaboration parity, or parser-stack closure.
+
 ## 2026-04-18 - rtl_frontend scalar named-override elaboration replay ratcheted
 ### Context
 The generated-contract manifest already had parse-surface coverage for `scalar_named_parameter_override_and_named_ports`, but the handwritten elaboration replay still did not lock the semantic shape of the simplest named-override instantiation. That left a small but important gap: parameter override evaluation and the resulting child parameter/binding surface were only indirectly exercised by larger hierarchy samples.

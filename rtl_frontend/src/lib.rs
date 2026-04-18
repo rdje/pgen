@@ -6374,6 +6374,68 @@ mod tests {
     }
 
     #[test]
+    fn elaborate_top_supports_ordered_parameter_overrides_and_repeat_actuals() {
+        let design = parse_design(
+            r#"
+            module child #(
+                parameter WIDTH = 1,
+                parameter LANES = 2
+            ) (
+                input logic [WIDTH-1:0] a,
+                output logic [15:0] y
+            );
+            endmodule
+
+            module top (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            logic [7:0] bus;
+            child #(8, 2) u_child (bus[3], {2{a}});
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        assert_eq!(elaborated.child_instances.len(), 1);
+        assert_eq!(elaborated.child_instances[0].instance_name, "u_child");
+        assert_eq!(elaborated.child_instances[0].path, "top.u_child");
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("WIDTH"),
+            Some(&8)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("LANES"),
+            Some(&2)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::BitSelect {
+                        signal: "bus".to_string(),
+                        index: rtl_const_expr::parse_expression("3").unwrap(),
+                    }),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::Repeat {
+                        count: rtl_const_expr::parse_expression("2").unwrap(),
+                        value: Box::new(PortActual::Concat(vec![PortActual::Signal(
+                            "a".to_string(),
+                        )])),
+                    }),
+                },
+            ]
+        );
+    }
+
+    #[test]
     fn elaboration_preserves_typed_parent_actuals() {
         let design = parse_design(
             r#"

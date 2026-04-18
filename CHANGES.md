@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-18 - Add rtl_frontend ordered repetition replay ratchet
+### Achievement Summary
+Promoted ordered positional parameter-and-port repetition elaboration into the shared `rtl_frontend` generated-contract replay, raising the maintained semantic replay floor to `44` samples with `34` accepts and `10` rejects.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `expected_elaboration` for `ordered_parameter_and_port_actual_repetition`
+  - locked immediate child path `top.u_child`
+  - locked child parameters `WIDTH = 8` and `LANES = 2`
+  - locked ordered child actuals `bus[3]` as `bit_select` and `{2{a}}` as `repeat`
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added a focused handwritten-baseline unit test for `child #(8, 2) u_child (bus[3], {2{a}});`
+  - locked ordered positional override evaluation and repeat-actual preservation through `elaborate_top`
+- Updated README, the public book, the roadmap/reference architecture notes, the live tracker, and continuity docs to report the new `44/34/10/11/16/14/63` replay floor.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this strengthens curated semantic replay over the handwritten baseline, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration?.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration?.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration?.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_ordered_parameter_overrides_and_repeat_actuals --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
 ## 2026-04-18 - Add rtl_frontend scalar named-override replay ratchet
 ### Achievement Summary
 Promoted scalar named-parameter-override plus named-port elaboration into the shared `rtl_frontend` generated-contract replay, raising the maintained semantic replay floor to `43` samples with `33` accepts and `10` rejects.
