@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl_frontend-member-range-repetition-replay)
+Last updated: 2026-04-18 (+0200, task: rtl_frontend-ordered-member-range-repetition-replay)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,45 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added ordered member-range `rtl_frontend` repetition elaboration replay:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - promoted `ordered_actuals_repeat_concat_member_ranges` into accepted `expected_elaboration`
+    - raised `MIN_GENERATED_CONTRACT_ELABORATION_*` minima to `46/36/10/13/22/14/69`
+    - synchronized the tracked workflow-policy audit surface in `rust/scripts/ci_workflow_local_gate.sh` to the same minima
+    - added a focused handwritten-baseline unit test for `child u_child ({2{cfgs[IDX].data[HI:LO], d}}, cfgs[0].tag[HI:LO], y);`
+    - locked top parameters `IDX = 1`, `HI = 7`, and `LO = 0`
+    - locked child path `top.u_child`
+    - locked ordered port `a` as a repeated concat over member-range part-select plus signal actual
+    - locked ordered port `b` as a member-path `part_select`
+    - locked ordered port `y` as a direct signal actual
+    - raised the replay floor to `46` semantic samples, `36` accepts, `10` rejects, `13` child-path samples, `22` top-parameter checks, `14` child-parameter checks, and `69` child-port-binding checks
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_preserves_ordered_member_range_repeat_actuals --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changed; `rtl_frontend` remains `In Progress`
+    - this slice closes the ordered sibling of the member-range repetition seam and also makes the replay floor executable in the gate minima
 - Added named-port member-range `rtl_frontend` repetition elaboration replay:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

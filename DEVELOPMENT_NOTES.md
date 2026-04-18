@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend ordered member-range repetition replay ratcheted
+### Context
+The named-port member-range repetition lane was now under executable elaboration replay, but its ordered sibling `ordered_actuals_repeat_concat_member_ranges` was still parse-surface-only. That left an avoidable asymmetry in the crash-recoverable proof surface: the same typed actual shape was only semantically locked when spelled with named ports.
+
+### Decision
+- Promote `ordered_actuals_repeat_concat_member_ranges` into accepted `expected_elaboration`.
+- Lock top parameters `IDX = 1`, `HI = 7`, and `LO = 0`, child path `top.u_child`, ordered port `a` as a repeated concat over a member-range part-select plus signal actual, ordered port `b` as a member-path part-select, and ordered port `y` as a direct signal actual.
+- Raise the manifest-backed elaboration minima in `rtl_frontend/src/lib.rs` so the gate itself enforces the new `46/36/10/13/22/14/69` floor instead of leaving that ratchet only in docs.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `ordered_actuals_repeat_concat_member_ranges`
+  - locked `child_instance_count = 1`
+  - locked top parameters `IDX = 1`, `HI = 7`, and `LO = 0`
+  - locked child path `top.u_child`
+  - locked ordered port `a` as `repeat(concat(part_select(cfgs[IDX].data, HI, LO), signal(d)))`
+  - locked ordered port `b` as `part_select(cfgs[0].tag, HI, LO)`
+  - locked ordered port `y` as `signal(y)`
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised `MIN_GENERATED_CONTRACT_ELABORATION_*` minima to `46/36/10/13/22/14/69`
+  - added `elaboration_preserves_ordered_member_range_repeat_actuals`
+  - proves that handwritten elaboration preserves the ordered member-path `PartSelect` and nested `Repeat`/`Concat` child actuals
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the tracked workflow-policy audit surface so local CI parity enforces the same new elaboration minima
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `46` samples, `36` accepts, `10` rejects, `13` child-path samples, `22` top-parameter checks, `14` child-parameter checks, and `69` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_preserves_ordered_member_range_repeat_actuals --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This slice closes the ordered sibling of the member-range repetition seam and makes the documented replay floor executable in the gate itself.
+
 ## 2026-04-18 - rtl_frontend named-port member-range repetition replay ratcheted
 ### Context
 The generated-contract manifest already retained `named_port_actuals_repeat_member_ranges` as parse-surface evidence, but the shared handwritten elaboration replay still did not lock its semantic shape. That left a richer named-port seam outside the crash-recoverable ratchet: top-parameter visibility, member-path part-select actuals, and nested repeat-concat actual preservation were only implied by neighboring tests.
