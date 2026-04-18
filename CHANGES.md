@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-18 - Publish compiler and elaborator enablement roadmap
+### Achievement Summary
+Captured the compiler/elaborator brainstorming exchange as a maintained side roadmap and wired it into the main SOTA roadmap, the book, README, and live continuity/status surfaces.
+
+### Scope of Changes
+- Added [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md):
+  - codified the "PGEN as front-end workbench" doctrine
+  - documented what PGEN should own versus what downstream compiler and elaborator passes should still own
+  - captured high-value front-end capabilities, elaborator-oriented scaffolding, compiler-oriented scaffolding, API shape, validation surfaces, and milestone order
+  - fully recorded the exchange's main conclusion:
+    - PGEN can broaden its consumer base substantially by helping not only parser users and linter builders, but also compiler and elaborator builders
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added the new roadmap as a sibling to the linter-enablement lane
+  - added planned `Phase U` for compiler and elaborator workbench enablement
+- Updated book chapters:
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - [docs/book/src/developer-architecture.md](docs/book/src/developer-architecture.md)
+  - [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+  - to explain the new lane and point readers to the dedicated roadmap
+- Updated [README.md](README.md):
+  - added the new roadmap to fast-ramp and documentation-status surfaces
+- Updated live continuity/status surfaces:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is doctrine and implementation-roadmap capture for future work, not a landed parser-capability promotion
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-18 - Publish cross-language linter enablement roadmap
 ### Achievement Summary
 Captured the HDL signoff-linter planning exchange as a maintained side roadmap and wired it into the main SOTA roadmap, the public book, README, and live continuity/status surfaces.

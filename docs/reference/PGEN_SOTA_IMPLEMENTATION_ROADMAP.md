@@ -299,6 +299,8 @@ Dedicated linter-enablement follow-up:
 - that lane is intentionally broader than HDL even though SystemVerilog and VHDL are the first pressure points:
   - the target is cross-language semantic-seed, provenance, and export infrastructure for any PGEN-backed grammar that wants to support serious linting or similar semantic analysis,
   - HDL is the first proving ground because it already exists in-tree and has immediate signoff-grade demand.
+- the adjacent broader front-end workbench lane for compiler and elaborator creation is now tracked separately in:
+  - `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 
 Current implementation reality:
 - `return_annotation.ebnf` is currently an AST-shaping DSL, not a semantic-fact DSL,
@@ -3666,6 +3668,26 @@ Initial Phase T milestones:
 - execute preserved branch and mid-sequence semantic annotations as first-class runtime events,
 - pilot declaration, scope, process, assignment, pragma, and waiver seeds on constrained SystemVerilog and VHDL subsets,
 - publish stable embedding and CLI export APIs for semantic bundles.
+
+### Phase U (Planned): Compiler And Elaborator Workbench
+Objective: make PGEN a front-end workbench that materially accelerates compiler and elaborator creation without overclaiming whole-compiler auto-generation.
+
+Detailed plan:
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
+
+Phase U execution rule:
+- keep the ownership boundary explicit:
+  - PGEN should own front-end structure, provenance, semantic seeds, helper generation, and stable handoff surfaces,
+  - downstream compiler and elaborator passes should still own binding, typing, optimization, scheduling, and final back-end logic.
+- prefer cross-language workbench infrastructure over one-off HDL special cases even though HDL is the first proving ground.
+- treat semantic bundle work, stable node ids, traversal helpers, source fidelity, and handoff scaffolding as shared platform assets.
+
+Initial Phase U milestones:
+- freeze the "PGEN as front-end workbench" doctrine,
+- strengthen front-end bundle shape around CST or token fidelity, shaped ASTs, source spans, and stable node ids,
+- generate visitors, walkers, and typed query helpers,
+- reuse semantic-bundle export as shared compiler and elaborator substrate,
+- add first elaborator-oriented scaffolding for constant-expression capture, substitution, dependency, and connectivity handoff.
 
 ## Current Sprint: Pillar 1
 

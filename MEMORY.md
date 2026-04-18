@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: linter-enablement-roadmap-capture)
+Last updated: 2026-04-18 (+0200, task: compiler-elaborator-roadmap-capture)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,42 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Captured the compiler and elaborator enablement plan as a maintained sibling roadmap lane:
+  - changed:
+    - [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+    - [docs/book/src/developer-architecture.md](docs/book/src/developer-architecture.md)
+    - [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md)
+    - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - published a dedicated side roadmap for compiler and elaborator enablement
+    - made the "PGEN as front-end workbench" boundary explicit
+    - captured the main exchange outcome:
+      - support for compilers and elaborators can broaden the PGEN consumer base substantially
+      - the right boundary is stronger front-end structure, provenance, helper generation, and handoff surfaces rather than pretending to auto-generate a whole compiler
+    - documented:
+      - front-end workbench capabilities
+      - elaborator-oriented accelerators
+      - compiler-oriented accelerators
+      - API/export expectations
+      - milestone order
+    - wired the new roadmap into:
+      - the main SOTA roadmap
+      - the public book
+      - README
+      - live continuity/status surfaces
+  - validation:
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changed
+    - future implementation should treat `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md` and `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md` as sibling planning surfaces with shared infrastructure rather than re-deriving the doctrine from chat history
 - Captured the HDL-first but cross-language linter enablement plan as a maintained roadmap lane:
   - changed:
     - [docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md)

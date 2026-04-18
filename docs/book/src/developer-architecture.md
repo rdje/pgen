@@ -16,9 +16,27 @@ Generated artifacts are tracked on purpose. That makes clean-checkout validation
 
 PGEN still carries history from earlier bootstrap phases, but the active direction is explicit: Rust-first, EBNF-backed, proof-first generation.
 
+## Front-End Workbench Direction
+
+One increasingly important architectural direction is that PGEN should become a front-end workbench, not only a parser emitter.
+
+That means the architecture should increasingly support:
+
+- shaped ASTs,
+- optional lossless front-end fidelity where needed,
+- semantic-bundle export,
+- stable node ids,
+- generated traversal helpers,
+- and explicit handoff seams for downstream compiler, elaborator, and linter passes.
+
+The detailed planning surface for that direction now lives in:
+
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
+
 ## Primary Source Docs
 
 - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 - `docs/AST_GENERATOR_ARCHITECTURE.md`
 - `docs/ast_transformation_pipeline.md`
 - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`

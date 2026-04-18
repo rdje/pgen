@@ -47,6 +47,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
 - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
@@ -57,6 +58,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 - `LIVE_ACHIEVEMENT_STATUS.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 - `README.md`
 
 ### Quality and closure model
@@ -92,6 +94,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 ### Developer architecture
 
 - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 - `docs/AST_GENERATOR_ARCHITECTURE.md`
 - `docs/ast_transformation_pipeline.md`
 - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`

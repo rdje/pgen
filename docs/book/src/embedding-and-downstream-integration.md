@@ -41,6 +41,30 @@ The detailed platform plan for that lane lives in:
 
 - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 
+## Compiler And Elaborator-Oriented Downstream Surfaces
+
+Another explicit downstream direction is compiler and elaborator enablement.
+
+Here the goal is broader than linting. The goal is to let downstream tools start from a real front-end bundle instead of only:
+
+- parse success,
+- plus an opaque tree,
+- plus a lot of hand-written glue work.
+
+The longer-term workbench surface should therefore include:
+
+- lossless or source-faithful front-end structure where needed,
+- shaped ASTs,
+- stable node ids,
+- traversal and query helpers,
+- semantic-bundle export,
+- source-map and diagnostic-anchor fidelity,
+- and explicit handoff scaffolding into later binding, typing, lowering, or elaboration passes.
+
+The detailed platform plan for that lane lives in:
+
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
+
 ## Parser Registry
 
 The parser registry is the in-process discovery and routing seam used by several internal and proof paths. It matters because many contract lanes and probes do not call generated parsers directly; they go through registry-backed surfaces that downstream consumers can rely on more easily.
@@ -87,3 +111,4 @@ For that pending PNR/SDC lane, `docs/tcl/md/tcl.md` records a local Tcl syntax n
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`

@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - Compiler and elaborator workbench roadmap captured as a sibling platform lane
+### Context
+The follow-up exchange after the linter discussion made the next widening step explicit: support for serious front-end work should not stop at linting. If PGEN can generate or standardize stronger front-end products, it can help compiler and elaborator builders too, which broadens the potential consumer base materially. The important refinement was also boundary-related: PGEN should become a front-end workbench, not pretend to auto-generate an entire compiler.
+
+### Decision
+- Publish a second side roadmap dedicated to compiler and elaborator enablement.
+- Make it a sibling of the linter roadmap, not a replacement for it.
+- Keep the ownership boundary explicit:
+  - PGEN should own front-end structure, provenance, semantic seeds, helper generation, and stable handoff surfaces
+  - downstream compiler and elaborator passes should still own deeper semantic analysis and backend logic
+- Treat lossless or source-faithful front-end structure, stable node ids, traversal helpers, semantic bundles, constant-expression hooks, dependency/connectivity seeds, and IR handoff scaffolding as the key enabling surfaces.
+
+### What Was Changed
+- Added [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md):
+  - captured:
+    - doctrine
+    - ownership boundary
+    - front-end workbench capabilities
+    - elaborator-oriented accelerators
+    - compiler-oriented accelerators
+    - API/export expectations
+    - validation surfaces
+    - milestone order
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added a sibling cross-reference from the semantic-steering doctrine area
+  - added planned `Phase U` for compiler and elaborator workbench enablement
+- Updated the public book:
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - [docs/book/src/developer-architecture.md](docs/book/src/developer-architecture.md)
+  - [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+  - so the new roadmap is discoverable from both downstream and architecture-facing chapters
+- Updated [README.md](README.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the onboarding and continuity surfaces to the new roadmap lane
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- No live parser-family label changed.
+- The key retained stance is now explicit:
+  - PGEN should become a front-end workbench
+  - but should not overclaim whole-compiler auto-generation
+- Future implementation should treat the linter and compiler/elaborator lanes as siblings sharing semantic-bundle and provenance infrastructure rather than as competing directions.
+
 ## 2026-04-18 - Linter enablement roadmap captured as a first-class platform lane
 ### Context
 The HDL signoff-linter brainstorming clarified that PGEN's annotation support is already structurally strong enough to be the basis of a linter front-end, but not yet disciplined enough in schema, provenance, and export shape to count as a serious linter substrate. The important point was bigger than HDL itself: if PGEN gets this right, the same infrastructure should help any language linter built on a PGEN-backed grammar.
