@@ -5302,6 +5302,49 @@
           ".y(y)"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 2,
+        "child_paths": [
+          "top.lanes[1]",
+          "top.lanes[0]"
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.lanes[1]",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.lanes[1]",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          },
+          {
+            "path": "top.lanes[0]",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.lanes[0]",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
       "sample": "module child (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    output logic y\n);\nchild lanes[1:0] (.a(a), .y(y));\nendmodule\n"
     },
     {

@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend instance-array named-port expansion replay ratcheted
+### Context
+After promoting descending-range instance-array wildcard expansion, the next nearby semantic gap was `instance_array_with_named_ports`. The handwritten baseline already elaborated that sample cleanly, but the shared generated-contract manifest still treated `child lanes[1:0] (.a(a), .y(y));` as parse-surface-only evidence.
+
+### Decision
+- Promote `instance_array_with_named_ports` into accepted `expected_elaboration`.
+- Lock the same descending `[1:0]` child order already proven for the wildcard sibling: `top.lanes[1]`, then `top.lanes[0]`.
+- Lock named signal bindings for ports `a` and `y` on both instance-array elements.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `instance_array_with_named_ports`
+  - locked `child_instance_count = 2`
+  - locked immediate child paths `top.lanes[1]` and `top.lanes[0]`
+  - locked named signal bindings for `a` and `y` on both elements
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added `elaborate_top_expands_instance_arrays_with_named_ports`
+  - proves that handwritten elaboration preserves descending `[1:0]` instance-array order and the expected named child bindings
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `42` samples, `32` accepts, `10` rejects, `9` child-path samples, `15` top-parameter checks, `11` child-parameter checks, and `59` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration?.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration?.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration?.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_expands_instance_arrays_with_named_ports --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` still does not see companion-crate-only edits under `rtl_frontend/`, so strict `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` remains the authoritative lint proof for this slice.
+- This slice closes the adjacent descending-range named-port instance-array seam without claiming broader grammar exhaustiveness, full elaboration parity, or parser-stack closure.
+
 ## 2026-04-18 - rtl_frontend instance-array wildcard expansion replay ratcheted
 ### Context
 The shared `rtl_frontend` generated-contract replay had already promoted scalar wildcard expansion and richer named/ordered child actuals into `expected_elaboration`, but `instance_array_with_wildcard_ports` was still parse-surface-only. That left an awkward nearby gap: the handwritten baseline already knew how to expand wildcard connections and instance arrays, yet the crash-recoverable manifest did not lock their combined behavior or the descending `[1:0]` instance ordering.
