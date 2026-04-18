@@ -24,6 +24,23 @@ This matters especially for:
 - AST dump availability,
 - release-version metadata.
 
+## Linter-Oriented Downstream Surfaces
+
+One downstream direction now tracked explicitly is linter enablement. The idea is not that PGEN should become a linter by itself. The idea is that PGEN should be able to hand downstream tools a stronger front-end product than "just a parse tree."
+
+That means the longer-term downstream surface should include:
+
+- grammar-shaped ASTs,
+- provenance-carrying semantic seeds,
+- scope and declaration facts,
+- pragma and waiver capture,
+- version and dialect gating,
+- and stable machine-readable export for later attribution and rule engines.
+
+The detailed platform plan for that lane lives in:
+
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+
 ## Parser Registry
 
 The parser registry is the in-process discovery and routing seam used by several internal and proof paths. It matters because many contract lanes and probes do not call generated parsers directly; they go through registry-backed surfaces that downstream consumers can rely on more easily.
@@ -69,3 +86,4 @@ For that pending PNR/SDC lane, `docs/tcl/md/tcl.md` records a local Tcl syntax n
 - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`

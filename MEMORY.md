@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl_frontend-generate-if-else-dataflow-replay)
+Last updated: 2026-04-18 (+0200, task: linter-enablement-roadmap-capture)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,41 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Captured the HDL-first but cross-language linter enablement plan as a maintained roadmap lane:
+  - changed:
+    - [docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+    - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+    - [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md)
+    - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - published a dedicated side roadmap for linter enablement instead of burying the plan in continuity notes
+    - made the grammar-vs-attribution boundary explicit
+    - captured the current platform assessment:
+      - semantic annotations are already general enough structurally
+      - the missing work is schema discipline, provenance, mid-sequence execution, and stable export/API surfaces
+    - documented:
+      - preferred directive strategy using existing semantic directives first
+      - shared semantic-seed schema direction
+      - provenance-bearing fact/event export expectations
+      - HDL-first milestone order that generalizes to any PGEN-backed grammar
+    - wired the new roadmap into:
+      - the main SOTA roadmap
+      - the public book
+      - README
+      - live continuity/status surfaces
+  - validation:
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changed
+    - future implementation should start from `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md` rather than re-deriving the doctrine from chat history
 - Added generate-if/else dataflow `rtl_frontend` elaboration replay:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

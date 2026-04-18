@@ -293,6 +293,13 @@ Engine generalization rule:
 ## Annotation-Driven Semantic Steering Doctrine
 PGEN should treat `EBNF + semantic annotations + return annotations` as one combined parsing toolkit rather than as three unrelated features.
 
+Dedicated linter-enablement follow-up:
+- the next major semantic-annotation widening beyond parser and stimuli steering is now tracked in:
+  - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+- that lane is intentionally broader than HDL even though SystemVerilog and VHDL are the first pressure points:
+  - the target is cross-language semantic-seed, provenance, and export infrastructure for any PGEN-backed grammar that wants to support serious linting or similar semantic analysis,
+  - HDL is the first proving ground because it already exists in-tree and has immediate signoff-grade demand.
+
 Current implementation reality:
 - `return_annotation.ebnf` is currently an AST-shaping DSL, not a semantic-fact DSL,
 - generated and bootstrap return-annotation parsing currently build `UnifiedReturnAST` only,
@@ -619,6 +626,14 @@ Near-term rollout:
     - mid-sequence annotations are preserved, not executed
   - next recommended step:
     - define and implement position-sensitive execution semantics for preserved mid-sequence annotations without changing the shared `@name: payload` syntax
+
+Phase-T relationship:
+- the declaration/scope/fact/predicate ideas above remain the parser-layer steering doctrine,
+- the dedicated linter roadmap extends that doctrine into:
+  - shared semantic-seed schema,
+  - provenance-rich fact/event export,
+  - stable embedding and CLI bundle APIs,
+  - and explicit parser-to-attribution handoff contracts.
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.
@@ -3630,6 +3645,27 @@ Why `rtl_frontend` exists:
   - gate-level Verilog netlist reader for stronger equivalence/debug loops,
   - pipeline/config parser for TOML/YAML/JSON pass scripts,
   - optional SDF reader for round-trip timing validation if that workflow becomes necessary.
+
+### Phase T (Planned): Cross-Language Linter Enablement
+Objective: turn PGEN's annotation-capable parsing pipeline into a stable front-end substrate for serious linters, starting with HDL signoff-oriented consumers and generalizing to any PGEN-backed grammar.
+
+Detailed plan:
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+
+Phase T execution rule:
+- keep the grammar-vs-attribution boundary explicit:
+  - grammar and semantic annotations emit local semantic seeds,
+  - later attribution computes global meaning and rule-facing query surfaces.
+- prefer widening the existing semantic annotation system over inventing a brand-new annotation language prematurely.
+- require provenance-rich fact and event export, not only internal runtime state.
+- treat HDL as the first proving ground, not as a one-off special case.
+
+Initial Phase T milestones:
+- freeze a shared semantic-seed schema with language-specific overlays,
+- add provenance-bearing semantic fact and event records,
+- execute preserved branch and mid-sequence semantic annotations as first-class runtime events,
+- pilot declaration, scope, process, assignment, pragma, and waiver seeds on constrained SystemVerilog and VHDL subsets,
+- publish stable embedding and CLI export APIs for semantic bundles.
 
 ## Current Sprint: Pillar 1
 

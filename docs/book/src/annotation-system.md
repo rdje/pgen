@@ -14,6 +14,23 @@ Semantic annotations steer parser-generation behavior and related transformation
 
 Together, these two annotation families make PGEN a parser platform rather than only a parser emitter.
 
+## Semantic Seeds And Linters
+
+The next major widening for semantic annotations is not "more random annotation flexibility." It is a disciplined semantic-seed layer that downstream tools such as linters can trust.
+
+The intended model is:
+
+- the grammar emits local semantic seeds,
+- the parser preserves source fidelity and provenance,
+- later attribution passes compute broader meaning such as binding, typing, and flow,
+- and downstream rule engines consume that attributed model rather than guessing from raw parse trees.
+
+That matters first for HDL signoff-style consumers, but it is not an HDL-only idea. If PGEN lands the right semantic-seed, provenance, and export infrastructure, the same platform work should help any linter built on any PGEN-backed grammar.
+
+The detailed planning surface for that lane now lives in:
+
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+
 ## Why They Matter
 
 Without annotations, grammar-driven generation can still produce parsers. With annotations, PGEN can also control:
@@ -49,6 +66,7 @@ Annotation support is not considered real just because syntax exists. It is expe
 ## Primary Source Docs
 
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
 - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`

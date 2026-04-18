@@ -38,6 +38,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 ### Annotation system
 
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
 - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
@@ -45,6 +46,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 ### Embedding and downstream integration
 
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
 - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
@@ -54,6 +56,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 
 - `LIVE_ACHIEVEMENT_STATUS.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `README.md`
 
 ### Quality and closure model

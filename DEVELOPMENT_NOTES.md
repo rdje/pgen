@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - Linter enablement roadmap captured as a first-class platform lane
+### Context
+The HDL signoff-linter brainstorming clarified that PGEN's annotation support is already structurally strong enough to be the basis of a linter front-end, but not yet disciplined enough in schema, provenance, and export shape to count as a serious linter substrate. The important point was bigger than HDL itself: if PGEN gets this right, the same infrastructure should help any language linter built on a PGEN-backed grammar.
+
+### Decision
+- Publish a dedicated side roadmap for linter enablement instead of burying the planning in continuity notes or one paragraph inside the main SOTA roadmap.
+- Keep the grammar-vs-attribution boundary explicit:
+  - grammar and semantic annotations emit local semantic seeds
+  - later attribution computes broader meaning
+- Prefer widening the existing semantic annotation system over inventing a brand-new annotation language.
+- Treat HDL as the first proving ground, not the only target.
+
+### What Was Changed
+- Added [docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md):
+  - captured:
+    - doctrine
+    - current platform assessment
+    - directive strategy
+    - semantic-seed schema direction
+    - API/export expectations
+    - validation surfaces
+    - milestone order
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added an explicit cross-link from the semantic-steering doctrine
+  - added planned `Phase T` for cross-language linter enablement
+- Updated the public book:
+  - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+  - so the new roadmap is discoverable from the public surface
+- Updated [README.md](README.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the live continuity and onboarding surfaces to the new roadmap lane
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- No live parser-family label changed.
+- The important implementation stance is now recorded explicitly:
+  - semantic annotations are already general enough structurally
+  - the missing work is schema discipline, provenance, execution coverage, and export/API polish
+- Future implementation should start from the side roadmap instead of re-debating the basic architecture.
+
 ## 2026-04-18 - rtl_frontend generate-if/else dataflow replay ratcheted
 ### Context
 The retained `generate_if_else_with_dataflow` sample already proved the parser-side shape of a labeled true/false generate branch with branch-local continuous assignments, but its semantics were still only implied by nearby integrated hierarchy/generate samples. That left a small but high-signal hole in the shared replay surface: the simplest branch-selecting generate-if/else lane still had no direct handwritten elaboration proof.

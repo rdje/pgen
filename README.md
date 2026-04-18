@@ -66,11 +66,12 @@ PGEN is a production-focused parser and stimuli generator platform.
 6. `LIVE_ACHIEVEMENT_STATUS.md`
 7. `docs/reference/RUST_CODEBASE_ANALYSIS.md`
 8. `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-9. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-10. `CHANGES.md`
-11. `DEVELOPMENT_NOTES.md`
-12. `MEMORY.md`
-13. `COMMIT.md`
+9. `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+10. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+11. `CHANGES.md`
+12. `DEVELOPMENT_NOTES.md`
+13. `MEMORY.md`
+14. `COMMIT.md`
 
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)
@@ -209,6 +210,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `LIVE_ACHIEVEMENT_STATUS.md`
   - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - Historical/reference docs are still tracked for context, but some describe superseded workflows or earlier project phases.

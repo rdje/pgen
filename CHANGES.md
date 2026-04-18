@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-18 - Publish cross-language linter enablement roadmap
+### Achievement Summary
+Captured the HDL signoff-linter planning exchange as a maintained side roadmap and wired it into the main SOTA roadmap, the public book, README, and live continuity/status surfaces.
+
+### Scope of Changes
+- Added [docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md):
+  - codified the grammar-vs-attribution doctrine for linter enablement
+  - documented the current PGEN assessment
+  - proposed directive strategy, semantic-seed schema, API shape, validation surfaces, and milestone order
+  - made the HDL-first but cross-language intent explicit
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added a dedicated cross-reference from annotation-driven semantic steering
+  - added planned `Phase T` for cross-language linter enablement
+- Updated book chapters:
+  - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+  - to explain the new lane and point readers to the dedicated roadmap
+- Updated [README.md](README.md):
+  - added the new roadmap to the fast-ramp and documentation-status surfaces
+- Updated live continuity/status surfaces:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is doctrine and implementation-roadmap capture for future work, not a landed parser-capability promotion
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-18 - Add rtl_frontend generate-if/else replay
 ### Achievement Summary
 Promoted the retained generate-if/else dataflow lane into shared `rtl_frontend` generated-contract elaboration replay, raising the maintained semantic replay floor to `52` samples with `39` accepts and `13` rejects.

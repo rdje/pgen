@@ -58,6 +58,8 @@ When you want the honest current picture:
 2. read `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` for the rationale and next steps behind that snapshot,
 3. use the family-specific contracts and gates when the question is about one concrete parser surface.
 
+For platform lanes that are important but broader than one parser family, the main roadmap may also point to dedicated side roadmaps. The new linter-enablement lane is one example: it is tracked in the main roadmap, but its directives, schema, API shape, and milestone order live in its own maintained reference document.
+
 ## How Book Readers Should Use These Surfaces
 
 The book should explain the model and help readers navigate it. But the exact current truth still lives in the live tracker and roadmap documents themselves.
@@ -72,4 +74,5 @@ So the right reading pattern is:
 
 - `LIVE_ACHIEVEMENT_STATUS.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `README.md`
