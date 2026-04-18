@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl-frontend-expression-text-port-replay)
+Last updated: 2026-04-18 (+0200, task: rtl-frontend-readme-count-sync)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,23 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Synchronized the README `rtl_frontend` generated-contract counts after the prior expression-text replay ratchet:
+  - changed:
+    - [README.md](README.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - corrected the stale README overview from `37` semantic samples / `27` accepts to `38` semantic samples / `28` accepts
+    - clarified that selector-rich expression-text port actuals are part of the current replay surface
+  - validation:
+    - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `rg -n '37 curated semantic samples|27 accepts|at least 37 replay samples' README.md`
+    - `git diff --check`
+    - markdown checkout-specific absolute-path audit returned no matches
+  - important continuity detail:
+    - no parser source, grammar, generated artifact, manifest, gate, or live-status row changed
+    - public book and reference docs already matched the current `38/28/10/43` evidence
 - Added `rtl_frontend` manifest-backed `expression_text` child port-binding replay:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

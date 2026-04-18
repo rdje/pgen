@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - README rtl_frontend replay counts synchronized
+### Context
+After the `expression_text` child port-binding replay landed, most public/reference surfaces carried the current `rtl_frontend` manifest evidence, but the README's long `rtl_frontend` overview still retained the previous `37` semantic samples / `27` accepts wording in two places.
+
+### Decision
+- Treat the README as the public entrypoint and correct the stale counts immediately.
+- Do not amend source, grammar, generated artifacts, or the manifest in this slice.
+- Do not change the live tracker label: this is documentation synchronization after an already-committed evidence ratchet.
+
+### What Was Changed
+- [README.md](README.md):
+  - changed the overview from `37` semantic samples / `27` accepts to `38` semantic samples / `28` accepts
+  - clarified that the current replay includes selector-rich expression-text port actuals
+
+### Validation
+- Passed:
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `rg -n '37 curated semantic samples|27 accepts|at least 37 replay samples' README.md`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- The maintained evidence is still `38` semantic samples, `28` accepts, `10` rejects, and `43` child port-binding checks.
+- The public book and reference docs already matched those numbers before this slice.
+
 ## 2026-04-18 - rtl_frontend manifest replay covers expression-text actuals
 ### Context
 The previous child port-binding ratchet covered every structured `PortActual` family except the `ExpressionText` fallback. That fallback is intentionally used when the frontend accepts selector-rich expression text that is syntax-valid and identifier-valid but not represented directly by `rtl_const_expr::Expr`.

@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-04-18 - Sync README rtl_frontend replay counts
+### Achievement Summary
+Corrected the public README `rtl_frontend` overview so its elaboration replay counts match the manifest and the already-updated book/reference surfaces.
+
+### Scope of Changes
+- Updated [README.md](README.md) to report `38` curated semantic samples, `28` accepts, `10` rejects, and selector-rich expression-text port actual coverage in the `rtl_frontend` generated-contract overview.
+- Left the public book, reference roadmap, Rust architecture notes, and live tracker unchanged because they already carried the current `38/28/10/43` evidence.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is documentation synchronization only; no parser source, grammar, manifest, or gate behavior changed
+
+### Validation
+- Passed:
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `rg -n '37 curated semantic samples|27 accepts|at least 37 replay samples' README.md`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
 ## 2026-04-18 - Add rtl_frontend expression-text port replay
 ### Achievement Summary
 Promoted a selector-rich named-port actual sample into `rtl_frontend` elaboration replay so the generated-contract manifest now proves `expression_text` child port bindings, not only structurally parsed expression forms.
