@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl-frontend-wildcard-port-replay-ratchet)
+Last updated: 2026-04-18 (+0200, task: ci-workflow-local-gate-success-run-cleanup)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,29 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added self-pruning retention policy for successful local CI workflow-parity runs:
+  - changed:
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - successful `ci_workflow_local_gate` runs now remove their `rust/target/ci_workflow_local_gate/run.*` scratch directory automatically on exit
+    - failed runs are retained for triage
+    - `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1` preserves a successful run bundle deliberately
+  - validation:
+    - `bash -n rust/scripts/ci_workflow_local_gate.sh`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_STATE_DIR="$(mktemp -d /tmp/pgen-ci-local-gate.XXXXXX)" PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+    - `git diff --check`
+    - markdown checkout-specific absolute-path audit returned no matches
+  - important continuity detail:
+    - this is workflow-storage hygiene and continuity hardening only; no parser-family live label changed
+    - successful local-CI bundles no longer accumulate by default under `rust/target/ci_workflow_local_gate`
 - Added scalar wildcard `rtl_frontend` port-expansion replay:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

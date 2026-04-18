@@ -1,6 +1,29 @@
 #!/bin/bash
 set -euo pipefail
 
+fail() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+normalize_bool() {
+  local raw="${1:-}"
+  local name="${2:-boolean flag}"
+  local lowered
+  lowered="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
+  case "$lowered" in
+    1|true|yes|on)
+      printf 'true'
+      ;;
+    0|false|no|off|'')
+      printf 'false'
+      ;;
+    *)
+      fail "invalid boolean value for $name: '$raw'"
+      ;;
+  esac
+}
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
 STATE_DIR="${PGEN_CI_WORKFLOW_LOCAL_STATE_DIR:-$RUST_DIR/target/ci_workflow_local_gate}"
@@ -11,17 +34,37 @@ LOG_DIR="$RUN_DIR/logs"
 SUMMARY_FILE="$RUN_DIR/summary.txt"
 FILTER_RAW="${PGEN_CI_WORKFLOW_LOCAL_FILTER:-}"
 CARGO_OFFLINE_RAW="${PGEN_CI_WORKFLOW_LOCAL_CARGO_OFFLINE:-true}"
+KEEP_RUNS_RAW="${PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS:-false}"
+KEEP_RUNS_NORMALIZED="$(normalize_bool "$KEEP_RUNS_RAW" "PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS")"
 
 mkdir -p "$EXPORT_DIR" "$LOG_DIR"
-
-fail() {
-  echo "error: $*" >&2
-  exit 1
-}
 
 note() {
   echo "$*" | tee -a "$SUMMARY_FILE"
 }
+
+cleanup_run_dir_on_exit() {
+  local exit_code=$?
+
+  if [[ ! -d "$RUN_DIR" ]]; then
+    return "$exit_code"
+  fi
+
+  if [[ "$exit_code" -eq 0 ]]; then
+    if [[ "$KEEP_RUNS_NORMALIZED" == "true" ]]; then
+      echo "retaining successful run_dir: $RUN_DIR (PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=$KEEP_RUNS_RAW)"
+    else
+      echo "removing successful run_dir: $RUN_DIR"
+      rm -rf "$RUN_DIR" || echo "warning: failed to remove successful run_dir: $RUN_DIR" >&2
+    fi
+  else
+    echo "retaining failed run_dir: $RUN_DIR" >&2
+  fi
+
+  return "$exit_code"
+}
+
+trap cleanup_run_dir_on_exit EXIT
 
 require_tool() {
   local tool="$1"
@@ -2718,6 +2761,7 @@ main() {
   note "run_dir: $RUN_DIR"
   note "filter: ${FILTER_RAW:-<all>}"
   note "cargo_offline: $CARGO_OFFLINE_RAW"
+  note "keep_success_runs: $KEEP_RUNS_NORMALIZED"
 
   require_tool git
   require_tool cargo

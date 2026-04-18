@@ -134,6 +134,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - focused replay example:
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - successful runs under `rust/target/ci_workflow_local_gate/run.*` are removed automatically after analysis; failed runs are retained for triage
+  - set `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1` when a successful export/log bundle should be preserved deliberately
 - mdBook docs gate:
   - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
 - `rtl_frontend` generated contract gate:

@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-04-18 - Prune successful local CI scratch runs
+### Achievement Summary
+Taught the tracked local workflow-parity gate to clean up after itself by deleting successful `ci_workflow_local_gate` scratch exports while still retaining failed runs for diagnosis.
+
+### Scope of Changes
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) so successful runs now remove their `rust/target/ci_workflow_local_gate/run.*` directory on exit by default.
+- Added the explicit override `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1` for cases where a successful tracked export/log bundle should be preserved intentionally.
+- Documented the new retention policy in README, the public book, the live tracker, Rust architecture notes, and continuity docs.
+- Status impact:
+  - no live parser-family label changed
+  - all live parser-family rows remain unchanged
+  - this is workflow-storage hygiene and continuity hardening, not parser-surface or proof-surface expansion
+
+### Validation
+- Passed:
+  - `bash -n rust/scripts/ci_workflow_local_gate.sh`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_STATE_DIR="$(mktemp -d /tmp/pgen-ci-local-gate.XXXXXX)" PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
 ## 2026-04-18 - Add rtl_frontend wildcard-port replay ratchet
 ### Achievement Summary
 Promoted scalar wildcard port expansion into the shared `rtl_frontend` generated-contract elaboration replay, raising the maintained semantic replay surface to `40` samples with `30` accepts and `10` rejects.

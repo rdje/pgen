@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - local CI scratch retention made self-pruning
+### Context
+The tracked local workflow-parity gate exports a full tracked-tree snapshot under `rust/target/ci_workflow_local_gate/run.*` before replaying selected workflow commands. That is the right execution model for CI-like proof, but until now successful runs accumulated indefinitely unless someone remembered to clean them manually.
+
+### Decision
+- Make successful `ci_workflow_local_gate` runs delete their own scratch `run.*` directory automatically.
+- Retain failed runs by default so their exported tree and logs remain available for diagnosis.
+- Expose an explicit opt-out knob, `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1`, for cases where a successful bundle should be preserved deliberately.
+- Treat this as workflow-storage hygiene and continuity hardening, not as a change to any parser-family live-status row.
+
+### What Was Changed
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - added boolean parsing for `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS`
+  - records `keep_success_runs` in the run summary
+  - installs an exit-time cleanup policy that removes successful `run.*` directories and retains failed ones
+- [README.md](README.md) and [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md):
+  - documented the default success cleanup behavior and the keep-runs override
+- [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) and [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
+  - captured the operational policy so future sessions understand why successful local-CI bundles do not persist by default
+
+### Validation
+- Passed:
+  - `bash -n rust/scripts/ci_workflow_local_gate.sh`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_STATE_DIR="$(mktemp -d /tmp/pgen-ci-local-gate.XXXXXX)" PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- Successful local workflow-parity runs no longer pile up under `rust/target/ci_workflow_local_gate` unless `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1` is set.
+- Failed runs are still retained intentionally.
+
 ## 2026-04-18 - rtl_frontend scalar wildcard expansion replay ratcheted
 ### Context
 The handwritten `rtl_frontend` crate already had focused unit coverage for wildcard port expansion, but the shared generated-contract manifest still treated `scalar_wildcard_port_connection` as syntax/retained-text evidence only. That meant `child u_child (.*);` was not yet part of the crash-recoverable elaboration replay ratchet.

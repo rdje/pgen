@@ -59,6 +59,8 @@ This exists to approximate the tracked GitHub workflow surface from a tracked-on
 
 As of 2026-04-14, the hosted GitHub Actions workflows are intentionally manual-only (`workflow_dispatch`) to conserve account Actions minutes. The workflows still exist and can be started manually from GitHub when needed, but routine validation should use the local Make gates and `ci_workflow_local_gate` until hosted auto-runs are explicitly restored.
 
+By default, successful `ci_workflow_local_gate` runs now delete their own scratch `run.*` export directories under `rust/target/ci_workflow_local_gate` after the selected workflows complete. Failed runs are intentionally retained so the exported tracked tree and logs remain available for diagnosis. Set `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1` when you want to preserve a successful run on purpose.
+
 ## Working Style That Fits PGEN Best
 
 The most reliable pattern is:
