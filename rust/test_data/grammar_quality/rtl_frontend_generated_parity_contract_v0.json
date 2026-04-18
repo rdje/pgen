@@ -1140,7 +1140,13 @@
       "expected_elaboration": {
         "top": "arithmetic",
         "ok": true,
-        "child_instance_count": 0
+        "child_instance_count": 0,
+        "top_parameters": {
+          "WIDTH": 8,
+          "DEPTH": 12,
+          "EXTRA": 13,
+          "TOTAL": 16
+        }
       },
       "sample": "module arithmetic #(\n    parameter WIDTH = 8,\n    parameter DEPTH = WIDTH + 4\n) (\n    input logic [WIDTH-1:0] a,\n    input logic [WIDTH-1:0] b,\n    output logic [DEPTH-1:0] y\n);\nparameter EXTRA = DEPTH + 1;\nlocalparam TOTAL = WIDTH * 2;\nlogic [WIDTH-1:0] data, scratch;\nassign y = DEPTH > WIDTH ? DEPTH : WIDTH;\nalways_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend\ngenerate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate\nendmodule\n"
     },
@@ -1266,7 +1272,49 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 4
+        "child_instance_count": 4,
+        "top_parameters": {
+          "TOP_W": 8,
+          "USE_LEAF": 1
+        },
+        "child_paths": [
+          "top.direct",
+          "top.gated_scope.gated",
+          "top.lanes[0].lane",
+          "top.lanes[1].lane"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.direct",
+            "name": "WIDTH",
+            "value": 8
+          },
+          {
+            "path": "top.direct",
+            "name": "OFFSET",
+            "value": 9
+          },
+          {
+            "path": "top.gated_scope.gated",
+            "name": "WIDTH",
+            "value": 7
+          },
+          {
+            "path": "top.gated_scope.gated",
+            "name": "OFFSET",
+            "value": 8
+          },
+          {
+            "path": "top.lanes[0].lane",
+            "name": "WIDTH",
+            "value": 1
+          },
+          {
+            "path": "top.lanes[1].lane",
+            "name": "WIDTH",
+            "value": 2
+          }
+        ]
       },
       "sample": "module leaf #(\n    parameter WIDTH = 1,\n    parameter OFFSET = WIDTH + 1\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [OFFSET-1:0] y\n);\nendmodule\n\nmodule top #(\n    parameter TOP_W = 8,\n    parameter USE_LEAF = 1\n) (\n    input logic [TOP_W-1:0] a,\n    output logic [TOP_W:0] y\n);\nleaf #(.WIDTH(TOP_W)) direct (.a(a), .y(y));\ngenerate\n    if (USE_LEAF) begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end\n    for (genvar i = 0; i < 2; i = i + 1) begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end\nendgenerate\nendmodule\n"
     },
@@ -2508,7 +2556,21 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "top_parameters": {
+          "LANES": 2,
+          "TOTAL": 12
+        },
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.u_child",
+            "name": "W",
+            "value": 12
+          }
+        ]
       },
       "sample": "package cfg_pkg;\n    localparam WIDTH = 8;\n    parameter DEPTH = WIDTH + 2;\nendpackage\n\nmodule child #(\n    parameter W = 1\n) (\n    input logic [W-1:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter LANES = cfg_pkg::WIDTH / 4\n) (\n    input logic [cfg_pkg::DEPTH-1:0] data,\n    output logic y\n);\nlocalparam TOTAL = cfg_pkg::DEPTH + LANES;\nchild #(.W(TOTAL)) u_child (.a(data[cfg_pkg::DEPTH-1:0]), .y(y));\nendmodule\n"
     },
@@ -2574,7 +2636,21 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "top_parameters": {
+          "LANES": 2,
+          "TOTAL": 11
+        },
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.u_child",
+            "name": "W",
+            "value": 11
+          }
+        ]
       },
       "sample": "package cfg_pkg;\n    localparam WIDTH = 8;\n    localparam DEPTH = WIDTH + 1;\nendpackage\n\nmodule child #(\n    parameter W = 1\n) (\n    input logic [W-1:0] a,\n    output logic y\n);\nendmodule\n\nmodule top import cfg_pkg::*; #(\n    parameter LANES = WIDTH / 4\n) (\n    input logic [DEPTH-1:0] data,\n    output logic y\n);\nlocalparam TOTAL = DEPTH + LANES;\nchild #(.W(TOTAL)) u_child (.a(data[WIDTH-1:0]), .y(y));\nendmodule\n"
     },
@@ -2636,7 +2712,20 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "top_parameters": {
+          "TOTAL": 9
+        },
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.u_child",
+            "name": "W",
+            "value": 9
+          }
+        ]
       },
       "sample": "package cfg_pkg;\n    localparam WIDTH = 8;\nendpackage\n\nmodule child #(\n    parameter W = 1\n) (\n    input logic [W-1:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic [8:0] data,\n    output logic y\n);\nimport cfg_pkg::WIDTH;\nlocalparam TOTAL = WIDTH + 1;\nchild #(.W(TOTAL)) u_child (.a(data[WIDTH:0]), .y(y));\nendmodule\n"
     },
@@ -4933,7 +5022,26 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 2
+        "child_instance_count": 2,
+        "top_parameters": {
+          "LANES": 2
+        },
+        "child_paths": [
+          "top.lane[0]",
+          "top.lane[1]"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.lane[0]",
+            "name": "WIDTH",
+            "value": 2
+          },
+          {
+            "path": "top.lane[1]",
+            "name": "WIDTH",
+            "value": 2
+          }
+        ]
       },
       "sample": "module child #(\n    parameter WIDTH = 1\n) (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter LANES = 2\n) (\n    input logic a,\n    output logic y\n);\nchild #(.WIDTH(LANES)) lane[0:LANES-1] (.a(a), .y(y));\nendmodule\n"
     },

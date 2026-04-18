@@ -858,6 +858,24 @@ audit_rtl_frontend_generated_contract_surface() {
     'MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 10'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
+    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 5'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
+    'MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 12'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
+    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 11'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
+    '"top_parameters"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
+    '"child_paths"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
+    '"child_parameters"'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
     'current rtl_frontend generated contract samples should parse the same way'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \

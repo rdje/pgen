@@ -1,4 +1,53 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend elaboration replay gains structural checks
+### Context
+The previous `rtl_frontend` elaboration slice ratcheted the number of manifest-backed semantic replay samples, but accepted hierarchy samples still mostly proved "elaboration succeeded" plus an immediate child count. That was useful, but too weak for Phase S steering: package-constant and hierarchy samples should also prove the values and paths the frontend computed.
+
+### Decision
+- Keep `expected_elaboration` as the manifest owner for handwritten semantic replay.
+- Add optional accepted-sample fields instead of forcing every syntax sample to become semantically rich:
+  - `top_parameters`
+  - `child_paths`
+  - `child_parameters`
+- Ratchet those fields with minimum proof counts:
+  - `5` child-path samples
+  - `12` top-parameter checks
+  - `11` child-parameter checks
+- Keep the generated parser side unchanged: this remains generated parse/retained-AST proof plus handwritten elaboration replay.
+
+### What Was Changed
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - extended `GeneratedContractElaboration`
+  - added child-path and parameter-value assertions to `generated_contract_manifest_matches_handwritten_elaboration_surface`
+  - added a private recursive child lookup helper for selected child-parameter checks
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - promoted arithmetic top-parameter values
+  - promoted direct/generate-if/generate-for child paths and child parameter values
+  - promoted package-qualified, header-imported, module-imported, and instance-array parameter/path expectations
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - audits the new minimum constants and manifest field names
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration.child_parameters? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This is a contract-strengthening slice over curated replay, not a claim that semantic elaboration parity is fully closed.
+- Next useful increments can either add more semantically meaningful micro-designs or start deriving broader elaboration-proof obligations from the supported subset.
+
 ## 2026-04-18 - rtl_frontend elaboration replay ratcheted to 37 samples
 ### Context
 The previous slice introduced optional manifest-backed `expected_elaboration` replay for `rtl_frontend`, but the executable guard only required the layer to be non-empty and two-sided. That was enough to establish the seam, but not enough to preserve the widened proof surface once more examples were promoted.

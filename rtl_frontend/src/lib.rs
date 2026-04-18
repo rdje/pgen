@@ -4403,9 +4403,9 @@ fn is_data_type_keyword(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        AssignmentTarget, DataType, EventEdge, GenerateFor, GenerateIf, ModuleItem, NetKind,
-        ParameterOverride, PortActual, PortConnection, ProceduralKind, Statement, ValueExpr,
-        parse_design, parse_module,
+        AssignmentTarget, DataType, ElaboratedInstance, EventEdge, GenerateFor, GenerateIf,
+        ModuleItem, NetKind, ParameterOverride, PortActual, PortConnection, ProceduralKind,
+        Statement, ValueExpr, parse_design, parse_module,
     };
     use serde::Deserialize;
     use std::collections::HashMap;
@@ -4438,12 +4438,28 @@ mod tests {
         #[serde(default)]
         child_instance_count: Option<usize>,
         #[serde(default)]
+        top_parameters: HashMap<String, i64>,
+        #[serde(default)]
+        child_paths: Vec<String>,
+        #[serde(default)]
+        child_parameters: Vec<GeneratedContractChildParameter>,
+        #[serde(default)]
         error_contains: Option<String>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct GeneratedContractChildParameter {
+        path: String,
+        name: String,
+        value: i64,
     }
 
     const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 37;
     const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 27;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 10;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 5;
+    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 12;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 11;
 
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
@@ -4517,6 +4533,9 @@ mod tests {
         let mut checked = 0usize;
         let mut expected_accepts = 0usize;
         let mut expected_rejects = 0usize;
+        let mut child_path_samples = 0usize;
+        let mut top_parameter_checks = 0usize;
+        let mut child_parameter_checks = 0usize;
         for sample in &manifest.samples {
             let Some(expectation) = &sample.expected_elaboration else {
                 continue;
@@ -4552,6 +4571,50 @@ mod tests {
                         sample.label
                     );
                 }
+                if !expectation.child_paths.is_empty() {
+                    child_path_samples += 1;
+                    let actual_paths = elaborated
+                        .child_instances
+                        .iter()
+                        .map(|instance| instance.path.clone())
+                        .collect::<Vec<_>>();
+                    assert_eq!(
+                        actual_paths, expectation.child_paths,
+                        "sample '{}' elaborated unexpected immediate child paths",
+                        sample.label
+                    );
+                }
+                for (name, expected_value) in &expectation.top_parameters {
+                    top_parameter_checks += 1;
+                    assert_eq!(
+                        elaborated.parameters.get(name),
+                        Some(expected_value),
+                        "sample '{}' elaborated unexpected top parameter '{}'",
+                        sample.label,
+                        name
+                    );
+                }
+                for expected_parameter in &expectation.child_parameters {
+                    child_parameter_checks += 1;
+                    let child = find_elaborated_child_by_path(
+                        &elaborated.child_instances,
+                        &expected_parameter.path,
+                    )
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "sample '{}' should elaborate child path '{}'",
+                            sample.label, expected_parameter.path
+                        )
+                    });
+                    assert_eq!(
+                        child.parameters.get(&expected_parameter.name),
+                        Some(&expected_parameter.value),
+                        "sample '{}' elaborated unexpected child parameter '{}.{}'",
+                        sample.label,
+                        expected_parameter.path,
+                        expected_parameter.name
+                    );
+                }
             } else {
                 expected_rejects += 1;
                 let error = match result {
@@ -4585,6 +4648,33 @@ mod tests {
             expected_rejects >= MIN_GENERATED_CONTRACT_ELABORATION_REJECTS,
             "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_REJECTS} negative elaboration replay samples, got {expected_rejects}"
         );
+        assert!(
+            child_path_samples >= MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES,
+            "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES} child-path elaboration replay samples, got {child_path_samples}"
+        );
+        assert!(
+            top_parameter_checks >= MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS,
+            "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS} top-parameter elaboration checks, got {top_parameter_checks}"
+        );
+        assert!(
+            child_parameter_checks >= MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS,
+            "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS} child-parameter elaboration checks, got {child_parameter_checks}"
+        );
+    }
+
+    fn find_elaborated_child_by_path<'a>(
+        children: &'a [ElaboratedInstance],
+        path: &str,
+    ) -> Option<&'a ElaboratedInstance> {
+        for child in children {
+            if child.path == path {
+                return Some(child);
+            }
+            if let Some(found) = find_elaborated_child_by_path(&child.child_instances, path) {
+                return Some(found);
+            }
+        }
+        None
     }
 
     #[test]

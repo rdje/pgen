@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-18 - Strengthen rtl_frontend elaboration structure replay
+### Achievement Summary
+Strengthened the `rtl_frontend` generated-contract elaboration replay layer so selected accepted samples now prove expected structure and parameter values, not only accept/reject outcomes and immediate child counts.
+
+### Scope of Changes
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) generated-contract replay metadata with optional accepted-elaboration checks:
+  - `top_parameters` for selected top-module constant values
+  - `child_paths` for exact immediate hierarchy paths
+  - `child_parameters` for selected child-instance parameter values
+- Added structural/constant expectations to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) for arithmetic, direct/generate hierarchy, package-constant, import-constant, and parameterized instance-array samples.
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) so local CI audits the new structural ratchet literals and manifest fields.
+- Updated README, the public book, live tracker, roadmap, Rust architecture notes, and continuity docs to describe the stronger elaboration replay surface.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this strengthens curated semantic replay over the handwritten baseline, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration.child_parameters? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
 ## 2026-04-18 - Ratchet rtl_frontend elaboration replay coverage
 ### Achievement Summary
 Widened the `rtl_frontend` generated-contract manifest from a first elaboration-replay foothold into a ratcheted 37-sample semantic replay contract over the same curated generated/handwritten parse-parity surface.
