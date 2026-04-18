@@ -4494,13 +4494,13 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 50;
-    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 37;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 51;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 38;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 14;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 15;
     const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 23;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 71;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 75;
 
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
@@ -6489,6 +6489,79 @@ mod tests {
                 super::ResolvedPortBinding {
                     port_name: "y".to_string(),
                     actual: Some(PortActual::Signal("y".to_string())),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn elaborate_top_supports_generate_for_named_instantiation_and_dataflow() {
+        let design = parse_design(
+            r#"
+            module leaf (
+                input logic [7:0] a,
+                output logic [7:0] y
+            );
+            endmodule
+
+            module top (
+                input logic [7:0] a,
+                output logic [7:0] y0,
+                output logic [7:0] y1
+            );
+            genvar i;
+            logic [7:0] ys [0:1];
+            generate
+                for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop
+                    leaf u_leaf (.a(a), .y(ys[i]));
+                end
+            endgenerate
+            assign y0 = ys[0];
+            assign y1 = ys[1];
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        assert_eq!(elaborated.child_instances.len(), 2);
+        assert_eq!(elaborated.child_instances[0].instance_name, "u_leaf");
+        assert_eq!(elaborated.child_instances[0].path, "top.gen_loop[0].u_leaf");
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::Signal("a".to_string())),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::BitSelect {
+                        signal: "ys".to_string(),
+                        index: rtl_const_expr::parse_expression("i").unwrap(),
+                    }),
+                },
+            ]
+        );
+
+        assert_eq!(elaborated.child_instances[1].instance_name, "u_leaf");
+        assert_eq!(elaborated.child_instances[1].path, "top.gen_loop[1].u_leaf");
+        assert_eq!(
+            elaborated.child_instances[1].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::Signal("a".to_string())),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::BitSelect {
+                        signal: "ys".to_string(),
+                        index: rtl_const_expr::parse_expression("i").unwrap(),
+                    }),
                 },
             ]
         );

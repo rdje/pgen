@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-18 - Add rtl_frontend generate-for replay
+### Achievement Summary
+Promoted the retained generate-for named-instantiation/dataflow lane into shared `rtl_frontend` generated-contract elaboration replay, raising the maintained semantic replay floor to `51` samples with `38` accepts and `13` rejects.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `generate_for_named_instantiation_and_dataflow`
+  - locked child paths `top.gen_loop[0].u_leaf` and `top.gen_loop[1].u_leaf`
+  - locked child port actuals `.a(a)` and `.y(ys[i])` for both loop-expanded child instances
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised the manifest-backed elaboration gate minima to `51/38/13/15/23/15/75`
+  - added a focused handwritten-baseline unit test for generate-for child elaboration with named instantiations and loop-scoped bit-select actuals
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - synchronized the tracked workflow-policy audit surface to the new sample/accept/child-path/child-port-binding minima
+- Updated README, the public book, the roadmap/reference architecture notes, the live tracker, and continuity docs to report the new `51/38/13/15/23/15/75` replay floor.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this strengthens curated semantic replay over the handwritten baseline, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_generate_for_named_instantiation_and_dataflow --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-18 - Add rtl_frontend generate-if instantiation replay
 ### Achievement Summary
 Promoted the retained single-branch generate-if named-instantiation lane into shared `rtl_frontend` generated-contract elaboration replay, raising the maintained semantic replay floor to `50` samples with `37` accepts and `13` rejects.

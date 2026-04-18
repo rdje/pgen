@@ -4163,6 +4163,51 @@
           "assign y1 = ys[1];"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 2,
+        "child_paths": [
+          "top.gen_loop[0].u_leaf",
+          "top.gen_loop[1].u_leaf"
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.gen_loop[0].u_leaf",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.gen_loop[0].u_leaf",
+            "port": "y",
+            "actual": {
+              "kind": "bit_select",
+              "signal": "ys",
+              "index": "i"
+            }
+          },
+          {
+            "path": "top.gen_loop[1].u_leaf",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.gen_loop[1].u_leaf",
+            "port": "y",
+            "actual": {
+              "kind": "bit_select",
+              "signal": "ys",
+              "index": "i"
+            }
+          }
+        ]
+      },
       "sample": "module leaf (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top (\n    input logic [7:0] a,\n    output logic [7:0] y0,\n    output logic [7:0] y1\n);\ngenvar i;\nlogic [7:0] ys [0:1];\ngenerate\n    for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end\nendgenerate\nassign y0 = ys[0];\nassign y1 = ys[1];\nendmodule\n"
     },
     {
