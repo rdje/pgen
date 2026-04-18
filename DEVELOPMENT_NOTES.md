@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend port-binding replay covers richer actuals
+### Context
+The first child port-binding replay slice added the manifest schema and initial hierarchy/package/instance-array checks. The next useful step was to promote already-proven handwritten unit-test lanes into the shared generated-contract manifest so richer `PortActual` shapes stay covered by the same gate.
+
+### Decision
+- Keep the existing manifest schema; no new code representation was needed.
+- Add more accepted `expected_elaboration.child_port_bindings` entries.
+- Cover both simple aggregate/member signal actuals and richer structured actuals:
+  - indexed unpacked-array element actuals as `bit_select`
+  - unpacked-array struct-member bit-select actuals as `bit_select`
+  - union and typedef-backed struct-member actuals as `signal`
+  - `{a, b}` as `concat`
+  - `{LANES{a}}` as `repeat` over the parser's retained single-item concat body
+  - `SEL ? cfg.data : backup.data` as `expression`
+- Ratchet the proof surface from `18` to `40` child-port-binding checks.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added binding checks for unpacked-array element/member actual samples
+  - added binding checks for typedef-backed struct-member and union-member samples
+  - added binding checks for bit-select/concat, member bit-select/repeat, and ternary member-path actual samples
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised `MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS` to `40`
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the local workflow audit to enforce the new `40`-check ratchet
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This makes the manifest replay less dependent on scattered focused unit tests for preserving rich port actual shapes.
+- Full semantic elaboration parity and generated grammar exhaustiveness are still open Phase S work.
+
 ## 2026-04-18 - rtl_frontend elaboration replay gains child port-binding checks
 ### Context
 The previous `rtl_frontend` replay slice made accepted hierarchy samples prove top parameters, child paths, and child parameters. One obvious semantic seam was still only covered by focused unit tests: resolved child port bindings. Since `rtl_frontend::Design::elaborate_top` already preserves `ResolvedPortBinding` with structured `PortActual` values, the shared manifest can now prove those bindings too.

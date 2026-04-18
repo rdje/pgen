@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-04-18 - Widen rtl_frontend port-binding replay shapes
+### Achievement Summary
+Promoted more accepted `rtl_frontend` elaboration samples into manifest-backed child port-binding replay, raising the maintained binding proof from `18` checks to `40` checks.
+
+### Scope of Changes
+- Added `child_port_bindings` expectations for unpacked-array, typedef-backed struct-member, union-member, bit-select, concat, repeat, and ternary-expression named-port actual samples in [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- Ratcheted [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) and [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) to require at least `40` child-port-binding checks.
+- Updated README, the public book, live tracker, roadmap, Rust architecture notes, and continuity docs.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this strengthens curated semantic replay over the handwritten baseline, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
 ## 2026-04-18 - Add rtl_frontend child port-binding replay checks
 ### Achievement Summary
 Extended the `rtl_frontend` generated-contract elaboration replay layer so selected accepted hierarchy samples now prove resolved child port bindings, not only hierarchy shape and parameter values.

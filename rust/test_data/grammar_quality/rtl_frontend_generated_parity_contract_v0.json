@@ -2906,7 +2906,25 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "cfgs[IDX].data"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data), .y(y));\nendmodule\n"
     },
@@ -2971,7 +2989,26 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "bit_select",
+              "signal": "banks",
+              "index": "IDX"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter DEPTH = 2,\n    parameter IDX = 1\n) (\n    output logic y\n);\nlogic [7:0] banks [0:DEPTH-1];\nchild u_child (.a(banks[IDX]), .y(y));\nendmodule\n"
     },
@@ -3033,7 +3070,26 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "bit_select",
+              "signal": "cfgs[IDX].data",
+              "index": "BIT"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "module child (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter BIT = 3\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data[BIT]), .y(y));\nendmodule\n"
     },
@@ -3213,7 +3269,25 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "cfg.data"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\ntypedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
@@ -3278,7 +3352,25 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "cfg.data"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\n\nmodule child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
@@ -3348,7 +3440,25 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "cfg.data"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::*;\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
@@ -3418,7 +3528,25 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "cfg.data"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::cfg_t;\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
@@ -3606,7 +3734,25 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "payload.data"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;\nchild u_child (.a(payload.data), .y(y));\nendmodule\n"
     },
@@ -5639,7 +5785,35 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "bit_select",
+              "signal": "bus",
+              "index": "IDX"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "concat",
+              "items": [
+                {
+                  "kind": "signal",
+                  "name": "a"
+                },
+                {
+                  "kind": "signal",
+                  "name": "b"
+                }
+              ]
+            }
+          }
+        ]
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 3\n) (\n    input logic [7:0] a,\n    input logic [7:0] b,\n    output logic [7:0] y\n);\nlogic [7:0] bus;\nchild u_child (.a(bus[IDX]), .y({a, b}));\nendmodule\n"
     },
@@ -5689,7 +5863,35 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "bit_select",
+              "signal": "cfg.data",
+              "index": "IDX"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "repeat",
+              "count": "LANES",
+              "value": {
+                "kind": "concat",
+                "items": [
+                  {
+                    "kind": "signal",
+                    "name": "a"
+                  }
+                ]
+              }
+            }
+          }
+        ]
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter LANES = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nlogic cfg;\nchild u_child (.a(cfg.data[IDX]), .y({LANES{a}}));\nendmodule\n"
     },
@@ -5863,7 +6065,25 @@
       "expected_elaboration": {
         "top": "top",
         "ok": true,
-        "child_instance_count": 1
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "expression",
+              "expr": "SEL ? cfg.data : backup.data"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    output logic [7:0] y\n);\nlogic cfg, backup;\nchild u_child (.a(SEL ? cfg.data : backup.data), .y(y));\nendmodule\n"
     },
