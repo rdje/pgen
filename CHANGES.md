@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-18 - Add rtl_frontend member-range repetition replay ratchet
+### Achievement Summary
+Promoted named-port member-range repetition elaboration into the shared `rtl_frontend` generated-contract replay, raising the maintained semantic replay floor to `45` samples with `35` accepts and `10` rejects.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `expected_elaboration` for `named_port_actuals_repeat_member_ranges`
+  - locked top parameters `IDX = 1`, `HI = 7`, and `LO = 0`
+  - locked immediate child path `top.u_child`
+  - locked port `a` as a `repeat` over a concat of member-range part-select and signal actuals
+  - locked port `b` as a member-path `part_select`
+  - locked port `y` as a direct signal actual
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added a focused handwritten-baseline unit test for `child u_child (.a({2{cfgs[IDX].data[HI:LO], d}}), .b(cfgs[0].tag[HI:LO]), .y(y));`
+  - locked named-port member-range `Repeat` plus `PartSelect` preservation through `elaborate_top`
+- Updated README, the public book, the roadmap/reference architecture notes, the live tracker, and continuity docs to report the new `45/35/10/12/19/14/66` replay floor.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this strengthens curated semantic replay over the handwritten baseline, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_preserves_member_range_repeat_actuals --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-18 - Add rtl_frontend ordered repetition replay ratchet
 ### Achievement Summary
 Promoted ordered positional parameter-and-port repetition elaboration into the shared `rtl_frontend` generated-contract replay, raising the maintained semantic replay floor to `44` samples with `34` accepts and `10` rejects.

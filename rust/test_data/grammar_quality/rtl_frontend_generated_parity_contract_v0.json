@@ -6219,6 +6219,62 @@
           "cfgs[0].tag[HI:LO]"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "top_parameters": {
+          "IDX": 1,
+          "HI": 7,
+          "LO": 0
+        },
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "repeat",
+              "count": "2",
+              "value": {
+                "kind": "concat",
+                "items": [
+                  {
+                    "kind": "part_select",
+                    "signal": "cfgs[IDX].data",
+                    "msb": "HI",
+                    "lsb": "LO"
+                  },
+                  {
+                    "kind": "signal",
+                    "name": "d"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "b",
+            "actual": {
+              "kind": "part_select",
+              "signal": "cfgs[0].tag",
+              "msb": "HI",
+              "lsb": "LO"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
       "sample": "module child (\n    input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0\n) (\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nstruct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];\nchild u_child (\n    .a({2{cfgs[IDX].data[HI:LO], d}}),\n    .b(cfgs[0].tag[HI:LO]),\n    .y(y)\n);\nendmodule\n"
     },
     {

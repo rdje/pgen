@@ -6526,6 +6526,82 @@ mod tests {
     }
 
     #[test]
+    fn elaboration_preserves_member_range_repeat_actuals() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [15:0] a,
+                input logic [7:0] b,
+                output logic [31:0] y
+            );
+            endmodule
+
+            module top #(
+                parameter IDX = 1,
+                parameter HI = 7,
+                parameter LO = 0
+            ) (
+                input logic [7:0] d,
+                output logic [31:0] y
+            );
+            struct packed {
+                logic [15:0] data;
+                logic [7:0] tag;
+            } cfgs [0:1];
+            child u_child (
+                .a({2{cfgs[IDX].data[HI:LO], d}}),
+                .b(cfgs[0].tag[HI:LO]),
+                .y(y)
+            );
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(elaborated.child_instances.len(), 1);
+        assert_eq!(elaborated.child_instances[0].instance_name, "u_child");
+        assert_eq!(elaborated.child_instances[0].path, "top.u_child");
+        assert_eq!(elaborated.parameters.get("IDX"), Some(&1));
+        assert_eq!(elaborated.parameters.get("HI"), Some(&7));
+        assert_eq!(elaborated.parameters.get("LO"), Some(&0));
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::Repeat {
+                        count: rtl_const_expr::parse_expression("2").unwrap(),
+                        value: Box::new(PortActual::Concat(vec![
+                            PortActual::PartSelect {
+                                signal: "cfgs[IDX].data".to_string(),
+                                msb: rtl_const_expr::parse_expression("HI").unwrap(),
+                                lsb: rtl_const_expr::parse_expression("LO").unwrap(),
+                            },
+                            PortActual::Signal("d".to_string()),
+                        ])),
+                    }),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "b".to_string(),
+                    actual: Some(PortActual::PartSelect {
+                        signal: "cfgs[0].tag".to_string(),
+                        msb: rtl_const_expr::parse_expression("HI").unwrap(),
+                        lsb: rtl_const_expr::parse_expression("LO").unwrap(),
+                    }),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::Signal("y".to_string())),
+                },
+            ]
+        );
+    }
+
+    #[test]
     fn parses_struct_typed_net_declarations() {
         let module = parse_module(
             r#"

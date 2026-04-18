@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend named-port member-range repetition replay ratcheted
+### Context
+The generated-contract manifest already retained `named_port_actuals_repeat_member_ranges` as parse-surface evidence, but the shared handwritten elaboration replay still did not lock its semantic shape. That left a richer named-port seam outside the crash-recoverable ratchet: top-parameter visibility, member-path part-select actuals, and nested repeat-concat actual preservation were only implied by neighboring tests.
+
+### Decision
+- Promote `named_port_actuals_repeat_member_ranges` into accepted `expected_elaboration`.
+- Lock top parameters `IDX = 1`, `HI = 7`, and `LO = 0`, child path `top.u_child`, port `a` as a repeated concat over a member-range part-select plus signal actual, port `b` as a member-path part-select, and port `y` as a direct signal actual.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `named_port_actuals_repeat_member_ranges`
+  - locked `child_instance_count = 1`
+  - locked top parameters `IDX = 1`, `HI = 7`, and `LO = 0`
+  - locked child path `top.u_child`
+  - locked port `a` as `repeat(concat(part_select(cfgs[IDX].data, HI, LO), signal(d)))`
+  - locked port `b` as `part_select(cfgs[0].tag, HI, LO)`
+  - locked port `y` as `signal(y)`
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added `elaboration_preserves_member_range_repeat_actuals`
+  - proves that handwritten elaboration preserves the expected member-path `PartSelect` and nested `Repeat`/`Concat` child actuals
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `45` samples, `35` accepts, `10` rejects, `12` child-path samples, `19` top-parameter checks, `14` child-parameter checks, and `66` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_preserves_member_range_repeat_actuals --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This slice closes the richer named-port member-range repetition seam without claiming broader grammar exhaustiveness, full elaboration parity, or parser-stack closure.
+
 ## 2026-04-18 - rtl_frontend ordered positional repetition replay ratcheted
 ### Context
 The generated-contract manifest already had parse-surface coverage for `ordered_parameter_and_port_actual_repetition`, but the handwritten elaboration replay still did not lock the semantic shape of the simplest positional-override and repetition sample. That left both positional parameter evaluation and `Repeat` child-actual preservation outside the shared crash-recoverable ratchet.
