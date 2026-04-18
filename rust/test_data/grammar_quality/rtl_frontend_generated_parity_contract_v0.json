@@ -6010,6 +6010,37 @@
           "a[HI:LO]"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "expression_text",
+              "text": "SEL ? (a[HI:LO] + d) : (d << 1)"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "b",
+            "actual": {
+              "kind": "expression_text",
+              "text": "(a[HI:LO] + d) * 2"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
       "sample": "module child (\n    input logic [15:0] a,\n    input logic [15:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nchild u_child (\n    .a(SEL ? (a[HI:LO] + d) : (d << 1)),\n    .b((a[HI:LO] + d) * 2),\n    .y(y)\n);\nendmodule\n"
     },
     {

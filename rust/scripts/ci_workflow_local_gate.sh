@@ -867,7 +867,7 @@ audit_rtl_frontend_generated_contract_surface() {
     'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 11'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 40'
+    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 43'
   assert_file_contains \
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
     '"top_parameters"'

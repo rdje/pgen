@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend manifest replay covers expression-text actuals
+### Context
+The previous child port-binding ratchet covered every structured `PortActual` family except the `ExpressionText` fallback. That fallback is intentionally used when the frontend accepts selector-rich expression text that is syntax-valid and identifier-valid but not represented directly by `rtl_const_expr::Expr`.
+
+### Decision
+- Promote the existing `named_port_actuals_ternary_binary_expr` sample into `expected_elaboration`.
+- Lock `.a(SEL ? (a[HI:LO] + d) : (d << 1))` and `.b((a[HI:LO] + d) * 2)` as `expression_text` actuals.
+- Keep `.y(y)` as a normal `signal` actual in the same replay sample.
+- Ratchet child port-binding replay from `40` to `43` checks.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added an accepted `expected_elaboration` entry for `named_port_actuals_ternary_binary_expr`
+  - added three child port-binding checks for ports `a`, `b`, and `y`
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised `MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS` to `43`
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the local workflow audit to enforce the new `43`-check ratchet
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- The manifest now exercises every currently supported expected child port-actual kind: `signal`, `bit_select`, `part_select`, `concat`, `repeat`, `expression`, and `expression_text`.
+- Full semantic elaboration parity and generated grammar exhaustiveness are still open Phase S work.
+
 ## 2026-04-18 - rtl_frontend port-binding replay covers richer actuals
 ### Context
 The first child port-binding replay slice added the manifest schema and initial hierarchy/package/instance-array checks. The next useful step was to promote already-proven handwritten unit-test lanes into the shared generated-contract manifest so richer `PortActual` shapes stay covered by the same gate.
