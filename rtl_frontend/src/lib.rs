@@ -4494,13 +4494,13 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 49;
-    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 36;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 50;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 37;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 13;
-    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 22;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 14;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 69;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 14;
+    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 23;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 71;
 
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
@@ -6430,6 +6430,65 @@ mod tests {
                             "a".to_string(),
                         )])),
                     }),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn elaborate_top_supports_generate_if_with_named_instantiation() {
+        let design = parse_design(
+            r#"
+            module leaf #(
+                parameter WIDTH = 8
+            ) (
+                input logic [WIDTH-1:0] a,
+                output logic [WIDTH-1:0] y
+            );
+            endmodule
+
+            module top #(
+                parameter SEL = 1
+            ) (
+                input logic [7:0] a,
+                input logic [7:0] b,
+                input logic en,
+                output logic [7:0] y
+            );
+            logic [7:0] mid;
+            assign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};
+            generate
+                if (SEL) begin : gen_true
+                    leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));
+                end
+            endgenerate
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("SEL"), Some(&1));
+        assert_eq!(elaborated.child_instances.len(), 1);
+        assert_eq!(elaborated.child_instances[0].instance_name, "u_leaf");
+        assert_eq!(elaborated.child_instances[0].path, "top.gen_true.u_leaf");
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("WIDTH"),
+            Some(&8)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::Signal("mid".to_string())),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::Signal("y".to_string())),
                 },
             ]
         );

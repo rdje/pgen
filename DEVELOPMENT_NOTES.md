@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend generate-if named-instantiation replay ratcheted
+### Context
+The generated contract already retained a small generate-if plus dataflow sample with a single named child instantiation, but its semantic behavior was still implied only by the larger integrated hierarchy/generate replay. That left an easy-to-understand, crash-recoverable lane on the table: a one-branch generate-if that elaborates one child, one child parameter, and two direct signal bindings.
+
+### Decision
+- Promote `generate_if_with_dataflow_and_named_instantiation` into accepted `expected_elaboration`.
+- Lock top parameter `SEL = 1`, child path `top.gen_true.u_leaf`, child parameter `WIDTH = 8`, and direct signal bindings for ports `a` and `y`.
+- Raise the manifest-backed elaboration minima to `50/37/13/14/23/15/71` and mirror the same values in the tracked workflow-policy audit.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `generate_if_with_dataflow_and_named_instantiation`
+  - locked `child_instance_count = 1`
+  - locked top parameter `SEL = 1`
+  - locked child path `top.gen_true.u_leaf`
+  - locked child parameter `WIDTH = 8`
+  - locked port `a` as `signal(mid)` and port `y` as `signal(y)`
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised `MIN_GENERATED_CONTRACT_ELABORATION_*` minima to `50/37/13/14/23/15/71`
+  - added `elaborate_top_supports_generate_if_with_named_instantiation`
+  - proves that the handwritten elaborator follows the labeled generate-if scope into the named child instance and preserves the expected direct signal bindings
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the tracked workflow-policy audit surface so local CI parity enforces the same new sample/accept/child-lock minima
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `50` samples, `37` accepts, `13` rejects, `14` child-path samples, `23` top-parameter checks, `15` child-parameter checks, and `71` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_generate_if_with_named_instantiation --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This slice makes the simpler single-branch generate-if lane executable on its own rather than relying on the larger integrated hierarchy sample to imply that behavior.
+
 ## 2026-04-18 - rtl_frontend named ternary parameter-override rejection replay ratcheted
 ### Context
 The previous semantic replay slice had already made syntax-only parameter-override failure executable for one ordered form and one named repeat form, but the richer named ternary/binary sibling was still only a parse-surface promise. That left the shared manifest slightly lopsided: the docs talked about non-constant named parameter overrides in general, while the replay still skipped one of the high-signal retained samples.
