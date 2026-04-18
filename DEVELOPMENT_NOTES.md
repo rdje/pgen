@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - README bootstrap exposed stale Rust analysis snapshot
+### Context
+Following the repo’s own bootstrap flow from [README.md](README.md) and [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md), the live Rust architecture snapshot was reread before taking any new implementation step. That pass exposed one concrete mismatch: [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) still described the older `rtl_frontend` replay floor (`52/39/24`) even though the repo had already landed the later module-local and local-net replay ratchets to `54/41/30`.
+
+### Decision
+- Synchronize [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) to the already-landed repo state before doing new work.
+- Treat this as a bootstrap/continuity correction, not as a new parser-capability claim.
+
+### What Was Changed
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
+  - refreshed the `Last updated` date
+  - replaced the stale `52/39/24` `rtl_frontend` replay snapshot with the current `54/41/30` snapshot
+  - named the already-landed isolated module-local and parameterized local-net elaboration replay slices in that retained summary
+- Updated [CHANGES.md](CHANGES.md) and [MEMORY.md](MEMORY.md):
+  - synchronized continuity to the bootstrap correction
+
+### Validation
+- Passed:
+  - `git diff --check`
+
+### Continuity Notes
+- No live parser-family label changed.
+- Future README/bootstrap passes should treat a stale analysis snapshot as something to fix immediately, not something to carry forward narratively.
+
 ## 2026-04-18 - rtl_frontend generate-if/else local-net replay ratcheted
 ### Context
 The retained `generate_if_else_with_local_net_declarations` sample already exact-locked the parser-side shape of a parameterized generate-if/else lane with branch-local net declarations, but the smaller branch-local declaration path still had no direct handwritten elaboration proof. That left the semantic replay surface slightly uneven because nearby generate/dataflow samples implied the branch-selection environment without proving this simpler local-net lane on its own.

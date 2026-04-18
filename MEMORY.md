@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl-frontend-generate-if-else-local-net-replay)
+Last updated: 2026-04-19 (+0200, task: bootstrap-rust-analysis-sync)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,28 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- README/bootstrap synchronization exposed and fixed a stale Rust analysis snapshot:
+  - changed:
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - reread the repo bootstrap surfaces in order:
+      - [README.md](README.md)
+      - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)
+      - live book summary under `docs/book/`
+      - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+      - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+      - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - found that `docs/reference/RUST_CODEBASE_ANALYSIS.md` still reported the older `rtl_frontend` replay floor of `52/39/24`
+    - synchronized that snapshot to the already-landed repo state of `54/41/13/15/30/15/75`
+    - explicitly named the already-landed module-local parameter/localparam replay and parameterized generate-if/else local-net replay slices in the refreshed retained summary
+  - validation:
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changed
+    - this was a documentation/continuity correction surfaced by obeying the README bootstrap, not a new implementation slice
 - Added parameterized `rtl_frontend` generate-if/else local-net elaboration replay:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

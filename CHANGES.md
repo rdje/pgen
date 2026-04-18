@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-04-19 - Sync Rust analysis snapshot after README bootstrap
+### Achievement Summary
+Corrected a stale `rtl_frontend` replay-count snapshot in [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) that still reflected `52/39/24` even though the repo had already landed the newer `54/41/30` replay floor.
+
+### Scope of Changes
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
+  - refreshed `Last updated` to `2026-04-19`
+  - synchronized the retained `rtl_frontend` elaboration replay snapshot to:
+    - `54` semantic samples
+    - `41` accepts
+    - `13` rejects
+    - `15` child-path samples
+    - `30` top-parameter checks
+    - `15` child-parameter checks
+    - `75` child-port-binding checks
+  - explicitly named the two newly retained isolated replay slices:
+    - module-local parameter/localparam replay
+    - parameterized generate-if/else local-net replay
+- Updated continuity docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is documentation/state synchronization, not a new implementation slice
+
+### Validation
+- Passed:
+  - `git diff --check`
+
 ## 2026-04-18 - Add rtl_frontend generate-if/else local-net replay
 ### Achievement Summary
 Promoted the retained `rtl_frontend` generate-if/else local-net lane into shared handwritten elaboration replay, raising the maintained semantic replay floor to `54` samples with `41` accepts and `13` rejects.
