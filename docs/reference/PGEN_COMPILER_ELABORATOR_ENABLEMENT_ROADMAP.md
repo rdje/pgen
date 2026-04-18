@@ -16,7 +16,7 @@ The target is not "auto-generate the whole compiler." The target is:
 
 ## North-Star Doctrine
 
-Everything PGEN can do to make compiler and elaborator creation dramatically easier, it should do, without breaking its principles.
+Everything PGEN can do to make linter, compiler and elaborator creation dramatically easier, it should do, without breaking its principles.
 
 That means:
 

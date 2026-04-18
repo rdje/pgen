@@ -31,11 +31,13 @@ That means the architecture should increasingly support:
 
 The detailed planning surface for that direction now lives in:
 
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 
 ## Primary Source Docs
 
 - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
+- `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 - `docs/AST_GENERATOR_ARCHITECTURE.md`
 - `docs/ast_transformation_pipeline.md`

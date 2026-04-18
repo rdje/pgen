@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - Book discoverability and doctrine wording aligned across the two new roadmap lanes
+### Context
+The follow-up check on the new roadmap lanes surfaced a fair point: both roadmaps were present in the book, but not symmetrically enough. The annotation-facing chapter emphasized the linter lane, while the architecture-facing chapter emphasized the compiler/elaborator lane. The north-star doctrine wording also benefited from one broader formulation that explicitly covers all three downstream creation tracks together.
+
+### Decision
+- Make both new roadmap lanes discoverable from both sides of the book split:
+  - annotation-facing
+  - architecture-facing
+- Broaden the doctrine sentence to the shared wording:
+  - "Everything PGEN can do to make linter, compiler and elaborator creation dramatically easier, it should do, without breaking its principles."
+
+### What Was Changed
+- Updated [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md):
+  - broadened the semantic-seed section from a linter-only framing to a shared linters/compiler/elaborator framing
+  - linked both roadmap documents in the chapter body and primary-source list
+- Updated [docs/book/src/developer-architecture.md](docs/book/src/developer-architecture.md):
+  - added the linter roadmap alongside the compiler/elaborator roadmap
+- Updated [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md):
+  - changed the north-star doctrine sentence to the broader three-track wording
+- Updated [CHANGES.md](CHANGES.md) and [MEMORY.md](MEMORY.md):
+  - synchronized continuity to the discoverability and wording refinement
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- No live parser-family label changed.
+- The book now points to both enablement roadmaps from both relevant explanatory angles, instead of making readers infer the split indirectly.
+
 ## 2026-04-18 - Compiler/elaborator doctrine tightened around maximum useful leverage
 ### Context
 The follow-up refinement to the new compiler/elaborator roadmap clarified the intended ambition level. The project should not be timid here. If PGEN can make compiler and elaborator writing substantially easier, it should. The important qualifier is that it must do so by strengthening reusable front-end infrastructure rather than by abandoning platform discipline.

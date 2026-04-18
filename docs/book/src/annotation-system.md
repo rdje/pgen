@@ -14,9 +14,9 @@ Semantic annotations steer parser-generation behavior and related transformation
 
 Together, these two annotation families make PGEN a parser platform rather than only a parser emitter.
 
-## Semantic Seeds And Linters
+## Semantic Seeds, Linters, And Front-End Workbenches
 
-The next major widening for semantic annotations is not "more random annotation flexibility." It is a disciplined semantic-seed layer that downstream tools such as linters can trust.
+The next major widening for semantic annotations is not "more random annotation flexibility." It is a disciplined semantic-seed layer that downstream tools can trust.
 
 The intended model is:
 
@@ -25,11 +25,17 @@ The intended model is:
 - later attribution passes compute broader meaning such as binding, typing, and flow,
 - and downstream rule engines consume that attributed model rather than guessing from raw parse trees.
 
-That matters first for HDL signoff-style consumers, but it is not an HDL-only idea. If PGEN lands the right semantic-seed, provenance, and export infrastructure, the same platform work should help any linter built on any PGEN-backed grammar.
+That matters first for HDL signoff-style consumers, but it is not an HDL-only idea. If PGEN lands the right semantic-seed, provenance, and export infrastructure, the same platform work should help:
 
-The detailed planning surface for that lane now lives in:
+- linters,
+- compiler front-ends,
+- elaborators,
+- and other downstream semantic tools built on PGEN-backed grammars.
+
+The detailed planning surfaces for those adjacent lanes now live in:
 
 - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 
 ## Why They Matter
 
@@ -67,6 +73,7 @@ Annotation support is not considered real just because syntax exists. It is expe
 
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+- `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
 - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`

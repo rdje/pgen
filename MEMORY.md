@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: compiler-elaborator-doctrine-refinement)
+Last updated: 2026-04-18 (+0200, task: roadmap-book-link-and-doctrine-alignment)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,26 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Aligned the two new enablement roadmaps across the book and broadened the doctrine wording:
+  - changed:
+    - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+    - [docs/book/src/developer-architecture.md](docs/book/src/developer-architecture.md)
+    - [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - made both roadmap lanes discoverable from both:
+      - the annotation-facing book chapter
+      - the architecture-facing book chapter
+    - broadened the shared doctrine wording to:
+      - "Everything PGEN can do to make linter, compiler and elaborator creation dramatically easier, it should do, without breaking its principles."
+  - validation:
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changed
+    - the roadmap/book split is now more symmetrical and easier to discover from the public docs surface
 - Refined the compiler/elaborator roadmap with the explicit "maximum useful leverage without breaking principles" doctrine:
   - changed:
     - [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md)

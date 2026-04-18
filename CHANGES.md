@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-04-18 - Align book roadmap links and broaden doctrine wording
+### Achievement Summary
+Made both new enablement roadmaps discoverable from both sides of the book split and broadened the shared doctrine wording so it explicitly covers linter, compiler, and elaborator creation together.
+
+### Scope of Changes
+- Updated [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md):
+  - broadened the annotation-facing explanation from only linter consumers to linters plus compiler/elaborator front-end consumers
+  - linked both:
+    - [docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md)
+    - [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md)
+- Updated [docs/book/src/developer-architecture.md](docs/book/src/developer-architecture.md):
+  - added the linter roadmap alongside the compiler/elaborator roadmap so both are discoverable from the architecture-facing chapter too
+- Updated [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md):
+  - broadened the north-star doctrine sentence to:
+    - "Everything PGEN can do to make linter, compiler and elaborator creation dramatically easier, it should do, without breaking its principles."
+- Updated continuity docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is discoverability and doctrine wording refinement, not a landed parser-capability promotion
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-18 - Refine compiler/elaborator roadmap doctrine
 ### Achievement Summary
 Strengthened the new compiler/elaborator roadmap with an explicit north-star doctrine: PGEN should do everything it reasonably can to make compiler and elaborator creation easier, while still preserving its EBNF-first, proof-first, contract-first discipline.
