@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl-frontend-generated-contract-elaboration-replay)
+Last updated: 2026-04-18 (+0200, task: rtl-frontend-elaboration-replay-ratchet)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,45 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Ratcheted the `rtl_frontend` generated-contract elaboration replay layer:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - expanded manifest `expected_elaboration` coverage to `37` samples
+    - current split is `27` expected accepts and `10` expected rejects
+    - ratcheted the replay test with minimum total/accept/reject constants
+    - added local workflow audit checks for those constants
+  - proof impact:
+    - widened semantic replay over procedural blocks, hierarchy/instance arrays, package constants, aggregate member actuals, union-member actuals, named-port bit-select/concat/repeat/ternary actuals, union-width errors, unknown event/member diagnostics, unindexed unpacked-array member rejection, and unknown parent actual identifiers
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+    - markdown checkout-specific absolute-path audit returned no matches
+    - clippy note: the repository Rust-change clippy workflow completed and reported no Rust/generated-Rust changes under its local detection scope; strict `rtl_frontend` crate clippy was run separately because this task touched [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this broadens curated elaboration proof but does not close generated grammar exhaustiveness or full semantic elaboration parity
 - Added the first manifest-backed `rtl_frontend` elaboration replay layer:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

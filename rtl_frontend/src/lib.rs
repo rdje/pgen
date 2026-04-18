@@ -4441,6 +4441,10 @@ mod tests {
         error_contains: Option<String>,
     }
 
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 37;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 27;
+    const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 10;
+
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
             "../rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json",
@@ -4570,8 +4574,16 @@ mod tests {
         }
 
         assert!(
-            checked > 0 && expected_accepts > 0 && expected_rejects > 0,
-            "generated contract manifest should retain both positive and negative elaboration replay samples"
+            checked >= MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES,
+            "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES} elaboration replay samples, got {checked}"
+        );
+        assert!(
+            expected_accepts >= MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS,
+            "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS} positive elaboration replay samples, got {expected_accepts}"
+        );
+        assert!(
+            expected_rejects >= MIN_GENERATED_CONTRACT_ELABORATION_REJECTS,
+            "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_REJECTS} negative elaboration replay samples, got {expected_rejects}"
         );
     }
 

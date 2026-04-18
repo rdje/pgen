@@ -62,6 +62,11 @@
           "<="
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0
+      },
       "sample": "module top (\n    input logic clk,\n    input logic rst_n,\n    input logic d,\n    output logic q\n);\nalways_ff @(posedge clk or negedge rst_n) begin\n    if (!rst_n)\n        q <= 0;\n    else\n        q <= d;\nend\nendmodule\n"
     },
     {
@@ -149,6 +154,11 @@
           "[0:1]"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0
+      },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic clk,\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].data[HI:LO] <= SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\n    {cfgs[IDX].valid, cfgs[0].valid} <= {d[0], cfgs[IDX].data[BIT]};\nend\nendmodule\n"
     },
     {
@@ -229,6 +239,11 @@
         "unpacked_dimension": [
           "[0:1]"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0
       },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic clk,\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].data[BIT] <= d;\nend\nendmodule\n"
     },
@@ -314,6 +329,11 @@
           "[0:1]"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0
+      },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic clk,\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].valid <= {cfgs[IDX].data[BIT], d};\nend\nendmodule\n"
     },
     {
@@ -385,6 +405,11 @@
         "unpacked_dimension": [
           "[0:1]"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0
       },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;\nend\nendmodule\n"
     },
@@ -542,6 +567,11 @@
           "always @(*) begin\n    if (SEL)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\n    else\n        cfgs[IDX].valid = a;\nend"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0
+      },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic a,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways @(*) begin\n    if (SEL)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\n    else\n        cfgs[IDX].valid = a;\nend\nassign y = cfgs[IDX].valid;\nendmodule\n"
     },
     {
@@ -596,6 +626,11 @@
         "procedural_block": [
           "always @(*) begin\n    if (a)\n        y = 1;\n    else\n        y = 0;\nend"
         ]
+      },
+      "expected_elaboration": {
+        "top": "star",
+        "ok": true,
+        "child_instance_count": 0
       },
       "sample": "module star (\n    input logic a,\n    output logic y\n);\nalways @(*) begin\n    if (a)\n        y = 1;\n    else\n        y = 0;\nend\nendmodule\n"
     },
@@ -669,6 +704,11 @@
           "always_latch begin\n    if (en)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\nend"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0
+      },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic en,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_latch begin\n    if (en)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\nend\nassign y = cfgs[0].valid;\nendmodule\n"
     },
     {
@@ -718,6 +758,11 @@
           "always_latch begin\n    if (en)\n        q <= d;\nend"
         ]
       },
+      "expected_elaboration": {
+        "top": "latchy",
+        "ok": true,
+        "child_instance_count": 0
+      },
       "sample": "module latchy (\n    input logic en,\n    input logic d,\n    output logic q\n);\nalways_latch begin\n    if (en)\n        q <= d;\nend\nendmodule\n"
     },
     {
@@ -766,6 +811,11 @@
           "q",
           "missing"
         ]
+      },
+      "expected_elaboration": {
+        "top": "latchy",
+        "ok": false,
+        "error_contains": "unknown parent-scope identifier 'missing'"
       },
       "sample": "module latchy (\n    input logic en,\n    output logic q\n);\nalways_latch begin\n    if (en)\n        q <= missing;\nend\nendmodule\n"
     },
@@ -1799,6 +1849,11 @@
           "union packed {\n    byte data;\n    shortint word;\n}"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": false,
+        "error_contains": "packed union field 'word' width 16 does not match field 'data' width 8"
+      },
       "sample": "module top (\n    output logic y\n);\nunion packed {\n    byte data;\n    shortint word;\n} payload;\nendmodule\n"
     },
     {
@@ -1901,6 +1956,11 @@
         "union_type": [
           "union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n}"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": false,
+        "error_contains": "packed union field 'word' width 16 does not match field 'data' width 8"
       },
       "sample": "module top (\n    output logic y\n);\ntypedef union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload_t;\npayload_t payload;\nendmodule\n"
     },
@@ -2628,6 +2688,11 @@
           "[0:1]"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
+      },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data), .y(y));\nendmodule\n"
     },
     {
@@ -2688,6 +2753,11 @@
           "[0:DEPTH-1]"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
+      },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter DEPTH = 2,\n    parameter IDX = 1\n) (\n    output logic y\n);\nlogic [7:0] banks [0:DEPTH-1];\nchild u_child (.a(banks[IDX]), .y(y));\nendmodule\n"
     },
     {
@@ -2744,6 +2814,11 @@
         "unpacked_dimension": [
           "[0:1]"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
       },
       "sample": "module child (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter BIT = 3\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data[BIT]), .y(y));\nendmodule\n"
     },
@@ -2920,6 +2995,11 @@
           "y"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
+      },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\ntypedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
     {
@@ -2979,6 +3059,11 @@
           "cfg.data",
           "y"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
       },
       "sample": "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\n\nmodule child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
@@ -3045,6 +3130,11 @@
           "y"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
+      },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::*;\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
     {
@@ -3109,6 +3199,11 @@
           "cfg.data",
           "y"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
       },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::cfg_t;\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
@@ -3175,6 +3270,11 @@
           "y"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
+      },
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top import cfg_pkg::cfg_t; (\n    output logic y\n);\ncfg_t cfg;\nchild u_child (.a(cfg.data), .y(y));\nendmodule\n"
     },
     {
@@ -3231,6 +3331,11 @@
           "y"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": false,
+        "error_contains": "unknown member 'missing' on parent-scope identifier 'cfg'"
+      },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\ntypedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\ncfg_t cfg;\nchild u_child (.a(cfg.missing), .y(y));\nendmodule\n"
     },
     {
@@ -3283,6 +3388,11 @@
           "y"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
+      },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;\nchild u_child (.a(payload.data), .y(y));\nendmodule\n"
     },
     {
@@ -3334,6 +3444,11 @@
           "payload.missing",
           "y"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": false,
+        "error_contains": "unknown member 'missing' on parent-scope identifier 'payload'"
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;\nchild u_child (.a(payload.missing), .y(y));\nendmodule\n"
     },
@@ -5253,6 +5368,11 @@
           "{a, b}"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
+      },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 3\n) (\n    input logic [7:0] a,\n    input logic [7:0] b,\n    output logic [7:0] y\n);\nlogic [7:0] bus;\nchild u_child (.a(bus[IDX]), .y({a, b}));\nendmodule\n"
     },
     {
@@ -5297,6 +5417,11 @@
         "repetition_expr": [
           "{LANES{a}}"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
       },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter LANES = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nlogic cfg;\nchild u_child (.a(cfg.data[IDX]), .y({LANES{a}}));\nendmodule\n"
     },
@@ -5467,6 +5592,11 @@
           "y"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1
+      },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    output logic [7:0] y\n);\nlogic cfg, backup;\nchild u_child (.a(SEL ? cfg.data : backup.data), .y(y));\nendmodule\n"
     },
     {
@@ -5506,6 +5636,11 @@
           "missing_signal",
           "y"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": false,
+        "error_contains": "unknown parent-scope identifier 'missing_signal'"
       },
       "sample": "module child (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    output logic y\n);\nchild u_child (.a(missing_signal), .y(y));\nendmodule\n"
     },

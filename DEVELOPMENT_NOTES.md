@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend elaboration replay ratcheted to 37 samples
+### Context
+The previous slice introduced optional manifest-backed `expected_elaboration` replay for `rtl_frontend`, but the executable guard only required the layer to be non-empty and two-sided. That was enough to establish the seam, but not enough to preserve the widened proof surface once more examples were promoted.
+
+### Decision
+- Promote elaboration outcomes that are already supported by the handwritten baseline and existing focused unit-test behavior into the shared generated-contract manifest.
+- Keep the generated parser side unchanged: this remains a generated parse/retained-AST contract plus handwritten semantic replay, not a claim that the generated parser elaborates RTL.
+- Ratchet the manifest replay test with minimum counts:
+  - `37` total elaboration samples
+  - `27` expected accepts
+  - `10` expected rejects
+- Audit those count literals in the local workflow surface so future drift is visible in the same lane that runs the generated-contract gate.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added elaboration expectations across procedural blocks, hierarchy/instance arrays, package constants, aggregate member actuals, union-member actuals, named-port bit-select/concat/repeat/ternary actuals, union-width errors, unknown event/member diagnostics, unindexed unpacked-array member rejection, and unknown parent actual identifiers
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added minimum elaboration replay constants
+  - tightened `generated_contract_manifest_matches_handwritten_elaboration_surface`
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - audits the new ratchet constants
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Clippy Note
+- The required Rust-change clippy workflow completed successfully and reported no Rust/generated-Rust changes under its repository-local detection scope.
+- Because this task touched [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs), strict crate-local `rtl_frontend` clippy was run separately and passed.
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- The next clean elaboration-proof increments should either add more semantically valid micro-designs or start proving generated grammar exhaustiveness around the subset, rather than confusing this replay layer with full closure.
+
 ## 2026-04-18 - rtl_frontend generated contract gains elaboration replay
 ### Context
 After the zero-divergence generated/handwritten parse-surface milestone, the `rtl_frontend` gate still stopped at parseability and retained-AST proof. That was useful, but it left a sharp boundary: samples that were intentionally syntax-only had prose saying elaboration owned the semantic decision, while the shared manifest did not yet prove any elaboration decisions itself.

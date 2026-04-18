@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-04-18 - Ratchet rtl_frontend elaboration replay coverage
+### Achievement Summary
+Widened the `rtl_frontend` generated-contract manifest from a first elaboration-replay foothold into a ratcheted 37-sample semantic replay contract over the same curated generated/handwritten parse-parity surface.
+
+### Scope of Changes
+- Added more `expected_elaboration` entries to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `27` expected accepts
+  - `10` expected rejects
+  - covered procedural `always_ff` / `always @(*)` / `always_latch` samples, hierarchy/instance-array flows, package constants, aggregate member actuals, union-member actuals, named-port bit-select/concat/repeat/ternary actuals, packed-union width rejects, unindexed unpacked-array member rejects, unknown event/member diagnostics, and unknown parent actual identifiers
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) so the manifest replay test now ratchets minimum elaboration sample, accept, and reject counts instead of only checking for a non-empty layer.
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) so local CI audits the new elaboration-count ratchet literals.
+- Updated README, the public book, live tracker, roadmap, Rust architecture notes, and continuity docs to describe the 37-sample replay surface.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this broadens curated elaboration proof, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Clippy Note
+- The required Rust-change clippy workflow completed successfully and reported no Rust/generated-Rust changes under its repository-local detection scope.
+- Because this task touched [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs), strict crate-local `rtl_frontend` clippy was run separately and passed.
+
 ## 2026-04-18 - Add rtl_frontend manifest elaboration replay
 ### Achievement Summary
 Started turning the `rtl_frontend` curated generated-contract manifest into a parse-plus-elaboration proof surface by adding optional `expected_elaboration` expectations and replaying them through the handwritten baseline inside the maintained generated-contract gate.

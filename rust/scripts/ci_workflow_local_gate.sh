@@ -849,6 +849,15 @@ audit_rtl_frontend_generated_contract_surface() {
     'expected_elaboration'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
+    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 37'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
+    'MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 27'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
+    'MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 10'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
     'current rtl_frontend generated contract samples should parse the same way'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
