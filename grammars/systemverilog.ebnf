@@ -130,6 +130,7 @@ trivia := (white_space | line_comment | block_comment)*
 
 white_space := /[ \t\r\n]+/
 
+@sample: "//x\n"
 line_comment := /\/\/[^\n]*(\n|$)/
 
 block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

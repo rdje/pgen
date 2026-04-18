@@ -35869,3 +35869,26 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - honest current read:
     - no parser-family row changes
     - no released contract version changes
+- 2026-04-19: tightened the focused main-SystemVerilog stimuli seam with a safe `line_comment` sample hint.
+  - landed:
+    - `grammars/systemverilog.ebnf`
+      - added `@sample: "//x\n"` above `line_comment := /\/\/[^\n]*(\n|$)/`
+  - focused validation:
+    - corrected the adapter-backed probe rebuild to use an absolute `PGEN_SYSTEMVERILOG_PARSER_PATH`, because `build.rs` resolves env-configured parser paths relative to `rust/`
+    - rebuilt `ast_pipeline` with:
+      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - pre-fix focused `sv_2023` direct probe:
+      - `110/181` accepted
+      - `71` parser rejections
+      - `217/2393` replay targets resolved
+    - post-fix focused `sv_2023` direct probe:
+      - `176/179` accepted
+      - `3` parser rejections
+      - `351/2393` replay targets resolved
+    - post-fix `sv_2017` cross-check:
+      - `177/179` accepted
+      - `2` parser rejections
+      - `245/2597` replay targets resolved
+  - continuity truth:
+    - this is strong direct-lane evidence, not a completed full `sv_stimuli_quality_gate` refresh
+    - local default and bounded (`target_max_attempts=100`) gate reruns were still too heavy to use as the first iteration loop on this seam

@@ -16500,3 +16500,16 @@ Use this file to resume work without replaying full chat history.
   - status truth:
     - `rtl_frontend` remains `In Progress`
     - this is generated-contract proof tightening, not handwritten-baseline parity closure
+- 2026-04-19: main-`systemverilog` quick-loop reminder.
+  - do not trust the old direct-probe rebuild recipe with `PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/...` from repo root; `build.rs` resolves parser paths relative to `rust/`
+  - for the focused adapter-backed probe, use an absolute parser path or `target/...` relative to `rust/`
+  - current retained focused grammar hints:
+    - `escaped_identifier`: `@sample: "\\foo "`
+    - `line_comment`: `@sample: "//x\n"`
+  - corrected focused probe numbers on 2026-04-19:
+    - pre-fix `sv_2023`: `110/181` accepted, `71` parser rejects, `217/2393` targets resolved
+    - post-fix `sv_2023`: `176/179` accepted, `3` parser rejects, `351/2393` targets resolved
+    - post-fix `sv_2017`: `177/179` accepted, `2` parser rejects, `245/2597` targets resolved
+  - practical steering:
+    - local full and bounded `sv_stimuli_quality_gate` reruns are still too heavy for first-pass shaping on this seam because `profile_2017_closed_loop_replay` spends minutes chewing through a `2597`-target gap
+    - use the corrected direct probe as the cheap loop, then come back for the full gate refresh when ready

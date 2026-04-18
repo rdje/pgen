@@ -1776,15 +1776,23 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - steering consequence:
     - do not reopen the broad line-comment normalization path
     - the remaining main-SV parser debt still needs a narrower seam than “newline all same-line comments”
-- The current best retained main-SV stimuli seam is `escaped_identifier`, not global comment handling.
-  - retained change:
+- The current best retained main-SV stimuli seam is still narrow, but it is now `escaped_identifier` plus safe `line_comment` sampling rather than any broad comment-normalization rewrite.
+  - retained changes:
     - `grammars/systemverilog.ebnf`
     - `@sample: "\\foo "` above `escaped_identifier := trivia /\\[!-~]+/`
+    - `@sample: "//x\n"` above `line_comment := /\/\/[^\n]*(\n|$)/`
+  - important probe-path correction:
+    - the older focused direct-probe recipe drifted because `PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/...` is wrong when `cargo build --manifest-path rust/Cargo.toml` is launched from repo root
+    - `build.rs` resolves that env path relative to the Rust manifest directory, so the corrected local probe must use an absolute parser path or `target/...` relative to `rust/`
   - retained evidence:
-    - adapter-backed direct probe improved from `111/180 accepted, 69 parser rejects`
-    - to `123/181 accepted, 58 parser rejects`
-  - steering consequence:
-    - the next honest main-SV step is a full `sv_stimuli_quality_gate` rerun to see whether that focused win survives the retained proof lane
+    - with the corrected adapter-backed build, the pre-fix focused `sv_2023` direct probe measured `110/181 accepted, 71 parser rejects`
+    - after the safe `line_comment` sample landed, that same focused `sv_2023` probe measured `176/179 accepted, 3 parser rejects`
+    - the matching `sv_2017` cross-check measured `177/179 accepted, 2 parser rejects`
+  - practical steering consequence:
+    - the contract-default and bounded (`PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100`) `sv_stimuli_quality_gate` reruns are still too heavy for first local iteration on this seam because `profile_2017_closed_loop_replay` chases a retained `2597`-target initial gap and stays CPU-hot for minutes without becoming a good quick loop
+    - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh
+  - proof consequence:
+    - the next honest main-SV step is still a full `sv_stimuli_quality_gate` rerun to see whether these focused wins survive the retained proof lane
     - until that rerun lands, treat this as a focused direct-lane improvement, not a refreshed main-SV status row
 - VHDL still has useful local triage tooling if it ever needs to be revisited.
   - non-default `--entry-rule` plus `--validate-parseability` stays intentionally rejected in `ast_pipeline`; full-entry validation only

@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-18
+Last updated: 2026-04-19
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -4493,13 +4493,20 @@ Initial Phase U milestones:
   - retained focused win:
     - `grammars/systemverilog.ebnf`
     - `escaped_identifier` carries `@sample: "\\foo "`
+    - `line_comment` carries `@sample: "//x\n"`
+  - direct-probe validation rule:
+    - when rebuilding `ast_pipeline` with `cargo build --manifest-path rust/Cargo.toml ...`, do not pass `PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/...` from repo root
+    - `build.rs` resolves that env path relative to the Rust manifest directory, so the correct probe recipe must use an absolute parser path or a manifest-relative `target/...` path
   - why this seam is now preferred:
-    - the direct adapter-backed probe improved from `111/180 accepted, 69 parser rejects`
-    - to `123/181 accepted, 58 parser rejects`
-    - after steering away from delimiter-hostile escaped identifiers inside attribute contexts
+    - the corrected adapter-backed direct probe first showed the remaining `sv_2023` seam more honestly at `110/181 accepted, 71 parser rejects`, with counterexamples still clustering around escaped identifiers plus delimiter-hostile same-line `//` comment bodies inside/around attribute contexts
+    - the safe `line_comment` sample then moved that same `sv_2023` direct probe to `176/179 accepted, 3 parser rejects`
+    - the matching `sv_2017` cross-check measured `177/179 accepted, 2 parser rejects`
+  - practical loop consequence:
+    - contract-default and `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100` `sv_stimuli_quality_gate` reruns are still too heavy for first-pass local iteration on this seam because the retained `profile_2017_initial_gap.json` currently carries `2597` replay targets
+    - use the corrected adapter-backed direct probe as the cheap local loop
   - roadmap consequence:
-    - the next main-SV task should be a full `sv_stimuli_quality_gate` refresh on top of this retained hint
-    - do not spend another slice on broad comment-normalization heuristics before that retained gate rerun
+    - the next honest proof step is still a full `sv_stimuli_quality_gate` refresh on top of these retained hints
+    - do not reopen the broad newline-before-`//` heuristic; the current win comes from safe comment sampling, not a generic separator rewrite
 - VHDL remains resumable if needed later, but not as the current front-of-queue closure lane.
   - if VHDL is reopened, keep using branch-level probes only as generation-shape evidence
   - non-default `--entry-rule` parseability validation stays intentionally blocked because validation still flows through the full grammar entry

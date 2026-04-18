@@ -39287,3 +39287,38 @@ Architectural north star:
   - status truth:
     - `rtl_frontend` remains `In Progress`
     - this is focused generated-contract proof tightening, not broader handwritten-baseline parity closure
+- 2026-04-19: the current main-SystemVerilog local loop is now “safe line comments plus escaped identifiers,” not broad comment normalization.
+  - bootstrap/doc sanity:
+    - reread `README.md`, `SESSION_BOOTSTRAP.md`, `docs/book/src/SUMMARY.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and `docs/reference/RUST_CODEBASE_ANALYSIS.md`
+    - the maintained docs still pointed to remaining main-`systemverilog` debt as the front-of-queue parser-family lane
+  - local proof reality:
+    - a contract-default `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` rerun was started and then stopped during `profile_2017_closed_loop_replay`
+    - a bounded retry with `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100` was also started and then stopped at the same stage
+    - both runs stayed CPU-hot inside `StimuliGenerator::generate_until_targets(...)`; the retained `profile_2017_initial_gap.json` currently carries `2597` replay targets, so the full gate is still not a good first local iteration loop for this seam
+  - focused probe correction:
+    - the older direct-probe recipe used `PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/...` together with `cargo build --manifest-path rust/Cargo.toml`
+    - that path is wrong from repo root because `build.rs` resolves it relative to `rust/`
+    - the corrected rebuild uses:
+      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - pre-fix focused `sv_2023` probe with the corrected adapter:
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe_after_escape_sample.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2023_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_after_escape_sample_report.json`
+    - result:
+      - `110/181` accepted
+      - `71` parser rejections
+      - `217/2393` replay targets resolved
+    - retained counterexample shape:
+      - escaped identifiers inside `(* ... *)` attributes still combined badly with delimiter-hostile same-line `//` comment bodies
+  - landed grammar change:
+    - `grammars/systemverilog.ebnf`
+      - added `@sample: "//x\n"` above `line_comment := /\/\/[^\n]*(\n|$)/`
+  - post-fix direct probes:
+    - `sv_2023`
+      - `176/179` accepted
+      - `3` parser rejections
+      - `351/2393` replay targets resolved
+    - `sv_2017`
+      - `177/179` accepted
+      - `2` parser rejections
+      - `245/2597` replay targets resolved
+  - status truth:
+    - keep treating this as a focused direct-lane win until a full `sv_stimuli_quality_gate` refresh is completed

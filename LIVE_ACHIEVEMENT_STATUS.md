@@ -1,6 +1,6 @@
 # Live Achievement Status
 
-Last updated: 2026-04-18
+Last updated: 2026-04-19
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -28,6 +28,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-04-19): the focused main-`systemverilog` stimuli seam now retains a safe `line_comment` sample hint without changing any live parser-family label. After correcting the adapter-backed direct-probe build path to use a manifest-correct generated `systemverilog` parser path, the pre-fix focused probe on `sv_2023` measured `110/181` accepted with `71` parser rejections and `217/2393` replay targets resolved. Adding `@sample: "//x\n"` above [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) `line_comment := /\/\/[^\n]*(\n|$)/` moved that same focused probe to `176/179` accepted with `3` parser rejections and `351/2393` replay targets resolved, while the matching `sv_2017` cross-check measured `177/179` accepted with `2` parser rejections and `245/2597` replay targets resolved. Status stays unchanged across all live rows because this is strong adapter-backed direct-lane evidence, not yet a completed full `sv_stimuli_quality_gate` proof refresh.
 
 Tracker note (2026-04-18): PGEN now also tracks compiler-and-elaborator enablement as an explicit roadmap lane without changing any live parser-family label. The new maintained reference surface [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md) captures the "PGEN as front-end workbench" doctrine, the front-end-structure/provenance/helper surfaces PGEN should own, elaborator-oriented scaffolding, compiler-oriented scaffolding, and the explicit boundary that PGEN should accelerate downstream compiler and elaborator creation without pretending to auto-generate the whole compiler. Status stays unchanged across all live rows because this is roadmap/doctrine capture for future implementation, not a landed parser capability or proof-status promotion.
 
