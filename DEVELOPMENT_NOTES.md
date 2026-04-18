@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend named ternary parameter-override rejection replay ratcheted
+### Context
+The previous semantic replay slice had already made syntax-only parameter-override failure executable for one ordered form and one named repeat form, but the richer named ternary/binary sibling was still only a parse-surface promise. That left the shared manifest slightly lopsided: the docs talked about non-constant named parameter overrides in general, while the replay still skipped one of the high-signal retained samples.
+
+### Decision
+- Promote `named_parameter_override_ternary_binary_expr` into negative `expected_elaboration`.
+- Lock the handwritten rejection diagnostic for the syntax-only named ternary/binary override path.
+- Raise the manifest-backed elaboration minima to `49/36/13/13/22/14/69` and mirror the same values in the tracked workflow-policy audit.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added negative `expected_elaboration` for `named_parameter_override_ternary_binary_expr`
+  - locked the error substring for the richer syntax-only named parameter-override failure path
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised `MIN_GENERATED_CONTRACT_ELABORATION_*` minima to `49/36/13/13/22/14/69`
+  - added `elaboration_rejects_syntax_only_named_parameter_override_ternaries`
+  - proves the handwritten elaborator emits the expected diagnostic when the named override is parseable but still not semantically evaluable because it contains selector-rich runtime syntax
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the tracked workflow-policy audit surface so local CI parity enforces the same new total/reject minima
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `49` samples, `36` accepts, `13` rejects, `13` child-path samples, `22` top-parameter checks, `14` child-parameter checks, and `69` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_rejects_syntax_only_named_parameter_override_ternaries --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This slice closes the richer named ternary/binary override sibling so the semantic reject story now covers both high-signal named override shapes already retained in the generated contract.
+
 ## 2026-04-18 - rtl_frontend syntax-only parameter-override rejection replay ratcheted
 ### Context
 After rereading the current README/bootstrap surface, the next `rtl_frontend` gap was clearer: the shared semantic replay still did not lock how the handwritten elaborator rejects non-constant parameter overrides that the generated contract intentionally keeps as parse-positive syntax. That meant the project had stronger positive replay for parameterized instances than negative replay for syntax-only parameter-override failure modes.

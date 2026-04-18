@@ -4494,9 +4494,9 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 48;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 49;
     const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 36;
-    const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 12;
+    const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 13;
     const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 22;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 14;
@@ -6765,6 +6765,58 @@ mod tests {
         let error = design
             .elaborate_top("top", &HashMap::new())
             .expect_err("syntax-only named parameter override should fail elaboration");
+
+        assert!(
+            error
+                .message
+                .contains("cannot evaluate syntax-only named parameter override 'MASK'"),
+            "unexpected error: {}",
+            error.message
+        );
+        assert!(
+            error.message.contains("on instance 'u_child'"),
+            "unexpected error: {}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_syntax_only_named_parameter_override_ternaries() {
+        let design = parse_design(
+            r#"
+            module child #(
+                parameter MASK = 0,
+                parameter LANES = 1
+            ) (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            endmodule
+
+            module top #(
+                parameter HI = 7,
+                parameter LO = 0,
+                parameter LANES = 2,
+                parameter SEL = 1
+            ) (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            child #(
+                .MASK(SEL ? (a[HI:LO] + LANES) : (LANES << 1)),
+                .LANES((LANES + 1) * 2)
+            ) u_child (
+                .a(a),
+                .y(y)
+            );
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("syntax-only named ternary override should fail elaboration");
 
         assert!(
             error

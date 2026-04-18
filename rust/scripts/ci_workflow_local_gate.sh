@@ -892,13 +892,13 @@ audit_rtl_frontend_generated_contract_surface() {
     'expected_elaboration'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 48'
+    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 49'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 36'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 12'
+    'MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 13'
