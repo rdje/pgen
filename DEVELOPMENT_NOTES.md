@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend elaboration replay gains child port-binding checks
+### Context
+The previous `rtl_frontend` replay slice made accepted hierarchy samples prove top parameters, child paths, and child parameters. One obvious semantic seam was still only covered by focused unit tests: resolved child port bindings. Since `rtl_frontend::Design::elaborate_top` already preserves `ResolvedPortBinding` with structured `PortActual` values, the shared manifest can now prove those bindings too.
+
+### Decision
+- Keep this in the manifest-backed handwritten elaboration replay layer.
+- Add optional `child_port_bindings` entries under `expected_elaboration`.
+- Compare expected port actuals structurally rather than by stringifying debug output.
+- Support the current `PortActual` variants in the manifest schema:
+  - `signal`
+  - `bit_select`
+  - `part_select`
+  - `concat`
+  - `repeat`
+  - `expression`
+  - `expression_text`
+- Ratchet the new proof surface with at least `18` child-port-binding checks.
+
+### What Was Changed
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - extended generated-contract metadata with `GeneratedContractChildPortBinding`
+  - added a tagged expected `GeneratedContractPortActual` enum
+  - added structural conversion from manifest expected values to `PortActual`
+  - extended `generated_contract_manifest_matches_handwritten_elaboration_surface` to compare bindings by child path and port name
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added binding checks for direct/generate hierarchy samples
+  - added binding checks for package-qualified/header-imported/module-imported constant-flow samples
+  - added binding checks for parameterized instance-array samples
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - audits the new binding ratchet and manifest field
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This is still curated semantic replay over the handwritten baseline, not full semantic elaboration parity.
+- A useful future slice would add more binding checks for richer `concat`, `repeat`, and `expression_text` actuals once those samples are semantically elaborable end to end.
+
 ## 2026-04-18 - rtl_frontend elaboration replay gains structural checks
 ### Context
 The previous `rtl_frontend` elaboration slice ratcheted the number of manifest-backed semantic replay samples, but accepted hierarchy samples still mostly proved "elaboration succeeded" plus an immediate child count. That was useful, but too weak for Phase S steering: package-constant and hierarchy samples should also prove the values and paths the frontend computed.

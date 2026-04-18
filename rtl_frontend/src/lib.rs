@@ -4444,6 +4444,8 @@ mod tests {
         #[serde(default)]
         child_parameters: Vec<GeneratedContractChildParameter>,
         #[serde(default)]
+        child_port_bindings: Vec<GeneratedContractChildPortBinding>,
+        #[serde(default)]
         error_contains: Option<String>,
     }
 
@@ -4454,12 +4456,51 @@ mod tests {
         value: i64,
     }
 
+    #[derive(Debug, Deserialize)]
+    struct GeneratedContractChildPortBinding {
+        path: String,
+        port: String,
+        #[serde(default)]
+        actual: Option<GeneratedContractPortActual>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    #[serde(tag = "kind", rename_all = "snake_case")]
+    enum GeneratedContractPortActual {
+        Signal {
+            name: String,
+        },
+        BitSelect {
+            signal: String,
+            index: String,
+        },
+        PartSelect {
+            signal: String,
+            msb: String,
+            lsb: String,
+        },
+        Concat {
+            items: Vec<GeneratedContractPortActual>,
+        },
+        Repeat {
+            count: String,
+            value: Box<GeneratedContractPortActual>,
+        },
+        Expression {
+            expr: String,
+        },
+        ExpressionText {
+            text: String,
+        },
+    }
+
     const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 37;
     const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 27;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 10;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 5;
     const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 12;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 11;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 18;
 
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
@@ -4536,6 +4577,7 @@ mod tests {
         let mut child_path_samples = 0usize;
         let mut top_parameter_checks = 0usize;
         let mut child_parameter_checks = 0usize;
+        let mut child_port_binding_checks = 0usize;
         for sample in &manifest.samples {
             let Some(expectation) = &sample.expected_elaboration else {
                 continue;
@@ -4615,6 +4657,36 @@ mod tests {
                         expected_parameter.name
                     );
                 }
+                for expected_binding in &expectation.child_port_bindings {
+                    child_port_binding_checks += 1;
+                    let child = find_elaborated_child_by_path(
+                        &elaborated.child_instances,
+                        &expected_binding.path,
+                    )
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "sample '{}' should elaborate child path '{}'",
+                            sample.label, expected_binding.path
+                        )
+                    });
+                    let binding = child
+                        .port_bindings
+                        .iter()
+                        .find(|binding| binding.port_name == expected_binding.port)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "sample '{}' child '{}' should bind port '{}'",
+                                sample.label, expected_binding.path, expected_binding.port
+                            )
+                        });
+                    assert_port_actual_matches(
+                        &sample.label,
+                        &expected_binding.path,
+                        &expected_binding.port,
+                        &expected_binding.actual,
+                        binding.actual.as_ref(),
+                    );
+                }
             } else {
                 expected_rejects += 1;
                 let error = match result {
@@ -4660,6 +4732,11 @@ mod tests {
             child_parameter_checks >= MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS,
             "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS} child-parameter elaboration checks, got {child_parameter_checks}"
         );
+        assert!(
+            child_port_binding_checks
+                >= MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS,
+            "generated contract manifest should retain at least {MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS} child-port-binding elaboration checks, got {child_port_binding_checks}"
+        );
     }
 
     fn find_elaborated_child_by_path<'a>(
@@ -4675,6 +4752,76 @@ mod tests {
             }
         }
         None
+    }
+
+    fn assert_port_actual_matches(
+        sample_label: &str,
+        child_path: &str,
+        port_name: &str,
+        expected: &Option<GeneratedContractPortActual>,
+        actual: Option<&PortActual>,
+    ) {
+        match (expected, actual) {
+            (None, None) => {}
+            (Some(expected), Some(actual)) => {
+                let expected_actual = generated_contract_port_actual(expected);
+                assert_eq!(
+                    actual, &expected_actual,
+                    "sample '{}' child '{}' port '{}' elaborated unexpected actual",
+                    sample_label, child_path, port_name
+                );
+            }
+            (None, Some(actual)) => panic!(
+                "sample '{}' child '{}' port '{}' should be unconnected, got {:?}",
+                sample_label, child_path, port_name, actual
+            ),
+            (Some(_), None) => panic!(
+                "sample '{}' child '{}' port '{}' should be connected",
+                sample_label, child_path, port_name
+            ),
+        }
+    }
+
+    fn generated_contract_port_actual(expected: &GeneratedContractPortActual) -> PortActual {
+        match expected {
+            GeneratedContractPortActual::Signal { name } => PortActual::Signal(name.clone()),
+            GeneratedContractPortActual::BitSelect { signal, index } => PortActual::BitSelect {
+                signal: signal.clone(),
+                index: rtl_const_expr::parse_expression(index).unwrap_or_else(|err| {
+                    panic!("failed to parse expected bit-select index '{index}': {err}")
+                }),
+            },
+            GeneratedContractPortActual::PartSelect { signal, msb, lsb } => {
+                PortActual::PartSelect {
+                    signal: signal.clone(),
+                    msb: rtl_const_expr::parse_expression(msb).unwrap_or_else(|err| {
+                        panic!("failed to parse expected part-select msb '{msb}': {err}")
+                    }),
+                    lsb: rtl_const_expr::parse_expression(lsb).unwrap_or_else(|err| {
+                        panic!("failed to parse expected part-select lsb '{lsb}': {err}")
+                    }),
+                }
+            }
+            GeneratedContractPortActual::Concat { items } => PortActual::Concat(
+                items
+                    .iter()
+                    .map(generated_contract_port_actual)
+                    .collect::<Vec<_>>(),
+            ),
+            GeneratedContractPortActual::Repeat { count, value } => PortActual::Repeat {
+                count: rtl_const_expr::parse_expression(count).unwrap_or_else(|err| {
+                    panic!("failed to parse expected repeat count '{count}': {err}")
+                }),
+                value: Box::new(generated_contract_port_actual(value)),
+            },
+            GeneratedContractPortActual::Expression { expr } => PortActual::Expression(
+                rtl_const_expr::parse_expression(expr)
+                    .unwrap_or_else(|err| panic!("failed to parse expected expr '{expr}': {err}")),
+            ),
+            GeneratedContractPortActual::ExpressionText { text } => {
+                PortActual::ExpressionText(text.clone())
+            }
+        }
     }
 
     #[test]

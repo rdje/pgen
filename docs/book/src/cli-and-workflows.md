@@ -37,7 +37,7 @@ Important examples include:
 - `stimuli_cross_family_platform_gate`
 - `mdbook_docs_gate`
 
-`rtl_frontend_generated_contract_gate` now proves three related surfaces: generated-parser parseability/AST-retention over the curated manifest, handwritten-baseline parse replay over the same manifest with explicit divergence annotations where the bootstrap parser and generated grammar intentionally differ, and a ratcheted handwritten elaboration replay layer for manifest samples that carry `expected_elaboration`. The elaboration layer currently retains at least 37 curated semantic samples: 27 accepts and 10 rejects. Selected accepted samples now also lock top parameter values, exact immediate child paths, and child instance parameter values, so hierarchy/package-constant/instance-array cases prove more than "it elaborated".
+`rtl_frontend_generated_contract_gate` now proves three related surfaces: generated-parser parseability/AST-retention over the curated manifest, handwritten-baseline parse replay over the same manifest with explicit divergence annotations where the bootstrap parser and generated grammar intentionally differ, and a ratcheted handwritten elaboration replay layer for manifest samples that carry `expected_elaboration`. The elaboration layer currently retains at least 37 curated semantic samples: 27 accepts and 10 rejects. Selected accepted samples now also lock top parameter values, exact immediate child paths, child instance parameter values, and child port bindings, so hierarchy/package-constant/instance-array cases prove more than "it elaborated".
 
 These wrappers matter because they become the stable shared vocabulary for:
 

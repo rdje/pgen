@@ -1314,6 +1314,72 @@
             "name": "WIDTH",
             "value": 2
           }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.direct",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.direct",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          },
+          {
+            "path": "top.gated_scope.gated",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.gated_scope.gated",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          },
+          {
+            "path": "top.lanes[0].lane",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.lanes[0].lane",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          },
+          {
+            "path": "top.lanes[1].lane",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.lanes[1].lane",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
         ]
       },
       "sample": "module leaf #(\n    parameter WIDTH = 1,\n    parameter OFFSET = WIDTH + 1\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [OFFSET-1:0] y\n);\nendmodule\n\nmodule top #(\n    parameter TOP_W = 8,\n    parameter USE_LEAF = 1\n) (\n    input logic [TOP_W-1:0] a,\n    output logic [TOP_W:0] y\n);\nleaf #(.WIDTH(TOP_W)) direct (.a(a), .y(y));\ngenerate\n    if (USE_LEAF) begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end\n    for (genvar i = 0; i < 2; i = i + 1) begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end\nendgenerate\nendmodule\n"
@@ -2570,6 +2636,26 @@
             "name": "W",
             "value": 12
           }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "part_select",
+              "signal": "data",
+              "msb": "cfg_pkg::DEPTH - 1",
+              "lsb": "0"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
         ]
       },
       "sample": "package cfg_pkg;\n    localparam WIDTH = 8;\n    parameter DEPTH = WIDTH + 2;\nendpackage\n\nmodule child #(\n    parameter W = 1\n) (\n    input logic [W-1:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter LANES = cfg_pkg::WIDTH / 4\n) (\n    input logic [cfg_pkg::DEPTH-1:0] data,\n    output logic y\n);\nlocalparam TOTAL = cfg_pkg::DEPTH + LANES;\nchild #(.W(TOTAL)) u_child (.a(data[cfg_pkg::DEPTH-1:0]), .y(y));\nendmodule\n"
@@ -2650,6 +2736,26 @@
             "name": "W",
             "value": 11
           }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "part_select",
+              "signal": "data",
+              "msb": "WIDTH - 1",
+              "lsb": "0"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
         ]
       },
       "sample": "package cfg_pkg;\n    localparam WIDTH = 8;\n    localparam DEPTH = WIDTH + 1;\nendpackage\n\nmodule child #(\n    parameter W = 1\n) (\n    input logic [W-1:0] a,\n    output logic y\n);\nendmodule\n\nmodule top import cfg_pkg::*; #(\n    parameter LANES = WIDTH / 4\n) (\n    input logic [DEPTH-1:0] data,\n    output logic y\n);\nlocalparam TOTAL = DEPTH + LANES;\nchild #(.W(TOTAL)) u_child (.a(data[WIDTH-1:0]), .y(y));\nendmodule\n"
@@ -2724,6 +2830,26 @@
             "path": "top.u_child",
             "name": "W",
             "value": 9
+          }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "part_select",
+              "signal": "data",
+              "msb": "WIDTH",
+              "lsb": "0"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
           }
         ]
       },
@@ -5040,6 +5166,40 @@
             "path": "top.lane[1]",
             "name": "WIDTH",
             "value": 2
+          }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.lane[0]",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.lane[0]",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          },
+          {
+            "path": "top.lane[1]",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.lane[1]",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
           }
         ]
       },
