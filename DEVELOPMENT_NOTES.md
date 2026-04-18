@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend ordered positional actual replay ratcheted
+### Context
+The previous `expression_text` child port-binding replay covered selector-rich named-port actuals, but the ordered positional port-actual lane still only proved generated-parser retained text. That left a small semantic replay asymmetry: the manifest could show the ordered syntax parsed, but the handwritten elaboration replay did not yet lock the resulting ordered child bindings.
+
+### Decision
+- Promote the existing `ordered_port_actuals_ternary_binary_expr` sample into accepted `expected_elaboration`.
+- Lock the top parameters `HI`, `LO`, and `SEL`, the child path `top.u_child`, and all three positional child port bindings.
+- Represent ports `a` and `b` as `expression_text` actuals because they are selector-rich runtime expressions, not constant-expression AST values.
+- Ratchet the manifest-backed replay minima from `38/28/10/5/12/11/43` to `39/29/10/6/15/11/46`.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `ordered_port_actuals_ternary_binary_expr`
+  - locked top parameters `HI = 7`, `LO = 0`, and `SEL = 1`
+  - locked child path `top.u_child`
+  - locked ordered ports `a` and `b` as `expression_text` actuals and port `y` as a signal actual
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised the generated-contract elaboration sample, accept, child-path, top-parameter, and child-port-binding minima
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the local workflow audit so the new minima are enforced outside the focused crate test too
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This closes another curated semantic replay asymmetry, but it is not a claim of generated grammar exhaustiveness, full semantic elaboration parity, or broader Phase S parser-stack closure.
+- The current replay minima are `39` samples, `29` accepts, `10` rejects, `6` child-path samples, `15` top-parameter checks, `11` child-parameter checks, and `46` child-port-binding checks.
+
 ## 2026-04-18 - README rtl_frontend replay counts synchronized
 ### Context
 After the `expression_text` child port-binding replay landed, most public/reference surfaces carried the current `rtl_frontend` manifest evidence, but the README's long `rtl_frontend` overview still retained the previous `37` semantic samples / `27` accepts wording in two places.
