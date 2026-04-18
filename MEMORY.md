@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: compiler-elaborator-roadmap-capture)
+Last updated: 2026-04-18 (+0200, task: compiler-elaborator-doctrine-refinement)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Refined the compiler/elaborator roadmap with the explicit "maximum useful leverage without breaking principles" doctrine:
+  - changed:
+    - [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - added an explicit `North-Star Doctrine` section to the compiler/elaborator roadmap
+    - captured the exact intended balancing rule:
+      - maximize downstream leverage
+      - preserve platform discipline
+    - made the principle explicit that PGEN should do everything it reasonably can to make compiler and elaborator creation easier, but should do so through reusable front-end infrastructure rather than ad hoc language-specific magic
+    - mirrored that rule into the planned `Phase U` execution guidance in the main SOTA roadmap
+  - validation:
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changed
+    - the doctrine now lives in the roadmap itself rather than only in chat, so future sessions should inherit it directly
 - Captured the compiler and elaborator enablement plan as a maintained sibling roadmap lane:
   - changed:
     - [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md)

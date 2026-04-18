@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - Compiler/elaborator doctrine tightened around maximum useful leverage
+### Context
+The follow-up refinement to the new compiler/elaborator roadmap clarified the intended ambition level. The project should not be timid here. If PGEN can make compiler and elaborator writing substantially easier, it should. The important qualifier is that it must do so by strengthening reusable front-end infrastructure rather than by abandoning platform discipline.
+
+### Decision
+- Add an explicit north-star doctrine to the compiler/elaborator roadmap:
+  - PGEN should do everything it reasonably can to make compiler and elaborator creation easier
+  - without breaking its principles
+- Keep the balancing formulation explicit:
+  - maximize downstream leverage
+  - preserve platform discipline
+- Clarify that the anti-goal is not "being too helpful"; the anti-goal is drifting into ad hoc language-specific magic that violates the EBNF-first, proof-first, contract-first model.
+
+### What Was Changed
+- Updated [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md):
+  - added a dedicated `North-Star Doctrine` section
+  - made the ambition and boundary explicit in plain language
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - mirrored the same rule into the planned `Phase U` execution guidance
+- Updated [CHANGES.md](CHANGES.md) and [MEMORY.md](MEMORY.md):
+  - synchronized continuity to the doctrine refinement
+
+### Validation
+- Passed:
+  - `git diff --check`
+
+### Continuity Notes
+- No live parser-family label changed.
+- The key sentence to preserve is now explicit in the roadmap itself rather than stranded in chat:
+  - PGEN should do everything it reasonably can to make compiler and elaborator creation easier, without breaking its principles.
+
 ## 2026-04-18 - Compiler and elaborator workbench roadmap captured as a sibling platform lane
 ### Context
 The follow-up exchange after the linter discussion made the next widening step explicit: support for serious front-end work should not stop at linting. If PGEN can generate or standardize stronger front-end products, it can help compiler and elaborator builders too, which broadens the potential consumer base materially. The important refinement was also boundary-related: PGEN should become a front-end workbench, not pretend to auto-generate an entire compiler.

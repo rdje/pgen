@@ -3679,6 +3679,9 @@ Phase U execution rule:
 - keep the ownership boundary explicit:
   - PGEN should own front-end structure, provenance, semantic seeds, helper generation, and stable handoff surfaces,
   - downstream compiler and elaborator passes should still own binding, typing, optimization, scheduling, and final back-end logic.
+- maximize downstream leverage without breaking platform doctrine:
+  - PGEN should do everything it reasonably can to make compiler and elaborator creation easier,
+  - but it should do so through reusable front-end infrastructure, not ad hoc language-specific magic.
 - prefer cross-language workbench infrastructure over one-off HDL special cases even though HDL is the first proving ground.
 - treat semantic bundle work, stable node ids, traversal helpers, source fidelity, and handoff scaffolding as shared platform assets.
 

@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-04-18 - Refine compiler/elaborator roadmap doctrine
+### Achievement Summary
+Strengthened the new compiler/elaborator roadmap with an explicit north-star doctrine: PGEN should do everything it reasonably can to make compiler and elaborator creation easier, while still preserving its EBNF-first, proof-first, contract-first discipline.
+
+### Scope of Changes
+- Updated [docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md](docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md):
+  - added an explicit `North-Star Doctrine` section
+  - made the principle concrete as:
+    - maximize downstream leverage
+    - preserve platform discipline
+  - clarified that PGEN should own as much reusable front-end infrastructure as possible without collapsing into ad hoc language-specific magic
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - mirrored the same doctrine into Phase U execution rules
+- Updated continuity docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is doctrine refinement for a future roadmap lane, not a landed parser-capability promotion
+
+### Validation
+- Passed:
+  - `git diff --check`
+
 ## 2026-04-18 - Publish compiler and elaborator enablement roadmap
 ### Achievement Summary
 Captured the compiler/elaborator brainstorming exchange as a maintained side roadmap and wired it into the main SOTA roadmap, the book, README, and live continuity/status surfaces.

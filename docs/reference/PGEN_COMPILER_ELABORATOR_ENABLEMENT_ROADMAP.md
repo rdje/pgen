@@ -14,6 +14,23 @@ The target is not "auto-generate the whole compiler." The target is:
 - generated helpers and stable APIs that downstream passes can build on,
 - and clean handoff into name binding, typing, lowering, elaboration, and diagnostics.
 
+## North-Star Doctrine
+
+Everything PGEN can do to make compiler and elaborator creation dramatically easier, it should do, without breaking its principles.
+
+That means:
+
+- maximize downstream leverage,
+- preserve platform discipline.
+
+In practice:
+
+- PGEN should aggressively own the repetitive, structural, cross-language front-end work,
+- but it should not collapse into ad hoc language-specific magic,
+- and it should not violate its EBNF-first, proof-first, contract-first doctrine.
+
+This is intentionally a strong ambition, not a narrow one. The point is not to keep PGEN minimally scoped. The point is to make it maximally useful in the right layer.
+
 ## Why This Matters
 
 The potential consumer base for PGEN widens materially if it helps not only parser authors, but also:
@@ -68,6 +85,12 @@ In short:
 - downstream tools should still own the deeper language-specific semantics and back-end logic.
 
 That is the right boundary.
+
+Operational reading of that boundary:
+
+- PGEN should do everything it reasonably can to make compiler and elaborator writing easier,
+- but it should do so by strengthening reusable front-end infrastructure,
+- not by pretending to solve every language's deepest semantics generically.
 
 ## Current PGEN Assessment
 
