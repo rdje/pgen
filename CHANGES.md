@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-18 - Add rtl_frontend module-local parameter replay
+### Achievement Summary
+Promoted the retained `rtl_frontend` module-local parameter/localparam lane into shared handwritten elaboration replay, raising the maintained semantic replay floor to `53` samples with `40` accepts and `13` rejects.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `module_local_parameter_and_localparam_items`
+  - locked top `arithmetic`
+  - locked top parameters `WIDTH = 8`, `DEPTH = 12`, `EXTRA = 13`, and `TOTAL = 16`
+  - locked `child_instance_count = 0` for the isolated module-local arithmetic lane
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised the manifest-backed elaboration gate minima to `53/40/13/15/28/15/75`
+  - added a focused handwritten-baseline unit test for module-local parameter/localparam elaboration
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - synchronized the tracked workflow-policy audit surface to the new sample/accept/top-parameter minima
+- Updated README, the public book, the roadmap/reference architecture notes, the live tracker, and continuity docs to report the new `53/40/13/15/28/15/75` replay floor.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this strengthens curated semantic replay over the handwritten baseline, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_module_local_parameter_and_localparam_items --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-18 - Align book roadmap links and broaden doctrine wording
 ### Achievement Summary
 Made both new enablement roadmaps discoverable from both sides of the book split and broadened the shared doctrine wording so it explicitly covers linter, compiler, and elaborator creation together.

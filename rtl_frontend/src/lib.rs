@@ -4494,11 +4494,11 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 52;
-    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 39;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 53;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 40;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 15;
-    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 24;
+    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 28;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 75;
 
@@ -6433,6 +6433,36 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[test]
+    fn elaborate_top_supports_module_local_parameter_and_localparam_items() {
+        let design = parse_design(
+            r#"
+            module arithmetic #(
+                parameter WIDTH = 8,
+                parameter DEPTH = WIDTH + 4
+            ) (
+                output logic [DEPTH-1:0] y
+            );
+            parameter EXTRA = DEPTH + 1;
+            localparam TOTAL = WIDTH * 2;
+            logic [TOTAL-1:0] data;
+            assign y = EXTRA > TOTAL ? EXTRA : TOTAL;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("arithmetic", &HashMap::new())
+            .expect("arithmetic elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("WIDTH"), Some(&8));
+        assert_eq!(elaborated.parameters.get("DEPTH"), Some(&12));
+        assert_eq!(elaborated.parameters.get("EXTRA"), Some(&13));
+        assert_eq!(elaborated.parameters.get("TOTAL"), Some(&16));
+        assert!(elaborated.child_instances.is_empty());
     }
 
     #[test]

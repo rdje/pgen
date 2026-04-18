@@ -263,6 +263,8 @@ audit_reference_docs_surface() {
   local -a expected_reference_docs=(
     "docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md"
     "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md"
+    "docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md"
+    "docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md"
     "docs/reference/PGEN_RELEASE_POLICY.md"
     "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md"
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md"
@@ -892,10 +894,10 @@ audit_rtl_frontend_generated_contract_surface() {
     'expected_elaboration'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 52'
+    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 53'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 39'
+    'MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 40'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13'
@@ -904,7 +906,7 @@ audit_rtl_frontend_generated_contract_surface() {
     'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 15'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 24'
+    'MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 28'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15'

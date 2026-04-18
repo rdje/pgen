@@ -1030,6 +1030,17 @@
           "WIDTH * 2"
         ]
       },
+      "expected_elaboration": {
+        "top": "arithmetic",
+        "ok": true,
+        "child_instance_count": 0,
+        "top_parameters": {
+          "WIDTH": 8,
+          "DEPTH": 12,
+          "EXTRA": 13,
+          "TOTAL": 16
+        }
+      },
       "sample": "module arithmetic #(\n    parameter WIDTH = 8,\n    parameter DEPTH = WIDTH + 4\n) (\n    output logic [DEPTH-1:0] y\n);\nparameter EXTRA = DEPTH + 1;\nlocalparam TOTAL = WIDTH * 2;\nlogic [TOTAL-1:0] data;\nassign y = EXTRA > TOTAL ? EXTRA : TOTAL;\nendmodule\n"
     },
     {

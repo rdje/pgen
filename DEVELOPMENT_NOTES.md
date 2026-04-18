@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend module-local parameter/localparam replay ratcheted
+### Context
+The retained `module_local_parameter_and_localparam_items` sample already exact-locked the parser-side shape of header parameters plus module-body `parameter` / `localparam` items, but the smaller arithmetic lane still had no direct handwritten elaboration proof of its body-local parameter environment. That left the semantic replay surface slightly lopsided because the same values were only implied by the larger integrated arithmetic/procedural/generate sample.
+
+### Decision
+- Promote `module_local_parameter_and_localparam_items` into accepted `expected_elaboration`.
+- Lock top `arithmetic` with `child_instance_count = 0`.
+- Lock `WIDTH = 8`, `DEPTH = 12`, `EXTRA = 13`, and `TOTAL = 16` directly on that smaller retained lane.
+- Raise the manifest-backed elaboration minima to `53/40/13/15/28/15/75` and mirror the same values in the tracked workflow-policy audit.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `module_local_parameter_and_localparam_items`
+  - locked top `arithmetic`
+  - locked top parameters `WIDTH = 8`, `DEPTH = 12`, `EXTRA = 13`, and `TOTAL = 16`
+  - locked `child_instance_count = 0`
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised `MIN_GENERATED_CONTRACT_ELABORATION_*` minima to `53/40/13/15/28/15/75`
+  - added `elaborate_top_supports_module_local_parameter_and_localparam_items`
+  - proves that the handwritten elaborator accepts the smaller module-local arithmetic lane and produces the expected top-parameter environment without child instances
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the tracked workflow-policy audit surface so local CI parity enforces the same new sample/accept/top-parameter minima
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `53` samples, `40` accepts, `13` rejects, `15` child-path samples, `28` top-parameter checks, `15` child-parameter checks, and `75` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_module_local_parameter_and_localparam_items --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This slice makes the smaller module-local arithmetic lane executable on its own instead of leaving its parameter environment implied by the larger integrated arithmetic/procedural/generate sample.
+
 ## 2026-04-18 - Book discoverability and doctrine wording aligned across the two new roadmap lanes
 ### Context
 The follow-up check on the new roadmap lanes surfaced a fair point: both roadmaps were present in the book, but not symmetrically enough. The annotation-facing chapter emphasized the linter lane, while the architecture-facing chapter emphasized the compiler/elaborator lane. The north-star doctrine wording also benefited from one broader formulation that explicitly covers all three downstream creation tracks together.
