@@ -157,6 +157,9 @@ PGEN is a production-focused parser and stimuli generator platform.
     - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - VHDL quality gate:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - the default gate-local Rust build cache under `rust/target/vhdl_stimuli_quality_gate/cargo_target` is pruned automatically when the gate exits; the retained evidence remains in `work/` and `logs/`
+  - set `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET=1` if you want to keep that default gate-local cache deliberately
+  - if you point `PGEN_VHDL_STIMULI_CARGO_TARGET_DIR` at a custom/shared target dir, that directory remains user-managed rather than being auto-pruned
 - VHDL strict-promotion trials:
   - `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
 - EBNF dual-run gate:

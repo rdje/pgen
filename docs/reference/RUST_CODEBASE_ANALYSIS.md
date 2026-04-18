@@ -1429,6 +1429,7 @@ Operational rule:
   - The proof-plumbing caveat from the first `9`-target refresh attempt is now resolved in the retained gate path:
     - [vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh) now isolates a state-local `CARGO_TARGET_DIR`
     - nested strict-promotion refreshes no longer clobber the adapter-backed generated `ast_pipeline` / `parseability_probe` binaries
+    - that isolated build cache is now treated as disposable by default: the gate retains `work/` and `logs/`, but prunes the default state-local `cargo_target` on exit unless `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET=1` is set
     - future VHDL work should spend its effort on reducing the remaining replay targets, not on this normalized refresh seam
 - `regex`
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families

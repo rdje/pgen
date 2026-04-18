@@ -20,6 +20,11 @@ PARSEABILITY_MAX_ATTEMPTS_OVERRIDE="${PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX
 REALISTIC_CORPUS_MODE="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE:-auto}"
 REALISTIC_CORPUS_OVERRIDE="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS:-}"
 REALISTIC_CORPUS_MAX_CASES="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES:-0}"
+KEEP_CARGO_TARGET_RAW="${PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET:-auto}"
+CARGO_TARGET_DIR_SOURCE="default_state_dir"
+if [[ -n "${PGEN_VHDL_STIMULI_CARGO_TARGET_DIR+x}" ]]; then
+    CARGO_TARGET_DIR_SOURCE="env_override"
+fi
 
 require_tool() {
     local tool="$1"
@@ -82,6 +87,27 @@ enforce_threshold_le() {
         echo "error: ${metric} budget exceeded for ${context} (${value} > ${max_allowed})" >&2
         exit 1
     fi
+}
+
+normalize_keep_mode() {
+    local raw="${1:-auto}"
+    local lowered
+    lowered="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
+    case "$lowered" in
+        auto|'')
+            printf 'auto\n'
+            ;;
+        1|true|yes|on)
+            printf 'true\n'
+            ;;
+        0|false|no|off)
+            printf 'false\n'
+            ;;
+        *)
+            echo "error: PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET must be one of: auto, 0, 1" >&2
+            exit 2
+            ;;
+    esac
 }
 
 resolve_path() {
@@ -151,6 +177,40 @@ mkdir -p "$LOG_DIR" "$WORK_DIR"
 CARGO_TARGET_DIR="$(resolve_rust_path "$CARGO_TARGET_DIR_RAW")"
 AST_PIPELINE_BIN="$CARGO_TARGET_DIR/debug/ast_pipeline"
 PARSE_PROBE_BIN="$CARGO_TARGET_DIR/debug/parseability_probe"
+KEEP_CARGO_TARGET_MODE="$(normalize_keep_mode "$KEEP_CARGO_TARGET_RAW")"
+keep_cargo_target_effective=1
+cargo_target_cleanup_on_exit=0
+cargo_target_cleanup_note="preserved because the cargo target dir is env-managed"
+if [[ "$CARGO_TARGET_DIR_SOURCE" == "default_state_dir" ]]; then
+    if [[ "$KEEP_CARGO_TARGET_MODE" == "true" ]]; then
+        keep_cargo_target_effective=1
+        cargo_target_cleanup_on_exit=0
+        cargo_target_cleanup_note="preserved by keep override"
+    else
+        keep_cargo_target_effective=0
+        cargo_target_cleanup_on_exit=1
+        if [[ "$KEEP_CARGO_TARGET_MODE" == "false" ]]; then
+            cargo_target_cleanup_note="pruned by explicit keep=false override"
+        else
+            cargo_target_cleanup_note="default state-local cargo target is pruned after the gate finishes"
+        fi
+    fi
+elif [[ "$KEEP_CARGO_TARGET_MODE" == "true" ]]; then
+    cargo_target_cleanup_note="preserved by keep override"
+elif [[ "$KEEP_CARGO_TARGET_MODE" == "false" ]]; then
+    cargo_target_cleanup_note="env-managed cargo target dir is preserved; cleanup only auto-applies to the default state-local cache"
+fi
+
+cleanup_cargo_target_dir_on_exit() {
+    local exit_code=$?
+    if [[ "$cargo_target_cleanup_on_exit" -eq 1 && -n "$CARGO_TARGET_DIR" && "$CARGO_TARGET_DIR" != "/" && -d "$CARGO_TARGET_DIR" ]]; then
+        echo "pruning cargo_target_dir: $CARGO_TARGET_DIR"
+        rm -rf "$CARGO_TARGET_DIR" || echo "warning: failed to remove cargo_target_dir '$CARGO_TARGET_DIR'" >&2
+    fi
+    return "$exit_code"
+}
+
+trap cleanup_cargo_target_dir_on_exit EXIT
 
 require_tool jq
 require_tool perl
@@ -234,6 +294,11 @@ require_file "$grammar_file"
 echo "==> VHDL stimuli quality gate"
 echo "state_dir: $STATE_DIR"
 echo "cargo_target_dir: $CARGO_TARGET_DIR"
+echo "cargo_target_dir_source: $CARGO_TARGET_DIR_SOURCE"
+echo "keep_cargo_target_mode: $KEEP_CARGO_TARGET_MODE"
+echo "keep_cargo_target_effective: $keep_cargo_target_effective"
+echo "cargo_target_cleanup_on_exit: $cargo_target_cleanup_on_exit"
+echo "cargo_target_cleanup_note: $cargo_target_cleanup_note"
 echo "contract_file: $CONTRACT_FILE"
 echo "contract_version: $contract_version"
 echo "grammar_name: $grammar_name"
@@ -799,6 +864,12 @@ jq -n \
 {
     echo "PGEN VHDL Stimuli Quality Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "cargo_target_dir: $CARGO_TARGET_DIR"
+    echo "cargo_target_dir_source: $CARGO_TARGET_DIR_SOURCE"
+    echo "keep_cargo_target_mode: $KEEP_CARGO_TARGET_MODE"
+    echo "keep_cargo_target_effective: $keep_cargo_target_effective"
+    echo "cargo_target_cleanup_on_exit: $cargo_target_cleanup_on_exit"
+    echo "cargo_target_cleanup_note: $cargo_target_cleanup_note"
     echo "contract_file: $CONTRACT_FILE"
     echo "grammar_name: $grammar_name"
     echo "entry_rule: $entry_rule"

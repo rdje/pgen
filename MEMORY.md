@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: ci-workflow-local-gate-success-run-cleanup)
+Last updated: 2026-04-18 (+0200, task: vhdl-gate-cargo-target-cleanup)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added automatic cleanup for the default VHDL quality-gate `cargo_target`:
+  - changed:
+    - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
+    - [README.md](README.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - the direct `vhdl_stimuli_quality_gate` now treats its default state-local `cargo_target` as disposable and removes it on exit
+    - retained proof artifacts remain in `rust/target/vhdl_stimuli_quality_gate/work` and `logs`
+    - `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET=1` keeps the default gate-local cache deliberately
+    - custom `PGEN_VHDL_STIMULI_CARGO_TARGET_DIR` locations stay user-managed and are not auto-pruned implicitly
+  - validation:
+    - `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+    - `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+    - `test ! -d rust/target/vhdl_stimuli_quality_gate/cargo_target`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+    - markdown checkout-specific absolute-path audit returned no matches
+  - important continuity detail:
+    - no live parser-family label changed
+    - the gate-local Rust build cache is now intentionally ephemeral; the durable proof state is still `work/` plus `logs`
 - Added self-pruning retention policy for successful local CI workflow-parity runs:
   - changed:
     - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)

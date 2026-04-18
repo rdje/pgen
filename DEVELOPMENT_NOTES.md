@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - VHDL quality gate now drops disposable cargo cache
+### Context
+The direct `vhdl_stimuli_quality_gate` proof state is intentionally small and durable in `work/` plus `logs/`, but the gate also carried a state-local Rust `cargo_target` to prevent nested quality / strict-promotion refreshes from clobbering each other's adapter-backed binaries. That isolation was correct, but the retained `cargo_target` had grown to roughly `1.1G` while the useful proof artifacts were only a few megabytes.
+
+### Decision
+- Keep the isolated gate-local `cargo_target` execution model because it still protects nested adapter-backed runs.
+- Treat that default state-local Rust build cache as disposable after the gate exits.
+- Retain an explicit escape hatch, `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET=1`, for deliberate preservation.
+- Keep custom `PGEN_VHDL_STIMULI_CARGO_TARGET_DIR` locations user-managed instead of silently deleting them.
+
+### What Was Changed
+- [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh):
+  - added `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET`
+  - records cargo-target source / retention / cleanup intent in the gate output and summary
+  - prunes the default state-local `cargo_target` on exit while retaining `work/` and `logs/`
+- [README.md](README.md) and [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md):
+  - documented the new default cleanup behavior and the keep override
+- [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), and [MEMORY.md](MEMORY.md):
+  - logged the retention policy so future sessions understand that `cargo_target` is intentionally ephemeral while `work/` and `logs/` remain the durable proof surface
+
+### Validation
+- Passed:
+  - `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - `test ! -d rust/target/vhdl_stimuli_quality_gate/cargo_target`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- The durable direct VHDL gate evidence remains `rust/target/vhdl_stimuli_quality_gate/work` plus `logs`.
+- The default gate-local Rust build cache is now ephemeral unless `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET=1` is set.
+
 ## 2026-04-18 - local CI scratch retention made self-pruning
 ### Context
 The tracked local workflow-parity gate exports a full tracked-tree snapshot under `rust/target/ci_workflow_local_gate/run.*` before replaying selected workflow commands. That is the right execution model for CI-like proof, but until now successful runs accumulated indefinitely unless someone remembered to clean them manually.

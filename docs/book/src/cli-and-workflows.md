@@ -61,6 +61,8 @@ As of 2026-04-14, the hosted GitHub Actions workflows are intentionally manual-o
 
 By default, successful `ci_workflow_local_gate` runs now delete their own scratch `run.*` export directories under `rust/target/ci_workflow_local_gate` after the selected workflows complete. Failed runs are intentionally retained so the exported tracked tree and logs remain available for diagnosis. Set `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1` when you want to preserve a successful run on purpose.
 
+The same “keep the evidence, drop the disposable build cache” rule now also applies to the direct VHDL quality lane. `vhdl_stimuli_quality_gate` still isolates its adapter-backed Rust build under a gate-local `cargo_target` so nested runs do not clobber each other, but that default `rust/target/vhdl_stimuli_quality_gate/cargo_target` directory is pruned automatically when the gate exits. The retained proof surface remains `work/` plus `logs/`. Set `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET=1` only when you intentionally want to keep that gate-local cache around.
+
 ## Working Style That Fits PGEN Best
 
 The most reliable pattern is:

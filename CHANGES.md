@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-04-18 - Prune default VHDL gate cargo cache after use
+### Achievement Summary
+Stopped the direct VHDL stimuli-quality lane from retaining a giant gate-local Rust build cache after the gate finishes, while preserving the useful proof artifacts in `work/` and `logs/`.
+
+### Scope of Changes
+- Updated [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh):
+  - added `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET` with `auto` default
+  - defaulted the gate to prune `rust/target/vhdl_stimuli_quality_gate/cargo_target` on exit when using the default state-local cache
+  - preserved custom `PGEN_VHDL_STIMULI_CARGO_TARGET_DIR` locations as user-managed rather than auto-pruning them implicitly
+  - surfaced cargo-target retention/cleanup metadata in the gate summary
+- Documented the retention policy in README, the public book, the Rust codebase analysis, the live tracker, and continuity docs.
+- Status impact:
+  - no live parser-family label changed
+  - all live parser-family rows remain unchanged
+  - this is artifact-retention hygiene and continuity hardening, not a parser-surface or proof-surface expansion
+
+### Validation
+- Passed:
+  - `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - `test ! -d rust/target/vhdl_stimuli_quality_gate/cargo_target`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
 ## 2026-04-18 - Prune successful local CI scratch runs
 ### Achievement Summary
 Taught the tracked local workflow-parity gate to clean up after itself by deleting successful `ci_workflow_local_gate` scratch exports while still retaining failed runs for diagnosis.
