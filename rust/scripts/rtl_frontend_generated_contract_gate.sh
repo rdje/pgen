@@ -35,7 +35,7 @@ run_stage "rtl_frontend_generated_contract_probe" \
 
 run_stage "rtl_frontend_handwritten_contract_replay" \
     cargo test --manifest-path ../rtl_frontend/Cargo.toml \
-        generated_contract_manifest_matches_handwritten_parse_surface --lib
+        generated_contract_manifest_matches_handwritten --lib
 
 echo >>"${SUMMARY_TXT}"
 echo "✅ rtl_frontend generated contract gate passed." | tee -a "${SUMMARY_TXT}"

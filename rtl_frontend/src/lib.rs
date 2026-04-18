@@ -4425,7 +4425,20 @@ mod tests {
         expected_parse_ok: bool,
         #[serde(default)]
         expected_handwritten_parse_ok: Option<bool>,
+        #[serde(default)]
+        expected_elaboration: Option<GeneratedContractElaboration>,
         sample: String,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct GeneratedContractElaboration {
+        #[serde(default)]
+        top: Option<String>,
+        ok: bool,
+        #[serde(default)]
+        child_instance_count: Option<usize>,
+        #[serde(default)]
+        error_contains: Option<String>,
     }
 
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
@@ -4488,6 +4501,77 @@ mod tests {
         assert_eq!(
             explicit_handwritten_divergences, 0,
             "current rtl_frontend generated contract samples should parse the same way through the generated and handwritten frontends"
+        );
+    }
+
+    #[test]
+    fn generated_contract_manifest_matches_handwritten_elaboration_surface() {
+        let manifest = load_generated_contract_manifest();
+        assert_eq!(manifest.contract_version, "0.1.0");
+        assert_eq!(manifest.grammar_name, "rtl_frontend");
+
+        let mut checked = 0usize;
+        let mut expected_accepts = 0usize;
+        let mut expected_rejects = 0usize;
+        for sample in &manifest.samples {
+            let Some(expectation) = &sample.expected_elaboration else {
+                continue;
+            };
+            checked += 1;
+            assert!(
+                sample.expected_parse_ok,
+                "sample '{}' cannot carry elaboration expectations unless generated parse is expected to pass",
+                sample.label
+            );
+
+            let design = parse_design(&sample.sample).unwrap_or_else(|err| {
+                panic!(
+                    "sample '{}' should parse before elaboration replay: {err}",
+                    sample.label
+                )
+            });
+            let top = expectation.top.as_deref().unwrap_or("top");
+            let result = design.elaborate_top(top, &HashMap::new());
+            if expectation.ok {
+                expected_accepts += 1;
+                let elaborated = result.unwrap_or_else(|err| {
+                    panic!(
+                        "sample '{}' should elaborate top '{}': {err}",
+                        sample.label, top
+                    )
+                });
+                if let Some(expected_count) = expectation.child_instance_count {
+                    assert_eq!(
+                        elaborated.child_instances.len(),
+                        expected_count,
+                        "sample '{}' elaborated unexpected immediate child instance count",
+                        sample.label
+                    );
+                }
+            } else {
+                expected_rejects += 1;
+                let error = match result {
+                    Ok(_) => panic!(
+                        "sample '{}' should reject elaboration for top '{}'",
+                        sample.label, top
+                    ),
+                    Err(error) => error,
+                };
+                if let Some(expected_message) = &expectation.error_contains {
+                    assert!(
+                        error.message.contains(expected_message),
+                        "sample '{}' elaboration error should contain {:?}, got {:?}",
+                        sample.label,
+                        expected_message,
+                        error.message
+                    );
+                }
+            }
+        }
+
+        assert!(
+            checked > 0 && expected_accepts > 0 && expected_rejects > 0,
+            "generated contract manifest should retain both positive and negative elaboration replay samples"
         );
     }
 

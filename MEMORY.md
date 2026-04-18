@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: regex-bare-octal-class-range-endpoint-ordering)
+Last updated: 2026-04-18 (+0200, task: rtl-frontend-generated-contract-elaboration-replay)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,45 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added the first manifest-backed `rtl_frontend` elaboration replay layer:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - added optional `expected_elaboration` manifest metadata for parse-positive samples
+    - added `generated_contract_manifest_matches_handwritten_elaboration_surface`
+    - updated `rtl_frontend_generated_contract_gate` so one handwritten replay filter runs both parse and elaboration manifest tests
+  - proof impact:
+    - first elaboration-positive samples cover arithmetic/procedural/generate, direct/generate hierarchy, package-constant flows, and parameterized instance arrays
+    - first elaboration-negative samples cover unknown `always_ff` event identifiers, packed-union width mismatch, unindexed unpacked-array member access, and unknown inline struct member access
+    - the existing 120-sample parse manifest still has zero active `expected_handwritten_parse_ok` divergence overrides
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+    - markdown checkout-specific absolute-path audit returned no matches
+    - clippy note: the repository Rust-change clippy workflow completed and reported no Rust/generated-Rust changes under its local detection scope; strict `rtl_frontend` crate clippy was run separately because this task touched [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this starts manifest-backed elaboration replay, but does not close full generated grammar exhaustiveness or semantic elaboration parity
 - Published regex parser release `1.1.29` / integration contract `1.1.31` for RGX report `PGEN-RGX-0072`:
   - changed:
     - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)

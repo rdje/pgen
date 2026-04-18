@@ -38,8 +38,9 @@ Execution preference for this roadmap:
   - `vhdl`, `systemverilog_preprocessor`, and `regex` are current no-regression proof baselines
   - do not treat them as active closure work unless their published contracts are intentionally widened or a real regression is discovered
 - Phase S `rtl_frontend` generated-contract work should keep making provenance executable:
-  - the current `rtl_frontend_generated_contract_gate` now checks both the generated parser probe and handwritten `parse_design` replay over the same `120`-sample manifest
+  - the current `rtl_frontend_generated_contract_gate` now checks the generated parser probe, handwritten `parse_design` replay, and a first optional handwritten elaboration replay layer over the same `120`-sample manifest
   - known bootstrap/generated parse-surface differences must be explicit through `expected_handwritten_parse_ok` rather than left as prose-only assumptions; the current curated manifest has zero active such differences
+  - manifest entries can now carry `expected_elaboration` to lock top-module elaboration accept/reject outcomes; the first retained set covers arithmetic/generate/hierarchy/package-constant/instance-array accepts and semantic rejects for unknown event identifiers, packed-union width mismatch, unindexed unpacked-array members, and unknown struct members
   - recent handwritten-baseline parity tightening moved mixed named/ordered parameter-override and port-connection rejection into `parse_design`, shrinking explicit generated/handwritten divergence annotations from `14` to `12`
   - a follow-on handwritten-baseline parity slice moved scalar `always_ff` blocking-assignment rejection into `parse_design`, shrinking explicit generated/handwritten divergence annotations from `12` to `11`
   - the latest rich-expression syntax-only slice moved selector/concat-heavy RHS values, port actuals, and parameter overrides into the handwritten parse surface, shrinking explicit generated/handwritten divergence annotations from `11` to `0`

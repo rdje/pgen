@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-04-18 - Add rtl_frontend manifest elaboration replay
+### Achievement Summary
+Started turning the `rtl_frontend` curated generated-contract manifest into a parse-plus-elaboration proof surface by adding optional `expected_elaboration` expectations and replaying them through the handwritten baseline inside the maintained generated-contract gate.
+
+### Scope of Changes
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) manifest replay tests with `expected_elaboration` support:
+  - parse-positive samples can now declare a top module, expected elaboration accept/reject outcome, optional immediate child-instance count, and optional diagnostic substring
+  - the replay asserts that the manifest carries both positive and negative elaboration expectations so the layer cannot silently become empty
+- Added first elaboration expectations to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - positive flows: arithmetic/procedural/generate, direct/generate hierarchy, package-qualified/header-imported/module-imported constants, and parameterized instance arrays
+  - negative flows: unknown `always_ff` event identifier, packed-union width mismatch, unindexed unpacked-array member access, and unknown inline struct member access
+- Updated [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh) so the maintained gate runs both handwritten replay tests through one filter.
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh), the public book, roadmap, Rust architecture notes, README, live tracker, and continuity docs so the new proof layer is visible.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is the first manifest-backed elaboration replay layer, not full semantic elaboration parity or grammar exhaustiveness closure
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Clippy Note
+- The required Rust-change clippy workflow completed successfully and reported no Rust/generated-Rust changes under its repository-local detection scope.
+- Because this task touched [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs), strict crate-local `rtl_frontend` clippy was run separately and passed.
+
 ## 2026-04-18 - Publish regex 1.1.29 for bare-octal class range ordering
 ### Achievement Summary
 Published regex parser release `1.1.29` / integration contract `1.1.31` for RGX PCRE2 report `PGEN-RGX-0072`, closing the remaining bare-octal endpoint residual in the generated-host character-class range validator.

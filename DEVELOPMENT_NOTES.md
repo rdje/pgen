@@ -1,4 +1,53 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend generated contract gains elaboration replay
+### Context
+After the zero-divergence generated/handwritten parse-surface milestone, the `rtl_frontend` gate still stopped at parseability and retained-AST proof. That was useful, but it left a sharp boundary: samples that were intentionally syntax-only had prose saying elaboration owned the semantic decision, while the shared manifest did not yet prove any elaboration decisions itself.
+
+### Decision
+- Keep the generated parser probe focused on generated parseability and AST-retention evidence.
+- Extend the sibling handwritten replay to cover optional manifest-level elaboration expectations without forcing every syntax sample to become semantically meaningful.
+- Model the new layer with `expected_elaboration` rather than changing existing parse fields:
+  - `top`: top module to elaborate
+  - `ok`: expected elaboration outcome
+  - `child_instance_count`: optional immediate child-instance count for accepted hierarchy samples
+  - `error_contains`: optional diagnostic substring for rejected semantic samples
+- Require both positive and negative elaboration examples so the new proof lane cannot drift into an empty or one-sided contract.
+
+### What Was Changed
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added `GeneratedContractElaboration` test metadata
+  - added `generated_contract_manifest_matches_handwritten_elaboration_surface`
+  - kept the existing parse-surface replay intact
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added first `expected_elaboration` entries to representative positive and negative samples
+- [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh):
+  - widened the handwritten replay filter so both manifest replay tests run under the maintained gate
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - audits that the manifest/gate/test surface keeps the new elaboration layer wired
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Clippy Note
+- The required Rust-change clippy workflow completed successfully and reported no Rust/generated-Rust changes under its repository-local detection scope.
+- Because this task touched [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs), strict crate-local `rtl_frontend` clippy was run separately and passed.
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This is a proof-surface upgrade over the existing manifest, not a new EBNF production and not full elaboration parity.
+- The next meaningful elaboration-hardening slices should add more expected-elaboration entries for semantically valid RTL micro-designs and targeted semantic rejects, then eventually promote this from curated examples to broader derived/corpus-backed proof.
+
 ## 2026-04-18 - regex 1.1.29 bare-octal class range endpoint ordering
 ### Context
 RGX filed `PGEN-RGX-0072` after PGEN `1.1.28` fixed braced-hex class range endpoint ordering but left a residual in the same generated-host compile-contract family: bare octal class-range endpoints such as `\000`, `\037`, and `\377`.

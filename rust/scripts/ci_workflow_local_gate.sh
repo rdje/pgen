@@ -839,11 +839,20 @@ audit_rtl_frontend_generated_contract_surface() {
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
     '"expected_rule_texts"'
   assert_file_contains \
+    "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
+    '"expected_elaboration"'
+  assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'expected_handwritten_parse_ok'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
+    'expected_elaboration'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
     'current rtl_frontend generated contract samples should parse the same way'
+  assert_file_contains \
+    "rtl_frontend/src/lib.rs" \
+    'fn generated_contract_manifest_matches_handwritten_elaboration_surface()'
   assert_file_contains \
     "rust/scripts/rtl_frontend_generated_contract_gate.sh" \
     'cargo run --features generated_parsers --bin rtl_frontend_generated_contract_probe'
@@ -853,6 +862,9 @@ audit_rtl_frontend_generated_contract_surface() {
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'fn generated_contract_manifest_matches_handwritten_parse_surface()'
+  assert_file_contains \
+    "rust/scripts/rtl_frontend_generated_contract_gate.sh" \
+    'generated_contract_manifest_matches_handwritten --lib'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     '../rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json'
