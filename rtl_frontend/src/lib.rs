@@ -4494,11 +4494,11 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 53;
-    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 40;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 54;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 41;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 15;
-    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 28;
+    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 30;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 75;
 
@@ -6461,6 +6461,37 @@ mod tests {
         assert_eq!(elaborated.parameters.get("WIDTH"), Some(&8));
         assert_eq!(elaborated.parameters.get("DEPTH"), Some(&12));
         assert_eq!(elaborated.parameters.get("EXTRA"), Some(&13));
+        assert_eq!(elaborated.parameters.get("TOTAL"), Some(&16));
+        assert!(elaborated.child_instances.is_empty());
+    }
+
+    #[test]
+    fn elaborate_top_supports_generate_if_else_with_local_net_declarations() {
+        let design = parse_design(
+            r#"
+            module top #(
+                parameter WIDTH = 8,
+                parameter TOTAL = WIDTH * 2
+            ) (
+                output logic y
+            );
+            generate
+                if (WIDTH > 4) begin : has_extra
+                    logic [TOTAL-1:0] extra;
+                end else begin : no_extra
+                    logic dummy;
+                end
+            endgenerate
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("WIDTH"), Some(&8));
         assert_eq!(elaborated.parameters.get("TOTAL"), Some(&16));
         assert!(elaborated.child_instances.is_empty());
     }

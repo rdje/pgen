@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-18 - Add rtl_frontend generate-if/else local-net replay
+### Achievement Summary
+Promoted the retained `rtl_frontend` generate-if/else local-net lane into shared handwritten elaboration replay, raising the maintained semantic replay floor to `54` samples with `41` accepts and `13` rejects.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `generate_if_else_with_local_net_declarations`
+  - locked top `top`
+  - locked top parameters `WIDTH = 8` and `TOTAL = 16`
+  - locked `child_instance_count = 0` for the retained parameterized local-net generate-if/else lane
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised the manifest-backed elaboration gate minima to `54/41/13/15/30/15/75`
+  - added a focused handwritten-baseline unit test for generate-if/else local-net elaboration
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - synchronized the tracked workflow-policy audit surface to the new sample/accept/top-parameter minima
+- Updated README, the public book, the roadmap/reference architecture notes, the live tracker, and continuity docs to report the new `54/41/13/15/30/15/75` replay floor.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this strengthens curated semantic replay over the handwritten baseline, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_generate_if_else_with_local_net_declarations --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-18 - Add rtl_frontend module-local parameter replay
 ### Achievement Summary
 Promoted the retained `rtl_frontend` module-local parameter/localparam lane into shared handwritten elaboration replay, raising the maintained semantic replay floor to `53` samples with `40` accepts and `13` rejects.

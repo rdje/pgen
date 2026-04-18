@@ -4020,6 +4020,15 @@
           "logic dummy;"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0,
+        "top_parameters": {
+          "WIDTH": 8,
+          "TOTAL": 16
+        }
+      },
       "sample": "module top #(\n    parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2\n) (\n    output logic y\n);\ngenerate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\nendgenerate\nendmodule\n"
     },
     {
