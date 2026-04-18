@@ -3950,6 +3950,14 @@
           "assign y = mid;"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 0,
+        "top_parameters": {
+          "SEL": 1
+        }
+      },
       "sample": "module top #(\n    parameter SEL = 1\n) (\n    input logic a,\n    output logic y\n);\nlogic mid;\ngenerate\n    if (SEL) begin : gen_true\n        assign mid = a;\n    end else begin : gen_false\n        assign mid = 0;\n    end\nendgenerate\nassign y = mid;\nendmodule\n"
     },
     {

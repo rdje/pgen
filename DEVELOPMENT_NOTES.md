@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend generate-if/else dataflow replay ratcheted
+### Context
+The retained `generate_if_else_with_dataflow` sample already proved the parser-side shape of a labeled true/false generate branch with branch-local continuous assignments, but its semantics were still only implied by nearby integrated hierarchy/generate samples. That left a small but high-signal hole in the shared replay surface: the simplest branch-selecting generate-if/else lane still had no direct handwritten elaboration proof.
+
+### Decision
+- Promote `generate_if_else_with_dataflow` into accepted `expected_elaboration`.
+- Lock top parameter `SEL = 1` and `child_instance_count = 0`.
+- Raise the manifest-backed elaboration minima to `52/39/13/15/24/15/75` and mirror the same values in the tracked workflow-policy audit.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `generate_if_else_with_dataflow`
+  - locked `top_parameters.SEL = 1`
+  - locked `child_instance_count = 0`
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised `MIN_GENERATED_CONTRACT_ELABORATION_*` minima to `52/39/13/15/24/15/75`
+  - added `elaborate_top_supports_generate_if_else_with_dataflow`
+  - proves that the handwritten elaborator accepts the branch-selecting generate-if/else lane while preserving the expected top-parameter environment and producing no child instances
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the tracked workflow-policy audit surface so local CI parity enforces the same new sample/accept/top-parameter minima
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `52` samples, `39` accepts, `13` rejects, `15` child-path samples, `24` top-parameter checks, `15` child-parameter checks, and `75` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_supports_generate_if_else_with_dataflow --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This slice makes the simpler branch-selecting generate-if/else dataflow lane executable on its own instead of leaving that semantic behavior implicit in the larger integrated samples.
+
 ## 2026-04-18 - rtl_frontend generate-for named-instantiation replay ratcheted
 ### Context
 The generate-if lane was now executable on its own, but the nearby generate-for named-instantiation/dataflow sample still lived only on the parse side even though the handwritten elaborator already knew how to create loop-scoped child paths and preserve the symbolic `ys[i]` actual shape. That made the replay surface slightly uneven: the simpler looped hierarchy case was still only implied by the larger integrated hierarchy sample.

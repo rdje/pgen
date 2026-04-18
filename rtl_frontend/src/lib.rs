@@ -4494,11 +4494,11 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 51;
-    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 38;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 52;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 39;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 15;
-    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 23;
+    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 24;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 75;
 
@@ -6565,6 +6565,38 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[test]
+    fn elaborate_top_supports_generate_if_else_with_dataflow() {
+        let design = parse_design(
+            r#"
+            module top #(
+                parameter SEL = 1
+            ) (
+                input logic a,
+                output logic y
+            );
+            logic mid;
+            generate
+                if (SEL) begin : gen_true
+                    assign mid = a;
+                end else begin : gen_false
+                    assign mid = 0;
+                end
+            endgenerate
+            assign y = mid;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("SEL"), Some(&1));
+        assert!(elaborated.child_instances.is_empty());
     }
 
     #[test]
