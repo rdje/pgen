@@ -849,16 +849,16 @@ audit_rtl_frontend_generated_contract_surface() {
     'expected_elaboration'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 39'
+    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 40'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 29'
+    'MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 30'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 10'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 6'
+    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 7'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 15'
@@ -867,7 +867,7 @@ audit_rtl_frontend_generated_contract_surface() {
     'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 11'
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 46'
+    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 49'
   assert_file_contains \
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
     '"top_parameters"'

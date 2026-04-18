@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend scalar wildcard expansion replay ratcheted
+### Context
+The handwritten `rtl_frontend` crate already had focused unit coverage for wildcard port expansion, but the shared generated-contract manifest still treated `scalar_wildcard_port_connection` as syntax/retained-text evidence only. That meant `child u_child (.*);` was not yet part of the crash-recoverable elaboration replay ratchet.
+
+### Decision
+- Promote the existing `scalar_wildcard_port_connection` sample into accepted `expected_elaboration`.
+- Lock wildcard expansion through the same `child_port_bindings` schema used for named and ordered port actuals.
+- Keep this slice scalar-only; instance-array wildcard replay is a nearby follow-up because it carries expanded child paths and array ordering questions.
+- Ratchet the manifest-backed replay minima from `39/29/10/6/15/11/46` to `40/30/10/7/15/11/49`.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `scalar_wildcard_port_connection`
+  - locked child path `top.u_child`
+  - locked wildcard-expanded ports `a`, `b`, and `y` as signal actuals
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised the generated-contract elaboration sample, accept, child-path, and child-port-binding minima
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the local workflow audit so the new minima are enforced outside the focused crate test too
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This moves scalar wildcard port expansion into the same generated-contract elaboration replay surface as named and ordered actuals.
+- The current replay minima are `40` samples, `30` accepts, `10` rejects, `7` child-path samples, `15` top-parameter checks, `11` child-parameter checks, and `49` child-port-binding checks.
+
 ## 2026-04-18 - rtl_frontend ordered positional actual replay ratcheted
 ### Context
 The previous `expression_text` child port-binding replay covered selector-rich named-port actuals, but the ordered positional port-actual lane still only proved generated-parser retained text. That left a small semantic replay asymmetry: the manifest could show the ordered syntax parsed, but the handwritten elaboration replay did not yet lock the resulting ordered child bindings.

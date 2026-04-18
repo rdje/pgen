@@ -5145,6 +5145,40 @@
           ".*"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "b",
+            "actual": {
+              "kind": "signal",
+              "name": "b"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
       "sample": "module child (\n    input logic a,\n    input logic b,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    input logic b,\n    output logic y\n);\nchild u_child (.*);\nendmodule\n"
     },
     {
