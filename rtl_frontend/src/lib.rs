@@ -6199,6 +6199,75 @@ mod tests {
     }
 
     #[test]
+    fn elaborate_top_expands_instance_arrays_with_wildcard_ports() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic a,
+                input logic b,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                input logic a,
+                input logic b,
+                output logic y
+            );
+            child lanes[1:0] (.*);
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        let expected_bindings = vec![
+            super::ResolvedPortBinding {
+                port_name: "a".to_string(),
+                actual: Some(PortActual::Signal("a".to_string())),
+            },
+            super::ResolvedPortBinding {
+                port_name: "b".to_string(),
+                actual: Some(PortActual::Signal("b".to_string())),
+            },
+            super::ResolvedPortBinding {
+                port_name: "y".to_string(),
+                actual: Some(PortActual::Signal("y".to_string())),
+            },
+        ];
+
+        assert_eq!(elaborated.child_instances.len(), 2);
+        assert_eq!(elaborated.child_instances[0].instance_name, "lanes[1]");
+        assert_eq!(elaborated.child_instances[0].path, "top.lanes[1]");
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            expected_bindings
+        );
+        assert_eq!(elaborated.child_instances[1].instance_name, "lanes[0]");
+        assert_eq!(elaborated.child_instances[1].path, "top.lanes[0]");
+        assert_eq!(
+            elaborated.child_instances[1].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::Signal("a".to_string())),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "b".to_string(),
+                    actual: Some(PortActual::Signal("b".to_string())),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::Signal("y".to_string())),
+                },
+            ]
+        );
+    }
+
+    #[test]
     fn elaboration_preserves_typed_parent_actuals() {
         let design = parse_design(
             r#"

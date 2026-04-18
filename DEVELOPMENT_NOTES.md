@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend instance-array wildcard expansion replay ratcheted
+### Context
+The shared `rtl_frontend` generated-contract replay had already promoted scalar wildcard expansion and richer named/ordered child actuals into `expected_elaboration`, but `instance_array_with_wildcard_ports` was still parse-surface-only. That left an awkward nearby gap: the handwritten baseline already knew how to expand wildcard connections and instance arrays, yet the crash-recoverable manifest did not lock their combined behavior or the descending `[1:0]` instance ordering.
+
+### Decision
+- Promote `instance_array_with_wildcard_ports` into accepted `expected_elaboration`.
+- Lock the descending `[1:0]` element order explicitly as `top.lanes[1]`, then `top.lanes[0]`.
+- Lock wildcard-expanded ports `a`, `b`, and `y` for both children through the same `child_port_bindings` schema used by the existing scalar wildcard and selector-rich actual lanes.
+- Keep the live `rtl_frontend` row unchanged because this is a curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added accepted `expected_elaboration` for `instance_array_with_wildcard_ports`
+  - locked `child_instance_count = 2`
+  - locked immediate child paths `top.lanes[1]` and `top.lanes[0]`
+  - locked wildcard-expanded signal bindings for `a`, `b`, and `y` on both elements
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - added `elaborate_top_expands_instance_arrays_with_wildcard_ports`
+  - proves that handwritten elaboration preserves descending `[1:0]` instance-array order and expands wildcard child bindings for each element
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `41` samples, `31` accepts, `10` rejects, `8` child-path samples, `15` top-parameter checks, `11` child-parameter checks, and `55` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `jq -r '([.samples[] | select(has("expected_elaboration"))] | length), ([.samples[] | select(.expected_elaboration.ok == true)] | length), ([.samples[] | select(.expected_elaboration.ok == false)] | length), ([.samples[] | select((.expected_elaboration.child_paths // []) | length > 0)] | length), ([.samples[].expected_elaboration?.top_parameters? // {} | keys[]] | length), ([.samples[].expected_elaboration?.child_parameters? // [] | .[]] | length), ([.samples[].expected_elaboration?.child_port_bindings? // [] | .[]] | length)' rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaborate_top_expands_instance_arrays_with_wildcard_ports --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+  - markdown checkout-specific absolute-path audit returned no matches
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` currently does not see companion-crate-only edits under `rtl_frontend/`, so strict `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` is the authoritative lint proof for this slice.
+- This slice closes the nearest wildcard/elaboration asymmetry without claiming broader grammar exhaustiveness, full elaboration parity, or parser-stack closure.
+- The next honest `rtl_frontend` work is still more Phase S closure, not relitigating this now-executable descending-range instance-array wildcard seam.
+
 ## 2026-04-18 - VHDL quality gate now drops disposable cargo cache
 ### Context
 The direct `vhdl_stimuli_quality_gate` proof state is intentionally small and durable in `work/` plus `logs/`, but the gate also carried a state-local Rust `cargo_target` to prevent nested quality / strict-promotion refreshes from clobbering each other's adapter-backed binaries. That isolation was correct, but the retained `cargo_target` had grown to roughly `1.1G` while the useful proof artifacts were only a few megabytes.
