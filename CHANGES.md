@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-18 - Add rtl_frontend syntax-only parameter-override reject replay
+### Achievement Summary
+Promoted syntax-only ordered and named parameter-override elaboration failures into the shared `rtl_frontend` generated-contract replay, raising the maintained semantic replay floor to `48` samples with `36` accepts and `12` rejects.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added negative `expected_elaboration` entries for `ordered_parameter_override_ternary_binary_expr` and `named_parameter_override_repeat_expr`
+  - locked the expected handwritten elaboration diagnostics for syntax-only positional and named parameter overrides
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised the manifest-backed elaboration gate minima to `48/36/12/13/22/14/69`
+  - added focused handwritten-baseline unit tests for syntax-only ordered and named parameter-override rejection
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - synchronized the tracked workflow-policy audit surface to the new total/reject elaboration minima
+- Updated README, the public book, the roadmap/reference architecture notes, the live tracker, and continuity docs to report the new `48/36/12/13/22/14/69` replay floor.
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this strengthens curated semantic replay over the handwritten baseline, not generated grammar exhaustiveness or full semantic elaboration parity
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_rejects_syntax_only_ordered_parameter_overrides --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_rejects_syntax_only_named_parameter_overrides --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-18 - Add rtl_frontend ordered member-range repetition replay ratchet
 ### Achievement Summary
 Promoted ordered member-range repetition elaboration into the shared `rtl_frontend` generated-contract replay, raising the maintained semantic replay floor to `46` samples with `36` accepts and `10` rejects.

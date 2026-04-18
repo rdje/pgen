@@ -5689,6 +5689,11 @@
           ".y(y)"
         ]
       },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": false,
+        "error_contains": "cannot evaluate syntax-only positional parameter override 1"
+      },
       "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    SEL ? (a[HI:LO] + LANES) : (LANES << 1),\n    (LANES + 1) * 2\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
     },
     {
@@ -5962,6 +5967,11 @@
           ".a(a)",
           ".y(y)"
         ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": false,
+        "error_contains": "cannot evaluate syntax-only named parameter override 'MASK'"
       },
       "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK({2{a[HI:LO], LANES}}),\n    .LANES(LANES)\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
     },

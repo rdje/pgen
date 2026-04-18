@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-18 - rtl_frontend syntax-only parameter-override rejection replay ratcheted
+### Context
+After rereading the current README/bootstrap surface, the next `rtl_frontend` gap was clearer: the shared semantic replay still did not lock how the handwritten elaborator rejects non-constant parameter overrides that the generated contract intentionally keeps as parse-positive syntax. That meant the project had stronger positive replay for parameterized instances than negative replay for syntax-only parameter-override failure modes.
+
+### Decision
+- Promote `ordered_parameter_override_ternary_binary_expr` and `named_parameter_override_repeat_expr` into negative `expected_elaboration`.
+- Lock the handwritten rejection diagnostics for syntax-only positional and named parameter overrides.
+- Raise the manifest-backed elaboration minima to `48/36/12/13/22/14/69` and mirror the same values in the tracked workflow-policy audit.
+- Keep the live `rtl_frontend` row unchanged because this is another curated replay ratchet, not a closure promotion.
+
+### What Was Changed
+- [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added negative `expected_elaboration` for `ordered_parameter_override_ternary_binary_expr`
+  - added negative `expected_elaboration` for `named_parameter_override_repeat_expr`
+  - locked error substrings for syntax-only positional and named parameter-override failure paths
+- [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - raised `MIN_GENERATED_CONTRACT_ELABORATION_*` minima to `48/36/12/13/22/14/69`
+  - added `elaboration_rejects_syntax_only_ordered_parameter_overrides`
+  - added `elaboration_rejects_syntax_only_named_parameter_overrides`
+  - proves the handwritten elaborator emits the expected diagnostics when parameter overrides are parseable but not semantically evaluable
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - updated the tracked workflow-policy audit surface so local CI parity enforces the same new total/reject minima
+- Updated [README.md](README.md), [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public/reference/continuity surface to the new replay floor of `48` samples, `36` accepts, `12` rejects, `13` child-path samples, `22` top-parameter checks, `14` child-parameter checks, and `69` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_rejects_syntax_only_ordered_parameter_overrides --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_rejects_syntax_only_named_parameter_overrides --lib`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- `rtl_frontend` remains `In Progress`.
+- This slice makes the semantic reject side more honest: parameter-override syntax can stay accepted by the parser while the handwritten elaborator is now required to fail those non-constant forms in a tracked, reproducible way.
+
 ## 2026-04-18 - rtl_frontend ordered member-range repetition replay ratcheted
 ### Context
 The named-port member-range repetition lane was now under executable elaboration replay, but its ordered sibling `ordered_actuals_repeat_concat_member_ranges` was still parse-surface-only. That left an avoidable asymmetry in the crash-recoverable proof surface: the same typed actual shape was only semantically locked when spelled with named ports.

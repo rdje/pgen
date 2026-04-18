@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-18 (+0200, task: rtl_frontend-ordered-member-range-repetition-replay)
+Last updated: 2026-04-18 (+0200, task: rtl_frontend-syntax-only-parameter-override-reject-replay)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added syntax-only parameter-override `rtl_frontend` rejection replay:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - promoted `ordered_parameter_override_ternary_binary_expr` and `named_parameter_override_repeat_expr` into negative `expected_elaboration`
+    - raised `MIN_GENERATED_CONTRACT_ELABORATION_*` minima to `48/36/12/13/22/14/69`
+    - synchronized the tracked workflow-policy audit surface in `rust/scripts/ci_workflow_local_gate.sh` to the same total/reject minima
+    - added focused handwritten-baseline unit tests for syntax-only ordered and named parameter-override rejection
+    - raised the replay floor to `48` semantic samples, `36` accepts, `12` rejects, `13` child-path samples, `22` top-parameter checks, `14` child-parameter checks, and `69` child-port-binding checks
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_rejects_syntax_only_ordered_parameter_overrides --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml elaboration_rejects_syntax_only_named_parameter_overrides --lib`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generated_contract_manifest_matches_handwritten_elaboration_surface --lib`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changed; `rtl_frontend` remains `In Progress`
+    - this slice makes the semantic reject side executable for parseable-but-nonconstant parameter-override forms instead of leaving that behavior implicit
 - Added ordered member-range `rtl_frontend` repetition elaboration replay:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
