@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: ebnf-book-flow-doc)
+Last updated: 2026-04-19 (+0200, task: sv-probe-sample-steering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,46 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added probe-only literal steering for the focused SystemVerilog replay lane:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md)
+    - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - ordinary literalish hints remain unchanged:
+      - bare string payloads
+      - `@sample`
+      - `@literal`
+      - `@example`
+      - legacy `@stimulus`
+    - added `@probe_sample` as an active-entry-only replay accelerator
+    - target-probe scoring now counts probe-only hints when choosing between candidate probe rules
+    - converted the retained focused SystemVerilog replay seeds to `@probe_sample`
+    - added a first probe-only batch on broad dependency blockers such as:
+      - `expression`
+      - `constant_expression`
+      - `class_scope`
+      - `data_type`
+      - `statement_or_null`
+  - validation:
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_literalish_directives_`
+    - focused 2017 replay:
+      - 5 attempts: `365/2619` resolved
+      - 25 attempts: `831/2619` resolved
+  - important continuity detail:
+    - no live parser-family row changed
+    - this slice improved the early replay frontier without yet moving the 25-attempt plateau
+    - if the next session resumes this lane, the key open question is:
+      - why the new probe-only hints improve the first few attempts but not the longer 25-attempt replay plateau
 - Logged the long-term EBNF frontend flow in the public book:
   - changed:
     - [docs/book/src/platform-overview.md](docs/book/src/platform-overview.md)

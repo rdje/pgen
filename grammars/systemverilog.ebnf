@@ -62,13 +62,13 @@ assignment_operator := assign | plus_assign | minus_assign | star_assign | slash
 
 constant_expression_operand := unary_operator attribute_instance* constant_primary | constant_primary
 
-constant_expression := constant_expression_operand ( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?
+constant_expression := @probe_sample: "1" constant_expression_operand ( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?
 
 expression_operand := unary_operator attribute_instance* primary | inc_or_dec_expression | primary
 
 expression_base := tagged_union_expression | expression_operand ( binary_operator attribute_instance* expression_operand )* | lparen operator_assignment rparen
 
-expression := expression_base | inside_expression | conditional_expression
+expression := @probe_sample: "1" expression_base | inside_expression | conditional_expression
 
 identifier := escaped_identifier | simple_identifier
 
@@ -249,7 +249,10 @@ block_identifier := declaration_identifier
 block_item_declaration := attribute_instance* block_data_declaration | attribute_instance* local_parameter_declaration semi | attribute_instance* parameter_declaration semi | attribute_instance* let_declaration
 
 @profiles: ["sv_2017"]
-block_data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | net_type_declaration
+block_data_declaration_sv_2017 := @probe_sample: "int a;" ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi
+                               | @probe_sample: "typedef int t;" type_declaration
+                               | @probe_sample: "import p::*;" package_import_declaration
+                               | @probe_sample: "nettype int nt;" net_type_declaration
 
 @profiles: ["sv_2023"]
 block_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | nettype_declaration
@@ -257,7 +260,10 @@ block_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( 
 block_data_declaration := block_data_declaration_sv_2017 | block_data_declaration_sv_2023
 
 @profiles: ["sv_2017"]
-blocking_assignment_sv_2017 := variable_lvalue assign delay_or_event_control expression | nonrange_variable_lvalue assign dynamic_array_new | ( implicit_class_handle dot | class_scope | package_scope )? hierarchical_variable_identifier select assign class_new | operator_assignment
+blocking_assignment_sv_2017 := @probe_sample: "a = #1 1" variable_lvalue assign delay_or_event_control expression
+                             | nonrange_variable_lvalue assign dynamic_array_new
+                             | ( implicit_class_handle dot | class_scope | package_scope )? hierarchical_variable_identifier select assign class_new
+                             | @probe_sample: "a = 1" operator_assignment
 
 @profiles: ["sv_2023"]
 blocking_assignment_sv_2023 := variable_lvalue assign delay_or_event_control expression | nonrange_variable_lvalue assign dynamic_array_new | ( implicit_class_handle dot | class_scope | package_scope )? hierarchical_variable_identifier select assign class_new | operator_assignment | inc_or_dec_expression
@@ -413,7 +419,7 @@ scoped_class_scope_identifier := non_typedef_package_scope class_identifier
 
 class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
-class_scope := class_scope_type scope_resolution
+class_scope := @probe_sample: "C::" class_scope_type scope_resolution
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
 known_unscoped_base_class_type_identifier := class_identifier
@@ -438,7 +444,8 @@ clocking_direction := kw_input_140f86aa ( clocking_skew )? | kw_output_1029d676 
 clocking_drive := clockvar_expression less_equal ( cycle_delay )? expression
 
 @profiles: ["sv_2017"]
-clocking_event_sv_2017 := at_sign identifier | at_sign lparen event_expression rparen
+clocking_event_sv_2017 := @probe_sample: "@clk" at_sign identifier
+                        | @probe_sample: "@(posedge clk)" at_sign lparen event_expression rparen
 
 @profiles: ["sv_2023"]
 clocking_event_sv_2023 := at_sign ps_identifier | at_sign hierarchical_identifier | at_sign lparen event_expression rparen
@@ -542,7 +549,12 @@ constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9f454fd4
 
 constraint_declaration := constraint_declaration_sv_2017 | constraint_declaration_sv_2023
 
-constraint_expression := ( kw_soft_eb74f2cb )? expression_or_dist semi | uniqueness_constraint semi | expression implies constraint_set | kw_if_958f57f5 lparen expression rparen constraint_set ( kw_else_ae050f5b constraint_set )? | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen constraint_set | kw_disable_ccf09e2d kw_soft_eb74f2cb constraint_primary semi
+constraint_expression := @probe_sample: "a;" ( kw_soft_eb74f2cb )? expression_or_dist semi
+                       | uniqueness_constraint semi
+                       | expression implies constraint_set
+                       | kw_if_958f57f5 lparen expression rparen constraint_set ( kw_else_ae050f5b constraint_set )?
+                       | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen constraint_set
+                       | kw_disable_ccf09e2d kw_soft_eb74f2cb constraint_primary semi
 
 constraint_identifier := identifier
 
@@ -598,7 +610,7 @@ covergroup_declaration_sv_2023 := kw_covergroup_80dfc68d declared_covergroup_ide
 
 covergroup_declaration := covergroup_declaration_sv_2017 | covergroup_declaration_sv_2023
 
-covergroup_expression := expression
+covergroup_expression := @probe_sample: "1" expression
 
 covergroup_identifier := declaration_identifier
 
@@ -707,7 +719,7 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
 
 block_data_type_or_implicit := block_data_type | implicit_data_type
 
-data_type := integer_vector_type ( signing )? packed_dimension*
+data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimension*
            | integer_atom_type ( signing )?
            | non_integer_type
            | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
@@ -753,7 +765,7 @@ deferred_immediate_cover_statement := kw_cover_a28100fa hash kw_n_0_b6589fc6 lpa
 defparam_assignment := hierarchical_parameter_identifier assign constant_mintypmax_expression
 
 @profiles: ["sv_2017"]
-delay_sv_2017 := hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen | hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen
+delay_sv_2017 := @probe_sample: "#1" hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen | hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen
 
 @profiles: ["sv_2023"]
 delay_sv_2023 := hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen | hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen
@@ -881,7 +893,7 @@ expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen acti
 
 expression_or_cond_pattern := expression_base | cond_pattern
 
-expression_or_dist := expression ( kw_dist_02450072 dist_list* )?
+expression_or_dist := @probe_sample: "1" expression ( kw_dist_02450072 dist_list* )?
 
 @profiles: ["sv_2017"]
 extern_constraint_declaration_sv_2017 := ( kw_static_a381562a )? kw_constraint_9f454fd4 class_scope constraint_identifier constraint_block
@@ -1120,7 +1132,7 @@ interface_declaration_sv_2023 := interface_ansi_header ( timeunits_declaration )
 
 interface_declaration := interface_declaration_sv_2017 | interface_declaration_sv_2023
 
-interface_identifier := declaration_identifier
+interface_identifier := @probe_sample: "I" declaration_identifier
 
 @profiles: ["sv_2017"]
 interface_instance_identifier_sv_2017 := identifier
@@ -1153,7 +1165,7 @@ let_actual_arg := expression
 let_declaration := kw_let_0262f9bb declared_let_identifier ( lparen ( let_port_list )? rparen )? assign expression semi
 
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }
-non_typedef_package_scope := package_scope
+non_typedef_package_scope := @probe_sample: "pkg::" package_scope
 
 let_expression := scoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )? | known_unscoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )?
 
@@ -1233,7 +1245,11 @@ list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( co
 
 list_of_parameter_value_assignments := list_of_parameter_value_assignments_sv_2023
 
-list_of_path_delay_expressions := t_path_delay_expression | trise_path_delay_expression comma tfall_path_delay_expression | trise_path_delay_expression comma tfall_path_delay_expression comma tz_path_delay_expression | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma txz_path_delay_expression comma tzx_path_delay_expression
+list_of_path_delay_expressions := @probe_sample: "1" t_path_delay_expression
+                                | @probe_sample: "1,2" trise_path_delay_expression comma tfall_path_delay_expression
+                                | @probe_sample: "1,2,3" trise_path_delay_expression comma tfall_path_delay_expression comma tz_path_delay_expression
+                                | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression
+                                | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma txz_path_delay_expression comma tzx_path_delay_expression
 
 list_of_path_inputs := specify_input_terminal_descriptor ( comma specify_input_terminal_descriptor )*
 
@@ -1300,7 +1316,20 @@ split_direct_callable_method_call := split_hierarchical_callable_receiver dot ca
 direct_callable_method_call := method_call_root dot callable_method_call_body
 
 @profiles: ["sv_2017"]
-method_call_receiver_sv_2017 := primary_literal | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
+method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
+                              | @probe_sample: "a" ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier
+                              | empty_unpacked_array_concatenation
+                              | multiple_concatenation ( lbrack range_expression rbrack )?
+                              | concatenation ( lbrack range_expression rbrack )?
+                              | let_expression
+                              | lparen mintypmax_expression rparen
+                              | cast
+                              | assignment_pattern_expression
+                              | streaming_concatenation
+                              | sequence_method_call
+                              | @probe_sample: "this" kw_this_c2543fff
+                              | kw_sv_dollar_04da59ec
+                              | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
 
 @profiles: ["sv_2023"]
 method_call_receiver_sv_2023 := primary_literal | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
@@ -1427,7 +1456,9 @@ net_assignment := net_lvalue assign expression
 net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
 
 @profiles: ["sv_2017"]
-net_declaration_sv_2017 := net_type ( drive_strength | charge_strength )? ( kw_vectored_53eb166d | kw_scalared_92ab459c )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi | net_type_identifier ( delay_control )? list_of_net_decl_assignments semi | kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
+net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( drive_strength | charge_strength )? ( kw_vectored_53eb166d | kw_scalared_92ab459c )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
+                         | @probe_sample: "nt a;" net_type_identifier ( delay_control )? list_of_net_decl_assignments semi
+                         | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
 
 @profiles: ["sv_2023"]
 net_declaration_sv_2023 := net_type ( drive_strength | charge_strength )? ( kw_vectored_53eb166d | kw_scalared_92ab459c )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi | nettype_identifier ( delay_control )? list_of_net_decl_assignments semi | kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
@@ -1678,7 +1709,21 @@ port_identifier := declaration_identifier
 port_reference := port_identifier constant_select
 
 @profiles: ["sv_2017"]
-primary_sv_2017 := primary_literal | call_primary | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
+primary_sv_2017 := @probe_sample: "1" primary_literal
+                 | call_primary
+                 | @probe_sample: "a" ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select
+                 | empty_unpacked_array_concatenation
+                 | multiple_concatenation ( lbrack range_expression rbrack )?
+                 | concatenation ( lbrack range_expression rbrack )?
+                 | let_expression
+                 | lparen mintypmax_expression rparen
+                 | cast
+                 | assignment_pattern_expression
+                 | streaming_concatenation
+                 | sequence_method_call
+                 | @probe_sample: "this" kw_this_c2543fff
+                 | kw_sv_dollar_04da59ec
+                 | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
 
 @profiles: ["sv_2023"]
 primary_sv_2023 := primary_literal | call_primary ( lbrack range_expression rbrack )? | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
@@ -2073,7 +2118,7 @@ statement_item_sv_2023 := blocking_assignment semi | nonblocking_assignment semi
 
 statement_item := statement_item_sv_2017 | statement_item_sv_2023
 
-statement_or_null := statement | attribute_instance* semi
+statement_or_null := statement | @probe_sample: ";" attribute_instance* semi
 
 stream_concatenation := ( stream_expression ( comma stream_expression )* )*
 
@@ -2376,7 +2421,9 @@ unpacked_dimension := lbrack constant_range rbrack | lbrack constant_expression 
 
 unsized_dimension := lbrack rbrack
 
-use_clause := kw_use_04489a12 ( library_identifier dot )? cell_identifier ( colon kw_config_dfba7aad )? | kw_use_04489a12 named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )? | kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
+use_clause := @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot )? cell_identifier ( colon kw_config_dfba7aad )?
+            | @probe_sample: "use .P(1)" kw_use_04489a12 named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
+            | @probe_sample: "use top .P(1)" kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
 
 @profiles: ["sv_2017"]
 value_range_sv_2017 := expression | ( expression colon expression )?

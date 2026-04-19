@@ -91,6 +91,13 @@ This is a live document, not an archival write-up. It should be amended whenever
     - the maintained `regex_pcre2_compile_oracle_gate` baseline is ratcheted to the measured `pcre2-10.47` result of `1843` matches, `352` mismatches, `307` false accepts, and `45` false rejects over `2195` normalized compile-oracle cases
   - the current HDL closure tactic has now shifted away from broad hint sweeps:
     - when a family is down to a small stubborn replay/rejection set, prefer the new branch-level triage tooling over more blanket grammar/sample nudges
+    - the stimuli runtime now also has a narrower replay-only steering seam:
+      - ordinary literalish directives (`@sample`, `@literal`, `@example`, legacy `@stimulus`, and bare string payloads) remain active in their existing regex / non-regex / branch-local use sites
+      - `@probe_sample` is now the maintained active-entry-only replay accelerator for broad dependency rules
+      - current focused `systemverilog` evidence is mixed but useful:
+        - 2017 direct replay improved from `333/2619` to `365/2619` resolved targets in 5 attempts
+        - the matching 25-attempt replay stayed flat at `831/2619`
+      - treat this as a retained stimuli-platform seam that still needs another measured follow-up before claiming broader family-level payoff
     - the retained `systemverilog_preprocessor` orphan-closer seam is now solved on the focused and aggregate lanes by a stimuli-only generator fix: repeated `pp_item` expansions are forced onto separate lines when the previous generated item did not already end with newline
     - current retained preprocessor truth is now:
       - focused quality `33/33/0/0` with `final_targets=0`

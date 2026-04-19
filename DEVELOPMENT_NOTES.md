@@ -1,4 +1,83 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Probe-only sample steering for stimuli replay
+### Context
+The focused `systemverilog` replay lane had two competing truths:
+
+- narrow parser-proven sample hints can be very effective once a rule is selected for targeted replay
+- broad rule-level `@sample` hints on high-impact dependency rules are dangerous if they stay active during ordinary `systemverilog_file` generation, because they collapse coverage instead of helping it
+
+The failed intermediate attempt made that boundary obvious. Adding broad `@sample` hints directly to rules such as `expression`, `constant_expression`, `data_type`, and `statement_or_null` dropped the focused 2017 direct replay from `333/2619` resolved targets in 5 attempts to `114/2619`, because ordinary generation started short-circuiting through those hints long before target-probe mode could benefit from them.
+
+### Decision
+- Preserve the existing meaning of ordinary literalish directives.
+- Introduce a new narrower steering directive:
+  - `@probe_sample`
+- Scope that directive to the active generation entry only:
+  - if the generator is currently probing `expression`, then `@probe_sample` on `expression` or its branch-local alternatives may short-circuit
+  - if the generator is expanding `expression` only transitively under `systemverilog_file`, `@probe_sample` must remain inactive
+- Count `@probe_sample` as valid probe leverage during target-rule selection so target-drive can still prefer hinted candidates.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - retained ordinary literalish routing:
+    - bare string payloads
+    - `@sample`
+    - `@literal`
+    - `@example`
+    - legacy `@stimulus`
+  - added a parallel probe-only extraction path for `@probe_sample`
+  - tracked the active generation entry during `generate_from_entry(...)`
+  - allowed `@probe_sample` only when the current rule matches that active entry
+  - left ordinary literalish hints active even for nested rules, preserving existing semantics
+  - updated target-probe scoring so both ordinary literalish hints and probe-only hints contribute to probe desirability
+  - added tests for:
+    - target-probe candidate preference when hinted candidates tie
+    - pending fallback preference
+    - probe-only hints staying inactive for nested non-entry expansion
+    - ordinary nested `@sample` remaining active
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - converted the retained focused replay-seed set from `@sample` to `@probe_sample`
+  - added a first probe-only batch on broader dependency blockers:
+    - `expression`
+    - `constant_expression`
+    - `class_scope`
+    - `covergroup_expression`
+    - `data_type`
+    - `delay_sv_2017`
+    - `expression_or_dist`
+    - `interface_identifier`
+    - `non_typedef_package_scope`
+    - `statement_or_null`
+
+### Measured Effect
+- Focused 2017 direct replay, 5 attempts:
+  - earlier post-tie-break baseline: `333/2619`
+  - after `@probe_sample`: `365/2619`
+- Focused 2017 direct replay, 25 attempts:
+  - remained `831/2619`
+
+So this slice is real infrastructure progress and an early-frontier improvement, but not yet a proof that the longer replay plateau has moved.
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_literalish_directives_`
+  - focused replay command at 5 attempts:
+    - `365/2619`
+  - focused replay command at 25 attempts:
+    - `831/2619`
+
+### Continuity Notes
+- The discarded experiment to remember:
+  - broad dependency hints implemented as ordinary `@sample` are too blunt and will collapse ordinary generation
+- The retained rule:
+  - use `@sample` for genuine always-on literalish steering
+  - use `@probe_sample` for active-entry-only replay acceleration
+- The next honest follow-up on this lane is not more unmeasured hint spraying. It is:
+  - inspect which probe entries are actually selected once stagnation starts
+  - determine why the early replay win does not yet move the 25-attempt plateau
+  - then decide whether the next move is stronger probe scoring, better dependency choice, or a wider but still disciplined `@probe_sample` set
+
 ## 2026-04-19 - Public book now explains the long-term EBNF frontend flow
 ### Context
 The repo already had the relevant doctrine in roadmap and continuity surfaces: `generated/ebnf.rs` is the generated Rust parser for `grammars/ebnf.ebnf`, `rust/src/ebnf_frontend.rs` still owns the main Rust-native `.ebnf -> raw_ast` adapter path, and the long-term destination is a bootstrap-safe path for EBNF itself plus generated-parser-backed handling for ordinary grammar files. But that mental model was still mostly discoverable only by reading internal/reference documentation.

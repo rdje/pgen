@@ -173,10 +173,15 @@ Normative runtime leverage behavior for semantic annotations:
     - parse bool targets -> `"true"`
   - Non-canonical transform expressions do not apply typed hint overrides.
   - bare string payloads and literalish named string payloads (`sample|literal|example|stimulus`) -> unquoted literal output
+  - `probe_sample` is the maintained probe-only literal hint:
+    - payload shape matches the ordinary literalish string-hint path
+    - it only activates when the annotated rule is the active generation entry
+    - it exists so target-driven replay can seed broad dependency rules without short-circuiting ordinary top-level generation transitively
   - literalish sample hints now steer three maintained use sites:
     - regex atoms
     - non-regex non-OR rule expansion
     - branch-local OR alternatives through preserved inline branch semantic annotations
+  - probe-only literal hints use the same non-regex / branch-local steering surfaces, but only for active-entry replay
   - branch-local inline semantic annotations depend on that bounded same-line scanner contract: the annotation payload may be inline, but following branch syntax must remain visible to the rule tokenizer
   - rule-level literal hints intentionally do not bypass OR rules; branch-local inline hints are the maintained way to steer a specific OR alternative while preserving branch accounting
 - Shared canonical-transform parser utility:

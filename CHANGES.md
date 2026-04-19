@@ -1,4 +1,65 @@
 # CHANGES.md
+## 2026-04-19 - Add probe-only literal steering for target-drive replay
+### Achievement Summary
+Added a new probe-only semantic hint lane for stimuli generation so grammars can seed targeted replay entries without collapsing ordinary top-level generation. The Rust stimuli runtime now understands `@probe_sample` alongside existing literalish hints, SystemVerilog carries a first batch of probe-only replay seeds on high-impact dependency rules, the focused 2017 direct replay improved from `333/2619` to `365/2619` resolved targets in 5 attempts, and the longer 25-attempt replay stayed flat at `831/2619`.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - kept ordinary literalish directives (`@sample`, `@literal`, `@example`, legacy `@stimulus`, and bare string payloads) active in their existing regex / non-regex / branch-local use sites
+  - added a new `@probe_sample` extraction path
+  - scoped `@probe_sample` so it only short-circuits when the annotated rule is the active generation entry
+  - extended target-probe scoring so probe-only hints count as probe leverage
+  - added focused unit coverage for:
+    - target-probe preference when hinted candidates tie on leverage
+    - fallback pending-rule preference with literalish hints
+    - `@probe_sample` staying inactive for nested non-entry expansion
+    - ordinary nested `@sample` behavior remaining intact
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - converted the retained focused replay seeds to `@probe_sample`
+  - added probe-only hints on broad dependency rules used by the 2017 replay frontier, including:
+    - `expression`
+    - `constant_expression`
+    - `class_scope`
+    - `covergroup_expression`
+    - `data_type`
+    - `delay_sv_2017`
+    - `expression_or_dist`
+    - `interface_identifier`
+    - `non_typedef_package_scope`
+    - `statement_or_null`
+  - also moved the previously added focused replay seeds for:
+    - `block_data_declaration_sv_2017`
+    - `blocking_assignment_sv_2017`
+    - `clocking_event_sv_2017`
+    - `constraint_expression`
+    - `list_of_path_delay_expressions`
+    - `method_call_receiver_sv_2017`
+    - `net_declaration_sv_2017`
+    - `primary_sv_2017`
+    - `use_clause`
+    - onto the same `@probe_sample` surface
+- Updated tracked docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md)
+  - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+- Status impact:
+  - no live parser-family row changed
+  - `systemverilog` remains on its existing row because this is infrastructure and focused replay evidence, not yet a refreshed full family proof
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_literalish_directives_`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 2 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_replay_probe_2017_probesample_after5.sv --coverage-output /tmp/sv_replay_probe_2017_probesample_after5_coverage.json --gap-report-json /tmp/sv_replay_probe_2017_probesample_after5_gap.json --gap-report-text /tmp/sv_replay_probe_2017_probesample_after5_gap.txt --gap-report-threshold 1 --target-max-attempts 5 --target-report-input rust/target/sv_stimuli_quality_gate_bounded_20260419/work/profile_2017_initial_gap.json`
+    - result: `365/2619` resolved in 5 attempts
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 2 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_replay_probe_2017_probesample_after25.sv --coverage-output /tmp/sv_replay_probe_2017_probesample_after25_coverage.json --gap-report-json /tmp/sv_replay_probe_2017_probesample_after25_gap.json --gap-report-text /tmp/sv_replay_probe_2017_probesample_after25_gap.txt --gap-report-threshold 1 --target-max-attempts 25 --target-report-input rust/target/sv_stimuli_quality_gate_bounded_20260419/work/profile_2017_initial_gap.json`
+    - result: `831/2619` resolved in 25 attempts
+
 ## 2026-04-19 - Document long-term EBNF bootstrap-vs-normal flow in the book
 ### Achievement Summary
 Logged the long-term EBNF frontend doctrine in the public book so readers can understand the intended steady-state flow without having to infer it from roadmap or continuity documents. The book now explains the bootstrap exception for `grammars/ebnf.ebnf`, the normal generated-parser path for ordinary grammars, the current hybrid state, and the architectural destination.

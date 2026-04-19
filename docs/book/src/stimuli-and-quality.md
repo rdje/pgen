@@ -42,6 +42,18 @@ That rule keeps stimuli work platform-grade instead of grammar-specific.
 - parseability reports and target-driven replay
 - bounded contract files and summary artifacts
 
+## Probe-Only Steering
+
+When a family is down to a stubborn replay frontier, PGEN now distinguishes between two kinds of literal steering:
+
+- `@sample` for ordinary always-on literalish steering
+- `@probe_sample` for active-entry-only target-drive replay
+
+That split matters because a hint that is useful when probing a single dependency rule can be harmful if it fires everywhere during normal top-level generation. The current maintained rule is:
+
+- use `@sample` when the grammar really should always short-circuit to that literal shape
+- use `@probe_sample` when the literal is meant to accelerate targeted replay of a specific rule without flattening ordinary coverage
+
 ## Primary Source Docs
 
 - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`

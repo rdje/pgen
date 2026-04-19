@@ -26,6 +26,12 @@ That steering now includes more than regex-target tweaks. Literalish directives 
 - non-regex non-OR rule expansions,
 - and inline branch-local OR alternatives.
 
+PGEN also now has a narrower replay-only variant: `@probe_sample`.
+
+- `@sample` is the ordinary always-on literalish steering tool.
+- `@probe_sample` is for target-drive replay.
+- `@probe_sample` only short-circuits when that rule is the active generation entry, so it can help probe broad dependency rules without collapsing ordinary top-level generation transitively.
+
 That widened the annotation system from "token-shape nudges" into a real narrow branch-steering surface for coverage-guided replay, while still keeping the project rule that sample hints must be justified by parser-backed evidence rather than sprayed across a grammar blindly.
 
 Together, these two annotation families make PGEN a parser platform rather than only a parser emitter.

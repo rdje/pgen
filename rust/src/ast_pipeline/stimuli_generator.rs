@@ -742,6 +742,16 @@ struct DependencyProbeCandidate {
     max_target_priority: u64,
     dependency_rule_deficit: u64,
     dependency_rule_successes: u64,
+    literalish_hint_score: u64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct PendingProbeCandidate {
+    rule_name: String,
+    max_target_priority: u64,
+    blocked_remaining_successes: u64,
+    branch_target_count: usize,
+    literalish_hint_score: u64,
 }
 
 impl TargetDriveSummary {
@@ -842,6 +852,7 @@ pub struct StimuliGenerator<'a> {
     coverage: StimuliCoverageMetrics,
     target_plan: ActiveTargetPlan,
     target_drive_validation_active: bool,
+    active_generation_entry_rule: Option<String>,
     deterministic_partition_counters: HashMap<String, u64>,
     mutation_trace: Option<StimuliDecisionTrace>,
     mutation_replay: Option<ActiveGrammarMutationReplay>,
@@ -899,6 +910,7 @@ impl<'a> StimuliGenerator<'a> {
             coverage,
             target_plan: ActiveTargetPlan::default(),
             target_drive_validation_active: false,
+            active_generation_entry_rule: None,
             deterministic_partition_counters: HashMap::new(),
             mutation_trace: None,
             mutation_replay: None,
@@ -1577,27 +1589,8 @@ impl<'a> StimuliGenerator<'a> {
         self.best_dependency_probe_candidate(pending, resolved_entry)
             .map(|candidate| candidate.rule_name)
             .or_else(|| {
-                pending.iter().find_map(|status| {
-                    if matches!(status.target_type, StimuliCoverageTargetType::Branch)
-                        && status.rule_name != resolved_entry
-                        && self.grammar_tree.contains_key(status.rule_name.as_str())
-                    {
-                        Some(status.rule_name.clone())
-                    } else {
-                        None
-                    }
-                })
-            })
-            .or_else(|| {
-                pending.iter().find_map(|status| {
-                    if status.rule_name != resolved_entry
-                        && self.grammar_tree.contains_key(status.rule_name.as_str())
-                    {
-                        Some(status.rule_name.clone())
-                    } else {
-                        None
-                    }
-                })
+                self.best_pending_probe_candidate(pending, resolved_entry)
+                    .map(|candidate| candidate.rule_name)
             })
     }
 
@@ -1619,29 +1612,8 @@ impl<'a> StimuliGenerator<'a> {
             return None;
         }
 
-        pending
-            .iter()
-            .find_map(|status| {
-                if matches!(status.target_type, StimuliCoverageTargetType::Branch)
-                    && status.rule_name != resolved_entry
-                    && self.grammar_tree.contains_key(status.rule_name.as_str())
-                {
-                    Some(status.rule_name.clone())
-                } else {
-                    None
-                }
-            })
-            .or_else(|| {
-                pending.iter().find_map(|status| {
-                    if status.rule_name != resolved_entry
-                        && self.grammar_tree.contains_key(status.rule_name.as_str())
-                    {
-                        Some(status.rule_name.clone())
-                    } else {
-                        None
-                    }
-                })
-            })
+        self.best_pending_probe_candidate(pending, resolved_entry)
+            .map(|candidate| candidate.rule_name)
     }
 
     fn best_dependency_probe_candidate(
@@ -1672,6 +1644,7 @@ impl<'a> StimuliGenerator<'a> {
                         rule_name: rule_name.clone(),
                         dependency_rule_deficit,
                         dependency_rule_successes,
+                        literalish_hint_score: self.rule_literalish_hint_probe_score(rule_name),
                         ..DependencyProbeCandidate::default()
                     }
                 });
@@ -1696,10 +1669,54 @@ impl<'a> StimuliGenerator<'a> {
                         .cmp(&right.blocked_remaining_successes)
                 })
                 .then_with(|| left.blocked_targets.cmp(&right.blocked_targets))
+                .then_with(|| left.literalish_hint_score.cmp(&right.literalish_hint_score))
                 .then_with(|| {
                     right
                         .dependency_rule_successes
                         .cmp(&left.dependency_rule_successes)
+                })
+                .then_with(|| left.max_target_priority.cmp(&right.max_target_priority))
+                .then_with(|| right.rule_name.cmp(&left.rule_name))
+        })
+    }
+
+    fn best_pending_probe_candidate(
+        &self,
+        pending: &[TargetCoverageStatus],
+        resolved_entry: &str,
+    ) -> Option<PendingProbeCandidate> {
+        let mut candidates: HashMap<String, PendingProbeCandidate> = HashMap::new();
+        for status in pending {
+            if status.rule_name == resolved_entry
+                || !self.grammar_tree.contains_key(status.rule_name.as_str())
+            {
+                continue;
+            }
+
+            let entry = candidates
+                .entry(status.rule_name.clone())
+                .or_insert_with(|| PendingProbeCandidate {
+                    rule_name: status.rule_name.clone(),
+                    literalish_hint_score: self
+                        .rule_literalish_hint_probe_score(status.rule_name.as_str()),
+                    ..PendingProbeCandidate::default()
+                });
+            entry.max_target_priority = entry.max_target_priority.max(status.priority_score);
+            entry.blocked_remaining_successes = entry
+                .blocked_remaining_successes
+                .saturating_add(status.remaining_successes);
+            if matches!(status.target_type, StimuliCoverageTargetType::Branch) {
+                entry.branch_target_count = entry.branch_target_count.saturating_add(1);
+            }
+        }
+
+        candidates.into_values().max_by(|left, right| {
+            left.branch_target_count
+                .cmp(&right.branch_target_count)
+                .then_with(|| left.literalish_hint_score.cmp(&right.literalish_hint_score))
+                .then_with(|| {
+                    left.blocked_remaining_successes
+                        .cmp(&right.blocked_remaining_successes)
                 })
                 .then_with(|| left.max_target_priority.cmp(&right.max_target_priority))
                 .then_with(|| right.rule_name.cmp(&left.rule_name))
@@ -2094,9 +2111,13 @@ impl<'a> StimuliGenerator<'a> {
         );
         self.activate_deterministic_partition_for_entry(entry_rule);
         self.reset_mutation_runtime_state();
+        let previous_active_entry = self
+            .active_generation_entry_rule
+            .replace(entry_rule.to_string());
         let result = self
             .generate_entry_with_configured_modes(entry_rule)
             .map(|sample| self.apply_negative_case_policy(entry_rule, sample));
+        self.active_generation_entry_rule = previous_active_entry;
         self.coverage.record_sample_attempt(result.is_ok());
         match &result {
             Ok(sample) => self.trace(
@@ -2484,7 +2505,10 @@ impl<'a> StimuliGenerator<'a> {
         })?;
 
         if Self::node_supports_rule_literal_override(rule_node) {
-            if let Some(sample_hint) = self.literalish_hint_for_rule(rule_name) {
+            if let Some(sample_hint) = self
+                .literalish_hint_for_rule(rule_name)
+                .or_else(|| self.probe_literalish_hint_for_rule(rule_name))
+            {
                 self.trace(
                     TraceLevel::Debug,
                     format_args!(
@@ -2771,8 +2795,9 @@ impl<'a> StimuliGenerator<'a> {
                     current_rule, node_path, mutation_site_key, local_idx, selected_global
                 ),
             );
-            if let Some(sample_hint) =
-                self.literalish_hint_for_branch(current_rule, selected_global)
+            if let Some(sample_hint) = self
+                .literalish_hint_for_branch(current_rule, selected_global)
+                .or_else(|| self.probe_literalish_hint_for_branch(current_rule, selected_global))
             {
                 self.record_or_mutation_choice(
                     &mutation_site_key,
@@ -4286,6 +4311,10 @@ impl<'a> StimuliGenerator<'a> {
         Self::literalish_hint_from_annotations(semantic_annotations)
     }
 
+    fn literalish_override_is_active_for_rule(&self, rule_name: &str) -> bool {
+        self.active_generation_entry_rule.as_deref() == Some(rule_name)
+    }
+
     fn literalish_hint_for_rule(&self, rule_name: &str) -> Option<String> {
         let annotations = self.annotations?;
         let semantic_annotations = annotations.semantic_annotations.get(rule_name)?;
@@ -4297,6 +4326,29 @@ impl<'a> StimuliGenerator<'a> {
         let branch_annotations = annotations.branch_semantic_annotations.get(rule_name)?;
         let semantic_annotations = branch_annotations.get(branch_index)?;
         Self::literalish_hint_from_annotations(semantic_annotations)
+    }
+
+    fn probe_literalish_hint_for_rule(&self, rule_name: &str) -> Option<String> {
+        if !self.literalish_override_is_active_for_rule(rule_name) {
+            return None;
+        }
+        let annotations = self.annotations?;
+        let semantic_annotations = annotations.semantic_annotations.get(rule_name)?;
+        Self::probe_literalish_hint_from_annotations(semantic_annotations)
+    }
+
+    fn probe_literalish_hint_for_branch(
+        &self,
+        rule_name: &str,
+        branch_index: usize,
+    ) -> Option<String> {
+        if !self.literalish_override_is_active_for_rule(rule_name) {
+            return None;
+        }
+        let annotations = self.annotations?;
+        let branch_annotations = annotations.branch_semantic_annotations.get(rule_name)?;
+        let semantic_annotations = branch_annotations.get(branch_index)?;
+        Self::probe_literalish_hint_from_annotations(semantic_annotations)
     }
 
     fn literalish_hint_from_annotations(
@@ -4349,6 +4401,79 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         None
+    }
+
+    fn probe_literalish_hint_from_annotations(
+        semantic_annotations: &[SemanticAnnotation],
+    ) -> Option<String> {
+        for semantic_annotation in semantic_annotations {
+            if !matches!(semantic_annotation.name(), Some("probe_sample")) {
+                continue;
+            }
+
+            match semantic_annotation.ast() {
+                UnifiedSemanticAST::TransformExpr { .. } => continue,
+                UnifiedSemanticAST::Raw { content } => {
+                    let trimmed = content.trim();
+                    if trimmed.len() >= 2
+                        && ((trimmed.starts_with('"') && trimmed.ends_with('"'))
+                            || (trimmed.starts_with('\'') && trimmed.ends_with('\'')))
+                    {
+                        return Some(trimmed[1..trimmed.len() - 1].to_string());
+                    }
+                }
+                UnifiedSemanticAST::Structured { canonical, value } => match value {
+                    UnifiedSemanticValue::String(text) => return Some(text.clone()),
+                    _ => {
+                        let trimmed = canonical.trim();
+                        if trimmed.len() >= 2
+                            && ((trimmed.starts_with('"') && trimmed.ends_with('"'))
+                                || (trimmed.starts_with('\'') && trimmed.ends_with('\'')))
+                        {
+                            return Some(trimmed[1..trimmed.len() - 1].to_string());
+                        }
+                    }
+                },
+            }
+        }
+
+        None
+    }
+
+    fn annotations_have_literalish_hint(semantic_annotations: &[SemanticAnnotation]) -> bool {
+        Self::literalish_hint_from_annotations(semantic_annotations).is_some()
+    }
+
+    fn annotations_have_probe_literalish_hint(semantic_annotations: &[SemanticAnnotation]) -> bool {
+        Self::probe_literalish_hint_from_annotations(semantic_annotations).is_some()
+    }
+
+    fn rule_literalish_hint_probe_score(&self, rule_name: &str) -> u64 {
+        let Some(annotations) = self.annotations else {
+            return 0;
+        };
+
+        let mut score = 0u64;
+        if let Some(semantic_annotations) = annotations.semantic_annotations.get(rule_name) {
+            if Self::annotations_have_literalish_hint(semantic_annotations)
+                || Self::annotations_have_probe_literalish_hint(semantic_annotations)
+            {
+                score = score.saturating_add(4);
+            }
+        }
+        if let Some(branch_annotations) = annotations.branch_semantic_annotations.get(rule_name) {
+            let branch_hint_count = branch_annotations
+                .iter()
+                .filter(|semantic_annotations| {
+                    Self::annotations_have_literalish_hint(semantic_annotations)
+                        || Self::annotations_have_probe_literalish_hint(semantic_annotations)
+                })
+                .count();
+            score = score
+                .saturating_add(u64::try_from(branch_hint_count).unwrap_or(u64::MAX))
+                .min(16);
+        }
+        score
     }
 
     fn node_supports_rule_literal_override(node: &ASTNode) -> bool {
@@ -7970,6 +8095,153 @@ mod tests {
     }
 
     #[test]
+    fn target_probe_prefers_dependency_candidate_with_literalish_hint_when_leverage_ties() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "helper_a"),
+                    token("rule_reference", "helper_b"),
+                ],
+            },
+        );
+        grammar_tree.insert("helper_a".to_string(), token("quoted_string", "A"));
+        grammar_tree.insert("helper_b".to_string(), token("quoted_string", "B"));
+        let rule_order = vec![
+            "start".to_string(),
+            "helper_a".to_string(),
+            "helper_b".to_string(),
+        ];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "helper_b".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"seed-b\"".to_string(),
+                    value: UnifiedSemanticValue::String("seed-b".to_string()),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 898);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper_a".to_string(), 1);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper_b".to_string(), 1);
+
+        let pending = vec![
+            TargetCoverageStatus {
+                id: "branch::start::root::0".to_string(),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "start".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(0),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 100,
+                reason: "selected_but_failed".to_string(),
+                depends_on: vec!["helper_a".to_string()],
+            },
+            TargetCoverageStatus {
+                id: "branch::start::root::1".to_string(),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "start".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(1),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 100,
+                reason: "selected_but_failed".to_string(),
+                depends_on: vec!["helper_b".to_string()],
+            },
+        ];
+
+        assert_eq!(
+            generator.select_target_probe_rule(&pending, "start"),
+            Some("helper_b".to_string()),
+            "dependency probing should prefer the equally-impactful helper that carries a literalish sample hint"
+        );
+    }
+
+    #[test]
+    fn target_probe_fallback_prefers_pending_rule_with_literalish_hint() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "helper_a"),
+                    token("rule_reference", "helper_b"),
+                ],
+            },
+        );
+        grammar_tree.insert("helper_a".to_string(), token("quoted_string", "A"));
+        grammar_tree.insert("helper_b".to_string(), token("quoted_string", "B"));
+        let rule_order = vec![
+            "start".to_string(),
+            "helper_a".to_string(),
+            "helper_b".to_string(),
+        ];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "helper_b".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"seed-b\"".to_string(),
+                    value: UnifiedSemanticValue::String("seed-b".to_string()),
+                },
+            }],
+        );
+
+        let generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 899);
+        let pending = vec![
+            TargetCoverageStatus {
+                id: "branch::helper_a::root::0".to_string(),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "helper_a".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(0),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 100,
+                reason: "never_selected".to_string(),
+                depends_on: Vec::new(),
+            },
+            TargetCoverageStatus {
+                id: "branch::helper_b::root::0".to_string(),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "helper_b".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(0),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 100,
+                reason: "never_selected".to_string(),
+                depends_on: Vec::new(),
+            },
+        ];
+
+        assert_eq!(
+            generator.select_target_probe_rule(&pending, "start"),
+            Some("helper_b".to_string()),
+            "fallback probing should prefer a pending non-entry rule that has a literalish hint"
+        );
+    }
+
+    #[test]
     fn target_probe_validation_suppresses_marginal_dependency_under_alternate_churn() {
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -8452,6 +8724,98 @@ mod tests {
             group.success_counts.first().copied().unwrap_or(0) > 0,
             "branch literal hint should register branch success, got {:?}",
             group.success_counts
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_literalish_directives_only_override_active_entry_rule() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "helper")],
+            },
+        );
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "alpha"),
+                    token("quoted_string", "beta"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "helper".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "probe_sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"seeded-helper\"".to_string(),
+                    value: UnifiedSemanticValue::String("seeded-helper".to_string()),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9296);
+        let nested_values = generator
+            .generate_many(1, Some("start"))
+            .expect("nested generation should succeed");
+        assert_eq!(
+            nested_values[0], "alphabeta",
+            "literalish hints should not short-circuit nested non-entry rules during ordinary entry generation"
+        );
+
+        let helper_values = generator
+            .generate_many(1, Some("helper"))
+            .expect("direct helper generation should succeed");
+        assert_eq!(
+            helper_values[0], "seeded-helper",
+            "literalish hints should still override when the hinted rule is the active generation entry"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_nested_regular_literalish_hints_remain_active() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "helper")],
+            },
+        );
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "alpha"),
+                    token("quoted_string", "beta"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "helper".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"seeded-helper\"".to_string(),
+                    value: UnifiedSemanticValue::String("seeded-helper".to_string()),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9297);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("nested generation should succeed");
+        assert_eq!(
+            values[0], "seeded-helper",
+            "ordinary sample hints should continue to short-circuit nested rules"
         );
     }
 
