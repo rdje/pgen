@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-19 - Document long-term EBNF bootstrap-vs-normal flow in the book
+### Achievement Summary
+Logged the long-term EBNF frontend doctrine in the public book so readers can understand the intended steady-state flow without having to infer it from roadmap or continuity documents. The book now explains the bootstrap exception for `grammars/ebnf.ebnf`, the normal generated-parser path for ordinary grammars, the current hybrid state, and the architectural destination.
+
+### Scope of Changes
+- Updated [docs/book/src/platform-overview.md](docs/book/src/platform-overview.md):
+  - added a public `Bootstrap And Normal EBNF Flow` section
+  - explained why `grammars/ebnf.ebnf` keeps a bootstrap-safe frontend path
+  - documented the intended long-term split between:
+    - the bootstrap lane for `generated/ebnf.rs`
+    - the normal generated-parser lane for ordinary grammar files such as `grammars/foolang.ebnf`
+  - clarified that `foolang.rs` versus `foolang_parser.rs` is a naming policy question, not an architectural difference
+  - recorded the current hybrid state without presenting it as the final destination
+- Updated tracked continuity docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family row changed
+  - this is a public-documentation synchronization slice, not a parser-capability or closure change
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-19 - Fix inline semantic annotation payload boundaries for focused SystemVerilog replay
 ### Achievement Summary
 Fixed a Rust EBNF frontend tokenizer bug where same-line inline semantic annotations could swallow the rest of a rule body and accidentally collapse following branch syntax into false epsilon behavior. The frontend now bounds same-line payload capture to the annotation payload itself, the retained `net_type_declaration_sv_2017` sample hint now uses rule-level `@sample`, and the focused adapter-backed branch-sample probes now both land at `180/180` accepted with `0` parser rejections for `sv_2017` and `sv_2023`.

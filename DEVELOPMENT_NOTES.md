@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Public book now explains the long-term EBNF frontend flow
+### Context
+The repo already had the relevant doctrine in roadmap and continuity surfaces: `generated/ebnf.rs` is the generated Rust parser for `grammars/ebnf.ebnf`, `rust/src/ebnf_frontend.rs` still owns the main Rust-native `.ebnf -> raw_ast` adapter path, and the long-term destination is a bootstrap-safe path for EBNF itself plus generated-parser-backed handling for ordinary grammar files. But that mental model was still mostly discoverable only by reading internal/reference documentation.
+
+### Decision
+- Put the explanation into the public book rather than leaving it implicit.
+- Keep the wording clear enough for users:
+  - explain the chicken-and-egg reason for the bootstrap exception,
+  - show the two long-term flows directly,
+  - state the current hybrid reality,
+  - and make it explicit that the hybrid state is migration scaffolding rather than the intended end-state.
+
+### What Was Changed
+- Updated [docs/book/src/platform-overview.md](docs/book/src/platform-overview.md):
+  - added `Bootstrap And Normal EBNF Flow`
+  - documented the bootstrap lane:
+    - `grammars/ebnf.ebnf`
+    - bootstrap-safe EBNF frontend
+    - raw grammar AST / JSON
+    - parser code generation
+    - `generated/ebnf.rs`
+  - documented the normal lane for ordinary grammars:
+    - `grammars/foolang.ebnf`
+    - generated EBNF parser
+    - raw grammar AST / JSON
+    - parser code generation
+    - emitted language parser artifact
+  - clarified that parser artifact naming (`foolang.rs` versus `foolang_parser.rs`) is not the architectural issue
+  - stated the current hybrid posture explicitly:
+    - `generated/ebnf.rs` already participates in verifier/backstop/readiness roles
+    - `rust/src/ebnf_frontend.rs` still owns the main Rust-native adapter path
+    - explicit fallback seams still exist in some bootstrap/testing flows
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the public-book clarification into the continuity/commit surfaces
+
+### Validation
+- Passed:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- No live parser-family row changed.
+- This commit is a public-doctrine/documentation slice:
+  - it does not claim that the fully generated EBNF frontend migration is complete,
+  - it only makes the intended long-term flow explicit in the user-facing book.
+
 ## 2026-04-19 - Literal sample steering widened beyond regex atoms
 ### Context
 The retained focused main-SystemVerilog local loop had improved after the `line_comment` and `timeunits_declaration` repairs, but the next honest closure step was still awkward: many of the remaining replay targets were whole OR branches such as `clocking_declaration`, `case_statement`, `assignment_pattern`, struct/enum data-type alternatives, and selected `function_body_declaration` / `task_body_declaration` forms. The grammar already carried preserved branch-local semantic annotation storage, but literal sample hints still only took effect during regex-HIR sampling. That meant putting `@sample` on non-regex or branch-local productions was mostly decorative.

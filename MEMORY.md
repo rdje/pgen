@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-branch-sample-steering)
+Last updated: 2026-04-19 (+0200, task: ebnf-book-flow-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,30 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Logged the long-term EBNF frontend flow in the public book:
+  - changed:
+    - [docs/book/src/platform-overview.md](docs/book/src/platform-overview.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - added a public `Bootstrap And Normal EBNF Flow` section to the book
+    - made the bootstrap exception for `grammars/ebnf.ebnf` explicit
+    - documented the two intended long-term lanes:
+      - bootstrap-safe EBNF path for regenerating `generated/ebnf.rs`
+      - generated-parser-backed path for ordinary grammars such as `grammars/foolang.ebnf`
+    - clarified that parser artifact naming (`foolang.rs` versus `foolang_parser.rs`) is only a naming policy detail
+    - stated the current hybrid reality:
+      - `generated/ebnf.rs` already participates in verifier/backstop/readiness roles
+      - `rust/src/ebnf_frontend.rs` still owns the main Rust-native `.ebnf -> raw_ast` adapter path
+      - some fallback seams remain in bootstrap/testing flows
+  - validation:
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family row changed
+    - this is a public-doctrine sync slice, not a parser-capability change
 - Broadened literal sample steering so it now reaches non-regex rules and branch-local OR alternatives:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
