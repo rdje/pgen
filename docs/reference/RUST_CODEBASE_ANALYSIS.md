@@ -1832,7 +1832,15 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
           - total resolved delta
           - best single resolved delta
           - validation-aware worthiness now also preserves previously high-yield helpers under alternate-entry churn
+        - low replay trace now also exposes the competing helper pools at each helper activation:
+          - the selected pool (`dependency` vs `pending`)
+          - the top dependency candidate
+          - the top pending candidate
         - the retained bounded 128-attempt main-SV replay did not yet change its visible helper sequence or `917/2593` completion on top of that selector change, so this is currently a replay-selection infrastructure improvement with focused tests rather than a claimed frontier jump in the cheap probe lane
+        - the new ranking trace explains that flat result:
+          - selected dependency helpers churn across `property_expr`, `expression_or_dist`, `kw_iff_ee1c009e`, `covergroup_expression`, `bin_identifier`, `kw_else_ae050f5b`, and `bins_keyword`
+          - the same pending-frontier leader, `property_expr_sv_2017`, stays visible throughout with `branch_targets=33..36`
+          - so the next tuning question is whether a sufficiently large persistent pending frontier should sometimes outrank a marginal fresh dependency probe
         - that means the current main-SV question is no longer “is helper probing happening at all?” but rather “does the heavier replay lane revisit enough helper competition for payoff-aware ranking to show up in aggregate proof runs?”
     - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh
   - proof consequence:

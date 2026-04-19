@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-helper-probe-payoff-ranking)
+Last updated: 2026-04-19 (+0200, task: sv-helper-ranking-trace)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,34 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened replay observability again so helper-pool competition is explicit:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - helper activation now also emits `Target-drive helper ranking`
+    - ranking trace shows:
+      - selected pool (`dependency` or `pending`)
+      - top dependency candidate
+      - top pending candidate
+      - leverage / hint / observed-payoff fields used for steering
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - important continuity detail:
+    - no live parser-family row changed
+    - the bounded replay now shows dependency-candidate churn explicitly:
+      - selected dependency helpers keep changing
+      - the top pending candidate remains `property_expr_sv_2017` with a much larger persistent branch frontier
+    - that is the current best evidence for why payoff-aware helper memory did not yet move the cheap bounded probe lane
 - Tightened replay selection so helper ranking can learn from same-run payoff:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

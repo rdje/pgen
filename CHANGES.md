@@ -36244,3 +36244,21 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - focused unit tests prove the selector can now use same-run payoff
     - the retained bounded 128-attempt main-SV direct replay still completed at `917/2593` with the same visible helper sequence, so this is not yet a claimed frontier jump on the cheap probe lane
     - no parser-family status row changed
+- 2026-04-19: added helper-pool ranking trace to the replay observability lane.
+  - landed:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - added `Target-drive helper ranking`
+      - ranking trace now shows:
+        - selected pool
+        - top dependency candidate
+        - top pending candidate
+        - leverage / hint / same-run payoff fields
+  - focused validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - continuity truth:
+    - the bounded replay now shows dependency-candidate churn explicitly while `property_expr_sv_2017` remains the stable pending-frontier leader
+    - no parser-family status row changed

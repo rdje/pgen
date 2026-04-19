@@ -1,4 +1,65 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Helper-ranking trace shows dependency churn beating a stable pending frontier
+### Context
+The previous slice made helper selection payoff-aware, but the retained bounded 128-attempt `systemverilog_file` replay still finished flat at `917/2593`.
+
+That left one important question open:
+- was the selector failing to use its new same-run payoff memory,
+- or was the candidate field itself changing so quickly that the new memory never got a chance to matter?
+
+### Decision
+- Add a low-trace helper-ranking line at each helper activation.
+- Report both pools, not just the selected helper:
+  - top dependency candidate
+  - top pending candidate
+- Include the specific ranking features that matter for replay steering:
+  - unresolved leverage
+  - literalish hint score
+  - observed same-run payoff
+  - selected pool
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `trace_target_probe_ranking(...)`
+  - added formatter helpers for:
+    - `DependencyProbeCandidate`
+    - `PendingProbeCandidate`
+  - both target-drive loops now emit a `Target-drive helper ranking` line immediately after helper activation tracing
+
+### Measured Effect
+- The retained bounded 128-attempt direct `systemverilog_file` replay now shows why the payoff-aware selector stayed visually flat in the cheap probe lane.
+- The top dependency candidate kept changing:
+  - `property_expr`
+  - `expression_or_dist`
+  - `kw_iff_ee1c009e`
+  - `covergroup_expression`
+  - `bin_identifier`
+  - `kw_else_ae050f5b`
+  - `bins_keyword`
+- But the top pending candidate stayed the same through all observed helper activations:
+  - `property_expr_sv_2017`
+  - with a large retained branch frontier (`branch_targets=33..36`, `blocked_remaining=33..37`)
+- So the new honest read is:
+  - same-run payoff memory is wired correctly
+  - the cheap bounded replay is mostly seeing **dependency-candidate churn**
+  - the stable broad pending frontier is visible, but the current selector still always takes the dependency lane when one exists
+
+That is the first clear evidence that the next replay-tuning question is not “does payoff memory work?” but rather:
+- should a sufficiently large pending frontier ever outrank a marginal fresh dependency probe?
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+
+### Continuity Notes
+- No parser-family row changed.
+- This is replay observability hardening again, not a proof refresh.
+- The next main-SV replay slice should treat `property_expr_sv_2017` as the first concrete pending-frontier competitor worth testing against marginal dependency probes.
+
 ## 2026-04-19 - Helper selection now remembers same-run probe payoff
 ### Context
 Once helper-probe payoff was visible, the next natural move was to stop treating probe ranking as purely static.

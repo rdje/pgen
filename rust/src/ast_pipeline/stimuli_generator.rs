@@ -1113,6 +1113,72 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    fn trace_target_probe_ranking(
+        &self,
+        resolved_entry: &str,
+        generation_entry: &str,
+        pending: &[TargetCoverageStatus],
+        validation_summary: Option<&TargetDriveValidationSummary>,
+    ) {
+        let dependency_candidate = self.best_dependency_probe_candidate(pending, resolved_entry);
+        let pending_candidate = self.best_pending_probe_candidate(pending, resolved_entry);
+        let selected_pool = if dependency_candidate
+            .as_ref()
+            .map(|candidate| candidate.rule_name.as_str())
+            == Some(generation_entry)
+        {
+            "dependency"
+        } else if pending_candidate
+            .as_ref()
+            .map(|candidate| candidate.rule_name.as_str())
+            == Some(generation_entry)
+        {
+            "pending"
+        } else {
+            "unknown"
+        };
+
+        let dependency_summary = dependency_candidate
+            .as_ref()
+            .map(Self::format_dependency_probe_candidate)
+            .unwrap_or_else(|| "none".to_string());
+        let pending_summary = pending_candidate
+            .as_ref()
+            .map(Self::format_pending_probe_candidate)
+            .unwrap_or_else(|| "none".to_string());
+
+        if let Some(validation) = validation_summary {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} dependency_top={} pending_top={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    resolved_entry,
+                    generation_entry,
+                    selected_pool,
+                    dependency_summary,
+                    pending_summary,
+                    validation.accepted_outputs,
+                    validation.rejected_outputs,
+                    validation.alternate_entry_attempts,
+                    validation.alternate_entry_accepted_outputs,
+                    validation.alternate_entry_rejected_outputs,
+                ),
+            );
+        } else {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} dependency_top={} pending_top={}",
+                    resolved_entry,
+                    generation_entry,
+                    selected_pool,
+                    dependency_summary,
+                    pending_summary,
+                ),
+            );
+        }
+    }
+
     fn trace_target_probe_result(
         &self,
         resolved_entry: &str,
@@ -1176,6 +1242,41 @@ impl<'a> StimuliGenerator<'a> {
         }
         history.resolved_delta_total = history.resolved_delta_total.saturating_add(resolved_delta);
         history.best_resolved_delta = history.best_resolved_delta.max(resolved_delta);
+    }
+
+    fn format_dependency_probe_candidate(candidate: &DependencyProbeCandidate) -> String {
+        format!(
+            "{}(deficit={},blocked_remaining={},blocked_targets={},yield_score={},best_delta={},total_delta={},attempts={},literalish={})",
+            candidate.rule_name,
+            candidate.dependency_rule_deficit,
+            candidate.blocked_remaining_successes,
+            candidate.blocked_targets,
+            Self::probe_yield_score(
+                candidate.probe_resolved_delta_total,
+                candidate.probe_attempts,
+            ),
+            candidate.probe_best_resolved_delta,
+            candidate.probe_resolved_delta_total,
+            candidate.probe_attempts,
+            candidate.literalish_hint_score,
+        )
+    }
+
+    fn format_pending_probe_candidate(candidate: &PendingProbeCandidate) -> String {
+        format!(
+            "{}(branch_targets={},blocked_remaining={},yield_score={},best_delta={},total_delta={},attempts={},literalish={})",
+            candidate.rule_name,
+            candidate.branch_target_count,
+            candidate.blocked_remaining_successes,
+            Self::probe_yield_score(
+                candidate.probe_resolved_delta_total,
+                candidate.probe_attempts,
+            ),
+            candidate.probe_best_resolved_delta,
+            candidate.probe_resolved_delta_total,
+            candidate.probe_attempts,
+            candidate.literalish_hint_score,
+        )
     }
 
     pub fn generate_gap_report(
@@ -1664,6 +1765,7 @@ impl<'a> StimuliGenerator<'a> {
                     probe_threshold,
                     None,
                 );
+                self.trace_target_probe_ranking(&resolved_entry, &generation_entry, &pending, None);
             }
 
             let helper_probe_active = generation_entry != resolved_entry;
@@ -1833,6 +1935,12 @@ impl<'a> StimuliGenerator<'a> {
                         &pending,
                         stagnant_iterations,
                         probe_threshold,
+                        Some(&validation_summary),
+                    );
+                    self.trace_target_probe_ranking(
+                        &resolved_entry,
+                        &generation_entry,
+                        &pending,
                         Some(&validation_summary),
                     );
                 }
