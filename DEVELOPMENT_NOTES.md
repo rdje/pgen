@@ -1,4 +1,94 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Heavy pending-frontier replay now has helper-only timeout containment
+### Context
+The previous measurement answered the selector question but exposed the missing operational control:
+- immediate unlock (`target_pending_frontier_extra_stagnation=0`) was real
+- but `property_expr_sv_2017` could monopolize one helper attempt for minutes
+
+That meant the right next step was not another ranking tweak. The runtime needed a way to bound alternate helper-entry effort directly.
+
+### Decision
+- Add a helper-only generation timeout.
+- Keep it scoped to alternate helper probes during target-driven replay so ordinary primary-entry generation is unchanged.
+- Make it explicit and auditable through:
+  - runtime config
+  - CLI
+  - SV quality-gate override
+  - stimuli corpus metadata
+  - low helper-ranking trace
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliConfig.target_helper_generation_timeout_ms`
+  - maintained default:
+    - `1000ms`
+  - added `generate_from_entry_with_optional_timeout(...)`
+  - added recursive deadline enforcement in:
+    - `generate_rule`
+    - `generate_node`
+    - `generate_or`
+    - relational sequence retries
+    - quantifier expansion
+    - regex-HIR sampling/repetition
+  - target-driven replay now applies that deadline only when `generation_entry != resolved_entry`
+  - helper-ranking low trace now reports:
+    - `helper_timeout_ms`
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added `--target-helper-generation-timeout-ms`
+  - stimuli corpus bundle metadata now records the helper-timeout budget
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added `PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS`
+
+### Focused Replay Result
+Reused the same retained focused `sv_2017` heavy-lane repro:
+- replay seed:
+  - `712001`
+- bounded attempts:
+  - `128`
+- immediate unlock:
+  - `target_pending_frontier_extra_stagnation=0`
+- helper timeout:
+  - `target_helper_generation_timeout_ms=1000`
+
+Measured effect:
+- the second helper still flipped to pending `property_expr_sv_2017`
+- the run no longer required manual termination
+- it completed the full retained `128` attempts at:
+  - `970/2593` resolved
+  - `1623` unresolved
+  - `121` generation successes
+  - `7` generation errors
+- those `7` generation errors were bounded helper timeouts on `property_expr_sv_2017`
+- importantly, the timed-out helper attempts still retired meaningful debt before aborting:
+  - `15`
+  - `11`
+  - `39`
+  - `4`
+  - `0`
+  - `2`
+  - `27`
+
+So the heavy lane is now:
+- still heavier than the maintained default
+- still not the ordinary proof posture
+- but no longer operationally hostile in the same way
+
+### Practical Doctrine
+- Keep `target_pending_frontier_extra_stagnation=8` as the maintained cheap/default proof posture.
+- Keep `0` as a focused experiment knob.
+- Pair that heavier knob with the helper timeout so a broad helper cannot trap replay indefinitely.
+- The heavy lane is now usable for focused exploration without pretending it has become the default proof policy.
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml --lib helper_generation_timeout_aborts`
+  - `cargo test --manifest-path rust/Cargo.toml --lib target_probe_configurable_pending_frontier_unlock_can_choose_heavy_lane_earlier`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_corpus_bundle`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `rust/target/debug/ast_pipeline --help | rg "target-helper-generation-timeout-ms|target-pending-frontier-extra-stagnation"`
+
 ## 2026-04-19 - Immediate pending-frontier unlock is real, but too expensive for the maintained lane
 ### Context
 After adding the explicit `target_pending_frontier_extra_stagnation` control, the next question was no longer theoretical:

@@ -18,6 +18,7 @@ SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
 TARGET_MAX_ATTEMPTS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-}"
 PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION:-}"
+TARGET_HELPER_TIMEOUT_MS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS:-}"
 CARGO_BUILD_JOBS_OVERRIDE="${PGEN_SV_STIMULI_CARGO_BUILD_JOBS:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
 LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
@@ -1477,6 +1478,13 @@ if [[ -n "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE" ]]; then
         "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE"
     )
 fi
+target_helper_timeout_args=()
+if [[ -n "$TARGET_HELPER_TIMEOUT_MS_OVERRIDE" ]]; then
+    target_helper_timeout_args=(
+        --target-helper-generation-timeout-ms
+        "$TARGET_HELPER_TIMEOUT_MS_OVERRIDE"
+    )
+fi
 if ! [[ "$failure_shrink_max_iterations" =~ ^[0-9]+$ ]] || [[ "$failure_shrink_max_iterations" -lt 1 ]]; then
     echo "error: failure_replay.shrink_max_iterations must be an integer >= 1" >&2
     exit 2
@@ -2043,6 +2051,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             "${pending_frontier_extra_stagnation_args[@]}" \
+            "${target_helper_timeout_args[@]}" \
             --output "$closed_loop_initial_stimuli" \
             --coverage-output "$closed_loop_initial_coverage" \
             --gap-report-json "$closed_loop_initial_gap_json" \
@@ -2068,6 +2077,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             "${pending_frontier_extra_stagnation_args[@]}" \
+            "${target_helper_timeout_args[@]}" \
             --output "$closed_loop_initial_replay_stimuli" \
             --coverage-output "$closed_loop_initial_replay_coverage" \
             --gap-report-json "$closed_loop_initial_replay_gap_json" \
@@ -2096,6 +2106,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             "${pending_frontier_extra_stagnation_args[@]}" \
+            "${target_helper_timeout_args[@]}" \
             --output "$closed_loop_replay_stimuli" \
             --coverage-output "$closed_loop_replay_coverage" \
             --gap-report-json "$closed_loop_replay_gap_json" \
@@ -2177,6 +2188,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                 --max-repeat "$mode_max_repeat" \
                 --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
                 "${pending_frontier_extra_stagnation_args[@]}" \
+                "${target_helper_timeout_args[@]}" \
                 --output "$closed_loop_replay_parseability_shadow_stimuli" \
                 --target-max-attempts "$target_max_attempts" \
                 --target-report-input "$closed_loop_initial_gap_json" \
@@ -2306,6 +2318,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             "${pending_frontier_extra_stagnation_args[@]}" \
+            "${target_helper_timeout_args[@]}" \
             --output "$sample_file"
         require_nonempty_file "$sample_file"
         generate_elapsed_ms=$(( $(now_ms) - generate_started_ms ))

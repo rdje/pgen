@@ -21,6 +21,7 @@ use serde_json::Value as JsonValue;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::panic::Location;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryStimuliMode {
@@ -79,6 +80,7 @@ pub struct StimuliConfig {
     pub max_repeat: usize,
     pub max_rule_visits: usize,
     pub target_pending_frontier_extra_stagnation: usize,
+    pub target_helper_generation_timeout_ms: u64,
     pub recovery_mode: RecoveryStimuliMode,
     pub mutation_mode: StimuliMutationMode,
     pub constraint_profile: StimuliConstraintProfile,
@@ -95,6 +97,7 @@ impl Default for StimuliConfig {
             max_repeat: 4,
             max_rule_visits: 8,
             target_pending_frontier_extra_stagnation: 8,
+            target_helper_generation_timeout_ms: 1000,
             recovery_mode: RecoveryStimuliMode::Baseline,
             mutation_mode: StimuliMutationMode::Baseline,
             constraint_profile: StimuliConstraintProfile::Baseline,
@@ -874,6 +877,7 @@ pub struct StimuliGenerator<'a> {
     mutation_trace: Option<StimuliDecisionTrace>,
     mutation_replay: Option<ActiveGrammarMutationReplay>,
     mutation_site_visit_counters: HashMap<String, u64>,
+    active_generation_deadline: Option<Instant>,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -950,6 +954,7 @@ impl<'a> StimuliGenerator<'a> {
             mutation_trace: None,
             mutation_replay: None,
             mutation_site_visit_counters: HashMap::new(),
+            active_generation_deadline: None,
         }
     }
 
@@ -970,6 +975,47 @@ impl<'a> StimuliGenerator<'a> {
 
     pub fn coverage_metrics(&self) -> &StimuliCoverageMetrics {
         &self.coverage
+    }
+
+    fn active_generation_timeout(&self) -> Option<Duration> {
+        let timeout_ms = self.config.target_helper_generation_timeout_ms;
+        if timeout_ms == 0 {
+            None
+        } else {
+            Some(Duration::from_millis(timeout_ms))
+        }
+    }
+
+    fn generation_deadline_exceeded(&self) -> bool {
+        self.active_generation_deadline
+            .map(|deadline| Instant::now() >= deadline)
+            .unwrap_or(false)
+    }
+
+    fn enforce_generation_deadline(&self, current_rule: &str, node_path: &str) -> Result<()> {
+        if self.generation_deadline_exceeded() {
+            return Err(anyhow!(
+                "Stimuli generation helper timeout exceeded for rule '{}' at path '{}' (budget={}ms)",
+                current_rule,
+                node_path,
+                self.config.target_helper_generation_timeout_ms
+            ));
+        }
+        Ok(())
+    }
+
+    fn generate_from_entry_with_optional_timeout(
+        &mut self,
+        entry_rule: &str,
+        timeout: Option<Duration>,
+    ) -> Result<String> {
+        let previous_deadline = self.active_generation_deadline;
+        if let Some(timeout) = timeout {
+            self.active_generation_deadline = Some(Instant::now() + timeout);
+        }
+        let result = self.generate_from_entry(entry_rule);
+        self.active_generation_deadline = previous_deadline;
+        result
     }
 
     pub fn merge_coverage_metrics(&mut self, other: &StimuliCoverageMetrics) -> Result<()> {
@@ -1158,13 +1204,14 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} dependency_top={} pending_top={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} helper_timeout_ms={} dependency_top={} pending_top={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
                     resolved_entry,
                     generation_entry,
                     selected_pool,
                     pending_frontier_unlocked,
                     pending_frontier_unlock_threshold,
                     self.config.target_pending_frontier_extra_stagnation,
+                    self.config.target_helper_generation_timeout_ms,
                     dependency_summary,
                     pending_summary,
                     validation.accepted_outputs,
@@ -1178,13 +1225,14 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} dependency_top={} pending_top={}",
+                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} helper_timeout_ms={} dependency_top={} pending_top={}",
                     resolved_entry,
                     generation_entry,
                     selected_pool,
                     pending_frontier_unlocked,
                     pending_frontier_unlock_threshold,
                     self.config.target_pending_frontier_extra_stagnation,
+                    self.config.target_helper_generation_timeout_ms,
                     dependency_summary,
                     pending_summary,
                 ),
@@ -1796,7 +1844,13 @@ impl<'a> StimuliGenerator<'a> {
             let helper_probe_active = generation_entry != resolved_entry;
             let mut generation_succeeded = false;
             attempts = attempts.saturating_add(1);
-            match self.generate_from_entry(&generation_entry) {
+            let helper_timeout = if helper_probe_active {
+                self.active_generation_timeout()
+            } else {
+                None
+            };
+            match self.generate_from_entry_with_optional_timeout(&generation_entry, helper_timeout)
+            {
                 Ok(sample) => {
                     generation_successes = generation_successes.saturating_add(1);
                     generation_succeeded = true;
@@ -1978,7 +2032,14 @@ impl<'a> StimuliGenerator<'a> {
                 let mut generation_succeeded = false;
                 attempts = attempts.saturating_add(1);
                 let success_snapshot = self.coverage.snapshot_success_state();
-                match self.generate_from_entry(&generation_entry) {
+                let helper_timeout = if helper_probe_active {
+                    self.active_generation_timeout()
+                } else {
+                    None
+                };
+                match self
+                    .generate_from_entry_with_optional_timeout(&generation_entry, helper_timeout)
+                {
                     Ok(sample) => {
                         generation_successes = generation_successes.saturating_add(1);
                         generation_succeeded = true;
@@ -3199,6 +3260,7 @@ impl<'a> StimuliGenerator<'a> {
         depth: usize,
         call_stack: &mut Vec<String>,
     ) -> Result<String> {
+        self.enforce_generation_deadline(rule_name, "rule")?;
         self.trace(
             TraceLevel::Debug,
             format_args!(
@@ -3283,6 +3345,7 @@ impl<'a> StimuliGenerator<'a> {
         call_stack: &mut Vec<String>,
         node_path: &str,
     ) -> Result<String> {
+        self.enforce_generation_deadline(current_rule, node_path)?;
         match node {
             ASTNode::Or { alternatives } => {
                 self.generate_or(alternatives, current_rule, depth, call_stack, node_path)
@@ -3316,6 +3379,7 @@ impl<'a> StimuliGenerator<'a> {
         call_stack: &mut Vec<String>,
         node_path: &str,
     ) -> Result<String> {
+        self.enforce_generation_deadline(current_rule, node_path)?;
         self.trace(
             TraceLevel::High,
             format_args!(
@@ -3724,6 +3788,7 @@ impl<'a> StimuliGenerator<'a> {
         let mut generation_failures = 0usize;
 
         for _ in 0..attempt_budget {
+            self.enforce_generation_deadline(current_rule, node_path)?;
             let mut output = String::new();
             let mut captures = Vec::with_capacity(elements.len());
             let mut named_captures = HashMap::new();
@@ -3861,6 +3926,7 @@ impl<'a> StimuliGenerator<'a> {
         call_stack: &mut Vec<String>,
         node_path: &str,
     ) -> Result<String> {
+        self.enforce_generation_deadline(current_rule, node_path)?;
         let (min_repeat, max_repeat) = self.parse_quantifier_bounds(quantifier)?;
         let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
         let mutation_site_key = self.next_mutation_site_key(current_rule, node_path, "quantifier");
@@ -3919,9 +3985,11 @@ impl<'a> StimuliGenerator<'a> {
         let mut last_error: Option<anyhow::Error> = None;
 
         for repeats in repeat_candidates {
+            self.enforce_generation_deadline(current_rule, node_path)?;
             let mut output = String::new();
             let mut failed = false;
             for _ in 0..repeats {
+                self.enforce_generation_deadline(current_rule, &quantified_path)?;
                 match self.generate_node(
                     element,
                     current_rule,
@@ -4522,6 +4590,9 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn generate_regex_sample(&mut self, pattern: &str, current_rule: &str) -> String {
+        if self.generation_deadline_exceeded() {
+            return String::new();
+        }
         self.trace(
             TraceLevel::High,
             format_args!(
@@ -4607,6 +4678,9 @@ impl<'a> StimuliGenerator<'a> {
         };
 
         for _ in 0..64 {
+            if self.generation_deadline_exceeded() {
+                break;
+            }
             let Some(hir) = parsed_hir.as_ref() else {
                 break;
             };
@@ -4865,6 +4939,9 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn generate_from_regex_hir(&mut self, hir: &Hir) -> String {
+        if self.generation_deadline_exceeded() {
+            return String::new();
+        }
         match hir.kind() {
             HirKind::Empty => String::new(),
             HirKind::Literal(Literal(bytes)) => String::from_utf8_lossy(bytes).into_owned(),
@@ -4894,6 +4971,9 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn generate_from_regex_repetition(&mut self, rep: &Repetition) -> String {
+        if self.generation_deadline_exceeded() {
+            return String::new();
+        }
         let min = usize::try_from(rep.min).unwrap_or(0);
         let max = rep
             .max
@@ -4909,6 +4989,9 @@ impl<'a> StimuliGenerator<'a> {
 
         let mut out = String::new();
         for _ in 0..count {
+            if self.generation_deadline_exceeded() {
+                break;
+            }
             let unit = self.generate_from_regex_hir(&rep.sub);
             out.push_str(&unit);
         }
@@ -6951,6 +7034,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode,
                 constraint_profile,
@@ -6978,6 +7062,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation,
+                target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -7005,6 +7090,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -7033,6 +7119,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_helper_generation_timeout_ms: 1000,
                 recovery_mode,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -7610,6 +7697,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 2,
                 target_pending_frontier_extra_stagnation: 8,
+                target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -7726,6 +7814,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -7781,6 +7870,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -8127,6 +8217,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -9432,6 +9523,32 @@ mod tests {
             Some("pending_helper".to_string()),
             "setting pending-frontier extra stagnation to zero should make the heavy pending-frontier lane eligible as soon as helper probing unlocks"
         );
+    }
+
+    #[test]
+    fn helper_generation_timeout_aborts_entry_and_restores_generator_state() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 917);
+        let err = generator
+            .generate_from_entry_with_optional_timeout("start", Some(Duration::from_millis(0)))
+            .expect_err("expired helper timeout should abort generation");
+        assert!(
+            err.to_string()
+                .contains("Stimuli generation helper timeout exceeded"),
+            "timeout error should explain the helper budget, got: {err}"
+        );
+        assert!(
+            generator.active_generation_deadline.is_none(),
+            "helper timeout wrapper should restore the generator deadline state"
+        );
+
+        let sample = generator
+            .generate_from_entry("start")
+            .expect("subsequent direct generation should still succeed");
+        assert_eq!(sample, "ok");
     }
 
     #[test]

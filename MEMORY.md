@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-heavy-pending-frontier-evidence)
+Last updated: 2026-04-19 (+0200, task: sv-heavy-pending-frontier-timeout-containment)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Landed helper-only timeout containment for the heavy pending-frontier replay lane:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - added `StimuliConfig.target_helper_generation_timeout_ms`
+    - default helper-only timeout is `1000ms`
+    - timeout applies only to alternate helper entries during target-driven replay
+    - added CLI flag:
+      - `--target-helper-generation-timeout-ms`
+    - added SV gate override:
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS`
+    - helper-ranking low trace now reports:
+      - `helper_timeout_ms`
+    - stimuli corpus bundle metadata now records the helper-timeout budget
+  - focused replay result:
+    - reused the retained heavy `sv_2017` replay repro with immediate unlock
+    - the formerly wedged run now completed the full `128` attempts at:
+      - `970/2593`
+      - `1623` unresolved
+      - `121` generation successes
+      - `7` generation errors
+    - those `7` errors were bounded `property_expr_sv_2017` helper timeouts, but helper attempts still retired debt before aborting
+  - important continuity detail:
+    - keep the maintained cheap/default posture at extra stagnation `8`
+    - keep immediate unlock `0` as a focused experiment knob
+    - the helper timeout is the safety rail that makes that heavy lane usable without promoting it to the default proof posture
 - Measured the explicit heavy pending-frontier replay lane and decided not to promote it:
   - changed:
     - [CHANGES.md](CHANGES.md)

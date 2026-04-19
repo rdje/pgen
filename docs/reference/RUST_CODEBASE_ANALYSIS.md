@@ -1867,6 +1867,16 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
           - immediate unlock `0` does flip the second helper from dependency `expression_or_dist` to pending `property_expr_sv_2017`
           - but that same heavy run was still active after `03:22` elapsed and had only reached the 64-attempt checkpoint (`864/2593`) before manual stop
           - so the explicit heavy control is worth keeping for experiments, but not for the maintained default proof posture
+        - the missing containment is now landed directly in the runtime:
+          - `StimuliConfig.target_helper_generation_timeout_ms` defaults to `1000ms`
+          - `ast_pipeline` exposes `--target-helper-generation-timeout-ms`
+          - `sv_stimuli_quality_gate` accepts `PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS`
+          - helper-ranking trace now reports `helper_timeout_ms`
+          - stimuli corpus bundle generation metadata now preserves the configured helper budget
+        - that same immediate-unlock focused repro now completes instead of wedging:
+          - retained 128-attempt heavy replay finished at `970/2593`
+          - the `7` generation errors are bounded `property_expr_sv_2017` helper timeouts
+          - helper probes can still retire meaningful debt before timing out, so the heavy lane is now bounded rather than all-or-nothing
         - retained cheap replay evidence is back to the earlier bounded shape:
           - 96-attempt direct replay completed at `904/2593`
           - 128-attempt direct replay completed at `917/2593`

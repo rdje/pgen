@@ -158,6 +158,10 @@ struct Args {
     #[arg(long, default_value_t = 8)]
     target_pending_frontier_extra_stagnation: usize,
 
+    /// Per-helper wall-clock budget in milliseconds for alternate target-driven probe entries (`0` disables the helper timeout)
+    #[arg(long, default_value_t = 1000)]
+    target_helper_generation_timeout_ms: u64,
+
     /// Append a delimiter space after terminal word-boundary regex samples (for example `keyword\\b`) to reduce merged-token stimuli
     #[arg(long)]
     enforce_word_boundary_spacing: bool,
@@ -427,6 +431,7 @@ struct StimuliCorpusGenerationConfig {
     max_repeat: usize,
     max_rule_visits: usize,
     target_pending_frontier_extra_stagnation: usize,
+    target_helper_generation_timeout_ms: u64,
     recovery_stimuli_mode: String,
     stimuli_negative_profile: String,
     stimuli_constraint_profile: String,
@@ -896,6 +901,7 @@ fn main() -> Result<()> {
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             target_pending_frontier_extra_stagnation: args.target_pending_frontier_extra_stagnation,
+            target_helper_generation_timeout_ms: args.target_helper_generation_timeout_ms,
             recovery_mode,
             mutation_mode,
             constraint_profile,
@@ -1019,6 +1025,7 @@ fn main() -> Result<()> {
                     max_rule_visits: args.max_depth.max(2),
                     target_pending_frontier_extra_stagnation: args
                         .target_pending_frontier_extra_stagnation,
+                    target_helper_generation_timeout_ms: args.target_helper_generation_timeout_ms,
                     recovery_mode,
                     mutation_mode,
                     constraint_profile,
@@ -1069,6 +1076,7 @@ fn main() -> Result<()> {
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             target_pending_frontier_extra_stagnation: args.target_pending_frontier_extra_stagnation,
+            target_helper_generation_timeout_ms: args.target_helper_generation_timeout_ms,
             recovery_mode,
             mutation_mode,
             constraint_profile,
@@ -1992,6 +2000,7 @@ fn build_stimuli_corpus_bundle(
             max_rule_visits: config.max_rule_visits,
             target_pending_frontier_extra_stagnation: config
                 .target_pending_frontier_extra_stagnation,
+            target_helper_generation_timeout_ms: config.target_helper_generation_timeout_ms,
             recovery_stimuli_mode: recovery_stimuli_mode_name(config.recovery_mode).to_string(),
             stimuli_negative_profile: stimuli_negative_profile_name(config.negative_profile)
                 .to_string(),
@@ -3823,6 +3832,10 @@ mod tests {
                 .target_pending_frontier_extra_stagnation,
             8
         );
+        assert_eq!(
+            bundle.generation_config.target_helper_generation_timeout_ms,
+            1000
+        );
         assert_eq!(bundle.samples[0].ordinal, 1);
         assert_eq!(bundle.samples[0].sample, "a");
         assert_eq!(bundle.samples[1].ordinal, 2);
@@ -3893,6 +3906,10 @@ mod tests {
                 .generation_config
                 .target_pending_frontier_extra_stagnation,
             8
+        );
+        assert_eq!(
+            bundle.generation_config.target_helper_generation_timeout_ms,
+            1000
         );
         assert_eq!(bundle.samples[0].source_seed, Some(9));
         assert_eq!(bundle.samples[0].new_rule_hits, vec!["alternation"]);

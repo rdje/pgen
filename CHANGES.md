@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-04-19 - Bound heavy pending-frontier helper probes with a helper-only timeout
+### Achievement Summary
+Landed the missing containment for the immediate-unlock pending-frontier lane: alternate helper probes now run under a bounded per-helper wall-clock budget instead of being able to monopolize target-driven replay indefinitely.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliConfig.target_helper_generation_timeout_ms`
+  - defaulted the helper-only timeout to `1000ms`
+  - applied that timeout only to alternate helper-entry probes during target-driven replay
+  - added recursive deadline checks inside rule/node/relational/quantifier expansion and regex-HIR sampling so pathological helper entries fail quickly instead of wedging the whole replay lane
+  - helper-ranking low trace now reports:
+    - `helper_timeout_ms`
+  - added focused unit coverage proving:
+    - expired helper timeouts abort generation cleanly
+    - generator deadline state is restored after the timeout wrapper returns
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--target-helper-generation-timeout-ms`
+  - recorded the selected helper-timeout value in stimuli corpus bundle generation metadata
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added optional gate override:
+    - `PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS`
+- Updated tracked docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+- Focused direct replay effect on the same retained `sv_2017` heavy lane:
+  - immediate unlock still flips the second helper to pending `property_expr_sv_2017`
+  - the formerly wedged run now completes the full retained `128` attempts
+  - final result:
+    - `970/2593` resolved
+    - `1623` unresolved
+    - `121` generation successes
+    - `7` generation errors
+  - those `7` errors were bounded helper timeouts on `property_expr_sv_2017`, but helper attempts still retired real debt before timing out:
+    - `15`
+    - `11`
+    - `39`
+    - `4`
+    - `0`
+    - `2`
+    - `27`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml --lib helper_generation_timeout_aborts`
+  - `cargo test --manifest-path rust/Cargo.toml --lib target_probe_configurable_pending_frontier_unlock_can_choose_heavy_lane_earlier`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_corpus_bundle`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `rust/target/debug/ast_pipeline --help | rg "target-helper-generation-timeout-ms|target-pending-frontier-extra-stagnation"`
+  - focused heavy direct replay repro:
+    - `env PGEN_TRACE_VERBOSITY=low rust/target/debug/ast_pipeline ... --target-pending-frontier-extra-stagnation 0 --target-max-attempts 128 --target-report-input /tmp/pending_frontier_probe_2017/initial_gap.json ...`
+
 ## 2026-04-19 - Keep immediate pending-frontier replay as an experiment, not the default proof lane
 ### Achievement Summary
 Ran the first focused measurement pass against the new explicit pending-frontier replay control and answered the next design question with real evidence: unlocking the broad pending frontier immediately is useful as an experiment, but it is not suitable for the maintained cheap proof lane.
