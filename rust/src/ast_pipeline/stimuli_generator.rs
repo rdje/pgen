@@ -1017,6 +1017,86 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    fn trace_target_probe_activation(
+        &self,
+        resolved_entry: &str,
+        generation_entry: &str,
+        pending: &[TargetCoverageStatus],
+        stagnant_iterations: usize,
+        probe_threshold: usize,
+        validation_summary: Option<&TargetDriveValidationSummary>,
+    ) {
+        let pending_rule_targets = pending
+            .iter()
+            .filter(|status| status.rule_name == generation_entry)
+            .count();
+        let blocked_dependency_targets = pending
+            .iter()
+            .filter(|status| {
+                status
+                    .depends_on
+                    .iter()
+                    .any(|rule_name| rule_name == generation_entry)
+            })
+            .count();
+        let blocked_remaining_successes = pending
+            .iter()
+            .filter(|status| {
+                status
+                    .depends_on
+                    .iter()
+                    .any(|rule_name| rule_name == generation_entry)
+            })
+            .map(|status| status.remaining_successes)
+            .sum::<u64>();
+        let generation_entry_deficit = self.rule_target_deficit(generation_entry);
+        let generation_entry_successes = self
+            .coverage
+            .rule_success_hits
+            .get(generation_entry)
+            .copied()
+            .unwrap_or(0);
+
+        if let Some(validation) = validation_summary {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Target-drive helper probe: entry='{}' generation_entry='{}' stagnant={} probe_threshold={} pending_rule_targets={} blocked_dependency_targets={} blocked_remaining_successes={} generation_entry_deficit={} generation_entry_successes={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    resolved_entry,
+                    generation_entry,
+                    stagnant_iterations,
+                    probe_threshold,
+                    pending_rule_targets,
+                    blocked_dependency_targets,
+                    blocked_remaining_successes,
+                    generation_entry_deficit,
+                    generation_entry_successes,
+                    validation.accepted_outputs,
+                    validation.rejected_outputs,
+                    validation.alternate_entry_attempts,
+                    validation.alternate_entry_accepted_outputs,
+                    validation.alternate_entry_rejected_outputs,
+                ),
+            );
+        } else {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Target-drive helper probe: entry='{}' generation_entry='{}' stagnant={} probe_threshold={} pending_rule_targets={} blocked_dependency_targets={} blocked_remaining_successes={} generation_entry_deficit={} generation_entry_successes={}",
+                    resolved_entry,
+                    generation_entry,
+                    stagnant_iterations,
+                    probe_threshold,
+                    pending_rule_targets,
+                    blocked_dependency_targets,
+                    blocked_remaining_successes,
+                    generation_entry_deficit,
+                    generation_entry_successes,
+                ),
+            );
+        }
+    }
+
     pub fn generate_gap_report(
         &self,
         entry_rule: Option<&str>,
@@ -1491,6 +1571,17 @@ impl<'a> StimuliGenerator<'a> {
                 resolved_entry.clone()
             };
 
+            if generation_entry != resolved_entry {
+                self.trace_target_probe_activation(
+                    &resolved_entry,
+                    &generation_entry,
+                    &pending,
+                    stagnant_iterations,
+                    probe_threshold,
+                    None,
+                );
+            }
+
             attempts = attempts.saturating_add(1);
             match self.generate_from_entry(&generation_entry) {
                 Ok(sample) => {
@@ -1621,6 +1712,17 @@ impl<'a> StimuliGenerator<'a> {
                 } else {
                     resolved_entry.clone()
                 };
+
+                if generation_entry != resolved_entry {
+                    self.trace_target_probe_activation(
+                        &resolved_entry,
+                        &generation_entry,
+                        &pending,
+                        stagnant_iterations,
+                        probe_threshold,
+                        Some(&validation_summary),
+                    );
+                }
 
                 attempts = attempts.saturating_add(1);
                 let success_snapshot = self.coverage.snapshot_success_state();

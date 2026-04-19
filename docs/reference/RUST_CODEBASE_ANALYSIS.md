@@ -1817,6 +1817,10 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
       - `rust/scripts/sv_stimuli_quality_gate.sh` now forwards opt-in replay-only tracing through `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
       - default remains `none` so ordinary gate runs stay quiet, but a focused local replay investigation can now ask for `low` and see concrete progress instead of waiting blindly for process exit
       - a one-attempt direct probe against the retained `profile_2017_initial_gap.json` now logs `341/2593` resolved targets on the first attempt, which is enough to distinguish “making progress slowly” from “not entering target-drive at all”
+      - helper-probe activation is now visible immediately too, not only through coarse periodic checkpoints:
+        - the same bounded replay lane now logs `Target-drive helper probe` whenever generation switches away from `systemverilog_file`
+        - the first corrected bounded 128-attempt read showed helper probing was already active before the final checkpoint, led by `property_expr`, then `expression_or_dist`, `kw_iff_ee1c009e`, `covergroup_expression`, `bin_identifier`, `kw_else_ae050f5b`, and finally `bins_keyword`
+        - that means the current main-SV question is no longer “is helper probing happening at all?” but rather “is the helper-probe ordering and yield good enough once it starts?”
     - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh
   - proof consequence:
     - the next honest main-SV step is still a full `sv_stimuli_quality_gate` rerun to see whether these focused wins survive the retained proof lane

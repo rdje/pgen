@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Immediate helper-probe tracing corrected the replay story
+### Context
+The first replay-progress slice gave us periodic checkpoints, which was already much better than silent CPU burn, but the coarse checkpoints still left one ambiguity: a sampled progress line could show `generation_entry='systemverilog_file'` even if helper probing had happened between checkpoints.
+
+That mattered immediately. A first bounded 128-attempt replay read made it look as though helper probing only began at the very end with `bins_keyword`, which would have pointed toward a threshold problem. That turned out to be too coarse.
+
+### Decision
+- Keep the periodic progress checkpoints.
+- Add an immediate low-trace line whenever target-drive actually switches to a helper probe rule.
+- Log enough context to explain *why* that helper probe was chosen without needing a separate debugger session.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `trace_target_probe_activation(...)`
+  - emitted that trace from both:
+    - `generate_until_targets(...)`
+    - `generate_until_targets_with_filter(...)`
+  - each helper-probe trace now records:
+    - `generation_entry`
+    - `stagnant`
+    - `probe_threshold`
+    - `pending_rule_targets`
+    - `blocked_dependency_targets`
+    - `blocked_remaining_successes`
+    - `generation_entry_deficit`
+    - `generation_entry_successes`
+    - plus validation counters on the validation-aware path
+
+### Measured Effect
+- The bounded 128-attempt direct `systemverilog_file` replay probe now shows that helper probing was already active well before the final coarse checkpoint.
+- The observed helper-probe sequence in that run was:
+  - `property_expr`
+  - `expression_or_dist`
+  - `kw_iff_ee1c009e`
+  - `covergroup_expression`
+  - `bin_identifier`
+  - `kw_else_ae050f5b`
+  - `bins_keyword`
+- The first helper-probe activation was:
+  - `generation_entry='property_expr'`
+  - `stagnant=8`
+  - `blocked_dependency_targets=33`
+  - `blocked_remaining_successes=33`
+  - `generation_entry_deficit=1`
+  - `generation_entry_successes=0`
+
+So the corrected conclusion is:
+- helper probing is not absent
+- coarse periodic checkpoints alone were hiding its early activations
+- the next replay-tuning decision should be based on helper-probe yield and candidate quality, not on the earlier false assumption that probing only started at the very end
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+
+### Continuity Notes
+- Important correction:
+  - the earlier periodic-only trace made `bins_keyword` look like the first helper probe
+  - that was a visibility artifact, not the true replay sequence
+- Current honest state:
+  - replay observability is now good enough to study helper-probe ordering directly
+  - no replay heuristic change is justified yet from the old coarse reading alone
+
 ## 2026-04-19 - Target-drive replay progress is now observable without making the gate noisy by default
 ### Context
 The retained full `sv_stimuli_quality_gate` proof lane was still painful to iterate on locally for one very specific reason: `profile_2017_closed_loop_replay` can sit CPU-hot for a long time while chasing a large unresolved target set, but until process exit the developer gets almost no useful signal about whether the generator is making progress or just spinning in a stubborn part of the grammar.

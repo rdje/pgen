@@ -61,6 +61,7 @@ The heavy replay gates are intentionally quiet by default, but the retained Syst
 - `rust/scripts/sv_stimuli_quality_gate.sh` accepts `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
 - keep the default at `none` for ordinary runs
 - use `low` when you want replay-stage start/progress/completion lines from the Rust target-drive loop without turning the whole gate into an always-on debug dump
+- low trace now also surfaces immediate helper-probe activation lines when replay switches away from the primary entry rule
 
 That trace is meant for honest progress visibility during stubborn replay work, not as a replacement for the gate's final summary artifacts.
 

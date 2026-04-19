@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-target-drive-progress-trace)
+Last updated: 2026-04-19 (+0200, task: sv-helper-probe-activation-trace)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,41 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened replay observability again so helper-probe activation is visible immediately:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - low-trace target-drive now emits an immediate `Target-drive helper probe` line whenever replay switches from `resolved_entry` to a helper entry
+    - the helper-probe line includes:
+      - chosen helper rule
+      - stagnation / threshold
+      - pending targets directly on that rule
+      - blocked dependency-target count
+      - blocked remaining-success count
+      - helper-rule deficit and success count
+    - validation-aware replay gets the same trace shape plus validation counters
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - important continuity detail:
+    - no live parser-family row changed
+    - this corrected an earlier coarse reading:
+      - helper probing was already active before the final `bins_keyword` checkpoint
+    - the observed helper sequence in the bounded run was:
+      - `property_expr`
+      - `expression_or_dist`
+      - `kw_iff_ee1c009e`
+      - `covergroup_expression`
+      - `bin_identifier`
+      - `kw_else_ae050f5b`
+      - `bins_keyword`
 - Added opt-in replay progress tracing for the heavy SystemVerilog closed-loop replay lane:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

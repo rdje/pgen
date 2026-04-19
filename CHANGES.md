@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-04-19 - Surface immediate helper-probe activation during target-driven replay
+### Achievement Summary
+Tightened the new replay observability slice so low-verbosity target-drive tracing now logs the exact moments when replay switches from the primary entry rule to a helper probe entry. That removed a misleading coarse reading from the earlier periodic-only trace output: a bounded 128-attempt SystemVerilog replay probe showed that helper probing was already activating before the 64-attempt checkpoint, first on `property_expr` and then on `expression_or_dist`, `kw_iff_ee1c009e`, `covergroup_expression`, `bin_identifier`, `kw_else_ae050f5b`, and `bins_keyword`.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added immediate low-trace `Target-drive helper probe` logging whenever target-drive switches away from the resolved primary entry rule
+  - helper-probe activation logs now include:
+    - chosen helper entry
+    - stagnation count
+    - probe threshold
+    - pending targets directly on that rule
+    - blocked dependency-target count
+    - blocked remaining-success count
+    - helper-rule deficit and current success hits
+  - applied the same immediate helper-probe tracing to:
+    - plain target-drive replay
+    - validation-aware target-drive replay
+- Updated tracked docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+- Status impact:
+  - no live parser-family row changed
+  - this is replay-observability refinement, not a closure promotion
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - bounded direct replay probe:
+    - `env PGEN_TRACE_VERBOSITY=low rust/target/debug/ast_pipeline ... --target-max-attempts 128 ...`
+    - showed helper-probe activations before the 64/80/96/112/128 coarse checkpoints, led by:
+      - `property_expr`
+      - `expression_or_dist`
+      - `kw_iff_ee1c009e`
+      - `covergroup_expression`
+      - `bin_identifier`
+      - `kw_else_ae050f5b`
+      - `bins_keyword`
+
 ## 2026-04-19 - Add opt-in replay progress tracing for SystemVerilog closed-loop target drive
 ### Achievement Summary
 Added a narrow observability slice for the long-running `systemverilog` replay lane so target-driven generation is no longer a black box during focused triage. The Rust stimuli runtime now emits low-verbosity start/progress/completion telemetry for target-drive loops, `sv_stimuli_quality_gate` can opt into that telemetry only for replay stages, and a one-attempt direct probe proved the new surface by logging `341/2593` resolved targets on the first replay attempt.
