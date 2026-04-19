@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-04-19 - Add opt-in replay progress tracing for SystemVerilog closed-loop target drive
+### Achievement Summary
+Added a narrow observability slice for the long-running `systemverilog` replay lane so target-driven generation is no longer a black box during focused triage. The Rust stimuli runtime now emits low-verbosity start/progress/completion telemetry for target-drive loops, `sv_stimuli_quality_gate` can opt into that telemetry only for replay stages, and a one-attempt direct probe proved the new surface by logging `341/2593` resolved targets on the first replay attempt.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added a bounded progress-trace cadence for target-driven generation
+  - traced start, periodic progress, and completion for:
+    - plain target-drive runs
+    - validation-aware target-drive runs
+  - included validation counters in the validation-aware trace surface:
+    - accepted outputs
+    - rejected outputs
+    - alternate-entry attempts
+    - alternate-entry accepted outputs
+    - alternate-entry rejected outputs
+  - added focused unit coverage for:
+    - replay-progress interval scaling
+    - first/periodic/last-attempt trace selection
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added opt-in replay tracing for the heavy closed-loop replay stages via:
+    - `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
+  - kept the default at `none` so ordinary gate runs do not dump the much noisier global low-verbosity trace stream unless a developer explicitly asks for it
+- Formatting carry-through:
+  - [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs)
+    - rustfmt normalized an already-landed inline semantic-annotation assertion wrap; no behavior change in this slice
+- Updated tracked continuity docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+- Status impact:
+  - no live parser-family row changed
+  - this is observability/continuity hardening for a retained proof seam, not a closure promotion
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `env PGEN_TRACE_VERBOSITY=low rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 1 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_replay_progress_probe_one.sv --coverage-output /tmp/sv_replay_progress_probe_one_coverage.json --gap-report-json /tmp/sv_replay_progress_probe_one_gap.json --gap-report-text /tmp/sv_replay_progress_probe_one_gap.txt --gap-report-threshold 1 --target-max-attempts 1 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2017_initial_gap.json`
+    - traced:
+      - start: `total_targets=2593`, `max_attempts=1`
+      - progress: `resolved=341/2593`, `pending=2252`, `generation_successes=1`, `generation_errors=0`
+      - completion: `resolved_targets=341/2593`, `attempts=1`
+
 ## 2026-04-19 - Add probe-only literal steering for target-drive replay
 ### Achievement Summary
 Added a new probe-only semantic hint lane for stimuli generation so grammars can seed targeted replay entries without collapsing ordinary top-level generation. The Rust stimuli runtime now understands `@probe_sample` alongside existing literalish hints, SystemVerilog carries a first batch of probe-only replay seeds on high-impact dependency rules, the focused 2017 direct replay improved from `333/2619` to `365/2619` resolved targets in 5 attempts, and the longer 25-attempt replay stayed flat at `831/2619`.

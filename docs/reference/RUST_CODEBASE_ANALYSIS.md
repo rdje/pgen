@@ -1812,6 +1812,11 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
       - `sv_2023`: `179/179 accepted, 0 parser rejects`, `287/2393` replay targets resolved in the retained 200-attempt loop
   - practical steering consequence:
     - the contract-default and bounded (`PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100`) `sv_stimuli_quality_gate` reruns are still too heavy for first local iteration on this seam because `profile_2017_closed_loop_replay` chases a retained `2597`-target initial gap and stays CPU-hot for minutes without becoming a good quick loop
+    - that replay seam is no longer completely opaque though:
+      - `rust/src/ast_pipeline/stimuli_generator.rs` now emits low-verbosity start/progress/completion telemetry for target-driven generation
+      - `rust/scripts/sv_stimuli_quality_gate.sh` now forwards opt-in replay-only tracing through `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
+      - default remains `none` so ordinary gate runs stay quiet, but a focused local replay investigation can now ask for `low` and see concrete progress instead of waiting blindly for process exit
+      - a one-attempt direct probe against the retained `profile_2017_initial_gap.json` now logs `341/2593` resolved targets on the first attempt, which is enough to distinguish “making progress slowly” from “not entering target-drive at all”
     - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh
   - proof consequence:
     - the next honest main-SV step is still a full `sv_stimuli_quality_gate` rerun to see whether these focused wins survive the retained proof lane

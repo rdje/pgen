@@ -1201,7 +1201,9 @@ entry = alpha
             .expect("same-line inline semantic annotation tokenization should succeed");
         let rendered = serde_json::to_string(&tokens).expect("token json");
         assert!(
-            rendered.contains("[\"semantic_annotation_inline\",[\"sample\",\"\\\"nettype int nt;\\\"\"]]"),
+            rendered.contains(
+                "[\"semantic_annotation_inline\",[\"sample\",\"\\\"nettype int nt;\\\"\"]]"
+            ),
             "expected same-line inline semantic annotation token in token stream, got: {}",
             rendered
         );

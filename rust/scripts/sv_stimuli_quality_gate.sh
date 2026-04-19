@@ -2068,6 +2068,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         closed_loop_initial_replay_determinism_pass_count=$((closed_loop_initial_replay_determinism_pass_count + 1))
 
         run_logged "profile_${profile_key}_closed_loop_replay" \
+            env PGEN_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-none}" \
             "$AST_PIPELINE_BIN" "$grammar_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
@@ -2147,6 +2148,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             closed_loop_replay_parseability_shadow_report="$WORK_DIR/profile_${profile_key}_replay_parseability_shadow_report.json"
 
             run_logged "profile_${profile_key}_closed_loop_replay_parseability_shadow" \
+                env PGEN_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-none}" \
                 "$AST_PIPELINE_BIN" "$grammar_input" \
                 --generate-stimuli \
                 --grammar-profile "$lrm_profile" \

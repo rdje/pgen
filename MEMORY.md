@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-probe-sample-steering)
+Last updated: 2026-04-19 (+0200, task: sv-target-drive-progress-trace)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,42 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added opt-in replay progress tracing for the heavy SystemVerilog closed-loop replay lane:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - target-driven generation now emits low-verbosity start/progress/completion telemetry
+    - validation-aware target-drive also reports:
+      - accepted outputs
+      - rejected outputs
+      - alternate-entry attempts
+      - alternate-entry accepted/rejected outputs
+    - `rust/scripts/sv_stimuli_quality_gate.sh` now accepts opt-in replay-stage trace control through:
+      - `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
+    - default remains quiet:
+      - `none`
+    - `rust/src/ebnf_frontend.rs` only picked up a rustfmt line-wrap carry-through in this slice; no behavior change there
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+    - focused one-attempt replay probe with `PGEN_TRACE_VERBOSITY=low`
+      - traced:
+        - start: `total_targets=2593`
+        - progress: `resolved=341/2593`, `pending=2252`
+        - completion: `resolved_targets=341/2593`
+  - important continuity detail:
+    - no live parser-family row changed
+    - this is observability hardening for a retained proof seam, not a closure change
+    - the long-running `sv_stimuli_quality_gate` replay remains heavy; this slice makes that heaviness inspectable rather than silent
 - Added probe-only literal steering for the focused SystemVerilog replay lane:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

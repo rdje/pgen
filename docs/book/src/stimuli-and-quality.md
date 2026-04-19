@@ -54,6 +54,16 @@ That split matters because a hint that is useful when probing a single dependenc
 - use `@sample` when the grammar really should always short-circuit to that literal shape
 - use `@probe_sample` when the literal is meant to accelerate targeted replay of a specific rule without flattening ordinary coverage
 
+## Replay Progress Tracing
+
+The heavy replay gates are intentionally quiet by default, but the retained SystemVerilog replay lane now has an opt-in progress surface when a closed-loop stage is CPU-hot and needs inspection.
+
+- `rust/scripts/sv_stimuli_quality_gate.sh` accepts `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
+- keep the default at `none` for ordinary runs
+- use `low` when you want replay-stage start/progress/completion lines from the Rust target-drive loop without turning the whole gate into an always-on debug dump
+
+That trace is meant for honest progress visibility during stubborn replay work, not as a replacement for the gate's final summary artifacts.
+
 ## Primary Source Docs
 
 - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`

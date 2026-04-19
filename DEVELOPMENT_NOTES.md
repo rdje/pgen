@@ -1,4 +1,77 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Target-drive replay progress is now observable without making the gate noisy by default
+### Context
+The retained full `sv_stimuli_quality_gate` proof lane was still painful to iterate on locally for one very specific reason: `profile_2017_closed_loop_replay` can sit CPU-hot for a long time while chasing a large unresolved target set, but until process exit the developer gets almost no useful signal about whether the generator is making progress or just spinning in a stubborn part of the grammar.
+
+That made the existing focused adapter-backed direct probes useful for shaping, but it still left the heavier replay lane feeling opaque at exactly the moment when we needed to reason about the next replay-steering move.
+
+### Decision
+- Add low-verbosity progress telemetry directly to the Rust target-drive loop instead of trying to infer progress from shell-side polling.
+- Keep that telemetry opt-in for the heavy `sv_stimuli_quality_gate` replay stages:
+  - default gate behavior should stay quiet
+  - developers can explicitly ask for replay progress when investigating a stubborn closed-loop replay seam
+- Keep the new trace small and regular:
+  - start
+  - periodic progress
+  - completion
+  - no per-rule/per-annotation flood by default
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added:
+    - `target_drive_progress_interval(...)`
+    - `should_trace_target_drive_progress(...)`
+    - `trace_target_drive_progress(...)`
+  - `generate_until_targets(...)` now emits low-verbosity:
+    - start telemetry with entry, total targets, and attempt budget
+    - bounded periodic progress with resolved/pending counts, stagnation, and generation success/error totals
+    - completion telemetry with resolved-target totals and final attempt counts
+  - `generate_until_targets_with_filter(...)` now emits the same structure plus validation counters:
+    - accepted outputs
+    - rejected outputs
+    - alternate-entry attempts
+    - alternate-entry accepted/rejected outputs
+  - added focused tests for:
+    - interval scaling by attempt budget
+    - first/periodic/last-attempt trace selection
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - `profile_<lrm>_closed_loop_replay`
+  - `profile_<lrm>_closed_loop_replay_parseability_shadow`
+  - both now accept opt-in trace control through:
+    - `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
+  - default remains:
+    - `none`
+
+### Measured Effect
+- A focused one-attempt direct replay probe now proves the trace surface concretely:
+  - start:
+    - `entry='systemverilog_file' total_targets=2593 max_attempts=1`
+  - progress:
+    - `attempts=1/1 resolved=341/2593 pending=2252 stagnant=1 generation_successes=1 generation_errors=0`
+  - completion:
+    - `resolved_targets=341/2593 attempts=1 generation_successes=1 generation_errors=0`
+
+This does not claim replay-quality improvement by itself. It claims that the retained replay seam is now instrumented well enough to inspect honestly.
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - focused one-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+
+### Continuity Notes
+- Important retained rule:
+  - do not make `sv_stimuli_quality_gate` globally low-trace by default
+  - global low trace is still much noisier than the new replay-progress lines and should stay opt-in
+- Practical developer recipe:
+  - keep ordinary replay runs quiet
+  - use `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY=low` when a closed-loop replay stage is CPU-hot and needs explicit progress telemetry
+- Status impact:
+  - no live parser-family row changed
+  - this is a proof-surface observability improvement, not a family-closure promotion
+
 ## 2026-04-19 - Probe-only sample steering for stimuli replay
 ### Context
 The focused `systemverilog` replay lane had two competing truths:

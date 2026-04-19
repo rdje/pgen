@@ -860,6 +860,23 @@ pub struct StimuliGenerator<'a> {
 }
 
 impl<'a> StimuliGenerator<'a> {
+    fn target_drive_progress_interval(max_attempts: usize) -> usize {
+        match max_attempts {
+            0..=64 => 8,
+            65..=256 => 16,
+            257..=1024 => 32,
+            1025..=4096 => 64,
+            _ => 128,
+        }
+    }
+
+    fn should_trace_target_drive_progress(attempt: usize, max_attempts: usize) -> bool {
+        let effective_max = max_attempts.max(1);
+        attempt == 1
+            || attempt == effective_max
+            || attempt % Self::target_drive_progress_interval(effective_max) == 0
+    }
+
     pub fn new(
         grammar_name: String,
         grammar_tree: &'a HashMap<String, ASTNode>,
@@ -939,6 +956,65 @@ impl<'a> StimuliGenerator<'a> {
 
     pub fn merge_coverage_metrics(&mut self, other: &StimuliCoverageMetrics) -> Result<()> {
         self.coverage.merge_from(other)
+    }
+
+    fn trace_target_drive_progress(
+        &self,
+        resolved_entry: &str,
+        generation_entry: &str,
+        total_targets: usize,
+        pending_targets: usize,
+        attempts: usize,
+        max_attempts: usize,
+        generation_successes: usize,
+        generation_errors: usize,
+        stagnant_iterations: usize,
+        probe_threshold: usize,
+        validation_summary: Option<&TargetDriveValidationSummary>,
+    ) {
+        let resolved_targets = total_targets.saturating_sub(pending_targets);
+        if let Some(validation) = validation_summary {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Target-drive progress: entry='{}' generation_entry='{}' attempts={}/{} resolved={}/{} pending={} stagnant={} probe_threshold={} generation_successes={} generation_errors={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    resolved_entry,
+                    generation_entry,
+                    attempts,
+                    max_attempts,
+                    resolved_targets,
+                    total_targets,
+                    pending_targets,
+                    stagnant_iterations,
+                    probe_threshold,
+                    generation_successes,
+                    generation_errors,
+                    validation.accepted_outputs,
+                    validation.rejected_outputs,
+                    validation.alternate_entry_attempts,
+                    validation.alternate_entry_accepted_outputs,
+                    validation.alternate_entry_rejected_outputs,
+                ),
+            );
+        } else {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Target-drive progress: entry='{}' generation_entry='{}' attempts={}/{} resolved={}/{} pending={} stagnant={} probe_threshold={} generation_successes={} generation_errors={}",
+                    resolved_entry,
+                    generation_entry,
+                    attempts,
+                    max_attempts,
+                    resolved_targets,
+                    total_targets,
+                    pending_targets,
+                    stagnant_iterations,
+                    probe_threshold,
+                    generation_successes,
+                    generation_errors,
+                ),
+            );
+        }
     }
 
     pub fn generate_gap_report(
@@ -1377,6 +1453,7 @@ impl<'a> StimuliGenerator<'a> {
             .cloned()
             .collect();
         let applied_targets = self.apply_targets(&applicable_targets);
+        let total_targets = applicable_targets.len();
 
         let mut outputs = Vec::new();
         let mut attempts = 0usize;
@@ -1384,6 +1461,14 @@ impl<'a> StimuliGenerator<'a> {
         let mut generation_errors = 0usize;
         let mut best_remaining = applicable_targets.len();
         let mut stagnant_iterations = 0usize;
+
+        self.trace(
+            TraceLevel::Low,
+            format_args!(
+                "Starting target-driven generation: entry='{}' total_targets={} max_attempts={}",
+                resolved_entry, total_targets, max_attempts
+            ),
+        );
 
         while attempts < max_attempts {
             let pending = self.evaluate_target_statuses(&applicable_targets);
@@ -1418,12 +1503,41 @@ impl<'a> StimuliGenerator<'a> {
                     generation_errors = generation_errors.saturating_add(1);
                 }
             }
+
+            if Self::should_trace_target_drive_progress(attempts, max_attempts) {
+                let current_pending = self.evaluate_target_statuses(&applicable_targets).len();
+                self.trace_target_drive_progress(
+                    &resolved_entry,
+                    &generation_entry,
+                    total_targets,
+                    current_pending,
+                    attempts,
+                    max_attempts,
+                    generation_successes,
+                    generation_errors,
+                    stagnant_iterations,
+                    probe_threshold,
+                    None,
+                );
+            }
         }
 
         let unresolved_targets = self.evaluate_target_statuses(&applicable_targets);
-        let total_targets = applicable_targets.len();
         let resolved_targets = total_targets.saturating_sub(unresolved_targets.len());
         self.clear_targets();
+
+        self.trace(
+            TraceLevel::Low,
+            format_args!(
+                "Completed target-driven generation: entry='{}' resolved_targets={}/{} attempts={} generation_successes={} generation_errors={}",
+                resolved_entry,
+                resolved_targets,
+                total_targets,
+                attempts,
+                generation_successes,
+                generation_errors
+            ),
+        );
 
         Ok((
             outputs,
@@ -1464,6 +1578,7 @@ impl<'a> StimuliGenerator<'a> {
                 .cloned()
                 .collect();
             let applied_targets = self.apply_targets(&applicable_targets);
+            let total_targets = applicable_targets.len();
 
             let mut outputs = Vec::new();
             let mut attempts = 0usize;
@@ -1472,6 +1587,14 @@ impl<'a> StimuliGenerator<'a> {
             let mut best_remaining = applicable_targets.len();
             let mut stagnant_iterations = 0usize;
             let mut validation_summary = TargetDriveValidationSummary::default();
+
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Starting validation-aware target-driven generation: entry='{}' total_targets={} max_attempts={}",
+                    resolved_entry, total_targets, max_attempts
+                ),
+            );
 
             while attempts < max_attempts {
                 let pending = self.evaluate_target_statuses(&applicable_targets);
@@ -1555,12 +1678,46 @@ impl<'a> StimuliGenerator<'a> {
                         generation_errors = generation_errors.saturating_add(1);
                     }
                 }
+
+                if Self::should_trace_target_drive_progress(attempts, max_attempts) {
+                    let current_pending = self.evaluate_target_statuses(&applicable_targets).len();
+                    self.trace_target_drive_progress(
+                        &resolved_entry,
+                        &generation_entry,
+                        total_targets,
+                        current_pending,
+                        attempts,
+                        max_attempts,
+                        generation_successes,
+                        generation_errors,
+                        stagnant_iterations,
+                        probe_threshold,
+                        Some(&validation_summary),
+                    );
+                }
             }
 
             let unresolved_targets = self.evaluate_target_statuses(&applicable_targets);
-            let total_targets = applicable_targets.len();
             let resolved_targets = total_targets.saturating_sub(unresolved_targets.len());
             self.clear_targets();
+
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Completed validation-aware target-driven generation: entry='{}' resolved_targets={}/{} attempts={} generation_successes={} generation_errors={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    resolved_entry,
+                    resolved_targets,
+                    total_targets,
+                    attempts,
+                    generation_successes,
+                    generation_errors,
+                    validation_summary.accepted_outputs,
+                    validation_summary.rejected_outputs,
+                    validation_summary.alternate_entry_attempts,
+                    validation_summary.alternate_entry_accepted_outputs,
+                    validation_summary.alternate_entry_rejected_outputs,
+                ),
+            );
 
             Ok((
                 outputs,
@@ -7872,6 +8029,34 @@ mod tests {
             24,
             "validation-aware replay should back off helper probing when low-yield alternate attempts dominate and primary entry rejects are present"
         );
+    }
+
+    #[test]
+    fn target_drive_progress_interval_scales_with_attempt_budget() {
+        assert_eq!(StimuliGenerator::target_drive_progress_interval(32), 8);
+        assert_eq!(StimuliGenerator::target_drive_progress_interval(200), 16);
+        assert_eq!(StimuliGenerator::target_drive_progress_interval(800), 32);
+        assert_eq!(StimuliGenerator::target_drive_progress_interval(3000), 64);
+        assert_eq!(StimuliGenerator::target_drive_progress_interval(5000), 128);
+    }
+
+    #[test]
+    fn target_drive_progress_traces_first_last_and_periodic_attempts() {
+        assert!(StimuliGenerator::should_trace_target_drive_progress(
+            1, 5000
+        ));
+        assert!(StimuliGenerator::should_trace_target_drive_progress(
+            128, 5000
+        ));
+        assert!(StimuliGenerator::should_trace_target_drive_progress(
+            5000, 5000
+        ));
+        assert!(!StimuliGenerator::should_trace_target_drive_progress(
+            127, 5000
+        ));
+        assert!(!StimuliGenerator::should_trace_target_drive_progress(
+            129, 5000
+        ));
     }
 
     #[test]
