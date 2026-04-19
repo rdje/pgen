@@ -143,10 +143,18 @@ Normative input/output behavior for bootstrap semantic parsing:
   - arrays of structured values
   - objects with identifier/string keys and structured values
 - Empty or nonsensical payloads remain accepted and fall back to `Raw`.
+- For same-line inline rule-body semantic annotations scanned by `rust/src/ebnf_frontend.rs`:
+  - payload capture is bounded and must not consume following rule-body syntax on the same line
+  - maintained inline payload shapes are:
+    - quoted string / single-quoted string payloads
+    - balanced `{...}`, `[...]`, or `(...)` payloads
+    - scalar non-whitespace payloads
+  - unterminated quoted or balanced payloads are malformed inline-annotation input, not “rest-of-line” payloads
 
 Source contract references:
 - `grammars/builtin_semantic_annotation.ebnf`
 - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+- `rust/src/ebnf_frontend.rs`
 
 ## Semantic Leverage Contract (Parser + Stimuli)
 Normative runtime leverage behavior for semantic annotations:
@@ -169,6 +177,7 @@ Normative runtime leverage behavior for semantic annotations:
     - regex atoms
     - non-regex non-OR rule expansion
     - branch-local OR alternatives through preserved inline branch semantic annotations
+  - branch-local inline semantic annotations depend on that bounded same-line scanner contract: the annotation payload may be inline, but following branch syntax must remain visible to the rule tokenizer
   - rule-level literal hints intentionally do not bypass OR rules; branch-local inline hints are the maintained way to steer a specific OR alternative while preserving branch accounting
 - Shared canonical-transform parser utility:
   - `rust/src/ast_pipeline/semantic_transform.rs`

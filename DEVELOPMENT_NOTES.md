@@ -39454,3 +39454,52 @@ Architectural north star:
       - `245/2597` replay targets resolved
   - status truth:
     - keep treating this as a focused direct-lane win until a full `sv_stimuli_quality_gate` refresh is completed
+- 2026-04-19: same-line inline semantic-annotation payloads in the Rust EBNF frontend were swallowing following branch syntax.
+  - trigger:
+    - after widening literalish branch steering, the focused retained branch-sample probes still had one `sv_2017` reject and one `sv_2023` reject
+    - the `sv_2017` survivor reduced to a tiny preprocessor-like input (`//x` followed by `` `s``) and simple direct repros showed even `` `define X 1`` failing at byte `0`
+  - root cause:
+    - `rust/src/ebnf_frontend.rs` `parse_inline_semantic_annotation(...)` was consuming the rest of the same line once it saw a non-whitespace payload
+    - that meant an inline branch form such as `@sample: "nettype int nt;" alpha | beta` could be tokenized as one giant semantic annotation instead of:
+      - the annotation payload
+      - followed by real `alpha`, `|`, and `beta` branch syntax
+    - in `grammars/systemverilog.ebnf`, the same-line inline `@sample` on `net_type_declaration_sv_2017` let the tokenizer swallow the first branch body
+    - downstream effect in the focused generated parser:
+      - `source_text_item`
+      - selected a zero-width `description`
+      - through `package_item`
+      - into `package_or_generate_item_declaration_sv_2017`
+      - into `data_declaration_sv_2017`
+      - into a false-epsilon `net_type_declaration_sv_2017`
+    - that is why a real preprocessor directive at file start could be “accepted” by one branch and then left as trailing input instead of parsing cleanly
+  - implementation:
+    - `rust/src/ebnf_frontend.rs`
+      - `parse_inline_semantic_annotation` now:
+        - parses annotation name explicitly
+        - requires `:`
+        - bounds payload capture with dedicated helpers instead of “rest of line”
+      - payload boundary rules are now:
+        - quoted payload: shared quoted-literal parser
+        - balanced payload: delimiter-aware `{...}`, `[...]`, or `(...)`
+        - scalar payload: stop at whitespace/newline
+      - malformed unterminated quoted/balanced payloads now fail as malformed inline annotations instead of silently consuming following syntax
+      - added focused tokenization coverage proving `@sample: "nettype int nt;" alpha | beta` preserves `alpha` and `beta` as rule references
+    - `grammars/systemverilog.ebnf`
+      - moved the retained `net_type_declaration_sv_2017` hint from same-line inline form to rule-level `@sample: "nettype int nt;"`
+      - this keeps the shipped grammar simple even though the frontend now handles the same-line form correctly
+  - proof:
+    - parser regeneration and manifest-backed rebuild against `rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs` succeeded
+    - direct parser-backed repros now accept:
+      - `/tmp/p5.sv` containing `` `define X 1``
+      - `/tmp/sv_branch_seed_reject_2017.sv`
+      - `/tmp/sv_sample_nettype.sv`
+      - `/tmp/sv_sample_case.sv`
+      - `/tmp/sv_sample_clocking.sv`
+      - `/tmp/sv_sample_conditional.sv`
+    - the previously suspicious `/tmp/sv_branch_seed_reject_2023.sv` still rejects, but inspection showed it is genuinely invalid because a same-line comment masks the required trailing precision-separator form after `timeunit 13e+1 ps`
+    - refreshed focused branch-sample probes now measure:
+      - `sv_2017`: `180/180` accepted, `0` parser rejections, `340/2613` targets resolved
+      - `sv_2023`: `180/180` accepted, `0` parser rejections, `265/2393` targets resolved
+  - continuity truth:
+    - the old “two tiny surviving parser rejects” read is now obsolete
+    - after the frontend tokenizer fix, the retained branch-sample loop is back in a pure target-resolution state; the next remaining work is coverage closure, not known parse rejection

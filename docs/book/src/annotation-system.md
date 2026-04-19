@@ -12,6 +12,14 @@ Return annotations shape the AST that generated parsers return. They are the nor
 
 Semantic annotations steer parser-generation behavior and related transformation/runtime choices in the Rust AST pipeline.
 
+They also now have a stricter same-line scanner contract. Inline rule-body annotations consume only their own payload:
+
+- quoted payloads,
+- balanced structured payloads such as `{...}`, `[...]`, or `(...)`,
+- or a scalar token payload.
+
+They do not get to swallow the rest of the rule body. That matters because branch-local hints like `@sample: "..." alpha | beta` are only useful if `alpha | beta` still survives as real branch syntax after tokenization.
+
 That steering now includes more than regex-target tweaks. Literalish directives such as `@sample`, `@literal`, `@example`, and legacy `@stimulus` can now be used as parser-proven stimuli seeds for:
 
 - regex atoms,

@@ -16598,3 +16598,25 @@ Use this file to resume work without replaying full chat history.
   - practical steering:
     - local full and bounded `sv_stimuli_quality_gate` reruns are still too heavy for first-pass shaping on this seam because `profile_2017_closed_loop_replay` spends minutes chewing through a `2597`-target gap
     - use the corrected direct probe as the cheap loop, then come back for the full gate refresh when ready
+- 2026-04-19: follow-up on the focused branch-sample replay lane after `5004524`:
+  - the “last two parser rejects” were not symmetric parser holes
+  - real bug:
+    - `rust/src/ebnf_frontend.rs` same-line inline semantic annotations were consuming the rest of the line
+    - that could swallow following branch syntax and create false epsilon behavior in downstream generated parsers
+    - the concrete shipped seam showed up through `net_type_declaration_sv_2017` after the new inline `@sample` steering landed
+  - fix:
+    - inline semantic-annotation payloads are now bounded:
+      - quoted payloads via the quoted-literal parser
+      - balanced `{...}` / `[...]` / `(...)` payloads via delimiter tracking
+      - scalar payloads stop at whitespace/newline
+    - `grammars/systemverilog.ebnf` now keeps the retained `net_type_declaration_sv_2017` sample hint as rule-level `@sample: "nettype int nt;"`
+  - direct repro truth:
+    - `/tmp/p5.sv` (`\`define X 1`) now parses under `sv_2017`
+    - `/tmp/sv_branch_seed_reject_2017.sv` now parses under `sv_2017`
+    - `/tmp/sv_branch_seed_reject_2023.sv` still rejects, but that retained sample is genuinely invalid after its own comment masks required trailing syntax
+  - refreshed focused direct-probe numbers:
+    - `sv_2017`: `180/180` accepted, `0` parser rejections, `340/2613` targets resolved
+    - `sv_2023`: `180/180` accepted, `0` parser rejections, `265/2393` targets resolved
+  - steering:
+    - the retained branch-sample lane is no longer carrying a known parser-rejection seam
+    - main remaining debt on this local loop is unresolved target coverage, not parser acceptance

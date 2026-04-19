@@ -617,28 +617,29 @@ fn parse_inline_semantic_annotation(
         return Ok(None);
     }
 
-    let mut saw_non_whitespace = false;
-    let mut tracker = DelimiterTracker::default();
-    while idx < input.len() {
-        let Some(ch) = input[idx..].chars().next() else {
-            break;
-        };
-        let next_idx = idx + ch.len_utf8();
-        let next_char = input[next_idx..].chars().next();
-
-        if ch == '\n' && tracker.is_top_level() && saw_non_whitespace {
-            break;
-        }
-
-        tracker.consume(ch, next_char, ScanMode::Annotations);
-        if !ch.is_whitespace() {
-            saw_non_whitespace = true;
-        }
-        idx = next_idx;
+    let Some((_, name_end)) = parse_identifier(input, idx) else {
+        return Ok(None);
+    };
+    idx = name_end;
+    while idx < bytes.len() && (bytes[idx] as char).is_whitespace() && bytes[idx] != b'\n' {
+        idx += 1;
+    }
+    if bytes.get(idx).copied() != Some(b':') {
+        return Ok(None);
+    }
+    idx += 1;
+    while idx < bytes.len() && (bytes[idx] as char).is_whitespace() && bytes[idx] != b'\n' {
+        idx += 1;
+    }
+    if idx >= input.len() {
+        return Ok(None);
     }
 
+    let payload_end = parse_inline_semantic_annotation_payload_end(input, idx)
+        .ok_or_else(|| anyhow!("unterminated or malformed inline semantic annotation payload"))?;
+
     let raw_annotation = input
-        .get(start..idx)
+        .get(start..payload_end)
         .map(str::trim_end)
         .unwrap_or_default()
         .to_string();
@@ -653,7 +654,48 @@ fn parse_inline_semantic_annotation(
         ));
     };
 
-    Ok(Some((parsed, idx)))
+    Ok(Some((parsed, payload_end)))
+}
+
+fn parse_inline_semantic_annotation_payload_end(input: &str, start: usize) -> Option<usize> {
+    let first = input.get(start..)?.chars().next()?;
+    match first {
+        '"' | '\'' => parse_quoted_literal(input, start).map(|(_, end)| end),
+        '{' | '[' | '(' => parse_balanced_annotation_payload(input, start),
+        _ => parse_scalar_annotation_payload(input, start),
+    }
+}
+
+fn parse_balanced_annotation_payload(input: &str, start: usize) -> Option<usize> {
+    let mut idx = start;
+    let mut tracker = DelimiterTracker::default();
+
+    while idx < input.len() {
+        let ch = input[idx..].chars().next()?;
+        let next_idx = idx + ch.len_utf8();
+        let next_char = input[next_idx..].chars().next();
+        tracker.consume(ch, next_char, ScanMode::Annotations);
+        idx = next_idx;
+
+        if tracker.is_top_level() {
+            return Some(idx);
+        }
+    }
+
+    None
+}
+
+fn parse_scalar_annotation_payload(input: &str, start: usize) -> Option<usize> {
+    let mut idx = start;
+    while idx < input.len() {
+        let ch = input[idx..].chars().next()?;
+        if ch == '\n' || ch.is_whitespace() {
+            break;
+        }
+        idx += ch.len_utf8();
+    }
+
+    (idx > start).then_some(idx)
 }
 
 fn parse_quoted_literal(input: &str, start: usize) -> Option<(String, usize)> {
@@ -1149,6 +1191,29 @@ entry = alpha
             first_rule.contains("[\"rule_reference\",\"beta\"]"),
             "expected beta token in token stream, got: {}",
             first_rule
+        );
+    }
+
+    #[test]
+    fn tokenizes_same_line_inline_semantic_annotations_without_swallowing_branch_syntax() {
+        let expression = r#"@sample: "nettype int nt;" alpha | beta"#;
+        let tokens = tokenize_rule_expression(expression)
+            .expect("same-line inline semantic annotation tokenization should succeed");
+        let rendered = serde_json::to_string(&tokens).expect("token json");
+        assert!(
+            rendered.contains("[\"semantic_annotation_inline\",[\"sample\",\"\\\"nettype int nt;\\\"\"]]"),
+            "expected same-line inline semantic annotation token in token stream, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("[\"rule_reference\",\"alpha\"]"),
+            "expected same-line alpha token in token stream, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("[\"rule_reference\",\"beta\"]"),
+            "expected same-line beta token in token stream, got: {}",
+            rendered
         );
     }
 

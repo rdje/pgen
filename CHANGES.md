@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-04-19 - Fix inline semantic annotation payload boundaries for focused SystemVerilog replay
+### Achievement Summary
+Fixed a Rust EBNF frontend tokenizer bug where same-line inline semantic annotations could swallow the rest of a rule body and accidentally collapse following branch syntax into false epsilon behavior. The frontend now bounds same-line payload capture to the annotation payload itself, the retained `net_type_declaration_sv_2017` sample hint now uses rule-level `@sample`, and the focused adapter-backed branch-sample probes now both land at `180/180` accepted with `0` parser rejections for `sv_2017` and `sv_2023`.
+
+### Scope of Changes
+- Updated [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs):
+  - `parse_inline_semantic_annotation` now parses a bounded same-line payload instead of consuming the rest of the line blindly
+  - quoted payloads use the existing quoted-literal parser
+  - balanced object/array/paren payloads now use a dedicated delimiter-aware helper
+  - scalar payloads now stop at whitespace/newline instead of erasing following branch syntax
+  - added focused tokenization coverage for same-line inline semantic annotations followed by `alpha | beta` branch syntax
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - moved the retained `net_type_declaration_sv_2017` sample hint to rule-level `@sample: "nettype int nt;"`
+- Updated tracked docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+  - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+- Status impact:
+  - no live parser-family row changed
+  - `systemverilog` stays on its existing conservative row because this is still focused direct-lane evidence rather than a refreshed full `sv_stimuli_quality_gate` proof
+
+### Validation
+- Passed:
+  - `cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-parser --output rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+  - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/p5.sv --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_branch_seed_reject_2017.sv --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_sample_nettype.sv --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_sample_case.sv --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_sample_clocking.sv --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_sample_conditional.sv --profile sv_2017`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe_branch_samples_2017.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2017_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_branch_samples_2017_report.json`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe_branch_samples_2023.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2023_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_branch_samples_2023_report.json`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_branch_seed_reject_2023.sv --profile sv_2023`
+    - still rejects as expected because the retained sample is genuinely invalid after its own comment body masks the required precision separator; this is no longer treated as a parser hole
+
 ## 2026-04-19 - Broaden literal sample steering for focused SystemVerilog replay
 ### Achievement Summary
 Broadened stimuli-side literal sample steering so parser-proven literalish semantic hints can now override non-regex rule expansions and branch-local OR alternatives, not just regex atoms. Used that new steering to seed a narrow set of high-value SystemVerilog branches and improved the focused adapter-backed replay lane without changing any live parser-family row.
