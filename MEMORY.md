@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-pending-frontier-control-surface)
+Last updated: 2026-04-19 (+0200, task: sv-heavy-pending-frontier-evidence)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,34 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Measured the explicit heavy pending-frontier replay lane and decided not to promote it:
+  - changed:
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - experiment:
+    - built contract-aligned focused `sv_2017` initial debt with:
+      - `count=8`
+      - `seed=12001`
+      - `entry_rule=systemverilog_file`
+      - `max_depth=20`
+      - `max_repeat=2`
+    - compared two replay modes from the same gap report:
+      - default `target_pending_frontier_extra_stagnation=8`
+      - heavy `target_pending_frontier_extra_stagnation=0`
+  - measured result:
+    - default 128-attempt replay completed at `917/2593`
+    - heavy replay proved the selector flip:
+      - first helper `property_expr`
+      - second helper `property_expr_sv_2017`
+    - but the heavy run was still active after `03:22` elapsed and had only reached the 64-attempt checkpoint (`864/2593`) before being manually stopped
+  - important continuity detail:
+    - keep the explicit heavy control
+    - do not promote it into the maintained cheap/default proof lane
+    - the next high-value replay improvement is per-attempt wall-clock containment, not another selector flip
 - Surfaced heavy pending-frontier replay as an explicit control:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

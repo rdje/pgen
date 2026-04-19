@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-19 - Keep immediate pending-frontier replay as an experiment, not the default proof lane
+### Achievement Summary
+Ran the first focused measurement pass against the new explicit pending-frontier replay control and answered the next design question with real evidence: unlocking the broad pending frontier immediately is useful as an experiment, but it is not suitable for the maintained cheap proof lane.
+
+### Scope of Changes
+- Updated tracked docs only:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+- Key measured result:
+  - maintained default replay (`target_pending_frontier_extra_stagnation=8`) on the focused `sv_2017` main `systemverilog_file` lane still completed the retained bounded 128-attempt probe at:
+    - `917/2593` resolved
+    - `1676` unresolved
+  - immediate-unlock replay (`--target-pending-frontier-extra-stagnation 0`) did exactly what the control was meant to allow:
+    - first helper remained `property_expr`
+    - second helper flipped immediately to pending `property_expr_sv_2017`
+  - but that same run then stalled badly enough that it was manually stopped after more than three minutes of wall clock while still sitting at the 64-attempt checkpoint:
+    - `864/2593` resolved
+    - no later retained progress line beyond the pending-frontier flip was emitted before termination
+- Decision impact:
+  - keep the explicit immediate-unlock control for focused experimentation
+  - do not promote it into the maintained cheap/default proof posture
+  - the next worthwhile replay improvement is a bounded way to prevent one broad helper attempt from monopolizing wall clock, not another selector flip
+
+### Validation
+- Passed:
+  - contract-aligned focused initial debt build for `sv_2017`
+  - bounded default replay probe with `PGEN_TRACE_VERBOSITY=low`
+- Observed and intentionally stopped:
+  - bounded immediate-unlock replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - direct process inspection showed the heavy run still active after `03:22` elapsed with no later retained progress line beyond the 64-attempt pending-frontier seam
+
 ## 2026-04-19 - Make heavier pending-frontier replay an explicit stimuli control
 ### Achievement Summary
 Turned the staged broad pending-frontier replay path into a deliberate control surface instead of a hidden hard-coded policy. Cheap target-driven replay still keeps its existing default behavior, but heavier replay can now be requested explicitly by lowering the extra stagnation budget that delays broad pending-frontier selection.

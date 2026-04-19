@@ -1862,6 +1862,11 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
             - `pending_frontier_unlock_threshold`
             - `pending_frontier_extra_stagnation`
           - stimuli corpus bundle generation metadata now preserves the configured replay budget
+        - the first focused main-SV experiment now answers whether immediate unlock should be promoted:
+          - default `8` still completes the retained 128-attempt focused `sv_2017` replay at `917/2593`
+          - immediate unlock `0` does flip the second helper from dependency `expression_or_dist` to pending `property_expr_sv_2017`
+          - but that same heavy run was still active after `03:22` elapsed and had only reached the 64-attempt checkpoint (`864/2593`) before manual stop
+          - so the explicit heavy control is worth keeping for experiments, but not for the maintained default proof posture
         - retained cheap replay evidence is back to the earlier bounded shape:
           - 96-attempt direct replay completed at `904/2593`
           - 128-attempt direct replay completed at `917/2593`

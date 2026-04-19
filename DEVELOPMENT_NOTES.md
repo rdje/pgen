@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Immediate pending-frontier unlock is real, but too expensive for the maintained lane
+### Context
+After adding the explicit `target_pending_frontier_extra_stagnation` control, the next question was no longer theoretical:
+- if we set that extra stagnation to `0`,
+- does the main SystemVerilog replay lane actually get better,
+- or does it just become slower in a way that is not worth promoting?
+
+### Experiment
+Used the maintained `sv_file` contract settings for `sv_2017`:
+- initial debt built with:
+  - `count=8`
+  - `seed=12001`
+  - `entry_rule=systemverilog_file`
+  - `max_depth=20`
+  - `max_repeat=2`
+- replay compared with the same replay seed and bounded attempt budget:
+  - replay seed `712001`
+  - `target_max_attempts=128`
+
+Two replay postures were compared against the same initial gap report:
+- maintained default:
+  - `target_pending_frontier_extra_stagnation=8`
+- heavy experimental unlock:
+  - `target_pending_frontier_extra_stagnation=0`
+
+### Measured Result
+- Default retained the known cheap bounded shape:
+  - completed the full 128-attempt replay
+  - resolved `917/2593`
+  - left `1676` unresolved
+  - stayed on the dependency lane with:
+    - `property_expr`
+    - `expression_or_dist`
+    - `kw_iff_ee1c009e`
+    - `covergroup_expression`
+    - `bin_identifier`
+    - `kw_else_ae050f5b`
+    - `bins_keyword`
+- Immediate-unlock replay did prove the control surface works:
+  - first helper stayed `property_expr`
+  - second helper flipped immediately from dependency `expression_or_dist` to pending `property_expr_sv_2017`
+  - low trace showed:
+    - `pending_frontier_unlocked=true`
+    - `pending_frontier_unlock_threshold=8`
+    - `pending_frontier_extra_stagnation=0`
+- But the same heavy run then became wall-clock hostile:
+  - it reached only `864/2593` by the 64-attempt checkpoint
+  - process inspection later showed it still running after `03:22` elapsed
+  - no later retained progress line beyond the 64-attempt pending-frontier seam appeared before manual termination
+
+### Decision
+- The explicit heavy control is worth keeping.
+- The maintained cheap/default proof lane should not use `0`.
+- So the honest doctrine is:
+  - `8` remains the maintained default
+  - `0` is a focused experiment knob only
+- The next useful improvement is not “promote the heavy selector,” but:
+  - add a bounded way to stop one broad helper attempt from monopolizing wall clock
+
+### Continuity Notes
+- No live parser-family row changed.
+- This slice is an evidence-driven replay-policy decision, not a closure promotion.
+- If future work revisits the heavy lane, the missing ingredient is per-attempt wall-clock containment rather than another candidate-ranking rewrite.
+
 ## 2026-04-19 - Cheap replay and heavy replay are now separate on purpose
 ### Context
 The previous slice staged broad pending-frontier probes behind `probe_threshold + 8`.
