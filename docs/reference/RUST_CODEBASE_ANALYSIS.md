@@ -1850,6 +1850,13 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
         - that improvement introduced a new practical constraint:
           - once replay starts honoring the broad pending frontier, the cheap probe lane becomes materially slower
           - the next tuning question is therefore not just selection correctness but also whether broad pending probes need an explicit effort budget
+        - that effort budget is now staged directly into the runtime selector:
+          - broad pending-frontier selection only unlocks after `probe_threshold + 8`
+          - helper-ranking trace now reports `pending_frontier_unlocked=true|false`
+        - retained cheap replay evidence is back to the earlier bounded shape:
+          - 96-attempt direct replay completed at `904/2593`
+          - 128-attempt direct replay completed at `917/2593`
+          - both traces stayed on dependency helpers with `pending_frontier_unlocked=false`
         - that means the current main-SV question is no longer “is helper probing happening at all?” but rather “does the heavier replay lane revisit enough helper competition for payoff-aware ranking to show up in aggregate proof runs?”
     - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh
   - proof consequence:

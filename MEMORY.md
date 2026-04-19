@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-pending-frontier-selector)
+Last updated: 2026-04-19 (+0200, task: sv-pending-frontier-staging)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Staged broad pending-frontier probes behind extra stagnation:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - broad pending-frontier selection now unlocks only after `probe_threshold + 8`
+    - runtime helper selection sees `stagnant_iterations` and `probe_threshold`
+    - helper-ranking trace now surfaces `pending_frontier_unlocked=true|false`
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 96-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - important continuity detail:
+    - no live parser-family row changed
+    - the retained cheap probes now stay on the dependency lane with `pending_frontier_unlocked=false`
+    - bounded replay returned to the earlier cheap-lane shape:
+      - 96 attempts: `904/2593`
+      - 128 attempts: `917/2593`
+    - broad pending-frontier selection still exists, but is now intentionally deferred to a heavier stall regime
 - Changed helper selection so a broad pending frontier can outrank a marginal dependency probe:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

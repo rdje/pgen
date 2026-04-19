@@ -1,4 +1,72 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Broad pending-frontier probes are now staged behind extra stagnation
+### Context
+The previous slice proved that broad pending frontiers could beat marginal dependency churn.
+
+That was useful, but it also changed the practical behavior of the cheap replay lane:
+- a line-buffered 96-attempt main-SV replay showed the second helper flipping to pending `property_expr_sv_2017`
+- once that broad pending helper started running, the cheap probe lane became materially slower
+
+So the next question became:
+- can we keep the pending-frontier escape hatch,
+- while delaying it until replay has been stalled longer than the ordinary helper threshold?
+
+### Decision
+- Keep broad pending-frontier selection as a real option.
+- But stage it behind an extra unlock window instead of allowing it at the first dependency-vs-pending seam.
+- Make that staging visible in trace output so replay behavior stays inspectable instead of magical.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `pending_frontier_unlock_threshold(...)`
+  - added `pending_frontier_is_unlocked(...)`
+  - runtime target-drive selection now uses staged helper selectors that know:
+    - `stagnant_iterations`
+    - `probe_threshold`
+  - broad pending-frontier preference now only applies once replay has stalled past `probe_threshold + 8`
+  - `Target-drive helper ranking` now reports `pending_frontier_unlocked=true|false`
+  - added focused staging tests proving:
+    - dependency probes still win before unlock
+    - broad pending frontiers become eligible after the extra stagnation window
+
+### Measured Effect
+- The cheap replay lane regained its earlier bounded shape.
+- Bounded 96-attempt direct `systemverilog_file` replay now completed quickly at:
+  - `904/2593`
+- Bounded 128-attempt replay also returned to the prior retained frontier:
+  - `917/2593`
+- Across both retained cheap probes, helper-ranking trace now shows:
+  - `pending_frontier_unlocked=false`
+  - helper sequence staying on the old dependency lane:
+    - `property_expr`
+    - `expression_or_dist`
+    - `kw_iff_ee1c009e`
+    - `covergroup_expression`
+    - `bin_identifier`
+    - `kw_else_ae050f5b`
+    - `bins_keyword`
+
+So the honest read is:
+- broad pending-frontier probes still exist
+- but they are no longer allowed to hijack the cheap bounded probe budget immediately
+- the cheap replay lane is now stable again under the retained 96/128-attempt probes
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - bounded 96-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+
+### Continuity Notes
+- No parser-family row changed.
+- This is replay-budget tuning, not a proof-status promotion.
+- The next main-SV replay question is now cleaner:
+  - do we want a separate heavier proof lane that intentionally unlocks broad pending frontiers,
+  - or is the retained cheap lane enough for day-to-day shaping while heavier proof lanes stay separate?
+
 ## 2026-04-19 - Broad pending frontiers can now outrank marginal dependency probes
 ### Context
 The previous slice exposed the real helper competition during stubborn replay work.

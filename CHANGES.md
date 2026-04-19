@@ -36280,3 +36280,23 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - the second helper choice flipped from dependency churn to pending `property_expr_sv_2017`
     - the cheap replay lane became materially slower once that broad pending helper started running
     - no parser-family status row changed
+- 2026-04-19: stage broad pending-frontier probes behind extra stagnation.
+  - landed:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - broad pending-frontier preference is now gated behind an extra unlock window beyond the normal probe threshold
+      - helper-ranking trace now reports `pending_frontier_unlocked=true|false`
+      - added focused staging tests for locked vs unlocked selector behavior
+  - focused validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 96-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - continuity truth:
+    - the cheap replay lane regained its earlier bounded behavior:
+      - 96-attempt replay completed at `904/2593`
+      - 128-attempt replay completed at `917/2593`
+    - helper-ranking trace now shows `pending_frontier_unlocked=false` throughout those retained cheap probes
+    - broad pending-frontier selection still exists, but is now intentionally postponed past the ordinary helper threshold instead of triggering immediately
+    - no parser-family status row changed
