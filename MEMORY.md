@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-helper-probe-yield-trace)
+Last updated: 2026-04-19 (+0200, task: sv-helper-probe-payoff-ranking)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened replay selection so helper ranking can learn from same-run payoff:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - target-drive now retains per-helper same-run payoff history:
+      - attempts
+      - successful generations
+      - total resolved delta
+      - best resolved delta
+    - dependency and pending helper ranking now use observed payoff as an input
+    - validation-aware replay now treats previously high-yield helpers as still worthy under alternate-entry churn
+    - history is reset per target-drive run; this is local replay memory, not cross-run persistence
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - important continuity detail:
+    - no live parser-family row changed
+    - the retained bounded 128-attempt main-SV replay still finished at `917/2593`
+    - helper sequence in that bounded run stayed unchanged, so this slice lands replay-selection infrastructure and tests, not yet a measured frontier move on the retained cheap probe
 - Tightened replay observability one more step so helper-probe payoff is visible, not just activation:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

@@ -36226,3 +36226,21 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - continuity truth:
     - no parser-family status row changed
     - the next replay-tuning question is helper ranking / yield quality, not helper visibility
+- 2026-04-19: made helper selection payoff-aware within a single replay run.
+  - landed:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - added per-run `TargetProbeHistory`
+      - helper ranking now considers observed same-run payoff:
+        - average resolved delta per helper attempt
+        - best single resolved delta
+        - total resolved delta
+      - validation-aware replay now keeps previously high-yield helpers eligible under alternate-entry churn
+  - focused validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - continuity truth:
+    - focused unit tests prove the selector can now use same-run payoff
+    - the retained bounded 128-attempt main-SV direct replay still completed at `917/2593` with the same visible helper sequence, so this is not yet a claimed frontier jump on the cheap probe lane
+    - no parser-family status row changed

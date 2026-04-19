@@ -1827,7 +1827,13 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
           - `covergroup_expression`: `resolved_delta=6`
           - `kw_iff_ee1c009e`, `bin_identifier`, `kw_else_ae050f5b`: `resolved_delta=1`
           - `bins_keyword`: `resolved_delta=3`
-        - that means the current main-SV question is no longer “is helper probing happening at all?” but rather “is the helper-probe ordering and yield good enough once it starts?”
+        - target-drive now also keeps same-run helper-payoff history and feeds it back into helper ranking:
+          - per-helper attempts
+          - total resolved delta
+          - best single resolved delta
+          - validation-aware worthiness now also preserves previously high-yield helpers under alternate-entry churn
+        - the retained bounded 128-attempt main-SV replay did not yet change its visible helper sequence or `917/2593` completion on top of that selector change, so this is currently a replay-selection infrastructure improvement with focused tests rather than a claimed frontier jump in the cheap probe lane
+        - that means the current main-SV question is no longer “is helper probing happening at all?” but rather “does the heavier replay lane revisit enough helper competition for payoff-aware ranking to show up in aggregate proof runs?”
     - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh
   - proof consequence:
     - the next honest main-SV step is still a full `sv_stimuli_quality_gate` rerun to see whether these focused wins survive the retained proof lane

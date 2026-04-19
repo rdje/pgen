@@ -1,4 +1,69 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Helper selection now remembers same-run probe payoff
+### Context
+Once helper-probe payoff was visible, the next natural move was to stop treating probe ranking as purely static.
+
+Before this slice, helper selection only knew about:
+- unresolved dependency deficit,
+- blocked remaining-success counts,
+- blocked target counts,
+- literalish probe hints,
+- and validation-side alternate-entry churn.
+
+It did **not** remember whether a helper had already retired meaningful debt earlier in the same replay run.
+
+### Decision
+- Add a small per-run helper-payoff memory to target-drive.
+- Keep it bounded to the current replay invocation rather than persisting it globally.
+- Use observed payoff as a ranking signal, not as a new replacement probe system.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `TargetProbeHistory`
+  - added `target_probe_history` state to `StimuliGenerator`
+  - recorded helper attempts, successful generations, total resolved delta, and best resolved delta
+  - cleared probe history at the start/end of target-drive runs so history stays local to the current replay invocation
+  - dependency and pending probe ranking now consider observed same-run payoff through:
+    - average resolved delta per helper attempt
+    - best single observed resolved delta
+    - total resolved delta
+  - validation-aware dependency worthiness now also preserves helpers that have already shown strong observed payoff, even if their static leverage would otherwise look marginal under alternate-entry churn
+
+### Measured Effect
+- Focused unit coverage now locks two new behaviors:
+  - same-run observed payoff breaks ties toward the higher-yield dependency helper
+  - validation-aware replay preserves a previously high-yield dependency helper under alternate-entry churn
+- The retained bounded 128-attempt direct `systemverilog_file` replay probe did **not** yet change its visible helper sequence or final frontier:
+  - helper sequence remained:
+    - `property_expr`
+    - `expression_or_dist`
+    - `kw_iff_ee1c009e`
+    - `covergroup_expression`
+    - `bin_identifier`
+    - `kw_else_ae050f5b`
+    - `bins_keyword`
+  - completion remained:
+    - `resolved_targets=917/2593`
+
+So the honest current read is:
+- replay selection is now capable of learning from same-run helper payoff
+- the retained bounded main-SV probe did not yet enter a regime where that new signal changed the frontier
+- the next useful question is whether longer/heavier replay lanes revisit enough helper competition for the payoff-aware ranking to become visible in aggregate proof runs
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+
+### Continuity Notes
+- No parser-family row changed.
+- This is replay-selection hardening, not a proof refresh.
+- If the next session continues this lane, do not overclaim from the current bounded probe:
+  - the selector changed
+  - the bounded 128-attempt main-SV read did not yet materially move
+
 ## 2026-04-19 - Helper-probe tracing now measures payoff, not just activation
 ### Context
 Once helper-probe activation became visible, the next missing piece was obvious: knowing that replay switched to `property_expr` or `expression_or_dist` was useful, but it still did not tell us whether those probes actually retired target debt or merely consumed attempts.

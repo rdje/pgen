@@ -743,6 +743,9 @@ struct DependencyProbeCandidate {
     dependency_rule_deficit: u64,
     dependency_rule_successes: u64,
     literalish_hint_score: u64,
+    probe_attempts: u64,
+    probe_resolved_delta_total: u64,
+    probe_best_resolved_delta: u64,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -752,6 +755,17 @@ struct PendingProbeCandidate {
     blocked_remaining_successes: u64,
     branch_target_count: usize,
     literalish_hint_score: u64,
+    probe_attempts: u64,
+    probe_resolved_delta_total: u64,
+    probe_best_resolved_delta: u64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct TargetProbeHistory {
+    attempts: u64,
+    successful_generations: u64,
+    resolved_delta_total: u64,
+    best_resolved_delta: u64,
 }
 
 impl TargetDriveSummary {
@@ -851,6 +865,7 @@ pub struct StimuliGenerator<'a> {
     rng: StdRng,
     coverage: StimuliCoverageMetrics,
     target_plan: ActiveTargetPlan,
+    target_probe_history: HashMap<String, TargetProbeHistory>,
     target_drive_validation_active: bool,
     active_generation_entry_rule: Option<String>,
     deterministic_partition_counters: HashMap<String, u64>,
@@ -926,6 +941,7 @@ impl<'a> StimuliGenerator<'a> {
             rng,
             coverage,
             target_plan: ActiveTargetPlan::default(),
+            target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
             active_generation_entry_rule: None,
             deterministic_partition_counters: HashMap::new(),
@@ -1139,6 +1155,27 @@ impl<'a> StimuliGenerator<'a> {
                 ),
             );
         }
+    }
+
+    fn record_target_probe_result(
+        &mut self,
+        generation_entry: &str,
+        pending_before: usize,
+        pending_after: usize,
+        generation_succeeded: bool,
+    ) {
+        let resolved_delta =
+            u64::try_from(pending_before.saturating_sub(pending_after)).unwrap_or(u64::MAX);
+        let history = self
+            .target_probe_history
+            .entry(generation_entry.to_string())
+            .or_default();
+        history.attempts = history.attempts.saturating_add(1);
+        if generation_succeeded {
+            history.successful_generations = history.successful_generations.saturating_add(1);
+        }
+        history.resolved_delta_total = history.resolved_delta_total.saturating_add(resolved_delta);
+        history.best_resolved_delta = history.best_resolved_delta.max(resolved_delta);
     }
 
     pub fn generate_gap_report(
@@ -1527,6 +1564,7 @@ impl<'a> StimuliGenerator<'a> {
 
     pub fn clear_targets(&mut self) {
         self.target_plan = ActiveTargetPlan::default();
+        self.target_probe_history.clear();
     }
 
     pub fn evaluate_target_statuses(
@@ -1578,6 +1616,7 @@ impl<'a> StimuliGenerator<'a> {
             .collect();
         let applied_targets = self.apply_targets(&applicable_targets);
         let total_targets = applicable_targets.len();
+        self.target_probe_history.clear();
 
         let mut outputs = Vec::new();
         let mut attempts = 0usize;
@@ -1652,6 +1691,12 @@ impl<'a> StimuliGenerator<'a> {
             };
 
             if helper_probe_active {
+                self.record_target_probe_result(
+                    &generation_entry,
+                    pending_before,
+                    current_pending.unwrap_or(pending_before),
+                    generation_succeeded,
+                );
                 self.trace_target_probe_result(
                     &resolved_entry,
                     &generation_entry,
@@ -1736,6 +1781,7 @@ impl<'a> StimuliGenerator<'a> {
                 .collect();
             let applied_targets = self.apply_targets(&applicable_targets);
             let total_targets = applicable_targets.len();
+            self.target_probe_history.clear();
 
             let mut outputs = Vec::new();
             let mut attempts = 0usize;
@@ -1835,6 +1881,12 @@ impl<'a> StimuliGenerator<'a> {
                             if helper_probe_active {
                                 let pending_after =
                                     self.evaluate_target_statuses(&applicable_targets).len();
+                                self.record_target_probe_result(
+                                    &generation_entry,
+                                    pending_before,
+                                    pending_after,
+                                    generation_succeeded,
+                                );
                                 self.trace_target_probe_result(
                                     &resolved_entry,
                                     &generation_entry,
@@ -1872,6 +1924,12 @@ impl<'a> StimuliGenerator<'a> {
                 };
 
                 if helper_probe_active {
+                    self.record_target_probe_result(
+                        &generation_entry,
+                        pending_before,
+                        current_pending.unwrap_or(pending_before),
+                        generation_succeeded,
+                    );
                     self.trace_target_probe_result(
                         &resolved_entry,
                         &generation_entry,
@@ -1999,11 +2057,19 @@ impl<'a> StimuliGenerator<'a> {
                     .copied()
                     .unwrap_or(0);
                 let entry = candidates.entry(rule_name.clone()).or_insert_with(|| {
+                    let probe_history = self
+                        .target_probe_history
+                        .get(rule_name.as_str())
+                        .cloned()
+                        .unwrap_or_default();
                     DependencyProbeCandidate {
                         rule_name: rule_name.clone(),
                         dependency_rule_deficit,
                         dependency_rule_successes,
                         literalish_hint_score: self.rule_literalish_hint_probe_score(rule_name),
+                        probe_attempts: probe_history.attempts,
+                        probe_resolved_delta_total: probe_history.resolved_delta_total,
+                        probe_best_resolved_delta: probe_history.best_resolved_delta,
                         ..DependencyProbeCandidate::default()
                     }
                 });
@@ -2024,8 +2090,23 @@ impl<'a> StimuliGenerator<'a> {
             left.dependency_rule_deficit
                 .cmp(&right.dependency_rule_deficit)
                 .then_with(|| {
+                    Self::probe_yield_score(left.probe_resolved_delta_total, left.probe_attempts)
+                        .cmp(&Self::probe_yield_score(
+                            right.probe_resolved_delta_total,
+                            right.probe_attempts,
+                        ))
+                })
+                .then_with(|| {
                     left.blocked_remaining_successes
                         .cmp(&right.blocked_remaining_successes)
+                })
+                .then_with(|| {
+                    left.probe_best_resolved_delta
+                        .cmp(&right.probe_best_resolved_delta)
+                })
+                .then_with(|| {
+                    left.probe_resolved_delta_total
+                        .cmp(&right.probe_resolved_delta_total)
                 })
                 .then_with(|| left.blocked_targets.cmp(&right.blocked_targets))
                 .then_with(|| left.literalish_hint_score.cmp(&right.literalish_hint_score))
@@ -2055,6 +2136,21 @@ impl<'a> StimuliGenerator<'a> {
             let entry = candidates
                 .entry(status.rule_name.clone())
                 .or_insert_with(|| PendingProbeCandidate {
+                    probe_attempts: self
+                        .target_probe_history
+                        .get(status.rule_name.as_str())
+                        .map(|history| history.attempts)
+                        .unwrap_or(0),
+                    probe_resolved_delta_total: self
+                        .target_probe_history
+                        .get(status.rule_name.as_str())
+                        .map(|history| history.resolved_delta_total)
+                        .unwrap_or(0),
+                    probe_best_resolved_delta: self
+                        .target_probe_history
+                        .get(status.rule_name.as_str())
+                        .map(|history| history.best_resolved_delta)
+                        .unwrap_or(0),
                     rule_name: status.rule_name.clone(),
                     literalish_hint_score: self
                         .rule_literalish_hint_probe_score(status.rule_name.as_str()),
@@ -2072,10 +2168,25 @@ impl<'a> StimuliGenerator<'a> {
         candidates.into_values().max_by(|left, right| {
             left.branch_target_count
                 .cmp(&right.branch_target_count)
+                .then_with(|| {
+                    Self::probe_yield_score(left.probe_resolved_delta_total, left.probe_attempts)
+                        .cmp(&Self::probe_yield_score(
+                            right.probe_resolved_delta_total,
+                            right.probe_attempts,
+                        ))
+                })
+                .then_with(|| {
+                    left.probe_best_resolved_delta
+                        .cmp(&right.probe_best_resolved_delta)
+                })
                 .then_with(|| left.literalish_hint_score.cmp(&right.literalish_hint_score))
                 .then_with(|| {
                     left.blocked_remaining_successes
                         .cmp(&right.blocked_remaining_successes)
+                })
+                .then_with(|| {
+                    left.probe_resolved_delta_total
+                        .cmp(&right.probe_resolved_delta_total)
                 })
                 .then_with(|| left.max_target_priority.cmp(&right.max_target_priority))
                 .then_with(|| right.rule_name.cmp(&left.rule_name))
@@ -2148,6 +2259,18 @@ impl<'a> StimuliGenerator<'a> {
             || candidate.dependency_rule_deficit >= 2
             || candidate.blocked_targets >= 2
             || candidate.blocked_remaining_successes >= 2
+            || candidate.probe_best_resolved_delta >= 4
+            || candidate.probe_resolved_delta_total >= 4
+    }
+
+    fn probe_yield_score(resolved_delta_total: u64, attempts: u64) -> u64 {
+        if attempts == 0 {
+            return 0;
+        }
+
+        resolved_delta_total
+            .saturating_mul(1024)
+            .saturating_div(attempts)
     }
 
     fn target_probe_threshold_for_validation(
@@ -8482,6 +8605,82 @@ mod tests {
     }
 
     #[test]
+    fn target_probe_prefers_observed_high_yield_dependency_candidate() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "helper_a"),
+                    token("rule_reference", "helper_b"),
+                    token("quoted_string", "S"),
+                ],
+            },
+        );
+        grammar_tree.insert("helper_a".to_string(), token("quoted_string", "A"));
+        grammar_tree.insert("helper_b".to_string(), token("quoted_string", "B"));
+        let rule_order = vec![
+            "start".to_string(),
+            "helper_a".to_string(),
+            "helper_b".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 910);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper_a".to_string(), 2);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper_b".to_string(), 2);
+        generator.target_probe_history.insert(
+            "helper_b".to_string(),
+            TargetProbeHistory {
+                attempts: 1,
+                successful_generations: 1,
+                resolved_delta_total: 6,
+                best_resolved_delta: 6,
+            },
+        );
+
+        let pending = vec![
+            TargetCoverageStatus {
+                id: "branch::start::root::0".to_string(),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "start".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(0),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 3,
+                priority_score: 100,
+                reason: "selected_but_failed".to_string(),
+                depends_on: vec!["helper_a".to_string()],
+            },
+            TargetCoverageStatus {
+                id: "branch::start::root::1".to_string(),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "start".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(1),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 3,
+                priority_score: 100,
+                reason: "selected_but_failed".to_string(),
+                depends_on: vec!["helper_b".to_string()],
+            },
+        ];
+
+        assert_eq!(
+            generator.select_target_probe_rule(&pending, "start"),
+            Some("helper_b".to_string()),
+            "once two dependency candidates have equal static leverage, observed replay payoff should break the tie toward the helper that has already retired more target debt"
+        );
+    }
+
+    #[test]
     fn target_probe_prefers_dependency_candidate_with_literalish_hint_when_leverage_ties() {
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -8625,6 +8824,74 @@ mod tests {
             generator.select_target_probe_rule(&pending, "start"),
             Some("helper_b".to_string()),
             "fallback probing should prefer a pending non-entry rule that has a literalish hint"
+        );
+    }
+
+    #[test]
+    fn target_probe_validation_keeps_observed_high_yield_dependency_under_alternate_churn() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "helper"),
+                    token("quoted_string", "S"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "H"), token("quoted_string", "I")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 911);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper".to_string(), 2);
+        generator
+            .coverage
+            .rule_success_hits
+            .insert("helper".to_string(), 1);
+        generator.target_probe_history.insert(
+            "helper".to_string(),
+            TargetProbeHistory {
+                attempts: 1,
+                successful_generations: 1,
+                resolved_delta_total: 5,
+                best_resolved_delta: 5,
+            },
+        );
+
+        let pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::1".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(1),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["helper".to_string()],
+        }];
+        let validation = TargetDriveValidationSummary {
+            validated_outputs: 4,
+            accepted_outputs: 1,
+            rejected_outputs: 3,
+            alternate_entry_attempts: 16,
+            alternate_entry_accepted_outputs: 1,
+            alternate_entry_rejected_outputs: 15,
+        };
+
+        assert_eq!(
+            generator.select_target_probe_rule_for_validation(&pending, "start", &validation),
+            Some("helper".to_string()),
+            "validation-aware probing should keep a marginal dependency helper once that helper has already shown strong observed payoff in the same replay run"
         );
     }
 

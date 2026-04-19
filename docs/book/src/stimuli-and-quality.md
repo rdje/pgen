@@ -67,6 +67,8 @@ The heavy replay gates are intentionally quiet by default, but the retained Syst
 
 That trace is meant for honest progress visibility during stubborn replay work, not as a replacement for the gate's final summary artifacts.
 
+PGEN now also lets the replay selector learn a little within a single target-drive run. If a helper rule has already retired meaningful target debt earlier in that same run, later probe selection can treat that observed payoff as part of the ranking signal instead of relying only on static dependency heuristics. This is intentionally bounded to the current replay session; it is replay-local guidance, not a persisted cross-run learning system.
+
 ## Primary Source Docs
 
 - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
