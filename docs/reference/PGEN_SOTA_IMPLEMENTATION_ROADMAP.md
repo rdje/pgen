@@ -4494,6 +4494,7 @@ Initial Phase U milestones:
     - `grammars/systemverilog.ebnf`
     - `escaped_identifier` carries `@sample: "\\foo "`
     - `line_comment` carries `@sample: "//x\n"`
+    - the first `timeunits_declaration` form now routes its optional precision separator through `timeunit_separator_slash := timeunit_separator_trivia "/"`
   - direct-probe validation rule:
     - when rebuilding `ast_pipeline` with `cargo build --manifest-path rust/Cargo.toml ...`, do not pass `PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/...` from repo root
     - `build.rs` resolves that env path relative to the Rust manifest directory, so the correct probe recipe must use an absolute parser path or a manifest-relative `target/...` path
@@ -4501,12 +4502,14 @@ Initial Phase U milestones:
     - the corrected adapter-backed direct probe first showed the remaining `sv_2023` seam more honestly at `110/181 accepted, 71 parser rejects`, with counterexamples still clustering around escaped identifiers plus delimiter-hostile same-line `//` comment bodies inside/around attribute contexts
     - the safe `line_comment` sample then moved that same `sv_2023` direct probe to `176/179 accepted, 3 parser rejects`
     - the matching `sv_2017` cross-check measured `177/179 accepted, 2 parser rejects`
+    - the remaining rejects all reduced to `timeunits_declaration` precision-separator cases where the optional slash could consume the opening slash of a same-line `//...` comment
+    - the narrow `timeunits_declaration` repair now moves both focused adapter-backed probes to `179/179 accepted, 0 parser rejects`
   - practical loop consequence:
     - contract-default and `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100` `sv_stimuli_quality_gate` reruns are still too heavy for first-pass local iteration on this seam because the retained `profile_2017_initial_gap.json` currently carries `2597` replay targets
     - use the corrected adapter-backed direct probe as the cheap local loop
   - roadmap consequence:
     - the next honest proof step is still a full `sv_stimuli_quality_gate` refresh on top of these retained hints
-    - do not reopen the broad newline-before-`//` heuristic; the current win comes from safe comment sampling, not a generic separator rewrite
+    - do not reopen the broad newline-before-`//` heuristic or a global slash-regex rewrite; the current win comes from safe comment sampling plus a narrow comment-aware `timeunits_declaration` separator
 - VHDL remains resumable if needed later, but not as the current front-of-queue closure lane.
   - if VHDL is reopened, keep using branch-level probes only as generation-shape evidence
   - non-default `--entry-rule` parseability validation stays intentionally blocked because validation still flows through the full grammar entry

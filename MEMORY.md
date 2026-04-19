@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: bootstrap-rust-analysis-sync)
+Last updated: 2026-04-19 (+0200, task: sv-timeunit-separator-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,43 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Closed the retained focused main-SystemVerilog `timeunits_declaration` comment/separator seam:
+  - changed:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - implementation:
+    - traced the remaining focused `systemverilog` direct-probe rejects after the earlier safe `line_comment` sample hint
+    - confirmed that the surviving failures all clustered around `timeunits_declaration`
+    - proved that the optional precision separator slash could consume the opening slash of a same-line `//...` comment before the real precision slash on the next line
+    - rejected a broader global `slash` regex-lookahead experiment because the generated parser runtime compiles regex terminals through Rust `regex::Regex` at parse time and the lookahead variant regressed plain `timeunit 336 us / 4 ms;`
+    - landed the narrow grammar fix:
+      - `timeunit_separator_trivia`
+      - `timeunit_separator_slash`
+      - first `timeunits_declaration` form now uses `( timeunit_separator_slash time_literal )?`
+    - documented the generated-parser build-path nuance:
+      - when using `cargo ... --manifest-path rust/Cargo.toml`, `PGEN_SYSTEMVERILOG_PARSER_PATH` must be absolute or relative to `rust/`
+  - validation:
+    - `cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-parser --output rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+    - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin parseability_probe --bin ast_pipeline`
+    - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_timeunit_min_1.sv --profile sv_2017`
+    - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_timeunit_min_2.sv --profile sv_2017`
+    - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_timeunit_min_3.sv --profile sv_2023`
+    - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_timeunit_min_4.sv --profile sv_2017`
+    - focused adapter-backed direct probes now both land at `179/179` accepted with `0` parser rejections:
+      - `sv_2017`
+      - `sv_2023`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family row changed
+    - the next honest main-SystemVerilog proof step is still a full `sv_stimuli_quality_gate` refresh on top of this focused direct-lane win
 - README/bootstrap synchronization exposed and fixed a stale Rust analysis snapshot:
   - changed:
     - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)

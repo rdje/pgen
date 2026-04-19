@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-19 - Close focused SystemVerilog timeunit/comment seam
+### Achievement Summary
+Closed the retained focused main-SystemVerilog direct-probe parser rejection seam around `timeunits_declaration` by introducing a narrow comment-aware precision separator instead of broad slash/comment normalization. The adapter-backed focused `sv_2017` and `sv_2023` probes now both accept `179/179` samples with `0` parser rejections.
+
+### Scope of Changes
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - added `timeunit_separator_trivia`
+  - added `timeunit_separator_slash`
+  - routed the optional precision separator in the first `timeunits_declaration` form through the new comment-aware slash rule
+  - left the global `slash` rule unchanged after rejecting a broader lookahead-based attempt
+- Updated tracked docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Status impact:
+  - no live parser-family row changed
+  - `systemverilog` stays on its existing conservative row because this is focused direct-lane proof, not yet a refreshed full `sv_stimuli_quality_gate` family proof
+
+### Validation
+- Passed:
+  - `cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-parser --output rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+  - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin parseability_probe --bin ast_pipeline`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_timeunit_min_1.sv --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_timeunit_min_2.sv --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_timeunit_min_3.sv --profile sv_2023`
+  - `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_timeunit_min_4.sv --profile sv_2017`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe_timeunit_sep_2017.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2017_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_timeunit_sep_2017_report.json`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe_timeunit_sep_2023.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2023_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_timeunit_sep_2023_report.json`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-19 - Sync Rust analysis snapshot after README bootstrap
 ### Achievement Summary
 Corrected a stale `rtl_frontend` replay-count snapshot in [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) that still reflected `52/39/24` even though the repo had already landed the newer `54/41/30` replay floor.
@@ -35876,7 +35911,7 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - focused validation:
     - corrected the adapter-backed probe rebuild to use an absolute `PGEN_SYSTEMVERILOG_PARSER_PATH`, because `build.rs` resolves env-configured parser paths relative to `rust/`
     - rebuilt `ast_pipeline` with:
-      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
     - pre-fix focused `sv_2023` direct probe:
       - `110/181` accepted
       - `71` parser rejections

@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Narrow SystemVerilog timeunit/comment seam closed
+### Context
+After the safe `line_comment` sample hint landed, the retained focused adapter-backed main-SystemVerilog direct probes improved sharply but did not go fully green. The remaining rejects all clustered around `timeunits_declaration`, especially cases where a legal precision separator slash appeared only after a same-line `//...` comment, for example `timeunit 336 us //x\n/4 ms;`.
+
+The reduced trace showed the real issue: the shared `slash := trivia "/"` path could stop after consuming only the preceding space, then match the first `/` of `//x` as if it were the precision separator. That left the real precision slash on the next line unread and caused the whole `timeunits_declaration` attempt to fail.
+
+### Decision
+- Keep the earlier safe `line_comment` sampling win.
+- Do not reopen the rejected broad newline-before-`//` normalization path.
+- Do not change the global `slash` rule for all SystemVerilog punctuation.
+- Instead, narrow the fix to the first `timeunits_declaration` form by introducing a dedicated comment-aware precision separator that greedily absorbs whitespace and comments before the real `/`.
+
+### What Was Changed
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - added:
+    - `timeunit_separator_trivia := /(?:[ \t\r\n]+|\/\/[^\n]*(\n|$)|\/\*([^*]|\*+[^*\/])*\*+\/)*/`
+    - `timeunit_separator_slash := timeunit_separator_trivia "/"`
+  - changed the first `timeunits_declaration` form from:
+    - `( slash time_literal )?`
+  - to:
+    - `( timeunit_separator_slash time_literal )?`
+- Rejected and explicitly did not keep a broader false start:
+  - a global `slash := trivia /\/(?![\/\*])/` change
+  - reason:
+    - the generated parser runtime compiles regex terminals through Rust `regex::Regex` at parse time
+    - that broader lookahead-based change regressed even plain `timeunit 336 us / 4 ms;`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), [MEMORY.md](MEMORY.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md), and [docs/book/src/parser-families.md](docs/book/src/parser-families.md):
+  - synchronized the retained root cause, the narrow repair shape, the corrected generated-parser build-path nuance, and the final focused direct-probe evidence
+
+### Validation
+- Passed:
+  - explicit adapter-backed regeneration:
+    - `cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-parser --output rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+  - explicit adapter-backed rebuild:
+    - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin parseability_probe --bin ast_pipeline`
+  - minimized witness repros:
+    - `/tmp/sv_timeunit_min_1.sv`
+    - `/tmp/sv_timeunit_min_2.sv`
+    - `/tmp/sv_timeunit_min_3.sv`
+    - `/tmp/sv_timeunit_min_4.sv`
+    - all now pass under `parseability_probe`
+  - focused adapter-backed probe reports:
+    - `sv_2017`: `179/179` accepted, `0` parser rejections, `304/2597` targets resolved in the retained 200-attempt loop
+    - `sv_2023`: `179/179` accepted, `0` parser rejections, `287/2393` targets resolved in the retained 200-attempt loop
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
+### Continuity Notes
+- No live parser-family row changed; this is still focused direct-lane proof, not a refreshed full `sv_stimuli_quality_gate` family proof.
+- The next honest main-SystemVerilog proof step is still a heavier `sv_stimuli_quality_gate` refresh.
+- When driving the generated SystemVerilog adapter locally with `cargo ... --manifest-path rust/Cargo.toml`, `PGEN_SYSTEMVERILOG_PARSER_PATH` must be absolute or relative to `rust/`; `rust/build.rs` resolves that variable relative to the Rust manifest directory, not the repo root.
+
 ## 2026-04-19 - README bootstrap exposed stale Rust analysis snapshot
 ### Context
 Following the repo’s own bootstrap flow from [README.md](README.md) and [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md), the live Rust architecture snapshot was reread before taking any new implementation step. That pass exposed one concrete mismatch: [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) still described the older `rtl_frontend` replay floor (`52/39/24`) even though the repo had already landed the later module-local and local-net replay ratchets to `54/41/30`.
@@ -39299,7 +39351,7 @@ Architectural north star:
     - the older direct-probe recipe used `PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/...` together with `cargo build --manifest-path rust/Cargo.toml`
     - that path is wrong from repo root because `build.rs` resolves it relative to `rust/`
     - the corrected rebuild uses:
-      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
   - pre-fix focused `sv_2023` probe with the corrected adapter:
     - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe_after_escape_sample.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2023_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_after_escape_sample_report.json`
     - result:

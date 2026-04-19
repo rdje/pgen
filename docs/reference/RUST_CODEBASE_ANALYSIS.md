@@ -1776,18 +1776,29 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - steering consequence:
     - do not reopen the broad line-comment normalization path
     - the remaining main-SV parser debt still needs a narrower seam than “newline all same-line comments”
-- The current best retained main-SV stimuli seam is still narrow, but it is now `escaped_identifier` plus safe `line_comment` sampling rather than any broad comment-normalization rewrite.
+- The current best retained main-SV stimuli seam is still narrow, but it is now `escaped_identifier` plus safe `line_comment` sampling plus a dedicated `timeunits_declaration` separator repair rather than any broad comment-normalization rewrite.
   - retained changes:
     - `grammars/systemverilog.ebnf`
     - `@sample: "\\foo "` above `escaped_identifier := trivia /\\[!-~]+/`
     - `@sample: "//x\n"` above `line_comment := /\/\/[^\n]*(\n|$)/`
+    - `timeunit_separator_slash := timeunit_separator_trivia "/"`
+    - the first `timeunits_declaration` form now uses `( timeunit_separator_slash time_literal )?`
   - important probe-path correction:
     - the older focused direct-probe recipe drifted because `PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/...` is wrong when `cargo build --manifest-path rust/Cargo.toml` is launched from repo root
     - `build.rs` resolves that env path relative to the Rust manifest directory, so the corrected local probe must use an absolute parser path or `target/...` relative to `rust/`
+  - retained root cause:
+    - after the safe `line_comment` sample landed, the remaining direct-probe rejects all clustered around `timeunits_declaration`
+    - `slash := trivia "/"` could consume the opening slash of a same-line `//...` comment before the real precision separator slash on the next line
+  - rejected follow-up:
+    - a global `slash := trivia /\/(?![\/\*])/` experiment was intentionally not kept
+    - the generated parser runtime compiles regex terminals through Rust `regex::Regex` at parse time, so that broader lookahead-based change regressed even plain `timeunit 336 us / 4 ms;`
   - retained evidence:
     - with the corrected adapter-backed build, the pre-fix focused `sv_2023` direct probe measured `110/181 accepted, 71 parser rejects`
     - after the safe `line_comment` sample landed, that same focused `sv_2023` probe measured `176/179 accepted, 3 parser rejects`
     - the matching `sv_2017` cross-check measured `177/179 accepted, 2 parser rejects`
+    - after the narrow `timeunits_declaration` separator repair, the focused adapter-backed probes now measure:
+      - `sv_2017`: `179/179 accepted, 0 parser rejects`, `304/2597` replay targets resolved in the retained 200-attempt loop
+      - `sv_2023`: `179/179 accepted, 0 parser rejects`, `287/2393` replay targets resolved in the retained 200-attempt loop
   - practical steering consequence:
     - the contract-default and bounded (`PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100`) `sv_stimuli_quality_gate` reruns are still too heavy for first local iteration on this seam because `profile_2017_closed_loop_replay` chases a retained `2597`-target initial gap and stays CPU-hot for minutes without becoming a good quick loop
     - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh

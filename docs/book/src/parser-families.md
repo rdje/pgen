@@ -39,6 +39,8 @@ Primary source:
 - still one of the deepest proof surfaces in the repository
 - main parser remains an active closure target
 - preprocessor parser is tracked as done
+- the retained focused adapter-backed `sv_2017` and `sv_2023` direct probes now both accept `179/179` targeted samples with `0` parser rejections on the current narrow `timeunits_declaration` plus `line_comment` seam
+- the live row stays conservative until the heavier `sv_stimuli_quality_gate` proof surface is refreshed, so the current story is "focused direct-lane closure on this seam" rather than a full family-status promotion
 
 Primary sources:
 

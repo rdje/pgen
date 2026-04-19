@@ -2172,7 +2172,11 @@ timecheck_condition := mintypmax_expression
 
 timestamp_condition := mintypmax_expression
 
-timeunits_declaration := kw_timeunit_57f78b2f time_literal ( slash time_literal )? semi | kw_timeprecision_628f1cfc time_literal semi | kw_timeunit_57f78b2f time_literal semi kw_timeprecision_628f1cfc time_literal semi | kw_timeprecision_628f1cfc time_literal semi kw_timeunit_57f78b2f time_literal semi
+timeunits_declaration := kw_timeunit_57f78b2f time_literal ( timeunit_separator_slash time_literal )? semi | kw_timeprecision_628f1cfc time_literal semi | kw_timeunit_57f78b2f time_literal semi kw_timeprecision_628f1cfc time_literal semi | kw_timeprecision_628f1cfc time_literal semi kw_timeunit_57f78b2f time_literal semi
+
+timeunit_separator_slash := timeunit_separator_trivia "/"
+
+timeunit_separator_trivia := /(?:[ \t\r\n]+|\/\/[^\n]*(\n|$)|\/\*([^*]|\*+[^*\/])*\*+\/)*/
 
 timing_check_condition := scalar_timing_check_condition | lparen scalar_timing_check_condition rparen
 

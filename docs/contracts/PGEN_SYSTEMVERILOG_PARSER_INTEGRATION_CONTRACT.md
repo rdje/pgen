@@ -43,6 +43,7 @@ Define the current downstream integration contract for PGEN's main `systemverilo
 - Downstream consumers should treat the generated backend as required for real host integration.
 - Startup should inspect `parser_embedding_api_contract().supports_systemverilog_generated_backend`.
 - Build-time generated-parser discovery is mediated by `rust/build.rs`, not by direct use of internal parser modules.
+- When local validation sets `PGEN_SYSTEMVERILOG_PARSER_PATH` while invoking `cargo ... --manifest-path rust/Cargo.toml`, use an absolute path or a path relative to `rust/`; `rust/build.rs` resolves that variable relative to the Rust manifest directory.
 
 ## Validation / Release Gates
 - Public host API stability:
