@@ -36262,3 +36262,21 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - continuity truth:
     - the bounded replay now shows dependency-candidate churn explicitly while `property_expr_sv_2017` remains the stable pending-frontier leader
     - no parser-family status row changed
+- 2026-04-19: let a broad pending frontier outrank a marginal dependency probe.
+  - landed:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - helper selection now compares the top dependency and pending candidates directly
+      - broad pending frontiers can outrank fresh one-shot dependency probes
+      - base and validation-aware selector paths now share that cross-pool comparison
+  - focused validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 64-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+    - line-buffered 96-attempt replay probe, stopped after confirming selector flip
+  - continuity truth:
+    - the first helper stayed `property_expr`
+    - the second helper choice flipped from dependency churn to pending `property_expr_sv_2017`
+    - the cheap replay lane became materially slower once that broad pending helper started running
+    - no parser-family status row changed

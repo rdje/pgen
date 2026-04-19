@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-helper-ranking-trace)
+Last updated: 2026-04-19 (+0200, task: sv-pending-frontier-selector)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,34 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Changed helper selection so a broad pending frontier can outrank a marginal dependency probe:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - base and validation-aware helper selection now compare the top dependency and pending candidates directly
+    - a pending frontier can win when:
+      - the dependency is marginal
+      - the dependency has shown no same-run payoff yet
+      - the pending frontier is at least twice as wide in both branch count and retained remaining-success volume
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 64-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+    - partial 96-attempt line-buffered replay probe
+  - important continuity detail:
+    - no live parser-family row changed
+    - live replay evidence now shows:
+      - first helper unchanged: `property_expr`
+      - second helper flipped to pending `property_expr_sv_2017`
+    - the cheap replay lane also became materially slower once the broad pending helper started running
 - Tightened replay observability again so helper-pool competition is explicit:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

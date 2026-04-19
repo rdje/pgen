@@ -1841,6 +1841,15 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
           - selected dependency helpers churn across `property_expr`, `expression_or_dist`, `kw_iff_ee1c009e`, `covergroup_expression`, `bin_identifier`, `kw_else_ae050f5b`, and `bins_keyword`
           - the same pending-frontier leader, `property_expr_sv_2017`, stays visible throughout with `branch_targets=33..36`
           - so the next tuning question is whether a sufficiently large persistent pending frontier should sometimes outrank a marginal fresh dependency probe
+        - that cross-pool tuning is now landed in a bounded form:
+          - the top pending candidate can outrank the top dependency candidate when the dependency is only a fresh marginal probe and the pending frontier is at least twice as wide in both branch count and retained remaining-success volume
+          - base and validation-aware selector paths now share that comparison rule
+        - live replay evidence now shows the selector flipping exactly at the expected seam:
+          - first helper remains `property_expr`
+          - second helper flips from dependency churn to pending `property_expr_sv_2017`
+        - that improvement introduced a new practical constraint:
+          - once replay starts honoring the broad pending frontier, the cheap probe lane becomes materially slower
+          - the next tuning question is therefore not just selection correctness but also whether broad pending probes need an explicit effort budget
         - that means the current main-SV question is no longer “is helper probing happening at all?” but rather “does the heavier replay lane revisit enough helper competition for payoff-aware ranking to show up in aggregate proof runs?”
     - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh
   - proof consequence:

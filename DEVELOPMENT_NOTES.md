@@ -1,4 +1,71 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Broad pending frontiers can now outrank marginal dependency probes
+### Context
+The previous slice exposed the real helper competition during stubborn replay work.
+
+That trace showed a very specific pattern in the main `systemverilog_file` lane:
+- the first dependency helper, `property_expr`, still looked legitimate
+- but after that, the selected dependency helper kept churning through smaller fresh candidates
+- meanwhile the same pending frontier, `property_expr_sv_2017`, stayed visible with a much larger retained branch frontier
+
+So the next question became concrete:
+- should any dependency candidate always win,
+- or should a sufficiently broad pending frontier beat a fresh one-shot dependency probe?
+
+### Decision
+- Keep strong dependency probes intact.
+- But stop treating dependency existence as an absolute trump card.
+- Allow a pending candidate to win when:
+  - the dependency is marginal (`deficit <= 1`)
+  - the dependency has not yet shown any observed payoff in the current run
+  - the pending frontier is at least twice as wide in both branch count and retained remaining-success volume
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `select_target_probe_candidate(...)`
+  - added `pending_frontier_outranks_dependency_probe(...)`
+  - base and validation-aware helper selection now share the same cross-pool comparison
+  - added focused tests proving:
+    - broad pending frontiers can outrank marginal dependencies
+    - validation-aware selection uses the same preference when it is not backing off to the primary entry
+
+### Measured Effect
+- Focused tests prove the selector change directly.
+- The retained 64-attempt direct `systemverilog_file` replay still shows the same first helper:
+  - `property_expr`
+- A line-buffered 96-attempt replay then showed the next key change:
+  - first helper stayed:
+    - `property_expr`
+  - second helper flipped from the previously observed dependency lane:
+    - old: `expression_or_dist`
+    - new: `property_expr_sv_2017`
+    - `selected_pool=pending`
+- That is the first live proof that the selector no longer blindly follows dependency churn once the broad pending frontier becomes dominant.
+
+There is also an honest tradeoff:
+- once the replay enters that broad pending helper, the cheap probe lane becomes materially slower
+- so the next replay-tuning question is no longer only “can we choose the better helper?” but also:
+  - do we need an explicit time/effort budget for broad pending probes?
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - bounded 64-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+- Partial but meaningful live probe:
+  - a line-buffered 96-attempt replay was stopped after confirming the selector flip to `property_expr_sv_2017`
+  - this was intentional because the run became materially slower after the broad pending helper started running
+
+### Continuity Notes
+- No parser-family row changed.
+- This is replay-selection tuning, not a proof-status promotion.
+- The next main-SV replay slice should decide whether broad pending probes need:
+  - a stricter budget,
+  - a staged threshold,
+  - or simply a heavier proof lane than the old cheap bounded probe assumption allowed.
+
 ## 2026-04-19 - Helper-ranking trace shows dependency churn beating a stable pending frontier
 ### Context
 The previous slice made helper selection payoff-aware, but the retained bounded 128-attempt `systemverilog_file` replay still finished flat at `917/2593`.

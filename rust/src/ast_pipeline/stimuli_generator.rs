@@ -2111,12 +2111,12 @@ impl<'a> StimuliGenerator<'a> {
         pending: &[TargetCoverageStatus],
         resolved_entry: &str,
     ) -> Option<String> {
-        self.best_dependency_probe_candidate(pending, resolved_entry)
-            .map(|candidate| candidate.rule_name)
-            .or_else(|| {
-                self.best_pending_probe_candidate(pending, resolved_entry)
-                    .map(|candidate| candidate.rule_name)
-            })
+        let dependency_candidate = self.best_dependency_probe_candidate(pending, resolved_entry);
+        let pending_candidate = self.best_pending_probe_candidate(pending, resolved_entry);
+        Self::select_target_probe_candidate(
+            dependency_candidate.as_ref(),
+            pending_candidate.as_ref(),
+        )
     }
 
     fn select_target_probe_rule_for_validation(
@@ -2125,20 +2125,34 @@ impl<'a> StimuliGenerator<'a> {
         resolved_entry: &str,
         validation_summary: &TargetDriveValidationSummary,
     ) -> Option<String> {
-        if let Some(candidate) = self.best_dependency_probe_candidate(pending, resolved_entry) {
-            if !Self::validation_prefers_primary_entry(validation_summary)
-                || Self::validation_dependency_probe_is_worthy(&candidate)
-            {
-                return Some(candidate.rule_name);
-            }
-        }
-
+        let dependency_candidate = self.best_dependency_probe_candidate(pending, resolved_entry);
         if Self::validation_prefers_primary_entry(validation_summary) {
-            return None;
+            return dependency_candidate
+                .filter(Self::validation_dependency_probe_is_worthy)
+                .map(|candidate| candidate.rule_name);
         }
 
-        self.best_pending_probe_candidate(pending, resolved_entry)
-            .map(|candidate| candidate.rule_name)
+        let pending_candidate = self.best_pending_probe_candidate(pending, resolved_entry);
+        Self::select_target_probe_candidate(
+            dependency_candidate.as_ref(),
+            pending_candidate.as_ref(),
+        )
+    }
+
+    fn select_target_probe_candidate(
+        dependency_candidate: Option<&DependencyProbeCandidate>,
+        pending_candidate: Option<&PendingProbeCandidate>,
+    ) -> Option<String> {
+        match (dependency_candidate, pending_candidate) {
+            (Some(dependency), Some(pending))
+                if Self::pending_frontier_outranks_dependency_probe(dependency, pending) =>
+            {
+                Some(pending.rule_name.clone())
+            }
+            (Some(dependency), _) => Some(dependency.rule_name.clone()),
+            (None, Some(pending)) => Some(pending.rule_name.clone()),
+            (None, None) => None,
+        }
     }
 
     fn best_dependency_probe_candidate(
@@ -2299,6 +2313,37 @@ impl<'a> StimuliGenerator<'a> {
                 .then_with(|| left.max_target_priority.cmp(&right.max_target_priority))
                 .then_with(|| right.rule_name.cmp(&left.rule_name))
         })
+    }
+
+    fn pending_frontier_outranks_dependency_probe(
+        dependency: &DependencyProbeCandidate,
+        pending: &PendingProbeCandidate,
+    ) -> bool {
+        if dependency.dependency_rule_deficit > 1
+            || dependency.probe_best_resolved_delta > 0
+            || dependency.probe_resolved_delta_total > 0
+        {
+            return false;
+        }
+
+        let dependency_yield = Self::probe_yield_score(
+            dependency.probe_resolved_delta_total,
+            dependency.probe_attempts,
+        );
+        let pending_yield =
+            Self::probe_yield_score(pending.probe_resolved_delta_total, pending.probe_attempts);
+        if pending_yield < dependency_yield {
+            return false;
+        }
+
+        let pending_branch_floor = dependency.blocked_targets.saturating_mul(2).max(8);
+        let pending_remaining_floor = dependency
+            .blocked_remaining_successes
+            .saturating_mul(2)
+            .max(8);
+
+        pending.branch_target_count >= pending_branch_floor
+            && pending.blocked_remaining_successes >= pending_remaining_floor
     }
 
     fn target_probe_threshold(&self, pending: &[TargetCoverageStatus]) -> usize {
@@ -8932,6 +8977,139 @@ mod tests {
             generator.select_target_probe_rule(&pending, "start"),
             Some("helper_b".to_string()),
             "fallback probing should prefer a pending non-entry rule that has a literalish hint"
+        );
+    }
+
+    #[test]
+    fn target_probe_prefers_broad_pending_frontier_over_marginal_dependency() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "dependency_helper"),
+                    token("rule_reference", "pending_helper"),
+                ],
+            },
+        );
+        grammar_tree.insert("dependency_helper".to_string(), token("quoted_string", "D"));
+        grammar_tree.insert("pending_helper".to_string(), token("quoted_string", "P"));
+        let rule_order = vec![
+            "start".to_string(),
+            "dependency_helper".to_string(),
+            "pending_helper".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 912);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("dependency_helper".to_string(), 1);
+
+        let mut pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::0".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(0),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["dependency_helper".to_string()],
+        }];
+        for branch_index in 0..8 {
+            pending.push(TargetCoverageStatus {
+                id: format!("branch::pending_helper::root::{}", branch_index),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "pending_helper".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(branch_index),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 80,
+                reason: "never_selected".to_string(),
+                depends_on: Vec::new(),
+            });
+        }
+
+        assert_eq!(
+            generator.select_target_probe_rule(&pending, "start"),
+            Some("pending_helper".to_string()),
+            "a wide untouched pending frontier should outrank a fresh one-shot dependency candidate"
+        );
+    }
+
+    #[test]
+    fn target_probe_validation_prefers_broad_pending_frontier_when_not_primary_bound() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "dependency_helper"),
+                    token("rule_reference", "pending_helper"),
+                ],
+            },
+        );
+        grammar_tree.insert("dependency_helper".to_string(), token("quoted_string", "D"));
+        grammar_tree.insert("pending_helper".to_string(), token("quoted_string", "P"));
+        let rule_order = vec![
+            "start".to_string(),
+            "dependency_helper".to_string(),
+            "pending_helper".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 913);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("dependency_helper".to_string(), 1);
+
+        let mut pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::0".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(0),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["dependency_helper".to_string()],
+        }];
+        for branch_index in 0..8 {
+            pending.push(TargetCoverageStatus {
+                id: format!("branch::pending_helper::root::{}", branch_index),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "pending_helper".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(branch_index),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 80,
+                reason: "never_selected".to_string(),
+                depends_on: Vec::new(),
+            });
+        }
+
+        let validation = TargetDriveValidationSummary {
+            validated_outputs: 2,
+            accepted_outputs: 2,
+            rejected_outputs: 0,
+            alternate_entry_attempts: 2,
+            alternate_entry_accepted_outputs: 1,
+            alternate_entry_rejected_outputs: 1,
+        };
+
+        assert_eq!(
+            generator.select_target_probe_rule_for_validation(&pending, "start", &validation),
+            Some("pending_helper".to_string()),
+            "validation-aware probing should use the same broad-frontier preference when it is not currently backing off to the primary entry"
         );
     }
 
