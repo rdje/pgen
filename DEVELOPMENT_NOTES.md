@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Cheap replay and heavy replay are now separate on purpose
+### Context
+The previous slice staged broad pending-frontier probes behind `probe_threshold + 8`.
+
+That restored the cheap replay lane, but the policy was still buried in the runtime:
+- there was no first-class way to say:
+  - keep the cheap default
+  - or intentionally unlock the heavier pending-frontier lane earlier
+- the trace exposed whether the frontier was unlocked, but not the full configured budget behind that decision
+
+### Decision
+- Keep the maintained cheap replay default exactly where it is.
+- But make the extra pending-frontier unlock delay an explicit stimuli setting instead of a magic number.
+- Carry that setting through:
+  - runtime config
+  - CLI
+  - SV gate override
+  - stimuli corpus metadata
+  - trace output
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliConfig.target_pending_frontier_extra_stagnation`
+  - default remains `8`
+  - pending-frontier unlock logic is now config-backed rather than hard-coded
+  - `Target-drive helper ranking` now reports:
+    - `pending_frontier_unlock_threshold`
+    - `pending_frontier_extra_stagnation`
+    - plus the existing unlocked state
+  - added a focused test proving that setting extra stagnation to `0` unlocks the heavier pending lane right at helper-probe activation
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added `--target-pending-frontier-extra-stagnation`
+  - stimuli corpus bundle generation metadata now preserves the configured value for replay auditability
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added `PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION`
+  - unset means ordinary gate behavior stays on the maintained cheap default
+
+### Practical Meaning
+- Day-to-day replay stays cheap by default.
+- Heavier replay is now intentional rather than accidental.
+- If a developer wants earlier broad pending-frontier exploration during a focused proof run, they can request it directly instead of editing runtime code or relying on hidden constants.
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_corpus_bundle_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+
+### Continuity Notes
+- No parser-family row changed.
+- This slice does not claim a new proof result.
+- It turns a useful but previously implicit replay tradeoff into an explicit maintained control surface.
+
 ## 2026-04-19 - Broad pending-frontier probes are now staged behind extra stagnation
 ### Context
 The previous slice proved that broad pending frontiers could beat marginal dependency churn.

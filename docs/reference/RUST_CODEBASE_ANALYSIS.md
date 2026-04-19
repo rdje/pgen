@@ -1853,6 +1853,15 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
         - that effort budget is now staged directly into the runtime selector:
           - broad pending-frontier selection only unlocks after `probe_threshold + 8`
           - helper-ranking trace now reports `pending_frontier_unlocked=true|false`
+        - that staging is now also an explicit maintained control surface:
+          - `StimuliConfig.target_pending_frontier_extra_stagnation` carries the extra unlock budget
+          - default remains `8` for the maintained cheap replay lane
+          - `ast_pipeline` exposes `--target-pending-frontier-extra-stagnation`
+          - `sv_stimuli_quality_gate` accepts `PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION`
+          - helper-ranking trace now also reports:
+            - `pending_frontier_unlock_threshold`
+            - `pending_frontier_extra_stagnation`
+          - stimuli corpus bundle generation metadata now preserves the configured replay budget
         - retained cheap replay evidence is back to the earlier bounded shape:
           - 96-attempt direct replay completed at `904/2593`
           - 128-attempt direct replay completed at `917/2593`

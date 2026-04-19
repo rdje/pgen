@@ -17,6 +17,7 @@ PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_MI
 SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
 TARGET_MAX_ATTEMPTS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-}"
+PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION:-}"
 CARGO_BUILD_JOBS_OVERRIDE="${PGEN_SV_STIMULI_CARGO_BUILD_JOBS:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
 LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
@@ -1263,6 +1264,12 @@ if [[ -n "$CARGO_BUILD_JOBS_OVERRIDE" ]]; then
         exit 2
     fi
 fi
+if [[ -n "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE" ]]; then
+    if ! [[ "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE" =~ ^[0-9]+$ ]]; then
+        echo "error: PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION must be an integer >= 0 when set" >&2
+        exit 2
+    fi
+fi
 if ! [[ "$REALISTIC_CORPUS_MAX_CASES" =~ ^[0-9]+$ ]] || [[ "$REALISTIC_CORPUS_MAX_CASES" -lt 0 ]]; then
     echo "error: PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES must be an integer >= 0" >&2
     exit 2
@@ -1462,6 +1469,13 @@ fi
 if ! [[ "$replay_sample_count" =~ ^[0-9]+$ ]] || [[ "$replay_sample_count" -lt 1 ]]; then
     echo "error: closed_loop.replay_sample_count must be an integer >= 1" >&2
     exit 2
+fi
+pending_frontier_extra_stagnation_args=()
+if [[ -n "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE" ]]; then
+    pending_frontier_extra_stagnation_args=(
+        --target-pending-frontier-extra-stagnation
+        "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE"
+    )
 fi
 if ! [[ "$failure_shrink_max_iterations" =~ ^[0-9]+$ ]] || [[ "$failure_shrink_max_iterations" -lt 1 ]]; then
     echo "error: failure_replay.shrink_max_iterations must be an integer >= 1" >&2
@@ -2028,6 +2042,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-depth "$mode_max_depth" \
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
+            "${pending_frontier_extra_stagnation_args[@]}" \
             --output "$closed_loop_initial_stimuli" \
             --coverage-output "$closed_loop_initial_coverage" \
             --gap-report-json "$closed_loop_initial_gap_json" \
@@ -2052,6 +2067,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-depth "$mode_max_depth" \
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
+            "${pending_frontier_extra_stagnation_args[@]}" \
             --output "$closed_loop_initial_replay_stimuli" \
             --coverage-output "$closed_loop_initial_replay_coverage" \
             --gap-report-json "$closed_loop_initial_replay_gap_json" \
@@ -2079,6 +2095,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-depth "$mode_max_depth" \
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
+            "${pending_frontier_extra_stagnation_args[@]}" \
             --output "$closed_loop_replay_stimuli" \
             --coverage-output "$closed_loop_replay_coverage" \
             --gap-report-json "$closed_loop_replay_gap_json" \
@@ -2159,6 +2176,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                 --max-depth "$mode_max_depth" \
                 --max-repeat "$mode_max_repeat" \
                 --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
+                "${pending_frontier_extra_stagnation_args[@]}" \
                 --output "$closed_loop_replay_parseability_shadow_stimuli" \
                 --target-max-attempts "$target_max_attempts" \
                 --target-report-input "$closed_loop_initial_gap_json" \
@@ -2287,6 +2305,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-depth "$mode_max_depth" \
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
+            "${pending_frontier_extra_stagnation_args[@]}" \
             --output "$sample_file"
         require_nonempty_file "$sample_file"
         generate_elapsed_ms=$(( $(now_ms) - generate_started_ms ))

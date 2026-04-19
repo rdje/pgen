@@ -78,6 +78,7 @@ pub struct StimuliConfig {
     pub max_depth: usize,
     pub max_repeat: usize,
     pub max_rule_visits: usize,
+    pub target_pending_frontier_extra_stagnation: usize,
     pub recovery_mode: RecoveryStimuliMode,
     pub mutation_mode: StimuliMutationMode,
     pub constraint_profile: StimuliConstraintProfile,
@@ -93,6 +94,7 @@ impl Default for StimuliConfig {
             max_depth: 24,
             max_repeat: 4,
             max_rule_visits: 8,
+            target_pending_frontier_extra_stagnation: 8,
             recovery_mode: RecoveryStimuliMode::Baseline,
             mutation_mode: StimuliMutationMode::Baseline,
             constraint_profile: StimuliConstraintProfile::Baseline,
@@ -1124,8 +1126,9 @@ impl<'a> StimuliGenerator<'a> {
     ) {
         let dependency_candidate = self.best_dependency_probe_candidate(pending, resolved_entry);
         let pending_candidate = self.best_pending_probe_candidate(pending, resolved_entry);
-        let pending_frontier_unlocked =
-            Self::pending_frontier_is_unlocked(stagnant_iterations, probe_threshold);
+        let pending_frontier_unlock_threshold =
+            self.pending_frontier_unlock_threshold(probe_threshold);
+        let pending_frontier_unlocked = stagnant_iterations >= pending_frontier_unlock_threshold;
         let selected_pool = if dependency_candidate
             .as_ref()
             .map(|candidate| candidate.rule_name.as_str())
@@ -1155,11 +1158,13 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} dependency_top={} pending_top={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} dependency_top={} pending_top={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
                     resolved_entry,
                     generation_entry,
                     selected_pool,
                     pending_frontier_unlocked,
+                    pending_frontier_unlock_threshold,
+                    self.config.target_pending_frontier_extra_stagnation,
                     dependency_summary,
                     pending_summary,
                     validation.accepted_outputs,
@@ -1173,11 +1178,13 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} dependency_top={} pending_top={}",
+                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} dependency_top={} pending_top={}",
                     resolved_entry,
                     generation_entry,
                     selected_pool,
                     pending_frontier_unlocked,
+                    pending_frontier_unlock_threshold,
+                    self.config.target_pending_frontier_extra_stagnation,
                     dependency_summary,
                     pending_summary,
                 ),
@@ -2135,7 +2142,7 @@ impl<'a> StimuliGenerator<'a> {
         resolved_entry: &str,
     ) -> Option<String> {
         let probe_threshold = self.target_probe_threshold(pending);
-        let stagnant_iterations = Self::pending_frontier_unlock_threshold(probe_threshold);
+        let stagnant_iterations = self.pending_frontier_unlock_threshold(probe_threshold);
         self.select_target_probe_rule_with_stagnation(
             pending,
             resolved_entry,
@@ -2153,7 +2160,7 @@ impl<'a> StimuliGenerator<'a> {
     ) -> Option<String> {
         let dependency_candidate = self.best_dependency_probe_candidate(pending, resolved_entry);
         let pending_candidate = self.best_pending_probe_candidate(pending, resolved_entry);
-        Self::select_target_probe_candidate(
+        self.select_target_probe_candidate(
             dependency_candidate.as_ref(),
             pending_candidate.as_ref(),
             stagnant_iterations,
@@ -2170,7 +2177,7 @@ impl<'a> StimuliGenerator<'a> {
     ) -> Option<String> {
         let probe_threshold =
             self.target_probe_threshold_for_validation(pending, validation_summary);
-        let stagnant_iterations = Self::pending_frontier_unlock_threshold(probe_threshold);
+        let stagnant_iterations = self.pending_frontier_unlock_threshold(probe_threshold);
         self.select_target_probe_rule_for_validation_with_stagnation(
             pending,
             resolved_entry,
@@ -2196,7 +2203,7 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         let pending_candidate = self.best_pending_probe_candidate(pending, resolved_entry);
-        Self::select_target_probe_candidate(
+        self.select_target_probe_candidate(
             dependency_candidate.as_ref(),
             pending_candidate.as_ref(),
             stagnant_iterations,
@@ -2205,6 +2212,7 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn select_target_probe_candidate(
+        &self,
         dependency_candidate: Option<&DependencyProbeCandidate>,
         pending_candidate: Option<&PendingProbeCandidate>,
         stagnant_iterations: usize,
@@ -2212,7 +2220,7 @@ impl<'a> StimuliGenerator<'a> {
     ) -> Option<String> {
         match (dependency_candidate, pending_candidate) {
             (Some(dependency), Some(pending))
-                if Self::pending_frontier_outranks_dependency_probe(
+                if self.pending_frontier_outranks_dependency_probe(
                     dependency,
                     pending,
                     stagnant_iterations,
@@ -2388,6 +2396,7 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn pending_frontier_outranks_dependency_probe(
+        &self,
         dependency: &DependencyProbeCandidate,
         pending: &PendingProbeCandidate,
         stagnant_iterations: usize,
@@ -2396,7 +2405,7 @@ impl<'a> StimuliGenerator<'a> {
         if dependency.dependency_rule_deficit > 1
             || dependency.probe_best_resolved_delta > 0
             || dependency.probe_resolved_delta_total > 0
-            || !Self::pending_frontier_is_unlocked(stagnant_iterations, probe_threshold)
+            || !self.pending_frontier_is_unlocked(stagnant_iterations, probe_threshold)
         {
             return false;
         }
@@ -2421,12 +2430,16 @@ impl<'a> StimuliGenerator<'a> {
             && pending.blocked_remaining_successes >= pending_remaining_floor
     }
 
-    fn pending_frontier_unlock_threshold(probe_threshold: usize) -> usize {
-        probe_threshold.saturating_add(8)
+    fn pending_frontier_unlock_threshold(&self, probe_threshold: usize) -> usize {
+        probe_threshold.saturating_add(self.config.target_pending_frontier_extra_stagnation)
     }
 
-    fn pending_frontier_is_unlocked(stagnant_iterations: usize, probe_threshold: usize) -> bool {
-        stagnant_iterations >= Self::pending_frontier_unlock_threshold(probe_threshold)
+    fn pending_frontier_is_unlocked(
+        &self,
+        stagnant_iterations: usize,
+        probe_threshold: usize,
+    ) -> bool {
+        stagnant_iterations >= self.pending_frontier_unlock_threshold(probe_threshold)
     }
 
     fn target_probe_threshold(&self, pending: &[TargetCoverageStatus]) -> usize {
@@ -6937,9 +6950,37 @@ mod tests {
                 max_depth: 8,
                 max_repeat: 4,
                 max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation: 8,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode,
                 constraint_profile,
+                negative_profile: StimuliNegativeProfile::Baseline,
+                enforce_word_boundary_spacing: false,
+                trace_verbosity: TraceVerbosity::None,
+            },
+        )
+    }
+
+    fn simple_generator_with_pending_frontier_extra_stagnation<'a>(
+        grammar_tree: &'a HashMap<String, ASTNode>,
+        rule_order: &'a [String],
+        seed: u64,
+        target_pending_frontier_extra_stagnation: usize,
+    ) -> StimuliGenerator<'a> {
+        StimuliGenerator::new(
+            "test".to_string(),
+            grammar_tree,
+            rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(seed),
+                max_depth: 8,
+                max_repeat: 4,
+                max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation,
+                recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
@@ -6963,6 +7004,7 @@ mod tests {
                 max_depth: 8,
                 max_repeat: 4,
                 max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation: 8,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -6990,6 +7032,7 @@ mod tests {
                 max_depth: 8,
                 max_repeat: 4,
                 max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation: 8,
                 recovery_mode,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -7566,6 +7609,7 @@ mod tests {
                 max_depth: 2,
                 max_repeat: 2,
                 max_rule_visits: 2,
+                target_pending_frontier_extra_stagnation: 8,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -7681,6 +7725,7 @@ mod tests {
                 max_depth: 4,
                 max_repeat: 2,
                 max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation: 8,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -7735,6 +7780,7 @@ mod tests {
                 max_depth: 4,
                 max_repeat: 2,
                 max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation: 8,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -8080,6 +8126,7 @@ mod tests {
                 max_depth: 8,
                 max_repeat: 4,
                 max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation: 8,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
@@ -9317,6 +9364,73 @@ mod tests {
             generator.select_target_probe_rule_with_stagnation(&pending, "start", 16, 8),
             Some("pending_helper".to_string()),
             "once replay has stayed stagnant past the extra unlock window, the broad pending frontier should become eligible"
+        );
+    }
+
+    #[test]
+    fn target_probe_configurable_pending_frontier_unlock_can_choose_heavy_lane_earlier() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "dependency_helper"),
+                    token("rule_reference", "pending_helper"),
+                ],
+            },
+        );
+        grammar_tree.insert("dependency_helper".to_string(), token("quoted_string", "D"));
+        grammar_tree.insert("pending_helper".to_string(), token("quoted_string", "P"));
+        let rule_order = vec![
+            "start".to_string(),
+            "dependency_helper".to_string(),
+            "pending_helper".to_string(),
+        ];
+
+        let mut generator = simple_generator_with_pending_frontier_extra_stagnation(
+            &grammar_tree,
+            &rule_order,
+            916,
+            0,
+        );
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("dependency_helper".to_string(), 1);
+
+        let mut pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::0".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(0),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["dependency_helper".to_string()],
+        }];
+        for branch_index in 0..8 {
+            pending.push(TargetCoverageStatus {
+                id: format!("branch::pending_helper::root::{}", branch_index),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "pending_helper".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(branch_index),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 80,
+                reason: "never_selected".to_string(),
+                depends_on: Vec::new(),
+            });
+        }
+
+        assert_eq!(
+            generator.select_target_probe_rule_with_stagnation(&pending, "start", 8, 8),
+            Some("pending_helper".to_string()),
+            "setting pending-frontier extra stagnation to zero should make the heavy pending-frontier lane eligible as soon as helper probing unlocks"
         );
     }
 

@@ -154,6 +154,10 @@ struct Args {
     )]
     stimuli_mutation_mode: String,
 
+    /// Extra stagnant iterations required before broad pending frontiers can outrank marginal dependency probes during target-driven replay
+    #[arg(long, default_value_t = 8)]
+    target_pending_frontier_extra_stagnation: usize,
+
     /// Append a delimiter space after terminal word-boundary regex samples (for example `keyword\\b`) to reduce merged-token stimuli
     #[arg(long)]
     enforce_word_boundary_spacing: bool,
@@ -422,6 +426,7 @@ struct StimuliCorpusGenerationConfig {
     max_depth: usize,
     max_repeat: usize,
     max_rule_visits: usize,
+    target_pending_frontier_extra_stagnation: usize,
     recovery_stimuli_mode: String,
     stimuli_negative_profile: String,
     stimuli_constraint_profile: String,
@@ -890,6 +895,7 @@ fn main() -> Result<()> {
             max_depth: args.max_depth,
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
+            target_pending_frontier_extra_stagnation: args.target_pending_frontier_extra_stagnation,
             recovery_mode,
             mutation_mode,
             constraint_profile,
@@ -1011,6 +1017,8 @@ fn main() -> Result<()> {
                     max_depth: args.max_depth,
                     max_repeat: args.max_repeat,
                     max_rule_visits: args.max_depth.max(2),
+                    target_pending_frontier_extra_stagnation: args
+                        .target_pending_frontier_extra_stagnation,
                     recovery_mode,
                     mutation_mode,
                     constraint_profile,
@@ -1060,6 +1068,7 @@ fn main() -> Result<()> {
             max_depth: args.max_depth,
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
+            target_pending_frontier_extra_stagnation: args.target_pending_frontier_extra_stagnation,
             recovery_mode,
             mutation_mode,
             constraint_profile,
@@ -1981,6 +1990,8 @@ fn build_stimuli_corpus_bundle(
             max_depth: config.max_depth,
             max_repeat: config.max_repeat,
             max_rule_visits: config.max_rule_visits,
+            target_pending_frontier_extra_stagnation: config
+                .target_pending_frontier_extra_stagnation,
             recovery_stimuli_mode: recovery_stimuli_mode_name(config.recovery_mode).to_string(),
             stimuli_negative_profile: stimuli_negative_profile_name(config.negative_profile)
                 .to_string(),
@@ -3806,6 +3817,12 @@ mod tests {
         assert_eq!(bundle.generation_config.requested_seed, None);
         assert_eq!(bundle.generation_config.effective_seed, Some(1));
         assert!(bundle.generation_config.deterministic_replay_possible);
+        assert_eq!(
+            bundle
+                .generation_config
+                .target_pending_frontier_extra_stagnation,
+            8
+        );
         assert_eq!(bundle.samples[0].ordinal, 1);
         assert_eq!(bundle.samples[0].sample, "a");
         assert_eq!(bundle.samples[1].ordinal, 2);
@@ -3871,6 +3888,12 @@ mod tests {
         );
         assert_eq!(bundle.corpus_origin_mode, "coverage_guided_fuzz_minimized");
         assert_eq!(bundle.generation_config.coverage_guided_fuzz_rounds, 6);
+        assert_eq!(
+            bundle
+                .generation_config
+                .target_pending_frontier_extra_stagnation,
+            8
+        );
         assert_eq!(bundle.samples[0].source_seed, Some(9));
         assert_eq!(bundle.samples[0].new_rule_hits, vec!["alternation"]);
         assert_eq!(

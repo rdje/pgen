@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-pending-frontier-staging)
+Last updated: 2026-04-19 (+0200, task: sv-pending-frontier-control-surface)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Surfaced heavy pending-frontier replay as an explicit control:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - added `StimuliConfig.target_pending_frontier_extra_stagnation`
+    - kept default cheap replay behavior at `8`
+    - added CLI flag:
+      - `--target-pending-frontier-extra-stagnation`
+    - added SV gate override:
+      - `PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION`
+    - helper-ranking low trace now reports:
+      - unlock threshold
+      - configured extra stagnation
+      - unlocked state
+    - stimuli corpus bundle metadata now records the configured value
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+    - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_corpus_bundle_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+    - `rust/target/debug/ast_pipeline --help | rg "target-pending-frontier-extra-stagnation"`
+  - important continuity detail:
+    - no live parser-family row changed
+    - cheap replay remains the maintained default
+    - heavier pending-frontier replay is now deliberate and auditable instead of a hidden runtime constant
 - Staged broad pending-frontier probes behind extra stagnation:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

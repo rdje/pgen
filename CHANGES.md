@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-04-19 - Make heavier pending-frontier replay an explicit stimuli control
+### Achievement Summary
+Turned the staged broad pending-frontier replay path into a deliberate control surface instead of a hidden hard-coded policy. Cheap target-driven replay still keeps its existing default behavior, but heavier replay can now be requested explicitly by lowering the extra stagnation budget that delays broad pending-frontier selection.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliConfig.target_pending_frontier_extra_stagnation`
+  - kept the maintained default at `8`, preserving the existing cheap replay lane
+  - made pending-frontier unlock threshold config-backed instead of hard-coded
+  - helper-ranking low trace now reports:
+    - `pending_frontier_unlocked`
+    - `pending_frontier_unlock_threshold`
+    - `pending_frontier_extra_stagnation`
+  - added focused unit coverage proving:
+    - default staging still keeps dependency probes at the ordinary helper threshold
+    - setting extra stagnation to `0` unlocks the heavier pending-frontier lane immediately once helper probing starts
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--target-pending-frontier-extra-stagnation`
+  - recorded the selected value in stimuli corpus bundle generation metadata
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added optional gate override:
+    - `PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION`
+  - ordinary gate behavior remains unchanged when the override is unset
+- Updated tracked docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+- Status impact:
+  - no live parser-family row changed
+  - this is replay-control surfacing and continuity hardening, not a proof-status promotion
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_corpus_bundle_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `rust/target/debug/ast_pipeline --help | rg "target-pending-frontier-extra-stagnation"`
+
 ## 2026-04-19 - Surface immediate helper-probe activation during target-driven replay
 ### Achievement Summary
 Tightened the new replay observability slice so low-verbosity target-drive tracing now logs the exact moments when replay switches from the primary entry rule to a helper probe entry. That removed a misleading coarse reading from the earlier periodic-only trace output: a bounded 128-attempt SystemVerilog replay probe showed that helper probing was already activating before the 64-attempt checkpoint, first on `property_expr` and then on `expression_or_dist`, `kw_iff_ee1c009e`, `covergroup_expression`, `bin_identifier`, `kw_else_ae050f5b`, and `bins_keyword`.
