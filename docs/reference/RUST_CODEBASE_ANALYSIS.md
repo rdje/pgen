@@ -1817,9 +1817,16 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
       - `rust/scripts/sv_stimuli_quality_gate.sh` now forwards opt-in replay-only tracing through `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
       - default remains `none` so ordinary gate runs stay quiet, but a focused local replay investigation can now ask for `low` and see concrete progress instead of waiting blindly for process exit
       - a one-attempt direct probe against the retained `profile_2017_initial_gap.json` now logs `341/2593` resolved targets on the first attempt, which is enough to distinguish “making progress slowly” from “not entering target-drive at all”
-      - helper-probe activation is now visible immediately too, not only through coarse periodic checkpoints:
+      - helper-probe activation and payoff are now visible immediately too, not only through coarse periodic checkpoints:
         - the same bounded replay lane now logs `Target-drive helper probe` whenever generation switches away from `systemverilog_file`
-        - the first corrected bounded 128-attempt read showed helper probing was already active before the final checkpoint, led by `property_expr`, then `expression_or_dist`, `kw_iff_ee1c009e`, `covergroup_expression`, `bin_identifier`, `kw_else_ae050f5b`, and finally `bins_keyword`
+        - it also logs `Target-drive helper result` after each helper attempt with `pending_before`, `pending_after`, and `resolved_delta`
+        - the corrected bounded 128-attempt read showed helper probing was already active before the final checkpoint, led by `property_expr`, then `expression_or_dist`, `kw_iff_ee1c009e`, `covergroup_expression`, `bin_identifier`, `kw_else_ae050f5b`, and finally `bins_keyword`
+        - the measured payoff in that same run was sharply uneven:
+          - `property_expr`: `resolved_delta=23`
+          - `expression_or_dist`: `resolved_delta=31`
+          - `covergroup_expression`: `resolved_delta=6`
+          - `kw_iff_ee1c009e`, `bin_identifier`, `kw_else_ae050f5b`: `resolved_delta=1`
+          - `bins_keyword`: `resolved_delta=3`
         - that means the current main-SV question is no longer “is helper probing happening at all?” but rather “is the helper-probe ordering and yield good enough once it starts?”
     - use the corrected adapter-backed direct probe for cheap local shaping, then reserve the full gate for proof refresh
   - proof consequence:

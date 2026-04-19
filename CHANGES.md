@@ -36204,3 +36204,25 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - continuity truth:
     - this is strong direct-lane evidence, not a completed full `sv_stimuli_quality_gate` refresh
     - local default and bounded (`target_max_attempts=100`) gate reruns were still too heavy to use as the first iteration loop on this seam
+- 2026-04-19: added helper-probe payoff tracing to the replay observability lane.
+  - landed:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - added `trace_target_probe_result(...)`
+      - plain and validation-aware target-drive now emit `Target-drive helper result` after helper attempts
+      - validation-aware reject paths emit helper-result tracing before `continue`, so rejected helper outputs do not hide replay payoff
+  - focused validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - measured helper-probe payoff in that retained bounded run:
+    - `property_expr`: `1752 -> 1729` (`resolved_delta=23`)
+    - `expression_or_dist`: `1729 -> 1698` (`resolved_delta=31`)
+    - `kw_iff_ee1c009e`: `1696 -> 1695` (`resolved_delta=1`)
+    - `covergroup_expression`: `1695 -> 1689` (`resolved_delta=6`)
+    - `bin_identifier`: `1689 -> 1688` (`resolved_delta=1`)
+    - `kw_else_ae050f5b`: `1688 -> 1687` (`resolved_delta=1`)
+    - `bins_keyword`: `1679 -> 1676` (`resolved_delta=3`)
+  - continuity truth:
+    - no parser-family status row changed
+    - the next replay-tuning question is helper ranking / yield quality, not helper visibility

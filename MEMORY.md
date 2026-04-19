@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-helper-probe-activation-trace)
+Last updated: 2026-04-19 (+0200, task: sv-helper-probe-yield-trace)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,39 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened replay observability one more step so helper-probe payoff is visible, not just activation:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - low-trace target-drive now emits a `Target-drive helper result` line after each helper probe attempt
+    - helper-result lines record:
+      - `pending_before`
+      - `pending_after`
+      - `resolved_delta`
+      - `generation_succeeded`
+    - validation-aware replay gets the same helper-result line with validation counters preserved
+    - validation-aware reject paths emit helper-result tracing before `continue`, so replay diagnostics do not hide helper payoff on rejected helper outputs
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+    - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+  - measured bounded 128-attempt helper-probe payoff:
+    - `property_expr`: `1752 -> 1729` (`resolved_delta=23`)
+    - `expression_or_dist`: `1729 -> 1698` (`resolved_delta=31`)
+    - `kw_iff_ee1c009e`: `1696 -> 1695` (`resolved_delta=1`)
+    - `covergroup_expression`: `1695 -> 1689` (`resolved_delta=6`)
+    - `bin_identifier`: `1689 -> 1688` (`resolved_delta=1`)
+    - `kw_else_ae050f5b`: `1688 -> 1687` (`resolved_delta=1`)
+    - `bins_keyword`: `1679 -> 1676` (`resolved_delta=3`)
+  - important continuity detail:
+    - no live parser-family row changed
+    - the next main-SV replay question is now helper ranking / yield quality, not helper visibility
 - Tightened replay observability again so helper-probe activation is visible immediately:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

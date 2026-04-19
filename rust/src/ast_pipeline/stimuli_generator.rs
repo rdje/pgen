@@ -1097,6 +1097,50 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    fn trace_target_probe_result(
+        &self,
+        resolved_entry: &str,
+        generation_entry: &str,
+        pending_before: usize,
+        pending_after: usize,
+        generation_succeeded: bool,
+        validation_summary: Option<&TargetDriveValidationSummary>,
+    ) {
+        let resolved_delta = pending_before.saturating_sub(pending_after);
+        if let Some(validation) = validation_summary {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Target-drive helper result: entry='{}' generation_entry='{}' pending_before={} pending_after={} resolved_delta={} generation_succeeded={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    resolved_entry,
+                    generation_entry,
+                    pending_before,
+                    pending_after,
+                    resolved_delta,
+                    generation_succeeded,
+                    validation.accepted_outputs,
+                    validation.rejected_outputs,
+                    validation.alternate_entry_attempts,
+                    validation.alternate_entry_accepted_outputs,
+                    validation.alternate_entry_rejected_outputs,
+                ),
+            );
+        } else {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "Target-drive helper result: entry='{}' generation_entry='{}' pending_before={} pending_after={} resolved_delta={} generation_succeeded={}",
+                    resolved_entry,
+                    generation_entry,
+                    pending_before,
+                    pending_after,
+                    resolved_delta,
+                    generation_succeeded,
+                ),
+            );
+        }
+    }
+
     pub fn generate_gap_report(
         &self,
         entry_rule: Option<&str>,
@@ -1555,6 +1599,7 @@ impl<'a> StimuliGenerator<'a> {
             if pending.is_empty() {
                 break;
             }
+            let pending_before = pending.len();
 
             if pending.len() < best_remaining {
                 best_remaining = pending.len();
@@ -1582,10 +1627,13 @@ impl<'a> StimuliGenerator<'a> {
                 );
             }
 
+            let helper_probe_active = generation_entry != resolved_entry;
+            let mut generation_succeeded = false;
             attempts = attempts.saturating_add(1);
             match self.generate_from_entry(&generation_entry) {
                 Ok(sample) => {
                     generation_successes = generation_successes.saturating_add(1);
+                    generation_succeeded = true;
                     if generation_entry == resolved_entry {
                         outputs.push(sample);
                     }
@@ -1595,13 +1643,31 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
 
-            if Self::should_trace_target_drive_progress(attempts, max_attempts) {
-                let current_pending = self.evaluate_target_statuses(&applicable_targets).len();
+            let progress_checkpoint =
+                Self::should_trace_target_drive_progress(attempts, max_attempts);
+            let current_pending = if helper_probe_active || progress_checkpoint {
+                Some(self.evaluate_target_statuses(&applicable_targets).len())
+            } else {
+                None
+            };
+
+            if helper_probe_active {
+                self.trace_target_probe_result(
+                    &resolved_entry,
+                    &generation_entry,
+                    pending_before,
+                    current_pending.unwrap_or(pending_before),
+                    generation_succeeded,
+                    None,
+                );
+            }
+
+            if progress_checkpoint {
                 self.trace_target_drive_progress(
                     &resolved_entry,
                     &generation_entry,
                     total_targets,
-                    current_pending,
+                    current_pending.unwrap_or(pending_before),
                     attempts,
                     max_attempts,
                     generation_successes,
@@ -1692,6 +1758,7 @@ impl<'a> StimuliGenerator<'a> {
                 if pending.is_empty() {
                     break;
                 }
+                let pending_before = pending.len();
 
                 if pending.len() < best_remaining {
                     best_remaining = pending.len();
@@ -1724,11 +1791,14 @@ impl<'a> StimuliGenerator<'a> {
                     );
                 }
 
+                let helper_probe_active = generation_entry != resolved_entry;
+                let mut generation_succeeded = false;
                 attempts = attempts.saturating_add(1);
                 let success_snapshot = self.coverage.snapshot_success_state();
                 match self.generate_from_entry(&generation_entry) {
                     Ok(sample) => {
                         generation_successes = generation_successes.saturating_add(1);
+                        generation_succeeded = true;
                         let is_primary_entry = generation_entry == resolved_entry;
                         if !is_primary_entry {
                             validation_summary.alternate_entry_attempts = validation_summary
@@ -1762,6 +1832,18 @@ impl<'a> StimuliGenerator<'a> {
                                         .alternate_entry_rejected_outputs
                                         .saturating_add(1);
                             }
+                            if helper_probe_active {
+                                let pending_after =
+                                    self.evaluate_target_statuses(&applicable_targets).len();
+                                self.trace_target_probe_result(
+                                    &resolved_entry,
+                                    &generation_entry,
+                                    pending_before,
+                                    pending_after,
+                                    generation_succeeded,
+                                    Some(&validation_summary),
+                                );
+                            }
                             continue;
                         }
 
@@ -1781,13 +1863,31 @@ impl<'a> StimuliGenerator<'a> {
                     }
                 }
 
-                if Self::should_trace_target_drive_progress(attempts, max_attempts) {
-                    let current_pending = self.evaluate_target_statuses(&applicable_targets).len();
+                let progress_checkpoint =
+                    Self::should_trace_target_drive_progress(attempts, max_attempts);
+                let current_pending = if helper_probe_active || progress_checkpoint {
+                    Some(self.evaluate_target_statuses(&applicable_targets).len())
+                } else {
+                    None
+                };
+
+                if helper_probe_active {
+                    self.trace_target_probe_result(
+                        &resolved_entry,
+                        &generation_entry,
+                        pending_before,
+                        current_pending.unwrap_or(pending_before),
+                        generation_succeeded,
+                        Some(&validation_summary),
+                    );
+                }
+
+                if progress_checkpoint {
                     self.trace_target_drive_progress(
                         &resolved_entry,
                         &generation_entry,
                         total_targets,
-                        current_pending,
+                        current_pending.unwrap_or(pending_before),
                         attempts,
                         max_attempts,
                         generation_successes,

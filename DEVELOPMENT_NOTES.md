@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Helper-probe tracing now measures payoff, not just activation
+### Context
+Once helper-probe activation became visible, the next missing piece was obvious: knowing that replay switched to `property_expr` or `expression_or_dist` was useful, but it still did not tell us whether those probes actually retired target debt or merely consumed attempts.
+
+That distinction matters because the retained main-SystemVerilog question had shifted from "is helper probing happening?" to "which helper probes are genuinely paying down the frontier?"
+
+### Decision
+- Keep the activation trace.
+- Add a second low-trace line after each helper probe attempt that reports:
+  - pending target count before the helper attempt
+  - pending target count after the helper attempt
+  - resolved delta
+  - whether generation succeeded
+- Emit the same helper-result surface in both:
+  - plain target-drive replay
+  - validation-aware target-drive replay
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `trace_target_probe_result(...)`
+  - recorded helper-probe payoff after helper attempts in:
+    - `generate_until_targets(...)`
+    - `generate_until_targets_with_filter(...)`
+  - on the validation-aware path, helper-result tracing is emitted even when helper outputs are later rejected by the outer filter, so replay analysis does not silently lose the payoff picture on reject-and-continue paths
+
+### Measured Effect
+- The corrected bounded 128-attempt direct `systemverilog_file` replay probe now shows a clear payoff gradient across helper candidates.
+- Observed helper-probe yields in that run:
+  - `property_expr`: `1752 -> 1729` (`resolved_delta=23`)
+  - `expression_or_dist`: `1729 -> 1698` (`resolved_delta=31`)
+  - `kw_iff_ee1c009e`: `1696 -> 1695` (`resolved_delta=1`)
+  - `covergroup_expression`: `1695 -> 1689` (`resolved_delta=6`)
+  - `bin_identifier`: `1689 -> 1688` (`resolved_delta=1`)
+  - `kw_else_ae050f5b`: `1688 -> 1687` (`resolved_delta=1`)
+  - `bins_keyword`: `1679 -> 1676` (`resolved_delta=3`)
+
+So the new conclusion is:
+- helper probing is happening
+- helper probes are not equally valuable
+- the next replay-tuning move should focus on helper ordering / scoring quality, especially the gap between the high-yield early probes and the nearly flat tail probes
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_progress_`
+  - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - bounded 128-attempt direct replay probe with `PGEN_TRACE_VERBOSITY=low`
+
+### Continuity Notes
+- No parser-family row changed.
+- This is still replay observability hardening, not a proof refresh.
+- The next honest SystemVerilog replay question is now:
+  - whether helper ranking should bias harder toward probes that historically retire larger chunks of blocked dependency debt
+
 ## 2026-04-19 - Immediate helper-probe tracing corrected the replay story
 ### Context
 The first replay-progress slice gave us periodic checkpoints, which was already much better than silent CPU burn, but the coarse checkpoints still left one ambiguity: a sampled progress line could show `generation_entry='systemverilog_file'` even if helper probing had happened between checkpoints.
