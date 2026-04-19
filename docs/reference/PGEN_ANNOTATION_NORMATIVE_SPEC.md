@@ -165,6 +165,11 @@ Normative runtime leverage behavior for semantic annotations:
     - parse bool targets -> `"true"`
   - Non-canonical transform expressions do not apply typed hint overrides.
   - bare string payloads and literalish named string payloads (`sample|literal|example|stimulus`) -> unquoted literal output
+  - literalish sample hints now steer three maintained use sites:
+    - regex atoms
+    - non-regex non-OR rule expansion
+    - branch-local OR alternatives through preserved inline branch semantic annotations
+  - rule-level literal hints intentionally do not bypass OR rules; branch-local inline hints are the maintained way to steer a specific OR alternative while preserving branch accounting
 - Shared canonical-transform parser utility:
   - `rust/src/ast_pipeline/semantic_transform.rs`
   - Used by validator, parser codegen, and stimuli hinting paths.
@@ -203,7 +208,12 @@ Normative runtime leverage behavior for semantic annotations:
       - bare quoted string payloads must surface as unquoted literal sample hints,
       - named literalish directives (`sample|literal|example|stimulus`) must surface string payloads as unquoted literal sample hints,
       - both raw-string and structured-string semantic payload representations must preserve that literal hint behavior,
-      - non-literalish named directives must not override regex-driven sample generation.
+      - literalish sample hints may override:
+        - regex atoms,
+        - non-regex non-OR rule expansion,
+        - branch-local OR alternatives,
+      - branch-local literal overrides must preserve branch-success accounting,
+      - non-literalish named directives must not override regex-driven or non-regex literal-driven sample generation.
     - dedicated shared semantic contract slice:
       - `rust/test_data/semantic_annotation/sc02_contract.json`
       - shared bootstrap/generated parity currently targets the generated-comparable named string forms (`@sample|@literal|@example|@stimulus`),
@@ -219,7 +229,7 @@ Normative runtime leverage behavior for semantic annotations:
     - unknown directive behavior is policy-controlled (`ignore|warn|strict`),
     - strict warning promotion is selector-controlled (`PGEN_STRICT_SEMANTIC_WARNING_CODES`),
     - transform steering is name-aware (`transform` only),
-    - raw literal hint steering is restricted to literalish directives (`sample|literal|example|stimulus`) in named mode.
+    - raw literal hint steering is restricted to literalish directives (`sample|literal|example|stimulus`) in named mode across regex, non-regex, and branch-local stimuli use sites.
     - `stimulus` remains a legacy named-routing alias in stimuli generation; it is not a registry-listed typed directive in `semantic_directive_registry.rs`.
     - Tier-4 gate contract:
       - dedicated shared semantic contract slice:

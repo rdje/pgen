@@ -1,4 +1,65 @@
 # CHANGES.md
+## 2026-04-19 - Broaden literal sample steering for focused SystemVerilog replay
+### Achievement Summary
+Broadened stimuli-side literal sample steering so parser-proven literalish semantic hints can now override non-regex rule expansions and branch-local OR alternatives, not just regex atoms. Used that new steering to seed a narrow set of high-value SystemVerilog branches and improved the focused adapter-backed replay lane without changing any live parser-family row.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added literalish sample extraction for:
+    - non-regex non-OR rules
+    - branch-local OR alternatives via preserved branch semantic annotations
+  - kept regex/transform hinting intact
+  - added focused unit coverage for:
+    - non-regex rule-level literal override
+    - branch-local literal override with preserved branch-success accounting
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - added parser-proven inline `@sample` steering to selected branches of:
+    - `assignment_pattern`
+    - `case_statement`
+    - `clocking_declaration`
+    - `conditional_statement`
+    - `block_data_type`
+    - `data_type`
+    - `function_body_declaration`
+    - `task_body_declaration`
+    - `net_type_declaration_sv_2017`
+- Updated tracked docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Status impact:
+  - no live parser-family row changed
+  - `systemverilog` stays on its existing conservative row because this is still focused direct-lane evidence rather than a refreshed full `sv_stimuli_quality_gate` proof
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_literalish`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_raw_hint_requires_literalish_directive_when_named`
+  - `cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-parser --output rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+  - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+  - focused parser-backed wrapper checks for the retained new branch samples:
+    - `clocking0.sv`, `clocking1.sv`
+    - `func0.sv`, `func1.sv`
+    - `task0.sv`, `task1.sv`
+    - `assignpat0.sv`, `assignpat3.sv`, `member_key.sv`, `index_key.sv`
+    - `case0.sv`, `case1.sv`, `case2.sv`
+    - `cond0.sv`, `cond1.sv`
+    - `block_struct.sv`, `block_enum.sv`, `data_struct_var.sv`, `data_enum_var.sv`
+    - `nettype0.sv`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe_branch_samples_2017.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2017_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_branch_samples_2017_report.json`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe_branch_samples_2023.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2023_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_branch_samples_2023_report.json`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - source all-targets clippy stage passed
+    - generated-parser clippy stage still reports non-strict pre-existing generated debt, but the maintained flow completed successfully without `PGEN_CLIPPY_GENERATED_STRICT=1`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-19 - Close focused SystemVerilog timeunit/comment seam
 ### Achievement Summary
 Closed the retained focused main-SystemVerilog direct-probe parser rejection seam around `timeunits_declaration` by introducing a narrow comment-aware precision separator instead of broad slash/comment normalization. The adapter-backed focused `sv_2017` and `sv_2023` probes now both accept `179/179` samples with `0` parser rejections.

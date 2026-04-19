@@ -4510,6 +4510,9 @@ Initial Phase U milestones:
   - roadmap consequence:
     - the next honest proof step is still a full `sv_stimuli_quality_gate` refresh on top of these retained hints
     - do not reopen the broad newline-before-`//` heuristic or a global slash-regex rewrite; the current win comes from safe comment sampling plus a narrow comment-aware `timeunits_declaration` separator
+Tracker note (2026-04-19): literalish sample steering is now a real branch-local replay tool rather than a regex-only convenience. [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) now honors parser-proven literalish hints on non-regex non-OR rules and inline branch-local OR alternatives, preserving branch-success accounting for the latter. [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) uses that new retained path on selected `assignment_pattern`, `case_statement`, `clocking_declaration`, `conditional_statement`, struct/enum `block_data_type` / `data_type`, simple function/task bodies, and `net_type_declaration_sv_2017` branches. The focused adapter-backed replay loop now measures `sv_2017: 180/181 accepted, 1 parser reject, 319/2613 targets resolved` and `sv_2023: 179/180 accepted, 1 parser reject, 387/2393 targets resolved` in the retained 200-attempt runs. Future work should keep the new rule strict:
+- parser-proven branch-local seeds are fair game
+- blind blanket `@sample` sweeps are still the wrong tactic
 - VHDL remains resumable if needed later, but not as the current front-of-queue closure lane.
   - if VHDL is reopened, keep using branch-level probes only as generation-shape evidence
   - non-default `--entry-rule` parseability validation stays intentionally blocked because validation still flows through the full grammar entry

@@ -1,4 +1,84 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-19 - Literal sample steering widened beyond regex atoms
+### Context
+The retained focused main-SystemVerilog local loop had improved after the `line_comment` and `timeunits_declaration` repairs, but the next honest closure step was still awkward: many of the remaining replay targets were whole OR branches such as `clocking_declaration`, `case_statement`, `assignment_pattern`, struct/enum data-type alternatives, and selected `function_body_declaration` / `task_body_declaration` forms. The grammar already carried preserved branch-local semantic annotation storage, but literal sample hints still only took effect during regex-HIR sampling. That meant putting `@sample` on non-regex or branch-local productions was mostly decorative.
+
+### Decision
+- Treat literalish semantic hints as a real stimuli steering surface, not a regex-only convenience.
+- Keep the widening narrow and honest:
+  - allow rule-level literal overrides only for non-regex non-OR rules so branch accounting is not silently bypassed
+  - allow branch-local literal overrides inside `generate_or(...)` so inline branch annotations can directly satisfy a targeted alternative and still record branch success
+- Use that widened runtime only with parser-proven SystemVerilog branch samples; do not resume blind blanket `@sample` sweeps.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - refactored literalish hint extraction into a reusable path shared by:
+    - rule-level literal hints
+    - branch-local literal hints
+    - existing regex-literal hint routing
+  - added non-regex rule short-circuiting for literalish hints when the rule AST is not an OR and not a regex atom
+  - added branch-local literal short-circuiting inside `generate_or(...)`, preserving:
+    - branch selection accounting
+    - branch success accounting
+    - mutation-choice recording
+  - added focused tests covering:
+    - non-regex rule literal override
+    - branch-local literal override
+    - the existing non-literalish named-directive guard
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - added parser-proven inline branch `@sample` hints to:
+    - `assignment_pattern`
+    - `case_statement`
+    - `clocking_declaration`
+    - `conditional_statement`
+    - struct/enum branches of `block_data_type`
+    - struct/enum branches of `data_type`
+    - simple branches of `function_body_declaration`
+    - simple branches of `task_body_declaration`
+    - first branch of `net_type_declaration_sv_2017`
+  - intentionally did not annotate the unproven `function_body_declaration` / `task_body_declaration` scoped/interface-class branches after local parser-backed wrapper checks rejected the naïve `C::...` forms
+- Updated [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
+  - documented that SC-02 / SC-03 literalish routing now applies to:
+    - regex atoms
+    - non-regex non-OR rules
+    - branch-local OR alternatives
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md), [docs/book/src/parser-families.md](docs/book/src/parser-families.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+  - synchronized the new runtime capability, the retained SystemVerilog branch-seed set, and the focused proof deltas
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_literalish`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_raw_hint_requires_literalish_directive_when_named`
+  - adapter-backed regeneration and rebuild:
+    - `cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-parser --output rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+    - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+  - parser-backed wrapper proofs for retained branch samples:
+    - `clocking0.sv`, `clocking1.sv`
+    - `func0.sv`, `func1.sv`
+    - `task0.sv`, `task1.sv`
+    - `assignpat0.sv`, `assignpat3.sv`, `member_key.sv`, `index_key.sv`
+    - `case0.sv`, `case1.sv`, `case2.sv`
+    - `cond0.sv`, `cond1.sv`
+    - `block_struct.sv`, `block_enum.sv`, `data_struct_var.sv`, `data_enum_var.sv`
+    - `nettype0.sv`
+  - focused adapter-backed target-drive probes:
+    - `sv_2017`: `180/181` accepted, `1` parser rejection, `319/2613` targets resolved in the retained 200-attempt loop
+    - `sv_2023`: `179/180` accepted, `1` parser rejection, `387/2393` targets resolved in the retained 200-attempt loop
+  - retained rejection shape:
+    - both surviving rejects reduced to small comment/attribute/preprocessor-like fragments rather than any of the new branch-seeded constructs
+    - the retained 2017 counterexample shrinks to `` `s``
+    - the retained 2023 counterexample is still a mixed comment/attribute/timeunit seam rather than a case/clocking/data-type/function/task/nettype branch-seed regression
+
+### Continuity Notes
+- No live parser-family row changed.
+- The new useful rule is:
+  - branch-local `@sample` is now a real narrow steering tool when the sample is parser-proven and tied to a specific remaining branch
+  - broad blanket `@sample` sweeps are still discouraged
+- The next honest follow-up on the main-SystemVerilog stimuli lane is not “add samples everywhere”; it is:
+  - keep using parser-proven branch-local seeds where justified
+  - investigate the tiny surviving comment/attribute rejection seam separately
+  - and eventually refresh the heavier `sv_stimuli_quality_gate` proof surface on top of this retained steering widening
+
 ## 2026-04-19 - Narrow SystemVerilog timeunit/comment seam closed
 ### Context
 After the safe `line_comment` sample hint landed, the retained focused adapter-backed main-SystemVerilog direct probes improved sharply but did not go fully green. The remaining rejects all clustered around `timeunits_declaration`, especially cases where a legal precision separator slash appeared only after a same-line `//...` comment, for example `timeunit 336 us //x\n/4 ms;`.

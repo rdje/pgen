@@ -12,6 +12,14 @@ Return annotations shape the AST that generated parsers return. They are the nor
 
 Semantic annotations steer parser-generation behavior and related transformation/runtime choices in the Rust AST pipeline.
 
+That steering now includes more than regex-target tweaks. Literalish directives such as `@sample`, `@literal`, `@example`, and legacy `@stimulus` can now be used as parser-proven stimuli seeds for:
+
+- regex atoms,
+- non-regex non-OR rule expansions,
+- and inline branch-local OR alternatives.
+
+That widened the annotation system from "token-shape nudges" into a real narrow branch-steering surface for coverage-guided replay, while still keeping the project rule that sample hints must be justified by parser-backed evidence rather than sprayed across a grammar blindly.
+
 Together, these two annotation families make PGEN a parser platform rather than only a parser emitter.
 
 ## Semantic Seeds, Linters, And Front-End Workbenches

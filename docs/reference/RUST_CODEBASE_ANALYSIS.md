@@ -1805,6 +1805,22 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - proof consequence:
     - the next honest main-SV step is still a full `sv_stimuli_quality_gate` rerun to see whether these focused wins survive the retained proof lane
     - until that rerun lands, treat this as a focused direct-lane improvement, not a refreshed main-SV status row
+- Literalish sample steering is now a broader stimuli-runtime tool too.
+  - retained runtime widening:
+    - `rust/src/ast_pipeline/stimuli_generator.rs` now honors literalish semantic hints for:
+      - regex atoms
+      - non-regex non-OR rules
+      - branch-local OR alternatives
+    - branch-local inline `@sample` can now short-circuit a targeted OR branch while still recording branch success
+  - retained main-SV use:
+    - `grammars/systemverilog.ebnf` now uses parser-proven inline branch samples on selected `assignment_pattern`, `case_statement`, `clocking_declaration`, `conditional_statement`, struct/enum `block_data_type` / `data_type`, simple `function_body_declaration` / `task_body_declaration`, and `net_type_declaration_sv_2017` branches
+  - retained focused evidence:
+    - `sv_2017`: `180/181 accepted, 1 parser reject`, `319/2613` replay targets resolved in the retained 200-attempt loop
+    - `sv_2023`: `179/180 accepted, 1 parser reject`, `387/2393` replay targets resolved in the retained 200-attempt loop
+    - the surviving rejects reduced to tiny comment/attribute/preprocessor-like fragments rather than any of the newly seeded branches
+  - steering consequence:
+    - branch-local `@sample` is now a legitimate narrow closure lever when backed by parser-proven witnesses
+    - the older warning still stands: do not resume blind blanket `@sample` sweeps just because this runtime path now exists
 - VHDL still has useful local triage tooling if it ever needs to be revisited.
   - non-default `--entry-rule` plus `--validate-parseability` stays intentionally rejected in `ast_pipeline`; full-entry validation only
   - `coverage_gap_triage` plus `top_failure_reasons` remains the right resume surface if VHDL closure is reopened later

@@ -175,7 +175,10 @@ assertion_item_declaration := property_declaration | sequence_declaration | let_
 
 assertion_variable_declaration := var_data_type list_of_variable_decl_assignments semi
 
-assignment_pattern := tick lbrace expression ( comma expression )* rbrace | tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace | tick lbrace array_pattern_key colon expression ( comma array_pattern_key colon expression )* rbrace | tick lbrace constant_expression lbrace expression ( comma expression )* rbrace rbrace
+assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
+                    | @sample: "'{x: 0}" tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace
+                    | @sample: "'{1: 0}" tick lbrace array_pattern_key colon expression ( comma array_pattern_key colon expression )* rbrace
+                    | @sample: "'{2{0, 1}}" tick lbrace constant_expression lbrace expression ( comma expression )* rbrace rbrace
 
 assignment_pattern_expression := ( assignment_pattern_expression_type )? assignment_pattern
 
@@ -293,7 +296,9 @@ case_keyword := kw_case_6406510c | kw_casez_b8fbe0e1 | kw_casex_b31a7350
 
 case_pattern_item := pattern ( logical_and3 expression )? colon statement_or_null | kw_default_7505d64a ( colon )? statement_or_null
 
-case_statement := ( unique_priority )? case_keyword lparen case_expression rparen case_item case_item* kw_endcase_a27a6786 | ( unique_priority )? case_keyword lparen case_expression rparen kw_matches_9f3e9242 case_pattern_item case_pattern_item* kw_endcase_a27a6786 | ( unique_priority )? kw_case_6406510c lparen case_expression rparen kw_inside_fcc53788 case_inside_item case_inside_item* kw_endcase_a27a6786
+case_statement := @sample: "case (a) default: ; endcase" ( unique_priority )? case_keyword lparen case_expression rparen case_item case_item* kw_endcase_a27a6786
+                | @sample: "case (a) matches default: ; endcase" ( unique_priority )? case_keyword lparen case_expression rparen kw_matches_9f3e9242 case_pattern_item case_pattern_item* kw_endcase_a27a6786
+                | @sample: "case (a) inside [0:1]: ; endcase" ( unique_priority )? kw_case_6406510c lparen case_expression rparen kw_inside_fcc53788 case_inside_item case_inside_item* kw_endcase_a27a6786
 
 cast := casting_type tick lparen expression rparen
 
@@ -425,7 +430,8 @@ class_variable_identifier := variable_identifier
 
 clocking_decl_assign := signal_identifier ( assign expression )?
 
-clocking_declaration := ( kw_default_7505d64a )? kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi clocking_item* kw_endclocking_c1e6d71f ( colon clocking_identifier )? | kw_global_9027cc5a kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi kw_endclocking_c1e6d71f ( colon clocking_identifier )?
+clocking_declaration := @sample: "clocking cb @(posedge clk); endclocking : cb" ( kw_default_7505d64a )? kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi clocking_item* kw_endclocking_c1e6d71f ( colon clocking_identifier )?
+                      | @sample: "global clocking cb @(posedge clk); endclocking : cb" kw_global_9027cc5a kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi kw_endclocking_c1e6d71f ( colon clocking_identifier )?
 
 clocking_direction := kw_input_140f86aa ( clocking_skew )? | kw_output_1029d676 ( clocking_skew )? | kw_input_140f86aa ( clocking_skew )? kw_output_1029d676 ( clocking_skew )? | kw_inout_c900aaa9
 
@@ -473,7 +479,8 @@ conditional_expression := cond_predicate &question question attribute_instance* 
 
 conditional_generate_construct := if_generate_construct | case_generate_construct
 
-conditional_statement := ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null &kw_else_ae050f5b kw_else_ae050f5b ( conditional_statement | statement_or_null ) | ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null !kw_else_ae050f5b
+conditional_statement := @sample: "if (a) ; else ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null &kw_else_ae050f5b kw_else_ae050f5b ( conditional_statement | statement_or_null )
+                       | @sample: "if (a) ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null !kw_else_ae050f5b
 
 config_declaration := kw_config_dfba7aad config_identifier semi ( local_parameter_declaration semi )* design_statement config_rule_statement* kw_endconfig_3fd27f95 ( colon config_identifier )?
 
@@ -680,11 +687,41 @@ known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_ide
 
 scoped_block_covergroup_identifier := scoped_covergroup_type_identifier
 
-block_data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_block_type_identifier | known_unscoped_block_type_identifier | scoped_block_class_type | known_unscoped_block_class_type | provisional_unscoped_block_class_type | kw_event_5006ed02 | scoped_block_covergroup_identifier | known_unscoped_block_covergroup_identifier | type_reference
+block_data_type := integer_vector_type ( signing )? packed_dimension*
+                 | integer_atom_type ( signing )?
+                 | non_integer_type
+                 | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
+                 | @sample: "enum { A }" kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
+                 | kw_string_ecb25204
+                 | kw_chandle_34401c13
+                 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
+                 | scoped_block_type_identifier
+                 | known_unscoped_block_type_identifier
+                 | scoped_block_class_type
+                 | known_unscoped_block_class_type
+                 | provisional_unscoped_block_class_type
+                 | kw_event_5006ed02
+                 | scoped_block_covergroup_identifier
+                 | known_unscoped_block_covergroup_identifier
+                 | type_reference
 
 block_data_type_or_implicit := block_data_type | implicit_data_type
 
-data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_data_type_identifier | known_unscoped_data_type_identifier | class_type | provisional_unscoped_block_class_type | kw_event_5006ed02 | ps_covergroup_identifier | type_reference
+data_type := integer_vector_type ( signing )? packed_dimension*
+           | integer_atom_type ( signing )?
+           | non_integer_type
+           | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
+           | @sample: "enum { A }" kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
+           | kw_string_ecb25204
+           | kw_chandle_34401c13
+           | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
+           | scoped_data_type_identifier
+           | known_unscoped_data_type_identifier
+           | class_type
+           | provisional_unscoped_block_class_type
+           | kw_event_5006ed02
+           | ps_covergroup_identifier
+           | type_reference
 
 data_type_or_implicit := data_type | implicit_data_type
 
@@ -892,7 +929,10 @@ full_edge_sensitive_path_description := full_edge_sensitive_path_description_sv_
 
 full_path_description := lparen list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
 
-function_body_declaration := function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )? | function_data_type_or_implicit function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )? | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )? | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+function_body_declaration := @sample: "int f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                           | @sample: "int f(); endfunction : f" function_data_type_or_implicit function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                           | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                           | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
 
 function_data_type_or_implicit := data_type_or_void | implicit_data_type
 
@@ -1411,7 +1451,8 @@ net_port_type := net_port_type_sv_2017 | net_port_type_sv_2023
 net_type := kw_supply_076df715 | kw_supply_076df715 | kw_tri_54bf01f1 | kw_triand_51bca013 | kw_trior_56b8b9f0 | kw_trireg_f7901823 | kw_tri_54bf01f1 | kw_tri_54bf01f1 | kw_uwire_9143a634 | kw_wire_6e1c6849 | kw_wand_4be59aff | kw_wor_ff9e40da
 
 @profiles: ["sv_2017"]
-net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type net_type_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier net_type_identifier semi
+net_type_declaration_sv_2017 := @sample: "nettype int nt;" kw_nettype_27d30cf3 data_type net_type_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
+                              | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier net_type_identifier semi
 
 net_type_declaration := net_type_declaration_sv_2017
 
@@ -2115,7 +2156,10 @@ tagged_union_expression_sv_2023 := kw_tagged_8e1ec218 member_identifier ( primar
 
 tagged_union_expression := tagged_union_expression_sv_2017 | tagged_union_expression_sv_2023
 
-task_body_declaration := task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )? | task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )? | ( interface_identifier dot | class_scope ) task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )? | ( interface_identifier dot | class_scope ) task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+task_body_declaration := @sample: "t; endtask : t" task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                       | @sample: "t(); endtask : t" task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                       | ( interface_identifier dot | class_scope ) task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                       | ( interface_identifier dot | class_scope ) task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
 
 @profiles: ["sv_2017"]
 task_declaration_sv_2017 := kw_task_7fbb727d ( lifetime )? task_body_declaration

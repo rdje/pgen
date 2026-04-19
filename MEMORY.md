@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-timeunit-separator-fix)
+Last updated: 2026-04-19 (+0200, task: sv-branch-sample-steering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,54 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Broadened literal sample steering so it now reaches non-regex rules and branch-local OR alternatives:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - implementation:
+    - widened stimuli literalish hint routing beyond regex atoms:
+      - non-regex non-OR rules can now short-circuit to parser-proven literalish sample hints
+      - branch-local OR alternatives can now short-circuit through inline `@sample` while still recording branch success
+    - kept regex/transform hint behavior intact
+    - added focused unit tests for:
+      - non-regex literal override
+      - branch-local literal override
+      - existing non-literalish named-directive guard
+    - used the new runtime on a narrow, parser-proven set of SystemVerilog branches:
+      - `assignment_pattern`
+      - `case_statement`
+      - `clocking_declaration`
+      - `conditional_statement`
+      - struct/enum `block_data_type`
+      - struct/enum `data_type`
+      - simple `function_body_declaration`
+      - simple `task_body_declaration`
+      - `net_type_declaration_sv_2017`
+    - intentionally did not keep unproven scoped/interface-class function/task samples after local parser-backed wrappers rejected the naïve `C::...` forms
+  - validation:
+    - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_literalish`
+    - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_raw_hint_requires_literalish_directive_when_named`
+    - `cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-parser --output rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+    - `env PGEN_SYSTEMVERILOG_PARSER_PATH=target/sv_stimuli_quality_gate/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+    - parser-backed wrapper proofs for retained new samples all passed
+    - focused adapter-backed replay results:
+      - `sv_2017`: `180/181` accepted, `1` parser rejection, `319/2613` targets resolved
+      - `sv_2023`: `179/180` accepted, `1` parser rejection, `387/2393` targets resolved
+  - important continuity detail:
+    - no live parser-family row changed
+    - the new sample-hint rule is now real:
+      - parser-proven branch-local `@sample` steering is a legitimate narrow closure tool
+      - broad blanket hint sweeps are still discouraged
 - Closed the retained focused main-SystemVerilog `timeunits_declaration` comment/separator seam:
   - changed:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

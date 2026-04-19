@@ -40,6 +40,11 @@ Primary source:
 - main parser remains an active closure target
 - preprocessor parser is tracked as done
 - the retained focused adapter-backed `sv_2017` and `sv_2023` direct probes now both accept `179/179` targeted samples with `0` parser rejections on the current narrow `timeunits_declaration` plus `line_comment` seam
+- the next retained focused replay slice now also uses parser-proven branch-local sample steering rather than regex-only hinting:
+  - `sv_2017`: `180/181` accepted, `1` parser rejection, `319/2613` targets resolved in the retained 200-attempt loop
+  - `sv_2023`: `179/180` accepted, `1` parser rejection, `387/2393` targets resolved in the retained 200-attempt loop
+  - the seeded branches cover selected `assignment_pattern`, `case_statement`, `clocking_declaration`, `conditional_statement`, struct/enum `data_type` surfaces, simple function/task bodies, and `nettype` forms
+  - the surviving rejects are still small comment/attribute seams, not the new seeded constructs
 - the live row stays conservative until the heavier `sv_stimuli_quality_gate` proof surface is refreshed, so the current story is "focused direct-lane closure on this seam" rather than a full family-status promotion
 
 Primary sources:

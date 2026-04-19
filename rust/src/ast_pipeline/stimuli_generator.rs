@@ -2483,6 +2483,20 @@ impl<'a> StimuliGenerator<'a> {
             )
         })?;
 
+        if Self::node_supports_rule_literal_override(rule_node) {
+            if let Some(sample_hint) = self.literalish_hint_for_rule(rule_name) {
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Rule-level literal hint override: rule='{}' depth={} sample='{}'",
+                        rule_name, depth, sample_hint
+                    ),
+                );
+                self.coverage.record_rule_success(rule_name);
+                return Ok(sample_hint);
+            }
+        }
+
         call_stack.push(rule_name.to_string());
         let result = self.generate_node(rule_node, rule_name, depth + 1, call_stack, "root");
         call_stack.pop();
@@ -2757,6 +2771,33 @@ impl<'a> StimuliGenerator<'a> {
                     current_rule, node_path, mutation_site_key, local_idx, selected_global
                 ),
             );
+            if let Some(sample_hint) =
+                self.literalish_hint_for_branch(current_rule, selected_global)
+            {
+                self.record_or_mutation_choice(
+                    &mutation_site_key,
+                    selected_global,
+                    &candidate_indices,
+                );
+                self.coverage.record_branch_success(
+                    &group_key,
+                    current_rule,
+                    node_path,
+                    alternatives.len(),
+                    selected_global,
+                );
+                self.trace(
+                    TraceLevel::High,
+                    format_args!(
+                        "Selected OR branch literal hint: rule='{}' path='{}' branch={} output_len={}",
+                        current_rule,
+                        node_path,
+                        selected_global,
+                        sample_hint.len()
+                    ),
+                );
+                return Ok(sample_hint);
+            }
             let alt_path = format!("{}/o{}", node_path, selected_global);
             match self.generate_node(&selected_node, current_rule, depth, call_stack, &alt_path) {
                 Ok(output) => {
@@ -4242,7 +4283,87 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
+        Self::literalish_hint_from_annotations(semantic_annotations)
+    }
+
+    fn literalish_hint_for_rule(&self, rule_name: &str) -> Option<String> {
+        let annotations = self.annotations?;
+        let semantic_annotations = annotations.semantic_annotations.get(rule_name)?;
+        Self::literalish_hint_from_annotations(semantic_annotations)
+    }
+
+    fn literalish_hint_for_branch(&self, rule_name: &str, branch_index: usize) -> Option<String> {
+        let annotations = self.annotations?;
+        let branch_annotations = annotations.branch_semantic_annotations.get(rule_name)?;
+        let semantic_annotations = branch_annotations.get(branch_index)?;
+        Self::literalish_hint_from_annotations(semantic_annotations)
+    }
+
+    fn literalish_hint_from_annotations(
+        semantic_annotations: &[SemanticAnnotation],
+    ) -> Option<String> {
+        for semantic_annotation in semantic_annotations {
+            let directive_name = semantic_annotation.name();
+            match semantic_annotation.ast() {
+                UnifiedSemanticAST::TransformExpr { .. } => continue,
+                UnifiedSemanticAST::Raw { content } => {
+                    if matches!(
+                        directive_name,
+                        Some(name)
+                            if !matches!(name, "sample" | "literal" | "example" | "stimulus")
+                    ) {
+                        continue;
+                    }
+
+                    let trimmed = content.trim();
+                    if trimmed.len() >= 2
+                        && ((trimmed.starts_with('"') && trimmed.ends_with('"'))
+                            || (trimmed.starts_with('\'') && trimmed.ends_with('\'')))
+                    {
+                        return Some(trimmed[1..trimmed.len() - 1].to_string());
+                    }
+                }
+                UnifiedSemanticAST::Structured { canonical, value } => {
+                    if matches!(
+                        directive_name,
+                        Some(name)
+                            if !matches!(name, "sample" | "literal" | "example" | "stimulus")
+                    ) {
+                        continue;
+                    }
+
+                    match value {
+                        UnifiedSemanticValue::String(text) => return Some(text.clone()),
+                        _ => {
+                            let trimmed = canonical.trim();
+                            if trimmed.len() >= 2
+                                && ((trimmed.starts_with('"') && trimmed.ends_with('"'))
+                                    || (trimmed.starts_with('\'') && trimmed.ends_with('\'')))
+                            {
+                                return Some(trimmed[1..trimmed.len() - 1].to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         None
+    }
+
+    fn node_supports_rule_literal_override(node: &ASTNode) -> bool {
+        match node {
+            ASTNode::Or { .. } => false,
+            ASTNode::Atom { value } => !matches!(
+                value,
+                ASTValue::Token(parts)
+                    if matches!(
+                        Self::extract_token_pair(parts),
+                        Some((token_type, _)) if token_type == "regex"
+                    )
+            ),
+            _ => true,
+        }
     }
 
     fn rule_branch_controls(
@@ -8243,6 +8364,95 @@ mod tests {
                 directive_name, expected, values[0]
             );
         }
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_literalish_directives_override_non_regex_rules() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "alpha"),
+                    token("quoted_string", "beta"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"seeded-branch\"".to_string(),
+                    value: UnifiedSemanticValue::String("seeded-branch".to_string()),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9294);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("non-regex literalish hint generation should succeed");
+        assert_eq!(values[0], "seeded-branch");
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_literalish_directives_override_or_branch_generation() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", "fallback"),
+                    token("quoted_string", "other"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "branch_policy".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "ordered".to_string(),
+                },
+            }],
+        );
+        annotations.branch_semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                vec![SemanticAnnotation::Named {
+                    name: "sample".to_string(),
+                    ast: UnifiedSemanticAST::Structured {
+                        canonical: "\"branch-seed\"".to_string(),
+                        value: UnifiedSemanticValue::String("branch-seed".to_string()),
+                    },
+                }],
+                vec![],
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9295);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("branch literalish hint generation should succeed");
+        assert_eq!(values[0], "branch-seed");
+
+        let group = generator
+            .coverage_metrics()
+            .branch_groups
+            .get("start::root")
+            .expect("branch coverage group should exist");
+        assert!(
+            group.success_counts.first().copied().unwrap_or(0) > 0,
+            "branch literal hint should register branch success, got {:?}",
+            group.success_counts
+        );
     }
 
     #[test]
