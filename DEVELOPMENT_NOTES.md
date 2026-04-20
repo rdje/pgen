@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-20 - Gate-level target-drive consumers now preserve helper timeout totals
+### Context
+After landing `helper_timeout_errors` in the Rust generator/report layer, one practical gap remained:
+- raw parseability JSON knew about helper-budget expirations,
+- but several maintained shell gates were already re-packaging `target_drive_validation`,
+- and those gate-level summaries were only carrying the older primary/alternate entry totals.
+
+So operators could still lose the helper-timeout distinction once they looked at gate artifacts instead of the raw Rust report.
+
+### Decision
+- Preserve helper-timeout totals anywhere a maintained gate already republishes target-drive validation.
+- Extend the nearest contract checks so the gate-side copies are not merely present but also structurally sane.
+
+### What Was Changed
+- Updated [rust/scripts/annotation_stimuli_quality_gate.sh](rust/scripts/annotation_stimuli_quality_gate.sh):
+  - stage-2 target-drive extraction now reads:
+    - `helper_timeout_errors`
+  - aggregate parseability report JSON now emits:
+    - `target_drive_validation.helper_timeout_errors_total`
+  - `summary.csv` now carries:
+    - `target_drive_helper_timeout_errors_total`
+- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh):
+  - stage-2 target-drive extraction now reads:
+    - `helper_timeout_errors`
+  - aggregate parseability report JSON now emits:
+    - `target_drive_validation.helper_timeout_errors_total`
+  - `summary.csv` now carries:
+    - `target_drive_helper_timeout_errors_total`
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - closed-loop parseability-shadow aggregation now accumulates:
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total`
+  - per-profile shadow JSONL now preserves:
+    - `target_drive_validation.helper_timeout_errors`
+  - aggregate shadow report JSON now emits:
+    - `target_drive_validation.helper_timeout_errors_total`
+  - `summary.txt` now prints:
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total`
+- Updated [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh):
+  - closed-loop parseability-shadow summaries now surface:
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total`
+- Updated contract gates:
+  - [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh)
+    - now parity-checks aggregate `helper_timeout_errors_total` against stage-2 raw target-drive telemetry
+  - [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh)
+    - now requires `helper_timeout_errors_total <= generation_errors_total`
+    - and `helper_timeout_errors_total <= alternate_entry_attempts_total`
+
+### Practical Effect
+- helper-budget expirations now survive the transition from raw Rust report to gate-level summary/report artifacts
+- SV/VHDL replay-shadow summaries no longer hide whether generation churn came from helper timeouts specifically
+- the preprocessor and SV parser aggregate contract layers now guard the copied totals instead of treating them as informal extras
+
+### Validation
+- Passed:
+  - `bash -n rust/scripts/annotation_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - `git diff --check`
+
 ## 2026-04-20 - Helper-only timeout counts are now explicit replay telemetry
 ### Context
 The helper-timeout containment slice was operationally correct, but one diagnostic gap remained:

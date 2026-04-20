@@ -1878,6 +1878,12 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
           - `TargetDriveValidationSummary` carries `helper_timeout_errors`
           - target-drive progress/completion lines now print `helper_timeout_errors`
           - `TargetDriveParseabilityTelemetry` preserves the same counter for parseability report JSON and stimuli corpus bundles
+        - the nearest shell/report consumers now preserve that counter too instead of dropping it during aggregation:
+          - `annotation_stimuli_quality_gate.sh` emits `target_drive_helper_timeout_errors_total` in `summary.csv` and aggregate parseability report JSON
+          - `sv_preprocessor_quality_gate.sh` emits the same `target_drive_helper_timeout_errors_total` field in `summary.csv` and aggregate parseability report JSON
+          - `sv_stimuli_quality_gate.sh` preserves helper-timeout totals in closed-loop parseability-shadow aggregate JSON, per-profile JSONL, and `summary.txt`
+          - `vhdl_stimuli_quality_gate.sh` surfaces helper-timeout totals in closed-loop parseability-shadow `summary.txt`
+          - `sv_preprocessor_aggregate_contract_gate.sh` and `sv_parser_aggregate_contract_gate.sh` now sanity-check those copied totals
         - that same immediate-unlock focused repro now completes instead of wedging:
           - retained 128-attempt heavy replay finished at `970/2593`
           - the `7` generation errors are bounded `property_expr_sv_2017` helper timeouts

@@ -275,6 +275,8 @@ assert_json "$parseability_report_json" '
         == (.stages.stage2_target_drive.target_drive_validation.alternate_entry_accepted_outputs | numbers)
     and (.target_drive_validation.alternate_entry_rejected_outputs_total | numbers)
         == (.stages.stage2_target_drive.target_drive_validation.alternate_entry_rejected_outputs | numbers)
+    and (.target_drive_validation.helper_timeout_errors_total | numbers)
+        == (.stages.stage2_target_drive.target_drive_validation.helper_timeout_errors | numbers)
 ' "preprocessor aggregate parseability totals are internally inconsistent"
 
 assert_json "$fuzz_replay_a_json" '

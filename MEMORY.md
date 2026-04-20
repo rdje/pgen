@@ -8,6 +8,28 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Extended helper-timeout telemetry into gate-visible artifacts:
+  - changed:
+    - [rust/scripts/annotation_stimuli_quality_gate.sh](rust/scripts/annotation_stimuli_quality_gate.sh)
+    - [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh)
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
+    - [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh)
+    - [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - annotation + SV preprocessor aggregate parseability reports now preserve `helper_timeout_errors_total`
+    - SV stimuli shadow aggregate JSON and per-profile JSONL now preserve helper-timeout totals
+    - VHDL stimuli shadow summary now prints helper-timeout totals
+    - nearby aggregate contract gates now sanity-check the copied helper-timeout counters
+  - important continuity detail:
+    - replay triage should no longer stop at raw Rust parseability JSON
+    - the maintained gate/report surfaces now also preserve helper-budget expirations
 - Surfaced helper-only timeout counts as first-class replay telemetry:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

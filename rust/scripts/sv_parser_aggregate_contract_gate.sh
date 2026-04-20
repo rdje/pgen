@@ -252,6 +252,14 @@ if ! jq -e '
             + (.target_drive_validation.alternate_entry_rejected_outputs_total | numbers)
         )
     )
+    and (
+        (.target_drive_validation.helper_timeout_errors_total | numbers)
+        <= (.observed.generation_errors_total | numbers)
+    )
+    and (
+        (.target_drive_validation.helper_timeout_errors_total | numbers)
+        <= (.target_drive_validation.alternate_entry_attempts_total | numbers)
+    )
 ' "$shadow_report_json" >/dev/null; then
     echo "error: replay-shadow aggregate report totals are internally inconsistent: $shadow_report_json" >&2
     cat "$shadow_report_json" >&2

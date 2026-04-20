@@ -463,6 +463,7 @@ closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_attempts_total=0
 closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=0
+closed_loop_parseability_shadow_helper_timeout_errors_total=0
 closed_loop_parseability_shadow_report_json="$WORK_DIR/closed_loop_replay_parseability_shadow_report.json"
 
 if [[ "$closed_loop_enabled" -eq 1 ]]; then
@@ -555,6 +556,7 @@ if [[ "$closed_loop_enabled" -eq 1 ]]; then
         closed_loop_parseability_shadow_alternate_entry_attempts_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_attempts")"
         closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_accepted_outputs")"
         closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_rejected_outputs")"
+        closed_loop_parseability_shadow_helper_timeout_errors_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "helper_timeout_errors")"
     fi
 fi
 
@@ -901,6 +903,7 @@ jq -n \
     echo "closed_loop_parseability_shadow_alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total"
     echo "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
     echo "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
+    echo "closed_loop_parseability_shadow_helper_timeout_errors_total: $closed_loop_parseability_shadow_helper_timeout_errors_total"
     echo "closed_loop_parseability_shadow_report_json: $closed_loop_parseability_shadow_report_json"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"

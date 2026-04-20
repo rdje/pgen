@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-04-20 - Preserve helper-timeout telemetry in gate-level reports
+### Achievement Summary
+Extended the new helper-timeout metric past raw Rust parseability JSON so the maintained shell quality gates and their contract checks now preserve and sanity-check helper-budget expirations instead of silently dropping them.
+
+### Scope of Changes
+- Updated gate/report consumers:
+  - [rust/scripts/annotation_stimuli_quality_gate.sh](rust/scripts/annotation_stimuli_quality_gate.sh)
+  - [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh)
+  - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+  - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
+- Updated contract/parity consumers:
+  - [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh)
+  - [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh)
+- Surfaced `helper_timeout_errors_total` where target-drive validation is already summarized:
+  - annotation gate aggregate parseability report JSON and `summary.csv`
+  - SV preprocessor aggregate parseability report JSON and `summary.csv`
+  - SV stimuli closed-loop parseability-shadow aggregate JSON, per-profile JSONL, and `summary.txt`
+  - VHDL stimuli closed-loop parseability-shadow `summary.txt`
+- Added gate-side sanity checks:
+  - preprocessor aggregate contract now parity-checks `helper_timeout_errors_total` against stage-2 raw target-drive telemetry
+  - SV parser aggregate contract now requires helper timeout totals to stay bounded by both generation-error totals and alternate-entry attempts
+- Updated tracked docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Passed:
+  - `bash -n rust/scripts/annotation_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - `git diff --check`
+
 ## 2026-04-20 - Surface helper timeouts as explicit target-drive telemetry
 ### Achievement Summary
 Promoted helper-only timeout containment from "visible if you read low trace carefully" to a first-class target-drive metric across summaries, parseability reports, and stimuli corpus bundles.

@@ -2007,6 +2007,7 @@ closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_attempts_total=0
 closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=0
+closed_loop_parseability_shadow_helper_timeout_errors_total=0
 if [[ "$declared_shadow_enabled" -eq 1 ]]; then
     : >"$declared_shadow_cases_jsonl"
 fi
@@ -2215,6 +2216,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             shadow_alternate_entry_attempts="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_attempts")"
             shadow_alternate_entry_accepted_outputs="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_accepted_outputs")"
             shadow_alternate_entry_rejected_outputs="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_rejected_outputs")"
+            shadow_helper_timeout_errors="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "helper_timeout_errors")"
 
             closed_loop_parseability_shadow_requested_total=$((closed_loop_parseability_shadow_requested_total + shadow_requested))
             closed_loop_parseability_shadow_attempts_total=$((closed_loop_parseability_shadow_attempts_total + shadow_attempts))
@@ -2230,6 +2232,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             closed_loop_parseability_shadow_alternate_entry_attempts_total=$((closed_loop_parseability_shadow_alternate_entry_attempts_total + shadow_alternate_entry_attempts))
             closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total + shadow_alternate_entry_accepted_outputs))
             closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total + shadow_alternate_entry_rejected_outputs))
+            closed_loop_parseability_shadow_helper_timeout_errors_total=$((closed_loop_parseability_shadow_helper_timeout_errors_total + shadow_helper_timeout_errors))
             if (( shadow_counterexamples_captured > 0 )); then
                 jq -c \
                     --arg profile "$lrm_profile" \
@@ -2255,6 +2258,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                 --argjson alternate_entry_attempts "$shadow_alternate_entry_attempts" \
                 --argjson alternate_entry_accepted_outputs "$shadow_alternate_entry_accepted_outputs" \
                 --argjson alternate_entry_rejected_outputs "$shadow_alternate_entry_rejected_outputs" \
+                --argjson helper_timeout_errors "$shadow_helper_timeout_errors" \
                 '{
                     profile: $profile,
                     report_json: $report_json,
@@ -2275,7 +2279,8 @@ for profile_idx in "${!run_profiles[@]}"; do
                         primary_entry_rejected_outputs: $primary_entry_rejected_outputs,
                         alternate_entry_attempts: $alternate_entry_attempts,
                         alternate_entry_accepted_outputs: $alternate_entry_accepted_outputs,
-                        alternate_entry_rejected_outputs: $alternate_entry_rejected_outputs
+                        alternate_entry_rejected_outputs: $alternate_entry_rejected_outputs,
+                        helper_timeout_errors: $helper_timeout_errors
                     }
                 }' >>"$closed_loop_parseability_shadow_profiles_jsonl"
         fi
@@ -3076,6 +3081,7 @@ jq -n \
     --argjson alternate_entry_attempts_total "$closed_loop_parseability_shadow_alternate_entry_attempts_total" \
     --argjson alternate_entry_accepted_outputs_total "$closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" \
     --argjson alternate_entry_rejected_outputs_total "$closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" \
+    --argjson helper_timeout_errors_total "$closed_loop_parseability_shadow_helper_timeout_errors_total" \
     --argjson profiles "$closed_loop_parseability_shadow_profiles_json" \
     '{
         grammar_name: $grammar_name,
@@ -3100,7 +3106,8 @@ jq -n \
             primary_entry_rejected_outputs_total: $primary_entry_rejected_outputs_total,
             alternate_entry_attempts_total: $alternate_entry_attempts_total,
             alternate_entry_accepted_outputs_total: $alternate_entry_accepted_outputs_total,
-            alternate_entry_rejected_outputs_total: $alternate_entry_rejected_outputs_total
+            alternate_entry_rejected_outputs_total: $alternate_entry_rejected_outputs_total,
+            helper_timeout_errors_total: $helper_timeout_errors_total
         },
         profiles: $profiles
     }' >"$closed_loop_parseability_shadow_report_json"
@@ -3314,6 +3321,7 @@ jq -n \
     echo "closed_loop_parseability_shadow_alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total"
     echo "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
     echo "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
+    echo "closed_loop_parseability_shadow_helper_timeout_errors_total: $closed_loop_parseability_shadow_helper_timeout_errors_total"
     echo "closed_loop_parseability_shadow_report_json: $closed_loop_parseability_shadow_report_json"
     echo "declared_identifier_suite_status: $declared_identifier_suite_status"
     echo "declared_identifier_suite_total: $declared_identifier_suite_total"
