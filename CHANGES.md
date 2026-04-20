@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-04-20 - Evaluate selector-only constant parameter overrides in `rtl_frontend`
+### Achievement Summary
+Extended handwritten `rtl_frontend` elaboration so syntax-only parameter overrides no longer fail wholesale when they are actually selector-only constant forms. Ordered and named overrides like `MASK_BITS[HI:LO]` and `MASK_BITS[IDX]` now evaluate through the parent constant-symbol environment, while richer ternary/concat/repeat syntax-only override lanes remain deliberate reject surfaces.
+
+### Scope of Changes
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - `ModuleInstantiation::resolve_parameter_overrides(...)` now attempts selector-only evaluation for:
+    - syntax-only positional overrides
+    - syntax-only named overrides
+  - selector-only evaluation currently covers:
+    - constant signal lookups
+    - constant bit-selects
+    - constant part-selects
+  - concat/repeat and selector-rich expression-text override forms remain syntax-only and still reject during elaboration
+  - mixed ordered/named bookkeeping now stays correct even when a syntax-only selector override succeeds
+  - added focused handwritten tests for:
+    - selector-only ordered parameter override elaboration
+    - selector-only named parameter override elaboration
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added:
+    - `ordered_parameter_override_constant_partselect_eval`
+    - `named_parameter_override_constant_selector_eval`
+  - raised elaboration replay ratchets to:
+    - `58` total samples
+    - `45` accepts
+    - `13` rejects
+    - `19` child-path samples
+    - `37` top-parameter checks
+    - `19` child-parameter checks
+    - `83` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml parameter_overrides`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-20 - Add generate-local typedef/import support to `rtl_frontend`
 ### Achievement Summary
 Extended the handwritten `rtl_frontend` baseline and the generated `rtl_frontend` contract to support branch-local `typedef` and named `import` declarations inside `generate if` bodies, including typed net use and struct-member instance actual replay, while keeping those aliases scoped to the generate body instead of leaking outward.

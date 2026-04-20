@@ -5917,6 +5917,98 @@
       "sample": "module child #(\n    parameter WIDTH = 1,\n    parameter LANES = 2\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nlogic [7:0] bus;\nchild #(8, 2) u_child (bus[3], {2{a}});\nendmodule\n"
     },
     {
+      "label": "ordered_parameter_override_constant_partselect_eval",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "packed_range",
+        "module_instantiation",
+        "parameter_override",
+        "ranged_signal_reference",
+        "port_connection"
+      ],
+      "forbidden_rule_names": [
+        "procedural_block",
+        "generate_region"
+      ],
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter MASK = 0,\n    parameter LANES = 1",
+          "parameter MASK_BITS = 165,\n    parameter HI = 7,\n    parameter LO = 4"
+        ],
+        "port_list": [
+          "input logic [7:0] a,\n    output logic [15:0] y"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[15:0]"
+        ],
+        "ranged_signal_reference": [
+          "MASK_BITS[HI:LO]"
+        ]
+      },
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child #(\n    MASK_BITS[HI:LO],\n    2\n) u_child (\n    .a(a),\n    .y(y)\n);"
+        ],
+        "parameter_override": [
+          "MASK_BITS[HI:LO]",
+          "2"
+        ],
+        "port_connection": [
+          ".a(a)",
+          ".y(y)"
+        ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "top_parameters": {
+          "MASK_BITS": 165,
+          "HI": 7,
+          "LO": 4
+        },
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.u_child",
+            "name": "MASK",
+            "value": 10
+          },
+          {
+            "path": "top.u_child",
+            "name": "LANES",
+            "value": 2
+          }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
+      "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter MASK_BITS = 165,\n    parameter HI = 7,\n    parameter LO = 4\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    MASK_BITS[HI:LO],\n    2\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
       "label": "ordered_parameter_override_ternary_binary_expr",
       "expected_parse_ok": true,
       "require_ast_json": true,
@@ -6201,6 +6293,101 @@
       "expected_parse_ok": false,
       "require_ast_json": false,
       "sample": "module child (\n    input logic [15:0] a,\n    input logic [15:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nchild u_child (\n    SEL ? (a[HI:LO] + d) :,\n    (a[HI:LO] + d) * 2,\n    y\n);\nendmodule\n"
+    },
+    {
+      "label": "named_parameter_override_constant_selector_eval",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "packed_range",
+        "module_instantiation",
+        "parameter_override",
+        "signal_reference",
+        "ranged_signal_reference",
+        "port_connection"
+      ],
+      "forbidden_rule_names": [
+        "procedural_block",
+        "generate_region"
+      ],
+      "required_rule_texts": {
+        "parameter_declaration_sequence": [
+          "parameter MASK = 0,\n    parameter BIT = 0",
+          "parameter MASK_BITS = 165,\n    parameter IDX = 2"
+        ],
+        "port_list": [
+          "input logic [7:0] a,\n    output logic [15:0] y"
+        ],
+        "packed_range": [
+          "[7:0]",
+          "[15:0]"
+        ],
+        "signal_reference": [
+          "MASK_BITS[IDX]"
+        ],
+        "ranged_signal_reference": [
+          "MASK_BITS[7:4]"
+        ]
+      },
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child #(\n    .MASK(MASK_BITS[7:4]),\n    .BIT(MASK_BITS[IDX])\n) u_child (\n    .a(a),\n    .y(y)\n);"
+        ],
+        "parameter_override": [
+          ".MASK(MASK_BITS[7:4])",
+          ".BIT(MASK_BITS[IDX])"
+        ],
+        "port_connection": [
+          ".a(a)",
+          ".y(y)"
+        ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "top_parameters": {
+          "MASK_BITS": 165,
+          "IDX": 2
+        },
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.u_child",
+            "name": "MASK",
+            "value": 10
+          },
+          {
+            "path": "top.u_child",
+            "name": "BIT",
+            "value": 1
+          }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "a"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
+      "sample": "module child #(\n    parameter MASK = 0,\n    parameter BIT = 0\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter MASK_BITS = 165,\n    parameter IDX = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK(MASK_BITS[7:4]),\n    .BIT(MASK_BITS[IDX])\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
     },
     {
       "label": "named_parameter_override_repeat_expr",

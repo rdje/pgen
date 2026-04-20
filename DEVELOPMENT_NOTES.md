@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-20 - `rtl_frontend` now elaborates selector-only syntax parameter overrides
+### Context
+`rtl_frontend` had already widened its parse boundary so selector-rich parameter overrides like:
+- `MASK_BITS[HI:LO]`
+- `MASK_BITS[IDX]`
+- richer ternary/concat/repeat forms
+
+could all parse through the same curated generated contract.
+
+But elaboration still treated every syntax-only override as uniformly non-evaluable, which was too coarse:
+- selector-only constant forms are semantically narrower than ternary/concat/repeat text,
+- the parent constant-symbol environment already has enough information for bit/part-select extraction,
+- and the generated contract had no positive replay sample proving that narrower semantic lane.
+
+### Decision
+- Keep the broad syntax-only parse lane.
+- Add a bounded elaboration-time evaluator for selector-only constant override forms.
+- Do not widen the lane to full selector-rich expression text, concat, or repeat in this slice.
+
+### What Was Changed
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - `resolve_parameter_overrides(...)` now attempts selector-only evaluation before emitting the existing syntax-only rejection
+  - the new helper accepts:
+    - constant signal references
+    - constant bit-selects
+    - constant part-selects
+  - unsupported or non-constant selector forms fall back to the existing syntax-only rejection path
+  - mixed ordered/named override bookkeeping now remains correct even when a syntax-only selector override succeeds
+  - added focused handwritten tests proving:
+    - ordered constant part-select overrides elaborate
+    - named constant part-select / bit-select overrides elaborate
+    - richer syntax-only override lanes still reject
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added:
+    - `ordered_parameter_override_constant_partselect_eval`
+    - `named_parameter_override_constant_selector_eval`
+  - raised the elaboration replay floor to:
+    - `58` total samples
+    - `45` accepts
+    - `13` rejects
+    - `19` child-path samples
+    - `37` top-parameter checks
+    - `19` child-parameter checks
+    - `83` child-port-binding checks
+
+### Boundary Kept Intentionally
+This is not a claim that syntax-only parameter overrides are now fully semantic. The slice is deliberately narrower:
+- accepted now:
+  - `MASK_BITS[HI:LO]`
+  - `MASK_BITS[IDX]`
+- still syntax-only reject surfaces:
+  - concat/repeat overrides
+  - ternary/binary selector-rich expression-text overrides
+  - any selector form whose base or indices are not available as parent constants
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml parameter_overrides`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-20 - `rtl_frontend` now supports generate-local typedef/import declarations with scoped alias visibility
 ### Context
 `rtl_frontend` had already learned how to:

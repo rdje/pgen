@@ -41,7 +41,10 @@ This is a live document, not an archival write-up. It should be amended whenever
       - handwritten `rtl_frontend` parsing now allows those declarations inside `generate` bodies
       - the implementation keeps generate-body alias scope local by snapshotting/restoring `type_aliases` around `parse_generate_body(...)`
       - the generated contract now carries dedicated positive samples for generate-local typedef-backed and generate-local named-import typedef-backed struct-member actuals
-      - elaboration replay minimums now ratchet to `56` total samples, `43` accepts, `13` rejects, `17` child-path samples, `32` top-parameter checks, and `79` child-port-binding checks
+      - selector-only syntax parameter overrides now also have a bounded semantic lane:
+        - ordered constant part-select overrides such as `MASK_BITS[HI:LO]`
+        - named constant selector overrides such as `MASK_BITS[7:4]` and `MASK_BITS[IDX]`
+      - elaboration replay minimums now ratchet to `58` total samples, `45` accepts, `13` rejects, `19` child-path samples, `37` top-parameter checks, `19` child-parameter checks, and `83` child-port-binding checks
     - `expected_rule_texts` in `rtl_frontend_generated_contract_probe` remains the exact full-vector retained-text assertion
     - `required_rule_texts` remains for subset retained-text assertions over recursive rules such as `conditional_expr`, `additive_expr`, `shift_expr`, and `signal_reference`, where the salient span should be proven without freezing every incidental scalar expression subtree
     - the generated contract now tightens `always_ff_well_formed`, `always_star_scalar_if_else_block`, `always_latch_scalar_nonblocking_block`, and `always_latch_unknown_body_identifier_parse_surface` so scalar procedural lanes prove retained port-shell context and selected `signal_reference` evidence around already locked event-control, event-edge, procedural-block, assignment-operator, assignment-target, and procedural keyword spans

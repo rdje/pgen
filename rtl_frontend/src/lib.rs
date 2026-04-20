@@ -1560,6 +1560,7 @@ impl ModuleInstantiation {
                             0,
                         ));
                     }
+                    saw_ordered = true;
                     let Some(target) = parameter_targets.get(ordered_index) else {
                         return Err(FrontendError::new(
                             format!(
@@ -1569,6 +1570,13 @@ impl ModuleInstantiation {
                             0,
                         ));
                     };
+                    if let Some(evaluated) =
+                        try_evaluate_selector_parameter_override(value, parent_symbols)?
+                    {
+                        overrides.insert(target.name.clone(), evaluated);
+                        ordered_index += 1;
+                        continue;
+                    }
                     return Err(FrontendError::new(
                         format!(
                             "cannot evaluate syntax-only positional parameter override {} ('{}') for parameter '{}' on instance '{}'",
@@ -1590,6 +1598,7 @@ impl ModuleInstantiation {
                             0,
                         ));
                     }
+                    saw_named = true;
                     if overrides.contains_key(name) {
                         return Err(FrontendError::new(
                             format!(
@@ -1607,6 +1616,12 @@ impl ModuleInstantiation {
                             ),
                             0,
                         ));
+                    }
+                    if let Some(evaluated) =
+                        try_evaluate_selector_parameter_override(value, parent_symbols)?
+                    {
+                        overrides.insert(name.clone(), evaluated);
+                        continue;
                     }
                     return Err(FrontendError::new(
                         format!(
@@ -2442,6 +2457,59 @@ fn split_signal_suffix(input: &str) -> Result<Option<(String, &str)>, FrontendEr
     }
 
     Ok(Some((signal.to_string(), inner)))
+}
+
+fn try_evaluate_selector_parameter_override(
+    input: &str,
+    symbols: &HashMap<String, i64>,
+) -> Result<Option<i64>, FrontendError> {
+    if input.contains('{') {
+        return Ok(None);
+    }
+
+    let actual = parse_port_actual(input)?;
+    match actual {
+        PortActual::Signal(name) => Ok(symbols.get(&name).copied()),
+        PortActual::BitSelect { signal, index } => {
+            let Some(value) = symbols.get(&signal).copied() else {
+                return Ok(None);
+            };
+            let Ok(index) = index.eval(symbols) else {
+                return Ok(None);
+            };
+            if !(0..=63).contains(&index) {
+                return Ok(None);
+            }
+            Ok(Some((((value as u64) >> (index as u32)) & 1) as i64))
+        }
+        PortActual::PartSelect { signal, msb, lsb } => {
+            let Some(value) = symbols.get(&signal).copied() else {
+                return Ok(None);
+            };
+            let Ok(msb) = msb.eval(symbols) else {
+                return Ok(None);
+            };
+            let Ok(lsb) = lsb.eval(symbols) else {
+                return Ok(None);
+            };
+            let high = msb.max(lsb);
+            let low = msb.min(lsb);
+            if !(0..=63).contains(&low) || !(0..=63).contains(&high) {
+                return Ok(None);
+            }
+            let width = (high - low + 1) as u32;
+            let mask = if width >= 64 {
+                u64::MAX
+            } else {
+                ((1u128 << width) - 1) as u64
+            };
+            Ok(Some((((value as u64) >> (low as u32)) & mask) as i64))
+        }
+        PortActual::Expression(expr) => Ok(expr.eval(symbols).ok()),
+        PortActual::Concat(_) | PortActual::Repeat { .. } | PortActual::ExpressionText(_) => {
+            Ok(None)
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -4491,13 +4559,13 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 56;
-    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 43;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 58;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 45;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 17;
-    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 32;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 79;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 19;
+    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 37;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 19;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 83;
 
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
@@ -6577,6 +6645,136 @@ mod tests {
                             "a".to_string(),
                         )])),
                     }),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn elaborate_top_evaluates_selector_only_ordered_parameter_overrides() {
+        let design = parse_design(
+            r#"
+            module child #(
+                parameter MASK = 0,
+                parameter LANES = 1
+            ) (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            endmodule
+
+            module top #(
+                parameter MASK_BITS = 165,
+                parameter HI = 7,
+                parameter LO = 4
+            ) (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            child #(
+                MASK_BITS[HI:LO],
+                2
+            ) u_child (
+                .a(a),
+                .y(y)
+            );
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("selector-only positional parameter overrides should elaborate");
+
+        assert_eq!(elaborated.parameters.get("MASK_BITS"), Some(&165));
+        assert_eq!(elaborated.parameters.get("HI"), Some(&7));
+        assert_eq!(elaborated.parameters.get("LO"), Some(&4));
+        assert_eq!(elaborated.child_instances.len(), 1);
+        assert_eq!(elaborated.child_instances[0].instance_name, "u_child");
+        assert_eq!(elaborated.child_instances[0].path, "top.u_child");
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("MASK"),
+            Some(&10)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("LANES"),
+            Some(&2)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::Signal("a".to_string())),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::Signal("y".to_string())),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn elaborate_top_evaluates_selector_only_named_parameter_overrides() {
+        let design = parse_design(
+            r#"
+            module child #(
+                parameter MASK = 0,
+                parameter BIT = 0
+            ) (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            endmodule
+
+            module top #(
+                parameter MASK_BITS = 165,
+                parameter IDX = 2
+            ) (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            child #(
+                .MASK(MASK_BITS[7:4]),
+                .BIT(MASK_BITS[IDX])
+            ) u_child (
+                .a(a),
+                .y(y)
+            );
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("selector-only named parameter overrides should elaborate");
+
+        assert_eq!(elaborated.parameters.get("MASK_BITS"), Some(&165));
+        assert_eq!(elaborated.parameters.get("IDX"), Some(&2));
+        assert_eq!(elaborated.child_instances.len(), 1);
+        assert_eq!(elaborated.child_instances[0].instance_name, "u_child");
+        assert_eq!(elaborated.child_instances[0].path, "top.u_child");
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("MASK"),
+            Some(&10)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("BIT"),
+            Some(&1)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::Signal("a".to_string())),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::Signal("y".to_string())),
                 },
             ]
         );

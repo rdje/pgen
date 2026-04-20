@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-20 (+0200, task: target-drive-helper-timeout-telemetry)
+Last updated: 2026-04-20 (+0200, task: rtl_frontend-selector-parameter-overrides)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,45 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Extended `rtl_frontend` elaboration so selector-only syntax parameter overrides can evaluate through parent constant symbols:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - implementation:
+    - `OrderedSyntax(...)` and `NamedSyntax { ... }` parameter overrides now attempt bounded evaluation for:
+      - constant signal references
+      - constant bit-selects
+      - constant part-selects
+    - richer syntax-only ternary/concat/repeat override forms still reject during elaboration
+    - added focused positive handwritten tests for:
+      - ordered constant part-select overrides
+      - named constant selector overrides
+    - added generated-contract samples:
+      - `ordered_parameter_override_constant_partselect_eval`
+      - `named_parameter_override_constant_selector_eval`
+    - elaboration replay floor is now:
+      - `58` total samples
+      - `45` accepts
+      - `13` rejects
+      - `19` child-path samples
+      - `37` top-parameter checks
+      - `19` child-parameter checks
+      - `83` child-port-binding checks
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml parameter_overrides`
+    - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - important continuity detail:
+    - this slice intentionally does not claim full syntax-only parameter-override evaluation
+    - concat/repeat and selector-rich expression-text overrides remain deliberate reject surfaces
 - Extended helper-timeout telemetry into gate-visible artifacts:
   - changed:
     - [rust/scripts/annotation_stimuli_quality_gate.sh](rust/scripts/annotation_stimuli_quality_gate.sh)
