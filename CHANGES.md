@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-04-20 - Support package-qualified selector actuals in `rtl_frontend`
+### Achievement Summary
+Extended the handwritten `rtl_frontend` semantic lane so package-qualified selector roots such as `cfg_pkg::MASK_BITS[7:4]` now survive the same typed actual / bounded selector-override flow as unqualified constant selectors. The same slice also tightened assignment-target validation so package constants remain legal RHS/override inputs but stay illegal LHS targets.
+
+### Scope of Changes
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - widened handwritten signal-path parsing to accept scoped roots of the form:
+    - `identifier`
+    - `pkg::identifier`
+    - `pkg::identifier.member`
+    - `pkg::identifier[IDX]`
+  - package-qualified selector forms now flow through:
+    - `parse_port_actual(...)`
+    - `split_signal_suffix(...)`
+    - bounded selector-only parameter-override evaluation
+  - assignment targets now use dedicated assignable-identifier validation:
+    - visible nets/variables and typed member paths still validate
+    - constant/package-symbol roots such as `cfg_pkg::MASK_BITS` now reject as assignment targets
+  - added focused handwritten tests for:
+    - package-qualified selector actual plus parameter-override elaboration
+    - package-constant assignment-target rejection
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added:
+    - `package_qualified_constant_selector_parameter_override_flow`
+  - the curated generated/handwritten manifest now stands at `125` total samples
+  - raised elaboration replay ratchets to:
+    - `59` total samples
+    - `46` accepts
+    - `13` rejects
+    - `20` child-path samples
+    - `37` top-parameter checks
+    - `21` child-parameter checks
+    - `85` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml package_qualified`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml selector_only`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml package_constant_assignment_targets`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+
 ## 2026-04-20 - Evaluate selector-only constant parameter overrides in `rtl_frontend`
 ### Achievement Summary
 Extended handwritten `rtl_frontend` elaboration so syntax-only parameter overrides no longer fail wholesale when they are actually selector-only constant forms. Ordered and named overrides like `MASK_BITS[HI:LO]` and `MASK_BITS[IDX]` now evaluate through the parent constant-symbol environment, while richer ternary/concat/repeat syntax-only override lanes remain deliberate reject surfaces.

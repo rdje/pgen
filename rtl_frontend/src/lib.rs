@@ -1247,14 +1247,14 @@ impl AssignmentTarget {
     ) -> Result<(), FrontendError> {
         match self {
             AssignmentTarget::Signal(name) => {
-                validate_known_identifier(name, visible_names, visible_types, symbols)
+                validate_assignable_identifier(name, visible_names, visible_types, symbols)
             }
             AssignmentTarget::BitSelect { signal, index } => {
-                validate_known_identifier(signal, visible_names, visible_types, symbols)?;
+                validate_assignable_identifier(signal, visible_names, visible_types, symbols)?;
                 validate_expr_identifiers(index, visible_names, visible_types, symbols)
             }
             AssignmentTarget::PartSelect { signal, msb, lsb } => {
-                validate_known_identifier(signal, visible_names, visible_types, symbols)?;
+                validate_assignable_identifier(signal, visible_names, visible_types, symbols)?;
                 validate_expr_identifiers(msb, visible_names, visible_types, symbols)?;
                 validate_expr_identifiers(lsb, visible_names, visible_types, symbols)
             }
@@ -1961,6 +1961,37 @@ fn validate_known_identifier(
     ))
 }
 
+fn validate_assignable_identifier(
+    name: &str,
+    visible_names: &HashSet<String>,
+    visible_types: &HashMap<String, DeclType>,
+    symbols: &HashMap<String, i64>,
+) -> Result<(), FrontendError> {
+    let root = identifier_root(name);
+    if visible_names.contains(name) || visible_names.contains(root) {
+        return validate_known_identifier(name, visible_names, visible_types, symbols);
+    }
+
+    if let Some(result) = validate_typed_signal_path(name, visible_names, visible_types, symbols) {
+        return result;
+    }
+
+    if symbols.contains_key(name) || symbols.contains_key(root) {
+        return Err(FrontendError::new(
+            format!(
+                "cannot assign to constant parent-scope identifier '{}'",
+                name
+            ),
+            0,
+        ));
+    }
+
+    Err(FrontendError::new(
+        format!("unknown parent-scope identifier '{}'", name),
+        0,
+    ))
+}
+
 fn validate_expr_identifiers(
     expr: &Expr,
     visible_names: &HashSet<String>,
@@ -2530,11 +2561,9 @@ fn parse_signal_path(input: &str) -> Result<Option<SignalPath>, FrontendError> {
         return Ok(None);
     }
 
-    let mut cursor = 0usize;
-    let Some((root, next)) = parse_signal_identifier_segment(trimmed, cursor) else {
+    let Some((root, mut cursor)) = parse_scoped_signal_root(trimmed)? else {
         return Ok(None);
     };
-    cursor = next;
     let mut ops = Vec::new();
 
     while cursor < trimmed.len() {
@@ -2561,10 +2590,29 @@ fn parse_signal_path(input: &str) -> Result<Option<SignalPath>, FrontendError> {
         return Ok(None);
     }
 
-    Ok(Some(SignalPath {
-        root: root.to_string(),
-        ops,
-    }))
+    Ok(Some(SignalPath { root, ops }))
+}
+
+fn parse_scoped_signal_root(input: &str) -> Result<Option<(String, usize)>, FrontendError> {
+    let Some((first, mut cursor)) = parse_signal_identifier_segment(input, 0) else {
+        return Ok(None);
+    };
+
+    let mut root = first.to_string();
+    while input[cursor..].starts_with("::") {
+        cursor += 2;
+        let Some((segment, next)) = parse_signal_identifier_segment(input, cursor) else {
+            return Err(FrontendError::new(
+                format!("expected scope segment in signal path '{}'", input),
+                cursor,
+            ));
+        };
+        root.push_str("::");
+        root.push_str(segment);
+        cursor = next;
+    }
+
+    Ok(Some((root, cursor)))
 }
 
 fn parse_signal_identifier_segment(input: &str, start: usize) -> Option<(&str, usize)> {
@@ -4559,13 +4607,13 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 58;
-    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 45;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 59;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 46;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 19;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 20;
     const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 37;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 19;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 83;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 21;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 85;
 
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
@@ -5986,6 +6034,72 @@ mod tests {
     }
 
     #[test]
+    fn elaborate_top_supports_package_qualified_selector_actuals_and_parameter_overrides() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                localparam MASK_BITS = 165;
+            endpackage
+
+            module child #(
+                parameter MASK = 0,
+                parameter BIT = 0
+            ) (
+                input logic [3:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            child #(
+                .MASK(cfg_pkg::MASK_BITS[7:4]),
+                .BIT(cfg_pkg::MASK_BITS[2])
+            ) u_child (
+                .a(cfg_pkg::MASK_BITS[7:4]),
+                .y(y)
+            );
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("package-qualified selector actuals and overrides should elaborate");
+
+        assert_eq!(elaborated.child_instances.len(), 1);
+        assert_eq!(elaborated.child_instances[0].instance_name, "u_child");
+        assert_eq!(elaborated.child_instances[0].path, "top.u_child");
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("MASK"),
+            Some(&10)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("BIT"),
+            Some(&1)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some(PortActual::PartSelect {
+                        signal: "cfg_pkg::MASK_BITS".to_string(),
+                        msb: rtl_const_expr::parse_expression("7").unwrap(),
+                        lsb: rtl_const_expr::parse_expression("4").unwrap(),
+                    }),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some(PortActual::Signal("y".to_string())),
+                },
+            ]
+        );
+    }
+
+    #[test]
     fn elaborate_top_supports_header_imported_package_constants() {
         let design = parse_design(
             r#"
@@ -6777,6 +6891,34 @@ mod tests {
                     actual: Some(PortActual::Signal("y".to_string())),
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_package_constant_assignment_targets() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                localparam MASK_BITS = 165;
+            endpackage
+
+            module top (
+                input logic d
+            );
+            assign cfg_pkg::MASK_BITS[0] = d;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let err = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("package constant assignment targets should reject");
+
+        assert!(
+            err.to_string()
+                .contains("cannot assign to constant parent-scope identifier 'cfg_pkg::MASK_BITS'"),
+            "unexpected error: {err}"
         );
     }
 

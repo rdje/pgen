@@ -6390,6 +6390,107 @@
       "sample": "module child #(\n    parameter MASK = 0,\n    parameter BIT = 0\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter MASK_BITS = 165,\n    parameter IDX = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK(MASK_BITS[7:4]),\n    .BIT(MASK_BITS[IDX])\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
     },
     {
+      "label": "package_qualified_constant_selector_parameter_override_flow",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "parameter_declaration_statement",
+        "parameter_declaration_sequence",
+        "parameter_declaration_head",
+        "kw_localparam",
+        "module_declaration",
+        "port_list",
+        "packed_range",
+        "module_instantiation",
+        "parameter_override",
+        "signal_reference",
+        "ranged_signal_reference",
+        "port_connection",
+        "scoped_identifier"
+      ],
+      "forbidden_rule_names": [
+        "procedural_block",
+        "generate_region"
+      ],
+      "required_rule_texts": {
+        "parameter_declaration_statement": [
+          "localparam MASK_BITS = 165;"
+        ],
+        "parameter_declaration_head": [
+          "localparam MASK_BITS = 165",
+          "parameter MASK = 0"
+        ],
+        "port_list": [
+          "input logic [3:0] a,\n    output logic y",
+          "output logic y"
+        ],
+        "packed_range": [
+          "[3:0]"
+        ],
+        "signal_reference": [
+          "cfg_pkg::MASK_BITS[2]"
+        ],
+        "ranged_signal_reference": [
+          "cfg_pkg::MASK_BITS[7:4]"
+        ]
+      },
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child #(\n    .MASK(cfg_pkg::MASK_BITS[7:4]),\n    .BIT(cfg_pkg::MASK_BITS[2])\n) u_child (\n    .a(cfg_pkg::MASK_BITS[7:4]),\n    .y(y)\n);"
+        ],
+        "parameter_override": [
+          ".MASK(cfg_pkg::MASK_BITS[7:4])",
+          ".BIT(cfg_pkg::MASK_BITS[2])"
+        ],
+        "port_connection": [
+          ".a(cfg_pkg::MASK_BITS[7:4])",
+          ".y(y)"
+        ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "child_paths": [
+          "top.u_child"
+        ],
+        "child_parameters": [
+          {
+            "path": "top.u_child",
+            "name": "MASK",
+            "value": 10
+          },
+          {
+            "path": "top.u_child",
+            "name": "BIT",
+            "value": 1
+          }
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "part_select",
+              "signal": "cfg_pkg::MASK_BITS",
+              "msb": "7",
+              "lsb": "4"
+            }
+          },
+          {
+            "path": "top.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
+      "sample": "package cfg_pkg;\n    localparam MASK_BITS = 165;\nendpackage\n\nmodule child #(\n    parameter MASK = 0,\n    parameter BIT = 0\n) (\n    input logic [3:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nchild #(\n    .MASK(cfg_pkg::MASK_BITS[7:4]),\n    .BIT(cfg_pkg::MASK_BITS[2])\n) u_child (\n    .a(cfg_pkg::MASK_BITS[7:4]),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
       "label": "named_parameter_override_repeat_expr",
       "expected_parse_ok": true,
       "require_ast_json": true,

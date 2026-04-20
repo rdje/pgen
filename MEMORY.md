@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-20 (+0200, task: rtl_frontend-selector-parameter-overrides)
+Last updated: 2026-04-20 (+0200, task: rtl_frontend-package-qualified-selector-actuals)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,46 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Extended `rtl_frontend` so package-qualified constant selectors now survive the handwritten semantic lane while package constants stay illegal assignment targets:
+  - changed:
+    - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - implementation:
+    - handwritten signal-path parsing now accepts scoped roots such as `cfg_pkg::MASK_BITS`
+    - package-qualified selector actuals now classify as structured signal/bit/part-select forms instead of falling back to opaque syntax text
+    - bounded selector-only parameter-override evaluation now also works for package-qualified constant roots
+    - assignment targets now use dedicated assignable-identifier validation so package/global constant roots reject cleanly on the LHS
+    - added focused handwritten tests for:
+      - package-qualified selector actual plus parameter-override elaboration
+      - package-constant assignment-target rejection
+    - added generated-contract sample:
+      - `package_qualified_constant_selector_parameter_override_flow`
+    - curated generated/handwritten manifest size is now `125` samples
+    - elaboration replay floor is now:
+      - `59` total samples
+      - `46` accepts
+      - `13` rejects
+      - `20` child-path samples
+      - `37` top-parameter checks
+      - `21` child-parameter checks
+      - `85` child-port-binding checks
+  - validation:
+    - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml package_qualified`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml selector_only`
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml package_constant_assignment_targets`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+  - important continuity detail:
+    - this slice intentionally widens value-side/package-constant selector handling, not assignment-side constant mutability
+    - `rtl_frontend` still treats package/global constant roots as illegal assignment targets even though the same roots are now valid RHS actuals and bounded selector-only overrides
 - Extended `rtl_frontend` elaboration so selector-only syntax parameter overrides can evaluate through parent constant symbols:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

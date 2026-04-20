@@ -1,4 +1,67 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-20 - `rtl_frontend` now carries package-qualified selector roots through the semantic lane
+### Context
+The previous selector-only parameter-override slice only closed unqualified constant selectors such as:
+- `MASK_BITS[HI:LO]`
+- `MASK_BITS[IDX]`
+
+The next bounded seam was obvious in hindsight:
+- `rtl_const_expr` already understands package-qualified identifiers like `cfg_pkg::MASK_BITS`,
+- the generated `rtl_frontend` grammar already admits `scoped_identifier` roots,
+- but the handwritten semantic helpers still only recognized plain identifier roots when classifying signal paths and selector suffixes.
+
+That meant package-qualified constant selectors could parse through the generated contract yet still miss the handwritten semantic lane in places where they should have been straightforwardly legal.
+
+### Decision
+- Widen the handwritten signal-path helper to accept scoped `pkg::NAME` roots.
+- Use that widening for value-side surfaces:
+  - port actual classification
+  - selector-only constant parameter-override evaluation
+- Do not let that widening silently authorize package constants as assignment targets.
+
+### What Was Changed
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - `parse_signal_path(...)` now accepts scoped roots before member/index operators
+  - package-qualified selector actuals such as `cfg_pkg::MASK_BITS[7:4]` now classify as structured `PortActual::PartSelect`
+  - package-qualified selector-only overrides now elaborate through the existing bounded constant-selector evaluator
+  - `AssignmentTarget::validate(...)` no longer reuses the fully permissive RHS identifier check
+  - new assignable-identifier validation keeps:
+    - visible nets/variables and typed member paths legal
+    - package/global constant roots illegal on the LHS
+  - added focused handwritten tests proving:
+    - package-qualified selector actual plus parameter-override elaboration
+    - package-constant assignment-target rejection
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added:
+    - `package_qualified_constant_selector_parameter_override_flow`
+  - manifest size is now `125` curated samples
+  - elaboration replay floor is now:
+    - `59` total samples
+    - `46` accepts
+    - `13` rejects
+    - `20` child-path samples
+    - `37` top-parameter checks
+    - `21` child-parameter checks
+    - `85` child-port-binding checks
+
+### Boundary Kept Intentionally
+This is still a semantic-lane widening, not a claim that `rtl_frontend` now accepts arbitrary parent-scope lvalues:
+- accepted now:
+  - package-qualified selector actuals on the RHS
+  - package-qualified selector-only parameter overrides
+- still rejected:
+  - assignment targets rooted at package/global constants
+  - richer syntax-only override text that needs more than bounded selector extraction
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rtl_frontend/Cargo.toml`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml package_qualified`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml selector_only`
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml package_constant_assignment_targets`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings`
+
 ## 2026-04-20 - `rtl_frontend` now elaborates selector-only syntax parameter overrides
 ### Context
 `rtl_frontend` had already widened its parse boundary so selector-rich parameter overrides like:
