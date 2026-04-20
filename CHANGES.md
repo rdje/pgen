@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-04-20 - Surface helper timeouts as explicit target-drive telemetry
+### Achievement Summary
+Promoted helper-only timeout containment from "visible if you read low trace carefully" to a first-class target-drive metric across summaries, parseability reports, and stimuli corpus bundles.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `helper_timeout_errors` to:
+    - `TargetDriveSummary`
+    - `TargetDriveValidationSummary`
+  - target-driven progress and completion traces now report:
+    - `helper_timeout_errors`
+  - target-driven summary lines now report:
+    - `helper_timeout_errors`
+  - helper timeout detection now uses the dedicated helper-timeout error prefix instead of forcing downstream surfaces to infer timeout counts from generic generation-error totals
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - `TargetDriveParseabilityTelemetry` now preserves:
+    - `helper_timeout_errors`
+  - parseability report JSON now serializes that same counter under:
+    - `target_drive_validation.helper_timeout_errors`
+  - stimuli corpus bundle JSON now preserves the same target-drive helper-timeout telemetry for replay/audit consumers
+- Updated tracked docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Why This Matters
+The previous timeout-containment slice made heavy helper probes bounded, but the resulting timeout counts still lived mostly inside low trace and generic `generation_errors`. After this change:
+- operator-visible target-drive summaries distinguish helper-budget expirations from other generation failures,
+- validator-backed parseability reports preserve the same counter directly,
+- corpus bundles keep the same fact for later replay/audit tooling.
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml --lib target_drive_summary_reports_helper_timeout_errors`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline target_drive_parseability_telemetry_splits_primary_and_alternate_entries`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parseability_report_serializes_target_drive_validation_when_present`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_corpus_bundle_preserves_target_drive_helper_timeout_telemetry`
+
 ## 2026-04-19 - Bound heavy pending-frontier helper probes with a helper-only timeout
 ### Achievement Summary
 Landed the missing containment for the immediate-unlock pending-frontier lane: alternate helper probes now run under a bounded per-helper wall-clock budget instead of being able to monopolize target-driven replay indefinitely.

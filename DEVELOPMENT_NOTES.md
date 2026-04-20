@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-20 - Helper-only timeout counts are now explicit replay telemetry
+### Context
+The helper-timeout containment slice was operationally correct, but one diagnostic gap remained:
+- low trace showed when helper budgets fired,
+- generic `generation_errors` counted those failures,
+- but target-drive summaries and machine-readable parseability surfaces did not say which generation errors were specifically helper-budget expirations.
+
+That meant future replay triage still had to infer too much from logs.
+
+### Decision
+- Promote helper timeouts into explicit target-drive telemetry.
+- Keep the vocabulary consistent across:
+  - plain target-driven summaries,
+  - validation-aware target-driven summaries,
+  - parseability report JSON,
+  - stimuli corpus bundles.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `helper_timeout_errors` to:
+    - `TargetDriveSummary`
+    - `TargetDriveValidationSummary`
+  - target-drive progress/completion trace now reports:
+    - `helper_timeout_errors`
+  - `TargetDriveSummary::summary_line()` now reports:
+    - `helper_timeout_errors`
+  - helper-timeout classification is now centralized through the dedicated timeout error prefix
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - `TargetDriveParseabilityTelemetry` now preserves:
+    - `helper_timeout_errors`
+  - parseability report serialization now keeps:
+    - `target_drive_validation.helper_timeout_errors`
+  - stimuli corpus bundle serialization now preserves the same field
+
+### Practical Effect
+- replay operators no longer have to guess whether a jump in `generation_errors` came from helper budgets or from unrelated generation failures
+- validator-backed replay reports now preserve the same distinction
+- corpus exports now retain the same distinction for later audit/promotion tooling
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml --lib target_drive_summary_reports_helper_timeout_errors`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline target_drive_parseability_telemetry_splits_primary_and_alternate_entries`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parseability_report_serializes_target_drive_validation_when_present`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_corpus_bundle_preserves_target_drive_helper_timeout_telemetry`
+
 ## 2026-04-19 - Heavy pending-frontier replay now has helper-only timeout containment
 ### Context
 The previous measurement answered the selector question but exposed the missing operational control:

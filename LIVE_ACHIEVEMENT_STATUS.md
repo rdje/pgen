@@ -1,6 +1,6 @@
 # Live Achievement Status
 
-Last updated: 2026-04-19
+Last updated: 2026-04-20
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -28,6 +28,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-04-20): helper-only timeout containment is now machine-auditable across the target-drive surfaces without changing any live parser-family label. [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) now carries `helper_timeout_errors` in both `TargetDriveSummary` and `TargetDriveValidationSummary`, and target-drive progress/completion traces plus summary lines now report that counter directly instead of forcing replay triage to infer timeout counts from generic `generation_errors`. [rust/src/main.rs](rust/src/main.rs) now preserves the same `helper_timeout_errors` fact in `TargetDriveParseabilityTelemetry`, so validator-backed parseability reports and stimuli corpus bundles retain helper-budget expirations as first-class replay telemetry. Status stays unchanged across all live rows because this is observability/continuity hardening over the existing helper-timeout containment lane, not a proof refresh.
 
 Tracker note (2026-04-19): the heavy pending-frontier replay lane now has bounded helper-only timeout containment without changing any live parser-family label. [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) now carries `target_helper_generation_timeout_ms` in `StimuliConfig`, defaulting to `1000ms` for alternate helper entries only, while [rust/src/main.rs](rust/src/main.rs) now exposes `--target-helper-generation-timeout-ms`, [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh) now accepts `PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS`, helper-ranking low trace now reports `helper_timeout_ms`, and stimuli corpus bundle metadata now records the configured helper budget. Reusing the same focused `sv_2017` immediate-unlock replay (`target_pending_frontier_extra_stagnation=0`) now no longer requires manual termination: the retained 128-attempt probe completed at `970/2593` with `1623` unresolved, `121` generation successes, and `7` bounded `property_expr_sv_2017` helper timeouts. Status stays unchanged across all live rows because this is replay-containment infrastructure and focused evidence, not a proof refresh.
 

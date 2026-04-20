@@ -1873,6 +1873,11 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
           - `sv_stimuli_quality_gate` accepts `PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS`
           - helper-ranking trace now reports `helper_timeout_ms`
           - stimuli corpus bundle generation metadata now preserves the configured helper budget
+        - that helper budget is now also surfaced as explicit replay telemetry instead of only low-trace evidence:
+          - `TargetDriveSummary` carries `helper_timeout_errors`
+          - `TargetDriveValidationSummary` carries `helper_timeout_errors`
+          - target-drive progress/completion lines now print `helper_timeout_errors`
+          - `TargetDriveParseabilityTelemetry` preserves the same counter for parseability report JSON and stimuli corpus bundles
         - that same immediate-unlock focused repro now completes instead of wedging:
           - retained 128-attempt heavy replay finished at `970/2593`
           - the `7` generation errors are bounded `property_expr_sv_2017` helper timeouts

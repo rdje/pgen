@@ -479,6 +479,7 @@ struct TargetDriveParseabilityTelemetry {
     alternate_entry_accepted_outputs: usize,
     alternate_entry_rejected_outputs: usize,
     alternate_entry_acceptance_rate_percent: f64,
+    helper_timeout_errors: usize,
 }
 
 impl TargetDriveParseabilityTelemetry {
@@ -506,6 +507,7 @@ impl TargetDriveParseabilityTelemetry {
                 summary.alternate_entry_accepted_outputs,
                 summary.alternate_entry_attempts,
             ),
+            helper_timeout_errors: summary.helper_timeout_errors,
         }
     }
 }
@@ -3226,6 +3228,7 @@ mod tests {
                 alternate_entry_attempts: 5,
                 alternate_entry_accepted_outputs: 2,
                 alternate_entry_rejected_outputs: 3,
+                helper_timeout_errors: 2,
             });
 
         assert_eq!(telemetry.primary_entry_attempts, 4);
@@ -3236,6 +3239,7 @@ mod tests {
         assert_eq!(telemetry.alternate_entry_accepted_outputs, 2);
         assert_eq!(telemetry.alternate_entry_rejected_outputs, 3);
         assert!((telemetry.alternate_entry_acceptance_rate_percent - 40.0).abs() < f64::EPSILON);
+        assert_eq!(telemetry.helper_timeout_errors, 2);
     }
 
     #[test]
@@ -3251,6 +3255,7 @@ mod tests {
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 6,
             alternate_entry_acceptance_rate_percent: 100.0 / 7.0,
+            helper_timeout_errors: 5,
         };
 
         write_parseability_report(
@@ -3302,8 +3307,70 @@ mod tests {
                 .as_f64()
                 .expect("alternate entry rate should be present");
         assert!((alternate_rate - (100.0 / 7.0)).abs() < 1e-9);
+        assert_eq!(
+            report_value["target_drive_validation"]["helper_timeout_errors"].as_u64(),
+            Some(5)
+        );
 
         std::fs::remove_file(&path).expect("temporary parseability report should be removable");
+    }
+
+    #[test]
+    fn stimuli_corpus_bundle_preserves_target_drive_helper_timeout_telemetry() {
+        let config = StimuliConfig::default();
+        let coverage = StimuliCoverageMetrics {
+            grammar_name: "regex".to_string(),
+            total_rules: 0,
+            total_branch_groups: 0,
+            total_branches: 0,
+            sample_attempts: 0,
+            sample_successes: 0,
+            sample_errors: 0,
+            rule_success_hits: HashMap::new(),
+            branch_groups: HashMap::new(),
+        };
+        let validation = TargetDriveParseabilityTelemetry {
+            primary_entry_attempts: 4,
+            primary_entry_accepted_outputs: 3,
+            primary_entry_rejected_outputs: 1,
+            primary_entry_acceptance_rate_percent: 75.0,
+            alternate_entry_attempts: 9,
+            alternate_entry_accepted_outputs: 2,
+            alternate_entry_rejected_outputs: 7,
+            alternate_entry_acceptance_rate_percent: 200.0 / 9.0,
+            helper_timeout_errors: 3,
+        };
+
+        let bundle = build_stimuli_corpus_bundle(
+            "regex",
+            Some("regex_default"),
+            "generate_stimuli",
+            "target_report",
+            "regex",
+            1,
+            Some(1),
+            Some(1),
+            &config,
+            true,
+            Some(50),
+            0,
+            None,
+            direct_bundle_samples(&["a".to_string()]),
+            &coverage,
+            Some(&ParseabilitySummary::from_filter(4, 3, 1)),
+            Some(&validation),
+            &[],
+            None,
+        );
+
+        assert_eq!(
+            bundle
+                .target_drive_validation
+                .as_ref()
+                .expect("target-drive validation should be preserved")
+                .helper_timeout_errors,
+            3
+        );
     }
 
     #[test]

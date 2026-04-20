@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-19 (+0200, task: sv-heavy-pending-frontier-timeout-containment)
+Last updated: 2026-04-20 (+0200, task: target-drive-helper-timeout-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Surfaced helper-only timeout counts as first-class replay telemetry:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - `TargetDriveSummary` now records `helper_timeout_errors`
+    - `TargetDriveValidationSummary` now records `helper_timeout_errors`
+    - target-drive progress/completion traces and summary lines now print `helper_timeout_errors`
+    - parseability report JSON now preserves `target_drive_validation.helper_timeout_errors`
+    - stimuli corpus bundles now preserve the same helper-timeout counter
+  - important continuity detail:
+    - helper-budget expirations are no longer inferred from low trace or generic `generation_errors`
+    - future replay triage should use the explicit `helper_timeout_errors` field first
 - Landed helper-only timeout containment for the heavy pending-frontier replay lane:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
