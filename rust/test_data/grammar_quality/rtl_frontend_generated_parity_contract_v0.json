@@ -4032,6 +4032,185 @@
       "sample": "module top #(\n    parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2\n) (\n    output logic y\n);\ngenerate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\nendgenerate\nendmodule\n"
     },
     {
+      "label": "generate_if_local_typedef_struct_member_actual",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "generate_region",
+        "generate_if",
+        "generate_body",
+        "typedef_declaration",
+        "named_data_type",
+        "net_declaration",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "generate_for",
+        "continuous_assign",
+        "procedural_block",
+        "package_declaration",
+        "import_declaration"
+      ],
+      "expected_rule_texts": {
+        "generate_if": [
+          "if (SEL) begin : gen_typed\n        typedef struct packed {\n            logic [7:0] data;\n            logic valid;\n        } cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end"
+        ],
+        "generate_body": [
+          "begin : gen_typed\n        typedef struct packed {\n            logic [7:0] data;\n            logic valid;\n        } cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end"
+        ],
+        "typedef_declaration": [
+          "typedef struct packed {\n            logic [7:0] data;\n            logic valid;\n        } cfg_t;"
+        ],
+        "named_data_type": [
+          "cfg_t"
+        ],
+        "net_declaration": [
+          "cfg_t cfg;"
+        ],
+        "module_instantiation": [
+          "child u_child (.a(cfg.data), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(cfg.data), .y(y))"
+        ],
+        "port_connection": [
+          ".a(cfg.data)",
+          ".y(y)"
+        ],
+        "signal_reference": [
+          "SEL",
+          "cfg.data",
+          "y"
+        ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "top_parameters": {
+          "SEL": 1
+        },
+        "child_paths": [
+          "top.gen_typed.u_child"
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.gen_typed.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "cfg.data"
+            }
+          },
+          {
+            "path": "top.gen_typed.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
+      "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    output logic y\n);\ngenerate\n    if (SEL) begin : gen_typed\n        typedef struct packed {\n            logic [7:0] data;\n            logic valid;\n        } cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end\nendgenerate\nendmodule\n"
+    },
+    {
+      "label": "generate_if_local_imported_typedef_struct_member_actual",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "typedef_declaration",
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "generate_region",
+        "generate_if",
+        "generate_body",
+        "import_declaration",
+        "named_data_type",
+        "net_declaration",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "generate_for",
+        "continuous_assign",
+        "procedural_block",
+        "package_qualified_type"
+      ],
+      "expected_rule_texts": {
+        "generate_if": [
+          "if (SEL) begin : gen_typed\n        import cfg_pkg::cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end"
+        ],
+        "generate_body": [
+          "begin : gen_typed\n        import cfg_pkg::cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end"
+        ],
+        "import_declaration": [
+          "import cfg_pkg::cfg_t;"
+        ],
+        "named_data_type": [
+          "cfg_t"
+        ],
+        "net_declaration": [
+          "cfg_t cfg;"
+        ],
+        "module_instantiation": [
+          "child u_child (.a(cfg.data), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(cfg.data), .y(y))"
+        ],
+        "port_connection": [
+          ".a(cfg.data)",
+          ".y(y)"
+        ],
+        "signal_reference": [
+          "SEL",
+          "cfg.data",
+          "y"
+        ]
+      },
+      "expected_elaboration": {
+        "top": "top",
+        "ok": true,
+        "child_instance_count": 1,
+        "top_parameters": {
+          "SEL": 1
+        },
+        "child_paths": [
+          "top.gen_typed.u_child"
+        ],
+        "child_port_bindings": [
+          {
+            "path": "top.gen_typed.u_child",
+            "port": "a",
+            "actual": {
+              "kind": "signal",
+              "name": "cfg.data"
+            }
+          },
+          {
+            "path": "top.gen_typed.u_child",
+            "port": "y",
+            "actual": {
+              "kind": "signal",
+              "name": "y"
+            }
+          }
+        ]
+      },
+      "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    output logic y\n);\ngenerate\n    if (SEL) begin : gen_typed\n        import cfg_pkg::cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end\nendgenerate\nendmodule\n"
+    },
+    {
       "label": "generate_if_named_port_trailing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,

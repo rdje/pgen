@@ -49,6 +49,8 @@ generate_region := kw_generate generate_item* kw_endgenerate
 
 @branch_policy: priority_first
 generate_item := parameter_declaration_statement
+               | import_declaration
+               | typedef_declaration
                | genvar_declaration
                | module_instantiation
                | net_declaration

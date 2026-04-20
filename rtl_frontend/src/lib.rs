@@ -3112,21 +3112,9 @@ impl<'a> Parser<'a> {
             return self.parse_parameter_items();
         }
         if self.peek_keyword("import") {
-            if allow_generate_constructs {
-                return Err(FrontendError::new(
-                    "import declarations inside generate bodies are not yet supported",
-                    self.current().start,
-                ));
-            }
             return Ok(vec![ModuleItem::ImportDecl(self.parse_import_decl()?)]);
         }
         if self.peek_keyword("typedef") {
-            if allow_generate_constructs {
-                return Err(FrontendError::new(
-                    "typedef declarations inside generate bodies are not yet supported",
-                    self.current().start,
-                ));
-            }
             return Ok(vec![ModuleItem::TypedefDecl(self.parse_typedef_decl()?)]);
         }
         if self.peek_keyword("genvar") {
@@ -3843,6 +3831,15 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_generate_body(&mut self) -> Result<(Option<String>, Vec<ModuleItem>), FrontendError> {
+        let saved_type_aliases = self.type_aliases.clone();
+        let result = self.parse_generate_body_inner();
+        self.type_aliases = saved_type_aliases;
+        result
+    }
+
+    fn parse_generate_body_inner(
+        &mut self,
+    ) -> Result<(Option<String>, Vec<ModuleItem>), FrontendError> {
         if self.consume_keyword("begin") {
             let label = self.parse_optional_label()?;
             let mut items = Vec::new();
@@ -4494,13 +4491,13 @@ mod tests {
         },
     }
 
-    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 54;
-    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 41;
+    const MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 56;
+    const MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 43;
     const MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 15;
-    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 30;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 17;
+    const MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 32;
     const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15;
-    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 75;
+    const MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 79;
 
     fn load_generated_contract_manifest() -> GeneratedContractManifest {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
@@ -5554,6 +5551,156 @@ mod tests {
             }
             other => panic!("expected net declaration, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn parse_design_supports_generate_local_typedefs() {
+        let design = parse_design(
+            r#"
+            module top #(
+                parameter SEL = 1
+            ) (
+                output logic y
+            );
+            generate
+                if (SEL) begin : gen_typed
+                    typedef struct packed {
+                        logic [7:0] data;
+                        logic valid;
+                    } cfg_t;
+                    cfg_t cfg;
+                end
+            endgenerate
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        match &design.modules[0].items[0] {
+            ModuleItem::GenerateRegion(generate_region) => {
+                let generate_if = match &generate_region.items[0] {
+                    ModuleItem::GenerateIf(generate_if) => generate_if,
+                    other => panic!("expected generate-if inside generate region, got {other:?}"),
+                };
+                assert_eq!(generate_if.then_label.as_deref(), Some("gen_typed"));
+                match &generate_if.then_items[0] {
+                    ModuleItem::TypedefDecl(typedef_decl) => {
+                        assert_eq!(typedef_decl.name, "cfg_t");
+                        match &typedef_decl.data_type {
+                            DataType::Struct { packed, fields } => {
+                                assert!(*packed);
+                                assert_eq!(fields.len(), 2);
+                            }
+                            other => {
+                                panic!("expected generate-local typedef struct, got {other:?}")
+                            }
+                        }
+                    }
+                    other => panic!("expected generate-local typedef declaration, got {other:?}"),
+                }
+                match &generate_if.then_items[1] {
+                    ModuleItem::NetDecl(net) => match net.data_type.as_ref() {
+                        Some(DataType::Struct { fields, .. }) => {
+                            assert_eq!(fields[0].names, vec!["data".to_string()]);
+                            assert_eq!(fields[1].names, vec!["valid".to_string()]);
+                        }
+                        other => panic!(
+                            "expected resolved generate-local typedef-backed net type, got {other:?}"
+                        ),
+                    },
+                    other => panic!("expected generate-local net declaration, got {other:?}"),
+                }
+            }
+            other => panic!("expected generate region item, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_design_supports_generate_local_imported_typedefs() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                typedef struct packed {
+                    logic [7:0] data;
+                    logic valid;
+                } cfg_t;
+            endpackage
+
+            module top #(
+                parameter SEL = 1
+            ) (
+                output logic y
+            );
+            generate
+                if (SEL) begin : gen_typed
+                    import cfg_pkg::cfg_t;
+                    cfg_t cfg;
+                end
+            endgenerate
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        match &design.modules[0].items[0] {
+            ModuleItem::GenerateRegion(generate_region) => {
+                let generate_if = match &generate_region.items[0] {
+                    ModuleItem::GenerateIf(generate_if) => generate_if,
+                    other => panic!("expected generate-if inside generate region, got {other:?}"),
+                };
+                assert_eq!(generate_if.then_label.as_deref(), Some("gen_typed"));
+                match &generate_if.then_items[0] {
+                    ModuleItem::ImportDecl(import_decl) => {
+                        assert_eq!(import_decl.package, "cfg_pkg");
+                        assert_eq!(import_decl.imported_name.as_deref(), Some("cfg_t"));
+                        assert!(!import_decl.wildcard);
+                    }
+                    other => panic!("expected generate-local import declaration, got {other:?}"),
+                }
+                match &generate_if.then_items[1] {
+                    ModuleItem::NetDecl(net) => match net.data_type.as_ref() {
+                        Some(DataType::Struct { fields, .. }) => {
+                            assert_eq!(fields[0].names, vec!["data".to_string()]);
+                            assert_eq!(fields[1].names, vec!["valid".to_string()]);
+                        }
+                        other => panic!(
+                            "expected resolved generate-local imported typedef-backed net type, got {other:?}"
+                        ),
+                    },
+                    other => panic!("expected generate-local net declaration, got {other:?}"),
+                }
+            }
+            other => panic!("expected generate region item, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_design_keeps_generate_local_typedef_scope_local() {
+        let error = parse_design(
+            r#"
+            module top (
+                output logic y
+            );
+            generate
+                if (1) begin : gen_typed
+                    typedef struct packed {
+                        logic [7:0] data;
+                    } cfg_t;
+                end
+            endgenerate
+            cfg_t cfg;
+            endmodule
+            "#,
+        )
+        .expect_err("generate-local typedef should not leak outside the generate body");
+
+        assert!(
+            error.message.contains("expected net name")
+                || error.message.contains("expected ';'")
+                || error.message.contains("unsupported module item")
+                || error.message.contains("expected symbol '('"),
+            "unexpected error: {error:?}"
+        );
     }
 
     #[test]
@@ -7696,6 +7843,92 @@ mod tests {
             .elaborate_top("top", &HashMap::new())
             .expect("elaboration should succeed");
 
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_accepts_generate_local_typedef_backed_struct_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top #(
+                parameter SEL = 1
+            ) (
+                output logic y
+            );
+            generate
+                if (SEL) begin : gen_typed
+                    typedef struct packed {
+                        logic [7:0] data;
+                        logic valid;
+                    } cfg_t;
+                    cfg_t cfg;
+                    child u_child (.a(cfg.data), .y(y));
+                end
+            endgenerate
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(elaborated.child_instances[0].path, "top.gen_typed.u_child");
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_accepts_generate_local_imported_typedef_backed_struct_members() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                typedef struct packed {
+                    logic [7:0] data;
+                    logic valid;
+                } cfg_t;
+            endpackage
+
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top #(
+                parameter SEL = 1
+            ) (
+                output logic y
+            );
+            generate
+                if (SEL) begin : gen_typed
+                    import cfg_pkg::cfg_t;
+                    cfg_t cfg;
+                    child u_child (.a(cfg.data), .y(y));
+                end
+            endgenerate
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(elaborated.child_instances[0].path, "top.gen_typed.u_child");
         assert_eq!(
             elaborated.child_instances[0].port_bindings[0].actual,
             Some(PortActual::Signal("cfg.data".to_string()))

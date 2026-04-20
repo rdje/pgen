@@ -17035,3 +17035,35 @@ Use this file to resume work without replaying full chat history.
   - steering:
     - the retained branch-sample lane is no longer carrying a known parser-rejection seam
     - main remaining debt on this local loop is unresolved target coverage, not parser acceptance
+- 2026-04-20: `rtl_frontend` now supports branch-local `typedef` / named `import` declarations inside generate bodies.
+  - landed:
+    - `rtl_frontend/src/lib.rs`
+      - removed the old hard rejection for generate-body `typedef` / `import`
+      - `parse_generate_body(...)` now snapshots/restores `type_aliases` so aliases are visible within the branch body but do not leak outside it
+      - added focused tests for generate-local typedef/import parsing, non-leakage, and struct-member elaboration
+    - `grammars/rtl_frontend.ebnf`
+      - `generate_item` now includes:
+        - `import_declaration`
+        - `typedef_declaration`
+    - `generated/rtl_frontend.json`
+    - `generated/rtl_frontend_parser.rs`
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `generate_if_local_typedef_struct_member_actual`
+        - `generate_if_local_imported_typedef_struct_member_actual`
+      - elaboration ratchets now expect at least:
+        - `56` total replay samples
+        - `43` accepts
+        - `13` rejects
+        - `17` child-path samples
+        - `32` top-parameter checks
+        - `79` child-port-binding checks
+  - verified:
+    - `cargo test --manifest-path rtl_frontend/Cargo.toml generate_local`
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - continuity note:
+    - this widens the `rtl_frontend` generated + handwritten proof surface, but the live family label still stays `In Progress`
+    - the key implementation boundary is deliberate:
+      - generate-body aliases are local parser state only
+      - future sessions should preserve the snapshot/restore model unless there is an explicit semantic reason to widen alias lifetime

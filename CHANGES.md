@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-04-20 - Add generate-local typedef/import support to `rtl_frontend`
+### Achievement Summary
+Extended the handwritten `rtl_frontend` baseline and the generated `rtl_frontend` contract to support branch-local `typedef` and named `import` declarations inside `generate if` bodies, including typed net use and struct-member instance actual replay, while keeping those aliases scoped to the generate body instead of leaking outward.
+
+### Scope of Changes
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - removed the old hard rejection for:
+    - `import` inside generate bodies
+    - `typedef` inside generate bodies
+  - added generate-body `type_aliases` snapshot/restore so branch-local aliases remain visible inside the body but do not leak to sibling or outer module scope
+  - added focused handwritten coverage for:
+    - generate-local typedef-backed nets
+    - generate-local imported typedef-backed nets
+    - non-leakage of generate-local typedef scope
+    - generate-local typedef/import struct-member elaboration
+- Updated [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - widened `generate_item` to include:
+    - `import_declaration`
+    - `typedef_declaration`
+- Regenerated:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added:
+    - `generate_if_local_typedef_struct_member_actual`
+    - `generate_if_local_imported_typedef_struct_member_actual`
+  - raised elaboration replay ratchets to:
+    - `56` total samples
+    - `43` accepts
+    - `13` rejects
+    - `17` child-path samples
+    - `32` top-parameter checks
+    - `79` child-port-binding checks
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generate_local`
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-20 - Preserve helper-timeout telemetry in gate-level reports
 ### Achievement Summary
 Extended the new helper-timeout metric past raw Rust parseability JSON so the maintained shell quality gates and their contract checks now preserve and sanity-check helper-budget expirations instead of silently dropping them.

@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-20 - `rtl_frontend` now supports generate-local typedef/import declarations with scoped alias visibility
+### Context
+`rtl_frontend` had already learned how to:
+- parse `typedef` declarations,
+- resolve named and wildcard package imports into `type_aliases`,
+- and use those aliases when later typed net declarations were parsed.
+
+The missing seam was narrower than it first looked:
+- the parser explicitly rejected `typedef` and `import` inside generate bodies,
+- but most of the underlying machinery already existed,
+- and simply allowing those items outright would have created a scope bug by letting branch-local aliases leak into sibling branches or the outer module body.
+
+### Decision
+- Allow `typedef` and `import` items inside generate bodies.
+- Treat generate-body alias visibility as local parser state:
+  - aliases created by a `typedef` or named import inside a generate body should be usable by later declarations in the same body,
+  - but they must be discarded when the parser leaves that body.
+
+### What Was Changed
+- Updated [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
+  - removed the old generate-body hard errors in `parse_item_group(...)`
+  - split `parse_generate_body(...)` into:
+    - a wrapper that snapshots/restores `self.type_aliases`
+    - an inner body parser that still parses the actual items
+  - added focused tests proving:
+    - generate-local typedef-backed net declarations resolve to the concrete struct type
+    - generate-local named-import typedef-backed net declarations resolve too
+    - generate-local aliases do not leak outside the generate body
+    - elaboration can still bind `cfg.data` member actuals through the generated branch-local declaration context
+- Updated [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - widened `generate_item` with:
+    - `import_declaration`
+    - `typedef_declaration`
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added generated-contract samples for:
+    - generate-local typedef-backed struct-member actuals
+    - generate-local named-import typedef-backed struct-member actuals
+  - ratcheted the elaboration replay minimums upward to reflect those new accepted samples
+- Regenerated:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+
+### Why The Scope Snapshot Matters
+The key correctness seam is not “can the parser parse another declaration kind inside `generate`?” It is:
+- can later items in the same body see the alias,
+- while later items outside that body cannot.
+
+The snapshot/restore wrapper around `parse_generate_body(...)` gives exactly that behavior:
+- inside-body `typedef` and named-import aliases still feed `parse_optional_data_type(...)`,
+- but the outer parser state is restored immediately afterward,
+- so `cfg_t cfg;` after the `endgenerate` still fails rather than accidentally reusing a branch-local alias.
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml generate_local`
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-20 - Gate-level target-drive consumers now preserve helper timeout totals
 ### Context
 After landing `helper_timeout_errors` in the Rust generator/report layer, one practical gap remained:

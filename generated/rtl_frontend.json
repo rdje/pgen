@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-11T22:35:53.874135+00:00",
+    "generated_at": "2026-04-20T16:42:55.220424+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "grammars/rtl_frontend.ebnf",
@@ -395,6 +395,22 @@
       [
         "rule_reference",
         "parameter_declaration_statement"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "import_declaration"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "typedef_declaration"
       ],
       [
         "operator",
