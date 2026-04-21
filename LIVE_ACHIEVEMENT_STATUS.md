@@ -1,6 +1,6 @@
 # Live Achievement Status
 
-Last updated: 2026-04-20
+Last updated: 2026-04-21
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -28,6 +28,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-04-21): the active main-`systemverilog` proof lane now reuses a normalized generation-AST bundle without changing any live parser-family label. [rust/src/main.rs](rust/src/main.rs) now writes `--dump-gen-ast` as a directly reloadable transformed-style bundle and normalizes older metadata-free generation-AST dumps before loading, while [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh) now emits `${grammar_name}_gen_ast.json` during parser generation and reuses that bundle for later closed-loop and per-sample `ast_pipeline` invocations instead of reparsing `grammars/systemverilog.ebnf` each time. The retained bounded proof slice (`PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128`, `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`) now passes with `closed_loop_profiles_passed=2/2`, `parseability_generation_parser_rejections_total=0`, `parse_full_passes=16/16`, `perf_observed_generate_avg_ms=173`, and `perf_observed_generate_max_ms=624`; the pre-fix bounded run had failed the performance budget on a tiny accepted sample at `17061ms`. Status stays unchanged because this is runtime/proof-lane hardening plus bounded evidence, not a full contract-default main-SystemVerilog refresh.
 
 Tracker note (2026-04-20): `rtl_frontend` elaboration now evaluates selector-only syntax parameter overrides without changing any live parser-family label. [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs) now recognizes constant signal, bit-select, and part-select forms behind `OrderedSyntax(...)` and `NamedSyntax { ... }`, while [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) now carries dedicated positive replay samples for ordered constant part-select and named constant selector overrides. The shared elaboration replay floor rises to `58` total samples (`45` accepts / `13` rejects), `19` child-path samples, `37` top-parameter checks, `19` child-parameter checks, and `83` child-port-binding checks. Status stays unchanged because this is curated semantic proof widening inside the existing `rtl_frontend` lane, not closure of the remaining Phase S debt.
 

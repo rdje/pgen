@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-04-21 - Reuse normalized generation ASTs in the main SV quality gate
+### Achievement Summary
+Removed a real runtime bottleneck from the active main-SystemVerilog proof lane. `ast_pipeline --dump-gen-ast` now emits a directly reloadable transformed-style generation bundle, and `sv_stimuli_quality_gate` now reuses that bundle instead of reparsing `grammars/systemverilog.ebnf` for every later `ast_pipeline` invocation.
+
+### Scope of Changes
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - `--dump-gen-ast` now writes a transformed-style JSON bundle with:
+    - top-level generation fields for continuity
+    - `metadata.format=transformed_ast`
+    - `metadata.pipeline_stage=generation_input_ast`
+  - the JSON loader now normalizes older generation-AST dumps that had:
+    - `grammar_tree`
+    - `rule_order`
+    - top-level `annotations`
+    - but no `metadata`
+  - added focused tests proving:
+    - new generation-AST dumps round-trip through the JSON loader
+    - legacy metadata-free generation-AST dumps still load
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - the gate now emits:
+    - `WORK_DIR/${grammar_name}_gen_ast.json`
+  - parser generation still starts from the `.ebnf` source
+  - later closed-loop and per-sample `ast_pipeline` runs now reuse the emitted generation-AST bundle instead of reparsing the grammar file
+- Updated tracked docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml generation_ast_dump`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-gate-bounded-20260421-r3 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-21 - Refresh `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` to current `rtl_frontend` state
 ### Achievement Summary
 Refreshed the living SOTA roadmap so its `rtl_frontend` current-state bullets no longer lag behind the live status, README, and Rust analysis surfaces. The roadmap now reflects the current `125`-sample generated/handwritten manifest, the `59`-sample elaboration replay floor, and the latest package-qualified selector replay slice.

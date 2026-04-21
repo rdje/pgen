@@ -319,11 +319,23 @@ struct LoadedGrammar {
 }
 
 #[derive(Debug, Serialize)]
+struct GenerationAstDumpMetadata<'a> {
+    format: &'static str,
+    source_format: &'static str,
+    transformed_at: &'static str,
+    transformer: &'static str,
+    pipeline_stage: &'static str,
+    annotations: Option<&'a Annotations>,
+    stats: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
 struct GenerationAstDump<'a> {
     grammar_name: &'a str,
     rule_order: &'a [String],
     grammar_tree: &'a HashMap<String, ASTNode>,
     annotations: Option<&'a Annotations>,
+    metadata: GenerationAstDumpMetadata<'a>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1521,6 +1533,15 @@ fn maybe_dump_generation_ast(
         rule_order: grammar.rule_order.as_slice(),
         grammar_tree: &grammar.grammar_tree,
         annotations: grammar.annotations.as_ref(),
+        metadata: GenerationAstDumpMetadata {
+            format: "transformed_ast",
+            source_format: "generation_input_ast",
+            transformed_at: "deterministic_generation_dump",
+            transformer: "Rust AST Pipeline CLI",
+            pipeline_stage: "generation_input_ast",
+            annotations: grammar.annotations.as_ref(),
+            stats: HashMap::new(),
+        },
     };
     let json = encode_canonical_json(&dump, pretty)?;
     let write_result =
@@ -1692,6 +1713,7 @@ fn load_grammar_bundle_from_json_value(
     json_value: serde_json::Value,
     pipeline: &mut RustASTPipeline,
 ) -> Result<LoadedGrammar> {
+    let json_value = normalize_legacy_generation_ast_dump(json_value);
     if let Some(raw_ast) = json_value.get("raw_ast") {
         let raw_ast_array = raw_ast
             .as_array()
@@ -1723,6 +1745,36 @@ fn load_grammar_bundle_from_json_value(
             "Unknown JSON format - expected raw_ast or grammar_tree/rule_order"
         ))
     }
+}
+
+fn normalize_legacy_generation_ast_dump(mut json_value: serde_json::Value) -> serde_json::Value {
+    let Some(object) = json_value.as_object_mut() else {
+        return json_value;
+    };
+    if !object.contains_key("grammar_tree")
+        || !object.contains_key("rule_order")
+        || object.contains_key("metadata")
+    {
+        return json_value;
+    }
+
+    let annotations = object
+        .get("annotations")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+    object.insert(
+        "metadata".to_string(),
+        serde_json::json!({
+            "format": "transformed_ast",
+            "source_format": "generation_input_ast_legacy",
+            "transformed_at": "legacy_generation_dump",
+            "transformer": "Rust AST Pipeline CLI",
+            "pipeline_stage": "generation_input_ast",
+            "annotations": annotations,
+            "stats": {}
+        }),
+    );
+    json_value
 }
 
 fn normalize_grammar_profile_name(profile: &str) -> String {
@@ -3133,10 +3185,10 @@ mod tests {
         build_stimuli_corpus_bundle, canonicalize_json_value, coverage_branch_hit_delta,
         default_parser_output_path, default_stimuli_module_output_path, direct_bundle_samples,
         ensure_generated_parseability_entry_rule_supported, extract_parse_error_position,
-        generate_stimuli_module_source, is_ebnf_input_path, maybe_dump_generation_ast,
-        minimize_failing_input, minimize_fuzz_corpus_cases, parse_error_context_excerpt,
-        parse_error_line_column, parse_error_line_excerpt, parse_recovery_stimuli_mode,
-        parse_stimuli_constraint_profile, parse_stimuli_mutation_mode,
+        generate_stimuli_module_source, is_ebnf_input_path, load_grammar_bundle_from_json_value,
+        maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
+        parse_error_context_excerpt, parse_error_line_column, parse_error_line_excerpt,
+        parse_recovery_stimuli_mode, parse_stimuli_constraint_profile, parse_stimuli_mutation_mode,
         parse_stimuli_negative_profile, resolve_parseability_max_attempts,
         resolve_stimuli_module_seed, structural_shrink_candidates,
         supported_generated_parseability_grammars, supports_generated_parseability,
@@ -3146,7 +3198,7 @@ mod tests {
         BranchCoverageGroup, RecoveryStimuliMode, StimuliConfig, StimuliConstraintProfile,
         StimuliMutationMode, StimuliNegativeProfile, TargetDriveValidationSummary,
     };
-    use pgen::ast_pipeline::{ASTNode, ASTValue, TokenValue};
+    use pgen::ast_pipeline::{ASTNode, ASTValue, PipelineConfig, RustASTPipeline, TokenValue};
     use std::collections::{HashMap, HashSet};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -3611,6 +3663,9 @@ mod tests {
         let json: serde_json::Value = serde_json::from_str(&raw).expect("json parse");
         assert_eq!(json["grammar_name"], "demo");
         assert_eq!(json["rule_order"], serde_json::json!(["root"]));
+        assert_eq!(json["metadata"]["format"], "transformed_ast");
+        assert_eq!(json["metadata"]["pipeline_stage"], "generation_input_ast");
+        assert_eq!(json["metadata"]["annotations"], serde_json::Value::Null);
 
         let _ = std::fs::remove_file(dump_path);
     }
@@ -3631,6 +3686,73 @@ mod tests {
         let raw = std::fs::read_to_string(&dump_path).expect("read dump");
         assert!(raw.contains('\n'));
         assert!(raw.contains("  \"grammar_name\""));
+
+        let _ = std::fs::remove_file(dump_path);
+    }
+
+    #[test]
+    fn generation_ast_dump_round_trips_via_loader() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "root".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![TokenValue::String("kw_root".to_string())]),
+            },
+        );
+        let grammar = LoadedGrammar {
+            grammar_name: "demo_roundtrip".to_string(),
+            grammar_tree,
+            rule_order: vec!["root".to_string()],
+            annotations: None,
+        };
+        let dump_path = unique_temp_path("gen_ast_roundtrip.json");
+        let dump_path_str = dump_path.to_string_lossy().to_string();
+        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), false, None)
+            .expect("dump succeeds");
+
+        let raw = std::fs::read_to_string(&dump_path).expect("read dump");
+        let value: serde_json::Value = serde_json::from_str(&raw).expect("json parse");
+        let mut pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let loaded = load_grammar_bundle_from_json_value(value, &mut pipeline).expect("load dump");
+        assert_eq!(loaded.grammar_name, "demo_roundtrip");
+        assert_eq!(loaded.rule_order, vec!["root".to_string()]);
+        assert!(loaded.grammar_tree.contains_key("root"));
+
+        let _ = std::fs::remove_file(dump_path);
+    }
+
+    #[test]
+    fn legacy_generation_ast_dump_shape_is_still_loadable() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "root".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![TokenValue::String("kw_root".to_string())]),
+            },
+        );
+        let grammar = LoadedGrammar {
+            grammar_name: "legacy_demo".to_string(),
+            grammar_tree,
+            rule_order: vec!["root".to_string()],
+            annotations: None,
+        };
+        let dump_path = unique_temp_path("gen_ast_legacy.json");
+        let dump_path_str = dump_path.to_string_lossy().to_string();
+        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), false, None)
+            .expect("dump succeeds");
+
+        let raw = std::fs::read_to_string(&dump_path).expect("read dump");
+        let mut legacy: serde_json::Value = serde_json::from_str(&raw).expect("json parse");
+        legacy
+            .as_object_mut()
+            .expect("generation dump object")
+            .remove("metadata");
+        let mut pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let loaded =
+            load_grammar_bundle_from_json_value(legacy, &mut pipeline).expect("load legacy dump");
+        assert_eq!(loaded.grammar_name, "legacy_demo");
+        assert_eq!(loaded.rule_order, vec!["root".to_string()]);
+        assert!(loaded.grammar_tree.contains_key("root"));
 
         let _ = std::fs::remove_file(dump_path);
     }

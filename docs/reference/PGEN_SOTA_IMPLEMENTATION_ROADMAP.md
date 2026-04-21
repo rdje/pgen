@@ -4518,6 +4518,25 @@ Initial Phase U milestones:
   - roadmap consequence:
     - the next honest proof step is still a full `sv_stimuli_quality_gate` refresh on top of these retained hints
     - do not reopen the broad newline-before-`//` heuristic or a global slash-regex rewrite; the current win comes from safe comment sampling plus a narrow comment-aware `timeunits_declaration` separator
+- The next keepable main-SV slice is now proof-lane/runtime hardening rather than another grammar hint sweep.
+  - retained root cause:
+    - a bounded `sv_stimuli_quality_gate` rerun (`PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128`) failed the performance budget on a tiny already-accepted sample at `17061ms`
+    - CPU sampling showed the hot time was dominated by repeated grammar-bundle loading and semantic-annotation parsing inside `load_grammar_bundle(...)`, not by interesting generation complexity
+  - retained implementation:
+    - `rust/src/main.rs` now writes `--dump-gen-ast` as a directly reloadable transformed-style bundle with `metadata.format=transformed_ast` and `metadata.pipeline_stage=generation_input_ast`
+    - the same loader path now upgrades older metadata-free generation-AST dumps in memory before loading
+    - `rust/scripts/sv_stimuli_quality_gate.sh` now emits `${grammar_name}_gen_ast.json` once during parser generation and reuses it for later closed-loop and per-sample `ast_pipeline` invocations instead of reparsing `grammars/systemverilog.ebnf` each time
+  - retained bounded evidence:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-gate-bounded-20260421-r3 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `parseability_generation_parser_rejections_total=0`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=173`
+      - `perf_observed_generate_max_ms=624`
+  - roadmap consequence:
+    - keep this runtime reuse path; it makes bounded main-SV proof reruns materially more honest and cheaper
+    - do not overclaim from it yet: the next honest status-moving step is still a fuller main-SV gate refresh on the maintained contract-default lane
 Tracker note (2026-04-19): literalish sample steering is now a real branch-local replay tool rather than a regex-only convenience. [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) now honors parser-proven literalish hints on non-regex non-OR rules and inline branch-local OR alternatives, preserving branch-success accounting for the latter. [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) uses that new retained path on selected `assignment_pattern`, `case_statement`, `clocking_declaration`, `conditional_statement`, struct/enum `block_data_type` / `data_type`, simple function/task bodies, and `net_type_declaration_sv_2017` branches. The focused adapter-backed replay loop now measures `sv_2017: 180/181 accepted, 1 parser reject, 319/2613 targets resolved` and `sv_2023: 179/180 accepted, 1 parser reject, 387/2393 targets resolved` in the retained 200-attempt runs. Future work should keep the new rule strict:
 - parser-proven branch-local seeds are fair game
 - blind blanket `@sample` sweeps are still the wrong tactic

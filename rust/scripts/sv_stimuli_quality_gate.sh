@@ -1616,7 +1616,9 @@ fi
 
 grammar_file="$ROOT_DIR/$ebnf_path_rel"
 grammar_json="$WORK_DIR/${grammar_name}.json"
-grammar_input="$grammar_file"
+grammar_gen_ast_json="$WORK_DIR/${grammar_name}_gen_ast.json"
+grammar_source_input="$grammar_file"
+grammar_runtime_input="$grammar_file"
 parser_out="$WORK_DIR/${grammar_name}_parser.rs"
 
 require_file "$grammar_file"
@@ -1760,17 +1762,20 @@ if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     exit 1
 fi
 run_logged "frontend_rust_raw_ast_export" \
-    "$AST_PIPELINE_BIN" "$grammar_input" \
+    "$AST_PIPELINE_BIN" "$grammar_source_input" \
     --emit-raw-ast-json "$grammar_json"
 require_nonempty_file "$grammar_json"
 
 run_logged "generate_sv_parser" \
-    "$AST_PIPELINE_BIN" "$grammar_input" \
+    "$AST_PIPELINE_BIN" "$grammar_source_input" \
     --generate-parser \
     --emit-raw-ast-json "$grammar_json" \
+    --dump-gen-ast "$grammar_gen_ast_json" \
     --eliminate-left-recursion \
     --output "$parser_out"
 require_nonempty_file "$parser_out"
+require_nonempty_file "$grammar_gen_ast_json"
+grammar_runtime_input="$grammar_gen_ast_json"
 
 run_logged_rust "build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter" \
     run_sv_cargo_build env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
@@ -2041,7 +2046,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         closed_loop_replay_seed=$((profile_seed_base + 700000))
 
         run_logged "profile_${profile_key}_closed_loop_initial" \
-            "$AST_PIPELINE_BIN" "$grammar_input" \
+            "$AST_PIPELINE_BIN" "$grammar_runtime_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
@@ -2067,7 +2072,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         profile_closed_loop_initial_status="pass"
 
         run_logged "profile_${profile_key}_closed_loop_initial_replay" \
-            "$AST_PIPELINE_BIN" "$grammar_input" \
+            "$AST_PIPELINE_BIN" "$grammar_runtime_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
@@ -2096,7 +2101,7 @@ for profile_idx in "${!run_profiles[@]}"; do
 
         run_logged "profile_${profile_key}_closed_loop_replay" \
             env PGEN_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-none}" \
-            "$AST_PIPELINE_BIN" "$grammar_input" \
+            "$AST_PIPELINE_BIN" "$grammar_runtime_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
@@ -2178,7 +2183,7 @@ for profile_idx in "${!run_profiles[@]}"; do
 
             run_logged "profile_${profile_key}_closed_loop_replay_parseability_shadow" \
                 env PGEN_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-none}" \
-                "$AST_PIPELINE_BIN" "$grammar_input" \
+                "$AST_PIPELINE_BIN" "$grammar_runtime_input" \
                 --generate-stimuli \
                 --grammar-profile "$lrm_profile" \
                 --enforce-word-boundary-spacing \
@@ -2310,7 +2315,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             parseability_report_args=(--parseability-report-json "$parseability_report_json")
         fi
         run_logged "sample_${profile_key}_${idx}_generate_stimulus" \
-            "$AST_PIPELINE_BIN" "$grammar_input" \
+            "$AST_PIPELINE_BIN" "$grammar_runtime_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             "${parseability_generation_args[@]}" \

@@ -1,4 +1,94 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-21 - Main-SV quality-gate runtime now reuses normalized generation AST bundles
+### Context
+The active closure lane is still main `systemverilog`, so I tried the next honest proof step: rerun `sv_stimuli_quality_gate` locally with a bounded replay budget.
+
+The first bounded run did not expose new parser debt. Instead it tripped the performance budget on a tiny already-accepted sample:
+- failure:
+  - `stimuli_generate_ms_per_sample budget exceeded for profile=2017,sample=0 (17061 > 10000)`
+- retained generated sample:
+  - `(*\\foo *)(*\\foo *)/***/package   /**/static \\foo /**/;timeunit 7.87 ps ;`
+  - `/**/endpackage (*\\foo *)/*X**/  timeprecision 2 us ;`
+
+That sample was important because it was not "hard" in any interesting grammar sense. Manual repro of the exact command showed the same approximately `16.8s` wall-clock cost repeatedly, which meant the budget failure was likely dominated by gate/runtime overhead rather than actual search complexity.
+
+### Root Cause
+A CPU sample of the hot `ast_pipeline` process showed the run spending most of its time in grammar-loading and semantic-annotation parsing, not in sample generation itself. The hot stack concentrated in:
+- `ast_pipeline::load_grammar_bundle(...)`
+- `load_grammar_bundle_from_json_value(...)`
+- `RustASTPipeline::transform_from_raw_ast(...)`
+- `parse_rule_content(...)`
+- `extract_rule_annotations(...)`
+- `parse_semantic_annotation_with_generated_parser(...)`
+
+The gate shape explained why:
+- `sv_stimuli_quality_gate.sh` already emitted a raw AST JSON sidecar
+- but it still fed `grammars/systemverilog.ebnf` back into every later `ast_pipeline` invocation
+- so each closed-loop and per-sample run reparsed and retransformed the grammar instead of reusing a normalized generation-input bundle
+
+### Decision
+- Keep parser generation rooted in the `.ebnf` source.
+- Make `--dump-gen-ast` emit a directly reloadable transformed-style bundle.
+- Preserve backward compatibility for older generation-AST dumps that lacked `metadata`.
+- Teach the maintained main-SV gate to emit and reuse that normalized generation-AST artifact for all later runtime calls.
+
+### What Was Changed
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - `GenerationAstDump` now includes `metadata` describing the bundle as:
+    - `format=transformed_ast`
+    - `source_format=generation_input_ast`
+    - `pipeline_stage=generation_input_ast`
+  - loader path now runs `normalize_legacy_generation_ast_dump(...)` before existing raw-AST / transformed-AST handling
+  - older generation-AST dumps with `grammar_tree` + `rule_order` but no `metadata` are upgraded in-memory to the transformed-style shape before loading
+  - added tests proving:
+    - current dumps round-trip via the JSON loader
+    - legacy metadata-free dumps still load
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - parser generation now also emits `WORK_DIR/${grammar_name}_gen_ast.json`
+  - later closed-loop and per-sample `ast_pipeline` invocations now use that normalized bundle instead of reparsing the `.ebnf`
+
+### Measured Effect
+The bounded proof slice that previously failed the performance budget now passes cleanly when realistic-corpus replay is disabled and replay attempts are capped:
+- command:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-gate-bounded-20260421-r3 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- retained outcome:
+  - `closed_loop_profiles_passed: 2/2`
+  - `closed_loop_initial_replay_determinism_passes: 2/2`
+  - `parseability_generation_requested_total: 16`
+  - `parseability_generation_accepted_total: 16`
+  - `parseability_generation_parser_rejections_total: 0`
+  - `parse_full_passes: 16/16`
+  - `perf_observed_generate_avg_ms: 173`
+  - `perf_observed_generate_max_ms: 624`
+
+The meaningful comparison is:
+- before fix:
+  - bounded gate failed on a tiny accepted sample at `17061ms`
+- after fix:
+  - bounded gate passes with observed max sample-generation time `624ms`
+
+### Boundary Kept Intentionally
+This is not a claim that main-SystemVerilog is closed.
+
+What changed:
+- the maintained proof lane no longer wastes most of its time repeatedly rebuilding the same generation-input grammar bundle
+- bounded local proof reruns are materially more honest and usable
+
+What did not change:
+- the current live parser-family labels
+- the requirement for a fuller main-SV proof refresh on the maintained contract-default path
+- the rule that this slice counts as runtime/proof-lane hardening plus bounded evidence, not final closure
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml generation_ast_dump`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-gate-bounded-20260421-r3 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-21 - Synced the SOTA roadmap to the live `rtl_frontend` baseline
 ### Context
 After the latest `rtl_frontend` package-qualified selector work landed, the maintained live surfaces agreed on the new baseline:

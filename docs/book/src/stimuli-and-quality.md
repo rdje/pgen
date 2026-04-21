@@ -87,6 +87,26 @@ PGEN now also surfaces those bounded failures directly in the replay-facing arti
 
 That distinction now survives the shell gate layer as well. The maintained annotation, SystemVerilog preprocessor, SystemVerilog replay-shadow, and VHDL replay-shadow quality surfaces now preserve `helper_timeout_errors_total` anywhere they already republish target-drive validation, so the operator-facing summaries do not collapse helper-budget expirations back into anonymous generation churn.
 
+## Main-SV Runtime Reuse
+
+One practical lesson from the active main-SystemVerilog closure lane is that "slow proof" is not always "hard grammar." Sometimes it is just repeated front-end work.
+
+PGEN now keeps a normalized generation-input bundle around for the active main-SV quality gate:
+
+- `ast_pipeline --dump-gen-ast` writes a directly reloadable transformed-style bundle
+- older metadata-free generation-AST dumps still load for continuity
+- `rust/scripts/sv_stimuli_quality_gate.sh` now emits that bundle once during parser generation and reuses it for the later closed-loop and per-sample `ast_pipeline` invocations
+
+That change matters because a bounded retained rerun had been failing its performance budget on a tiny already-accepted sample at about `17061ms`. After switching the gate to reuse the normalized bundle, the same bounded proof slice (`PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128`, `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`) now passes with:
+
+- `closed_loop_profiles_passed=2/2`
+- `parseability_generation_parser_rejections_total=0`
+- `parse_full_passes=16/16`
+- `perf_observed_generate_avg_ms=173`
+- `perf_observed_generate_max_ms=624`
+
+The doctrinal point is simple: keep the cheaper runtime path, but do not overclaim from it. This is a real proof-lane improvement for main SystemVerilog, not a declaration that the full family is closed.
+
 ## Primary Source Docs
 
 - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`

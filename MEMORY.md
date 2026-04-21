@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-21 (+0200, task: roadmap-rtl_frontend-doc-sync)
+Last updated: 2026-04-21 (+0200, task: main-sv-gen-ast-reuse)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,44 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog bounded quality-gate reruns now reuse a normalized generation-AST bundle instead of reparsing `grammars/systemverilog.ebnf` on every later `ast_pipeline` invocation:
+  - changed:
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - `--dump-gen-ast` now writes a directly reloadable transformed-style generation bundle with `metadata`
+    - the JSON loader now normalizes older metadata-free generation-AST dumps before loading
+    - `sv_stimuli_quality_gate.sh` now emits `${grammar_name}_gen_ast.json` once during parser generation and reuses it for later closed-loop and per-sample `ast_pipeline` calls
+    - focused tests now prove:
+      - current generation-AST dumps round-trip through the loader
+      - legacy metadata-free generation-AST dumps still load
+  - retained bounded proof result:
+    - pre-fix bounded run failed a tiny accepted sample with:
+      - `stimuli_generate_ms_per_sample budget exceeded ... (17061 > 10000)`
+    - post-fix bounded run succeeded with:
+      - `closed_loop_profiles_passed=2/2`
+      - `parseability_generation_parser_rejections_total=0`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=173`
+      - `perf_observed_generate_max_ms=624`
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml generation_ast_dump`
+    - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-gate-bounded-20260421-r3 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - important continuity detail:
+    - this is a keepable runtime/proof-lane hardening slice for the active main-SV closure lane
+    - it does not promote any live parser-family label
+    - the next honest step remains a fuller main-SV gate refresh on top of the cheaper runtime path
 - Refreshed the living SOTA roadmap so it no longer lags the current `rtl_frontend` baseline:
   - changed:
     - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)

@@ -1,6 +1,6 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-04-20
+Last updated: 2026-04-21
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -1909,6 +1909,42 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - proof consequence:
     - the next honest main-SV step is still a full `sv_stimuli_quality_gate` rerun to see whether these focused wins survive the retained proof lane
     - until that rerun lands, treat this as a focused direct-lane improvement, not a refreshed main-SV status row
+- The bounded main-SV proof lane now has a keepable runtime shortcut too.
+  - retained failure shape before the fix:
+    - a bounded `sv_stimuli_quality_gate` rerun with `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128` failed on:
+      - `stimuli_generate_ms_per_sample budget exceeded for profile=2017,sample=0 (17061 > 10000)`
+    - the failing sample was tiny and already parseability-accepted, which made it a bad fit for "the grammar is still too complex" as an explanation
+  - retained runtime root cause:
+    - CPU sampling of the hot `ast_pipeline` process showed the time concentrated in:
+      - `load_grammar_bundle(...)`
+      - `RustASTPipeline::transform_from_raw_ast(...)`
+      - `parse_rule_content(...)`
+      - `extract_rule_annotations(...)`
+      - `parse_semantic_annotation_with_generated_parser(...)`
+    - the maintained gate shape had been reparsing and retransformation-heavy because it still fed `grammars/systemverilog.ebnf` into every later `ast_pipeline` invocation after parser generation
+  - retained implementation:
+    - `rust/src/main.rs` now writes `--dump-gen-ast` as a directly reloadable transformed-style generation bundle:
+      - top-level `grammar_name`, `rule_order`, `grammar_tree`, `annotations`
+      - plus `metadata.format=transformed_ast`
+      - plus `metadata.pipeline_stage=generation_input_ast`
+    - the same JSON loader now normalizes older generation-AST dumps that had `grammar_tree` / `rule_order` but no `metadata`
+    - `rust/scripts/sv_stimuli_quality_gate.sh` now emits `${grammar_name}_gen_ast.json` during parser generation and then reuses that bundle for:
+      - closed-loop initial generation
+      - initial replay determinism
+      - replay-shadow
+      - per-sample generation
+  - retained bounded evidence after the fix:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-gate-bounded-20260421-r3 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - outcome:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_initial_replay_determinism_passes=2/2`
+      - `parseability_generation_parser_rejections_total=0`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=173`
+      - `perf_observed_generate_max_ms=624`
+  - steering consequence:
+    - keep reusing the normalized generation-AST bundle for main-SV gate/runtime work; it removes a real source of misleading proof-lane cost
+    - still do not promote the main-SV live status row from this alone; this is bounded proof-lane hardening, not a full contract-default refresh
 - Literalish sample steering is now a broader stimuli-runtime tool too.
   - retained runtime widening:
     - `rust/src/ast_pipeline/stimuli_generator.rs` now honors literalish semantic hints for:
