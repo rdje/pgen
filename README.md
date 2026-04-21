@@ -157,6 +157,10 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - bounded replay rerun example:
     - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - explicit primary-attempt containment example for stubborn replay triage:
+    - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=16 PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS=5 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - helper probes still use their separate maintained budget surface:
+    - `PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS=<ms>`
 - VHDL quality gate:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
   - the default gate-local Rust build cache under `rust/target/vhdl_stimuli_quality_gate/cargo_target` is pruned automatically when the gate exits; the retained evidence remains in `work/` and `logs/`

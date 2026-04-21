@@ -1,4 +1,83 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-21 - Primary target-drive timeout is now explicit and auditable
+### Context
+After the generation-AST reuse and replay-log visibility slices, the next honest main-SV runtime question was no longer "are we reparsing the grammar?" It was "what do we do when one canonical-entry target-drive attempt itself goes pathological?"
+
+A real contract-default `sv_stimuli_quality_gate` rerun had already shown the new hotspot clearly:
+- the hot stack was genuine recursive generation inside:
+  - `StimuliGenerator::generate_until_targets`
+  - `generate_from_entry`
+  - `generate_entry_core`
+  - deep `generate_rule` / `generate_node` recursion
+- and a bounded local replay could still spend minutes inside a single primary attempt even when the attempt counter itself was low
+
+At that point the helper-only timeout was no longer enough. We needed a separate control for canonical-entry target-drive attempts without silently changing the maintained default proof posture.
+
+### Decision
+- Keep the default primary target-drive timeout disabled:
+  - `target_generation_timeout_ms = 0`
+- Keep helper probing on its existing separate bounded default:
+  - `target_helper_generation_timeout_ms = 1000`
+- Make primary target timeouts first-class telemetry instead of hiding them inside generic `generation_errors`.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliConfig.target_generation_timeout_ms`
+  - generalized deadline state so timeout errors now preserve:
+    - the active error prefix
+    - the active budget value
+  - primary target-drive attempts now use:
+    - `Stimuli generation target timeout exceeded`
+  - helper probe attempts still use:
+    - `Stimuli generation helper timeout exceeded`
+  - `TargetDriveSummary` now also carries:
+    - `target_timeout_errors`
+  - `TargetDriveValidationSummary` now also carries:
+    - `target_timeout_errors`
+  - target-drive progress/completion traces and `summary_line()` now surface that same counter
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--target-generation-timeout-ms`
+  - stimuli corpus bundle metadata now records:
+    - `target_generation_timeout_ms`
+  - target-drive parseability telemetry now preserves:
+    - `target_timeout_errors`
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added:
+    - `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS`
+  - replay-stage invocations now forward it into:
+    - `--target-generation-timeout-ms`
+  - gate header and final `summary.txt` now record both:
+    - `closed_loop_target_generation_timeout_ms`
+    - `closed_loop_target_helper_timeout_ms`
+  - replay-shadow aggregate JSON and summary totals now preserve:
+    - `target_timeout_errors_total`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `cargo test --manifest-path rust/Cargo.toml helper_generation_timeout_aborts_entry_and_restores_generator_state`
+  - `cargo test --manifest-path rust/Cargo.toml target_generation_timeout_aborts_entry_and_restores_generator_state`
+  - `cargo test --manifest-path rust/Cargo.toml parseability_report_serializes_target_drive_validation_when_present`
+  - `cargo test --manifest-path rust/Cargo.toml stimuli_corpus_bundle_preserves_target_drive_timeout_telemetry`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_parseability_telemetry_splits_primary_and_alternate_entries`
+  - `cargo build --manifest-path rust/Cargo.toml --bin ast_pipeline`
+  - direct SystemVerilog smoke on a dumped generation bundle:
+    - `rust/target/debug/ast_pipeline /tmp/pgen-sv-target-timeout-smoke/systemverilog_gen_ast.json --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 1 --seed 202 --output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability.sv --coverage-output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_coverage.json --gap-report-json /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.json --gap-report-text /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.txt --target-max-attempts 2 --target-generation-timeout-ms 1 --target-report-input /tmp/pgen-sv-target-timeout-smoke/initial_gap.json`
+  - observed runtime proof:
+    - `Target-driven generation: resolved 0/2560 targets in 2 attempts (generation_successes=0, generation_errors=2, target_timeout_errors=2, helper_timeout_errors=0)`
+
+### Important Boundary
+- This is an explicit opt-in control, not a silent replay-policy change:
+  - default proof behavior stays the same unless `--target-generation-timeout-ms` or `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS` is set
+- The direct end-to-end smoke used plain target-drive summary output, not generated-parser parseability validation:
+  - current generated parseability validation does not support `systemverilog` on that binary path yet
+  - so the retained proof for this slice is:
+    - focused unit coverage
+    - shell-gate plumbing
+    - direct SystemVerilog target-drive summary evidence
+
 ## 2026-04-21 - Main-SV shell-gate replay logs now default to low trace
 ### Context
 After the generation-AST reuse slice landed, the next honest step was a real contract-default `sv_stimuli_quality_gate` rerun on the canonical `rust/target/sv_stimuli_quality_gate` surface.

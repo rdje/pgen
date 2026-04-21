@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-21 (+0200, task: main-sv-gen-ast-reuse)
+Last updated: 2026-04-21 (+0200, task: main-sv-primary-timeout-budget)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,57 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog target-drive now has an explicit opt-in primary-attempt timeout budget, separate from the existing helper-probe timeout:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [README.md](README.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - `StimuliConfig` now carries:
+      - `target_generation_timeout_ms`
+      - `target_helper_generation_timeout_ms`
+    - primary target-drive attempts now emit:
+      - `Stimuli generation target timeout exceeded`
+    - helper probes still emit:
+      - `Stimuli generation helper timeout exceeded`
+    - target-drive summaries / validation telemetry now preserve:
+      - `target_timeout_errors`
+      - `helper_timeout_errors`
+    - `ast_pipeline` now exposes:
+      - `--target-generation-timeout-ms`
+    - `sv_stimuli_quality_gate.sh` now accepts:
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS`
+    - gate startup and final `summary.txt` now record:
+      - `closed_loop_target_generation_timeout_ms`
+      - `closed_loop_target_helper_timeout_ms`
+    - replay-shadow aggregate summaries now also preserve:
+      - `target_timeout_errors_total`
+  - retained validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+    - focused tests:
+      - `cargo test --manifest-path rust/Cargo.toml helper_generation_timeout_aborts_entry_and_restores_generator_state`
+      - `cargo test --manifest-path rust/Cargo.toml target_generation_timeout_aborts_entry_and_restores_generator_state`
+      - `cargo test --manifest-path rust/Cargo.toml parseability_report_serializes_target_drive_validation_when_present`
+      - `cargo test --manifest-path rust/Cargo.toml stimuli_corpus_bundle_preserves_target_drive_timeout_telemetry`
+      - `cargo test --manifest-path rust/Cargo.toml target_drive_parseability_telemetry_splits_primary_and_alternate_entries`
+    - built fresh CLI binary:
+      - `cargo build --manifest-path rust/Cargo.toml --bin ast_pipeline`
+    - direct SV runtime proof on dumped generation bundle:
+      - `rust/target/debug/ast_pipeline /tmp/pgen-sv-target-timeout-smoke/systemverilog_gen_ast.json --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 1 --seed 202 --output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability.sv --coverage-output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_coverage.json --gap-report-json /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.json --gap-report-text /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.txt --target-max-attempts 2 --target-generation-timeout-ms 1 --target-report-input /tmp/pgen-sv-target-timeout-smoke/initial_gap.json`
+    - observed summary:
+      - `Target-driven generation: resolved 0/2560 targets in 2 attempts (generation_successes=0, generation_errors=2, target_timeout_errors=2, helper_timeout_errors=0)`
+  - important continuity detail:
+    - this is an explicit opt-in control, not a maintained default-behavior change
+    - systemverilog still is not supported on the generated-parser parseability-validation path used by `ast_pipeline`, so this slice’s end-to-end retained proof uses plain target-drive summary output rather than parseability-report JSON for the SV smoke
 - Main-SystemVerilog shell-gate replay logs now default to low trace while keeping the underlying CLI default unchanged:
   - changed:
     - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)

@@ -1,4 +1,64 @@
 # CHANGES.md
+## 2026-04-21 - Add explicit primary target-drive timeout control for main-SV replay
+### Achievement Summary
+Added a bounded control for pathological primary target-drive attempts without changing the maintained default replay semantics. PGEN can now cap canonical-entry target-drive attempts separately from helper probes, and the replay-facing artifacts now report those primary-budget expirations explicitly as `target_timeout_errors`.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliConfig.target_generation_timeout_ms`
+    - default `0`
+    - applies only to primary target-drive attempts
+  - kept helper probing on its existing separate budget:
+    - `StimuliConfig.target_helper_generation_timeout_ms`
+  - generalized generation-deadline handling so timeout errors preserve the right context:
+    - primary-entry timeouts now emit:
+      - `Stimuli generation target timeout exceeded`
+    - helper-entry timeouts still emit:
+      - `Stimuli generation helper timeout exceeded`
+  - target-drive summaries and traces now report:
+    - `target_timeout_errors`
+    - `helper_timeout_errors`
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI surface:
+    - `--target-generation-timeout-ms`
+  - stimuli corpus bundle generation metadata now records:
+    - `target_generation_timeout_ms`
+  - parseability-side target-drive telemetry now preserves:
+    - `target_timeout_errors`
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added shell-gate override:
+    - `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS`
+  - closed-loop replay invocations now forward that override into:
+    - `--target-generation-timeout-ms`
+  - gate startup and final `summary.txt` now record:
+    - `closed_loop_target_generation_timeout_ms`
+    - `closed_loop_target_helper_timeout_ms`
+  - replay-shadow aggregate JSON and summary totals now preserve:
+    - `target_timeout_errors_total`
+- Updated tracked docs:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `cargo test --manifest-path rust/Cargo.toml helper_generation_timeout_aborts_entry_and_restores_generator_state`
+  - `cargo test --manifest-path rust/Cargo.toml target_generation_timeout_aborts_entry_and_restores_generator_state`
+  - `cargo test --manifest-path rust/Cargo.toml parseability_report_serializes_target_drive_validation_when_present`
+  - `cargo test --manifest-path rust/Cargo.toml stimuli_corpus_bundle_preserves_target_drive_timeout_telemetry`
+  - `cargo test --manifest-path rust/Cargo.toml target_drive_parseability_telemetry_splits_primary_and_alternate_entries`
+  - `cargo build --manifest-path rust/Cargo.toml --bin ast_pipeline`
+  - direct SystemVerilog target-drive smoke on a dumped generation bundle:
+    - `rust/target/debug/ast_pipeline /tmp/pgen-sv-target-timeout-smoke/systemverilog_gen_ast.json --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 1 --seed 202 --output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability.sv --coverage-output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_coverage.json --gap-report-json /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.json --gap-report-text /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.txt --target-max-attempts 2 --target-generation-timeout-ms 1 --target-report-input /tmp/pgen-sv-target-timeout-smoke/initial_gap.json`
+  - observed replay summary:
+    - `Target-driven generation: resolved 0/2560 targets in 2 attempts (generation_successes=0, generation_errors=2, target_timeout_errors=2, helper_timeout_errors=0)`
+
 ## 2026-04-21 - Default main-SV replay logs to low trace inside the shell gate
 ### Achievement Summary
 Made the active main-SystemVerilog proof lane less opaque without making the terminal noisy. `sv_stimuli_quality_gate.sh` now defaults replay stages to `low` trace inside their captured stage logs, so long closed-loop runs can be tailed live by reading the log files even when the gate itself stays quiet on stdout.

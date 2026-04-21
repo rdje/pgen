@@ -158,6 +158,10 @@ struct Args {
     #[arg(long, default_value_t = 8)]
     target_pending_frontier_extra_stagnation: usize,
 
+    /// Per-primary target-driven generation wall-clock budget in milliseconds (`0` disables the primary target timeout)
+    #[arg(long, default_value_t = 0)]
+    target_generation_timeout_ms: u64,
+
     /// Per-helper wall-clock budget in milliseconds for alternate target-driven probe entries (`0` disables the helper timeout)
     #[arg(long, default_value_t = 1000)]
     target_helper_generation_timeout_ms: u64,
@@ -443,6 +447,8 @@ struct StimuliCorpusGenerationConfig {
     max_repeat: usize,
     max_rule_visits: usize,
     target_pending_frontier_extra_stagnation: usize,
+    #[serde(default)]
+    target_generation_timeout_ms: u64,
     target_helper_generation_timeout_ms: u64,
     recovery_stimuli_mode: String,
     stimuli_negative_profile: String,
@@ -491,6 +497,8 @@ struct TargetDriveParseabilityTelemetry {
     alternate_entry_accepted_outputs: usize,
     alternate_entry_rejected_outputs: usize,
     alternate_entry_acceptance_rate_percent: f64,
+    #[serde(default)]
+    target_timeout_errors: usize,
     helper_timeout_errors: usize,
 }
 
@@ -519,6 +527,7 @@ impl TargetDriveParseabilityTelemetry {
                 summary.alternate_entry_accepted_outputs,
                 summary.alternate_entry_attempts,
             ),
+            target_timeout_errors: summary.target_timeout_errors,
             helper_timeout_errors: summary.helper_timeout_errors,
         }
     }
@@ -915,6 +924,7 @@ fn main() -> Result<()> {
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             target_pending_frontier_extra_stagnation: args.target_pending_frontier_extra_stagnation,
+            target_generation_timeout_ms: args.target_generation_timeout_ms,
             target_helper_generation_timeout_ms: args.target_helper_generation_timeout_ms,
             recovery_mode,
             mutation_mode,
@@ -1039,6 +1049,7 @@ fn main() -> Result<()> {
                     max_rule_visits: args.max_depth.max(2),
                     target_pending_frontier_extra_stagnation: args
                         .target_pending_frontier_extra_stagnation,
+                    target_generation_timeout_ms: args.target_generation_timeout_ms,
                     target_helper_generation_timeout_ms: args.target_helper_generation_timeout_ms,
                     recovery_mode,
                     mutation_mode,
@@ -1090,6 +1101,7 @@ fn main() -> Result<()> {
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             target_pending_frontier_extra_stagnation: args.target_pending_frontier_extra_stagnation,
+            target_generation_timeout_ms: args.target_generation_timeout_ms,
             target_helper_generation_timeout_ms: args.target_helper_generation_timeout_ms,
             recovery_mode,
             mutation_mode,
@@ -2054,6 +2066,7 @@ fn build_stimuli_corpus_bundle(
             max_rule_visits: config.max_rule_visits,
             target_pending_frontier_extra_stagnation: config
                 .target_pending_frontier_extra_stagnation,
+            target_generation_timeout_ms: config.target_generation_timeout_ms,
             target_helper_generation_timeout_ms: config.target_helper_generation_timeout_ms,
             recovery_stimuli_mode: recovery_stimuli_mode_name(config.recovery_mode).to_string(),
             stimuli_negative_profile: stimuli_negative_profile_name(config.negative_profile)
@@ -3280,6 +3293,7 @@ mod tests {
                 alternate_entry_attempts: 5,
                 alternate_entry_accepted_outputs: 2,
                 alternate_entry_rejected_outputs: 3,
+                target_timeout_errors: 1,
                 helper_timeout_errors: 2,
             });
 
@@ -3291,6 +3305,7 @@ mod tests {
         assert_eq!(telemetry.alternate_entry_accepted_outputs, 2);
         assert_eq!(telemetry.alternate_entry_rejected_outputs, 3);
         assert!((telemetry.alternate_entry_acceptance_rate_percent - 40.0).abs() < f64::EPSILON);
+        assert_eq!(telemetry.target_timeout_errors, 1);
         assert_eq!(telemetry.helper_timeout_errors, 2);
     }
 
@@ -3307,6 +3322,7 @@ mod tests {
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 6,
             alternate_entry_acceptance_rate_percent: 100.0 / 7.0,
+            target_timeout_errors: 4,
             helper_timeout_errors: 5,
         };
 
@@ -3360,6 +3376,10 @@ mod tests {
                 .expect("alternate entry rate should be present");
         assert!((alternate_rate - (100.0 / 7.0)).abs() < 1e-9);
         assert_eq!(
+            report_value["target_drive_validation"]["target_timeout_errors"].as_u64(),
+            Some(4)
+        );
+        assert_eq!(
             report_value["target_drive_validation"]["helper_timeout_errors"].as_u64(),
             Some(5)
         );
@@ -3368,7 +3388,7 @@ mod tests {
     }
 
     #[test]
-    fn stimuli_corpus_bundle_preserves_target_drive_helper_timeout_telemetry() {
+    fn stimuli_corpus_bundle_preserves_target_drive_timeout_telemetry() {
         let config = StimuliConfig::default();
         let coverage = StimuliCoverageMetrics {
             grammar_name: "regex".to_string(),
@@ -3390,6 +3410,7 @@ mod tests {
             alternate_entry_accepted_outputs: 2,
             alternate_entry_rejected_outputs: 7,
             alternate_entry_acceptance_rate_percent: 200.0 / 9.0,
+            target_timeout_errors: 2,
             helper_timeout_errors: 3,
         };
 
@@ -3415,6 +3436,14 @@ mod tests {
             None,
         );
 
+        assert_eq!(
+            bundle
+                .target_drive_validation
+                .as_ref()
+                .expect("target-drive validation should be preserved")
+                .target_timeout_errors,
+            2
+        );
         assert_eq!(
             bundle
                 .target_drive_validation
@@ -3970,6 +3999,7 @@ mod tests {
             max_depth: 12,
             max_repeat: 3,
             max_rule_visits: 12,
+            target_generation_timeout_ms: 250,
             recovery_mode: RecoveryStimuliMode::Baseline,
             mutation_mode: StimuliMutationMode::Baseline,
             constraint_profile: StimuliConstraintProfile::Baseline,
@@ -4021,6 +4051,7 @@ mod tests {
                 .target_pending_frontier_extra_stagnation,
             8
         );
+        assert_eq!(bundle.generation_config.target_generation_timeout_ms, 250);
         assert_eq!(
             bundle.generation_config.target_helper_generation_timeout_ms,
             1000
@@ -4038,6 +4069,7 @@ mod tests {
             max_depth: 10,
             max_repeat: 2,
             max_rule_visits: 10,
+            target_generation_timeout_ms: 125,
             recovery_mode: RecoveryStimuliMode::Baseline,
             mutation_mode: StimuliMutationMode::GrammarAwareLocal,
             constraint_profile: StimuliConstraintProfile::RareBranchBiased,
@@ -4096,6 +4128,7 @@ mod tests {
                 .target_pending_frontier_extra_stagnation,
             8
         );
+        assert_eq!(bundle.generation_config.target_generation_timeout_ms, 125);
         assert_eq!(
             bundle.generation_config.target_helper_generation_timeout_ms,
             1000

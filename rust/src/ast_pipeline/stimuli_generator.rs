@@ -24,6 +24,21 @@ use std::panic::Location;
 use std::time::{Duration, Instant};
 
 const HELPER_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation helper timeout exceeded";
+const TARGET_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation target timeout exceeded";
+
+#[derive(Debug, Clone, Copy)]
+struct GenerationTimeoutBudget {
+    duration: Duration,
+    error_prefix: &'static str,
+    budget_ms: u64,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ActiveGenerationDeadline {
+    deadline: Instant,
+    error_prefix: &'static str,
+    budget_ms: u64,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryStimuliMode {
@@ -82,6 +97,7 @@ pub struct StimuliConfig {
     pub max_repeat: usize,
     pub max_rule_visits: usize,
     pub target_pending_frontier_extra_stagnation: usize,
+    pub target_generation_timeout_ms: u64,
     pub target_helper_generation_timeout_ms: u64,
     pub recovery_mode: RecoveryStimuliMode,
     pub mutation_mode: StimuliMutationMode,
@@ -99,6 +115,7 @@ impl Default for StimuliConfig {
             max_repeat: 4,
             max_rule_visits: 8,
             target_pending_frontier_extra_stagnation: 8,
+            target_generation_timeout_ms: 0,
             target_helper_generation_timeout_ms: 1000,
             recovery_mode: RecoveryStimuliMode::Baseline,
             mutation_mode: StimuliMutationMode::Baseline,
@@ -719,6 +736,8 @@ pub struct TargetDriveSummary {
     pub generation_successes: usize,
     pub generation_errors: usize,
     #[serde(default)]
+    pub target_timeout_errors: usize,
+    #[serde(default)]
     pub helper_timeout_errors: usize,
     pub total_targets: usize,
     pub applied_targets: usize,
@@ -734,6 +753,7 @@ pub struct TargetDriveValidationSummary {
     pub alternate_entry_attempts: usize,
     pub alternate_entry_accepted_outputs: usize,
     pub alternate_entry_rejected_outputs: usize,
+    pub target_timeout_errors: usize,
     pub helper_timeout_errors: usize,
 }
 
@@ -781,12 +801,13 @@ struct TargetProbeHistory {
 impl TargetDriveSummary {
     pub fn summary_line(&self) -> String {
         format!(
-            "Target-driven generation: resolved {}/{} targets in {} attempts (generation_successes={}, generation_errors={}, helper_timeout_errors={})",
+            "Target-driven generation: resolved {}/{} targets in {} attempts (generation_successes={}, generation_errors={}, target_timeout_errors={}, helper_timeout_errors={})",
             self.resolved_targets,
             self.total_targets,
             self.attempts,
             self.generation_successes,
             self.generation_errors,
+            self.target_timeout_errors,
             self.helper_timeout_errors
         )
     }
@@ -883,7 +904,7 @@ pub struct StimuliGenerator<'a> {
     mutation_trace: Option<StimuliDecisionTrace>,
     mutation_replay: Option<ActiveGrammarMutationReplay>,
     mutation_site_visit_counters: HashMap<String, u64>,
-    active_generation_deadline: Option<Instant>,
+    active_generation_deadline: Option<ActiveGenerationDeadline>,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -983,35 +1004,77 @@ impl<'a> StimuliGenerator<'a> {
         &self.coverage
     }
 
-    fn active_generation_timeout(&self) -> Option<Duration> {
-        let timeout_ms = self.config.target_helper_generation_timeout_ms;
+    fn timeout_budget_from_ms(
+        timeout_ms: u64,
+        error_prefix: &'static str,
+    ) -> Option<GenerationTimeoutBudget> {
         if timeout_ms == 0 {
             None
         } else {
-            Some(Duration::from_millis(timeout_ms))
+            Some(GenerationTimeoutBudget {
+                duration: Duration::from_millis(timeout_ms),
+                error_prefix,
+                budget_ms: timeout_ms,
+            })
         }
     }
 
     fn generation_deadline_exceeded(&self) -> bool {
         self.active_generation_deadline
-            .map(|deadline| Instant::now() >= deadline)
+            .map(|deadline| Instant::now() >= deadline.deadline)
             .unwrap_or(false)
     }
 
     fn is_helper_timeout_error(error: &anyhow::Error) -> bool {
+        Self::is_timeout_error_with_prefix(error, HELPER_TIMEOUT_ERROR_PREFIX)
+    }
+
+    fn is_target_timeout_error(error: &anyhow::Error) -> bool {
+        Self::is_timeout_error_with_prefix(error, TARGET_TIMEOUT_ERROR_PREFIX)
+    }
+
+    fn is_timeout_error_with_prefix(error: &anyhow::Error, prefix: &str) -> bool {
         error
             .chain()
-            .any(|cause| cause.to_string().starts_with(HELPER_TIMEOUT_ERROR_PREFIX))
+            .any(|cause| cause.to_string().starts_with(prefix))
+    }
+
+    fn active_target_generation_timeout(&self) -> Option<GenerationTimeoutBudget> {
+        Self::timeout_budget_from_ms(
+            self.config.target_generation_timeout_ms,
+            TARGET_TIMEOUT_ERROR_PREFIX,
+        )
+    }
+
+    fn active_helper_generation_timeout(&self) -> Option<GenerationTimeoutBudget> {
+        Self::timeout_budget_from_ms(
+            self.config.target_helper_generation_timeout_ms,
+            HELPER_TIMEOUT_ERROR_PREFIX,
+        )
+    }
+
+    fn target_drive_generation_timeout(
+        &self,
+        helper_probe_active: bool,
+    ) -> Option<GenerationTimeoutBudget> {
+        if helper_probe_active {
+            self.active_helper_generation_timeout()
+        } else {
+            self.active_target_generation_timeout()
+        }
     }
 
     fn enforce_generation_deadline(&self, current_rule: &str, node_path: &str) -> Result<()> {
         if self.generation_deadline_exceeded() {
+            let deadline = self
+                .active_generation_deadline
+                .expect("generation deadline state should exist when exceeded");
             return Err(anyhow!(
                 "{} for rule '{}' at path '{}' (budget={}ms)",
-                HELPER_TIMEOUT_ERROR_PREFIX,
+                deadline.error_prefix,
                 current_rule,
                 node_path,
-                self.config.target_helper_generation_timeout_ms
+                deadline.budget_ms
             ));
         }
         Ok(())
@@ -1020,11 +1083,15 @@ impl<'a> StimuliGenerator<'a> {
     fn generate_from_entry_with_optional_timeout(
         &mut self,
         entry_rule: &str,
-        timeout: Option<Duration>,
+        timeout_budget: Option<GenerationTimeoutBudget>,
     ) -> Result<String> {
         let previous_deadline = self.active_generation_deadline;
-        if let Some(timeout) = timeout {
-            self.active_generation_deadline = Some(Instant::now() + timeout);
+        if let Some(timeout_budget) = timeout_budget {
+            self.active_generation_deadline = Some(ActiveGenerationDeadline {
+                deadline: Instant::now() + timeout_budget.duration,
+                error_prefix: timeout_budget.error_prefix,
+                budget_ms: timeout_budget.budget_ms,
+            });
         }
         let result = self.generate_from_entry(entry_rule);
         self.active_generation_deadline = previous_deadline;
@@ -1045,6 +1112,7 @@ impl<'a> StimuliGenerator<'a> {
         max_attempts: usize,
         generation_successes: usize,
         generation_errors: usize,
+        target_timeout_errors: usize,
         helper_timeout_errors: usize,
         stagnant_iterations: usize,
         probe_threshold: usize,
@@ -1055,7 +1123,7 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Target-drive progress: entry='{}' generation_entry='{}' attempts={}/{} resolved={}/{} pending={} stagnant={} probe_threshold={} generation_successes={} generation_errors={} helper_timeout_errors={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    "Target-drive progress: entry='{}' generation_entry='{}' attempts={}/{} resolved={}/{} pending={} stagnant={} probe_threshold={} generation_successes={} generation_errors={} target_timeout_errors={} helper_timeout_errors={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
                     resolved_entry,
                     generation_entry,
                     attempts,
@@ -1067,6 +1135,7 @@ impl<'a> StimuliGenerator<'a> {
                     probe_threshold,
                     generation_successes,
                     generation_errors,
+                    target_timeout_errors,
                     helper_timeout_errors,
                     validation.accepted_outputs,
                     validation.rejected_outputs,
@@ -1079,7 +1148,7 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Target-drive progress: entry='{}' generation_entry='{}' attempts={}/{} resolved={}/{} pending={} stagnant={} probe_threshold={} generation_successes={} generation_errors={} helper_timeout_errors={}",
+                    "Target-drive progress: entry='{}' generation_entry='{}' attempts={}/{} resolved={}/{} pending={} stagnant={} probe_threshold={} generation_successes={} generation_errors={} target_timeout_errors={} helper_timeout_errors={}",
                     resolved_entry,
                     generation_entry,
                     attempts,
@@ -1091,6 +1160,7 @@ impl<'a> StimuliGenerator<'a> {
                     probe_threshold,
                     generation_successes,
                     generation_errors,
+                    target_timeout_errors,
                     helper_timeout_errors,
                 ),
             );
@@ -1220,13 +1290,14 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} helper_timeout_ms={} dependency_top={} pending_top={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} target_timeout_ms={} helper_timeout_ms={} dependency_top={} pending_top={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
                     resolved_entry,
                     generation_entry,
                     selected_pool,
                     pending_frontier_unlocked,
                     pending_frontier_unlock_threshold,
                     self.config.target_pending_frontier_extra_stagnation,
+                    self.config.target_generation_timeout_ms,
                     self.config.target_helper_generation_timeout_ms,
                     dependency_summary,
                     pending_summary,
@@ -1241,13 +1312,14 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} helper_timeout_ms={} dependency_top={} pending_top={}",
+                    "Target-drive helper ranking: entry='{}' generation_entry='{}' selected_pool={} pending_frontier_unlocked={} pending_frontier_unlock_threshold={} pending_frontier_extra_stagnation={} target_timeout_ms={} helper_timeout_ms={} dependency_top={} pending_top={}",
                     resolved_entry,
                     generation_entry,
                     selected_pool,
                     pending_frontier_unlocked,
                     pending_frontier_unlock_threshold,
                     self.config.target_pending_frontier_extra_stagnation,
+                    self.config.target_generation_timeout_ms,
                     self.config.target_helper_generation_timeout_ms,
                     dependency_summary,
                     pending_summary,
@@ -1800,6 +1872,7 @@ impl<'a> StimuliGenerator<'a> {
         let mut attempts = 0usize;
         let mut generation_successes = 0usize;
         let mut generation_errors = 0usize;
+        let mut target_timeout_errors = 0usize;
         let mut helper_timeout_errors = 0usize;
         let mut best_remaining = applicable_targets.len();
         let mut stagnant_iterations = 0usize;
@@ -1861,12 +1934,9 @@ impl<'a> StimuliGenerator<'a> {
             let helper_probe_active = generation_entry != resolved_entry;
             let mut generation_succeeded = false;
             attempts = attempts.saturating_add(1);
-            let helper_timeout = if helper_probe_active {
-                self.active_generation_timeout()
-            } else {
-                None
-            };
-            match self.generate_from_entry_with_optional_timeout(&generation_entry, helper_timeout)
+            let generation_timeout = self.target_drive_generation_timeout(helper_probe_active);
+            match self
+                .generate_from_entry_with_optional_timeout(&generation_entry, generation_timeout)
             {
                 Ok(sample) => {
                     generation_successes = generation_successes.saturating_add(1);
@@ -1879,6 +1949,8 @@ impl<'a> StimuliGenerator<'a> {
                     generation_errors = generation_errors.saturating_add(1);
                     if helper_probe_active && Self::is_helper_timeout_error(&error) {
                         helper_timeout_errors = helper_timeout_errors.saturating_add(1);
+                    } else if !helper_probe_active && Self::is_target_timeout_error(&error) {
+                        target_timeout_errors = target_timeout_errors.saturating_add(1);
                     }
                 }
             }
@@ -1918,6 +1990,7 @@ impl<'a> StimuliGenerator<'a> {
                     max_attempts,
                     generation_successes,
                     generation_errors,
+                    target_timeout_errors,
                     helper_timeout_errors,
                     stagnant_iterations,
                     probe_threshold,
@@ -1933,13 +2006,14 @@ impl<'a> StimuliGenerator<'a> {
         self.trace(
             TraceLevel::Low,
             format_args!(
-                "Completed target-driven generation: entry='{}' resolved_targets={}/{} attempts={} generation_successes={} generation_errors={} helper_timeout_errors={}",
+                "Completed target-driven generation: entry='{}' resolved_targets={}/{} attempts={} generation_successes={} generation_errors={} target_timeout_errors={} helper_timeout_errors={}",
                 resolved_entry,
                 resolved_targets,
                 total_targets,
                 attempts,
                 generation_successes,
                 generation_errors,
+                target_timeout_errors,
                 helper_timeout_errors
             ),
         );
@@ -1951,6 +2025,7 @@ impl<'a> StimuliGenerator<'a> {
                 attempts,
                 generation_successes,
                 generation_errors,
+                target_timeout_errors,
                 helper_timeout_errors,
                 total_targets,
                 applied_targets,
@@ -1991,6 +2066,7 @@ impl<'a> StimuliGenerator<'a> {
             let mut attempts = 0usize;
             let mut generation_successes = 0usize;
             let mut generation_errors = 0usize;
+            let mut target_timeout_errors = 0usize;
             let mut helper_timeout_errors = 0usize;
             let mut best_remaining = applicable_targets.len();
             let mut stagnant_iterations = 0usize;
@@ -2056,14 +2132,11 @@ impl<'a> StimuliGenerator<'a> {
                 let mut generation_succeeded = false;
                 attempts = attempts.saturating_add(1);
                 let success_snapshot = self.coverage.snapshot_success_state();
-                let helper_timeout = if helper_probe_active {
-                    self.active_generation_timeout()
-                } else {
-                    None
-                };
-                match self
-                    .generate_from_entry_with_optional_timeout(&generation_entry, helper_timeout)
-                {
+                let generation_timeout = self.target_drive_generation_timeout(helper_probe_active);
+                match self.generate_from_entry_with_optional_timeout(
+                    &generation_entry,
+                    generation_timeout,
+                ) {
                     Ok(sample) => {
                         generation_successes = generation_successes.saturating_add(1);
                         generation_succeeded = true;
@@ -2138,6 +2211,10 @@ impl<'a> StimuliGenerator<'a> {
                             helper_timeout_errors = helper_timeout_errors.saturating_add(1);
                             validation_summary.helper_timeout_errors =
                                 validation_summary.helper_timeout_errors.saturating_add(1);
+                        } else if !helper_probe_active && Self::is_target_timeout_error(&error) {
+                            target_timeout_errors = target_timeout_errors.saturating_add(1);
+                            validation_summary.target_timeout_errors =
+                                validation_summary.target_timeout_errors.saturating_add(1);
                         }
                     }
                 }
@@ -2177,6 +2254,7 @@ impl<'a> StimuliGenerator<'a> {
                         max_attempts,
                         generation_successes,
                         generation_errors,
+                        target_timeout_errors,
                         helper_timeout_errors,
                         stagnant_iterations,
                         probe_threshold,
@@ -2192,13 +2270,14 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Low,
                 format_args!(
-                    "Completed validation-aware target-driven generation: entry='{}' resolved_targets={}/{} attempts={} generation_successes={} generation_errors={} helper_timeout_errors={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
+                    "Completed validation-aware target-driven generation: entry='{}' resolved_targets={}/{} attempts={} generation_successes={} generation_errors={} target_timeout_errors={} helper_timeout_errors={} accepted_outputs={} rejected_outputs={} alternate_attempts={} alternate_accepted={} alternate_rejected={}",
                     resolved_entry,
                     resolved_targets,
                     total_targets,
                     attempts,
                     generation_successes,
                     generation_errors,
+                    target_timeout_errors,
                     helper_timeout_errors,
                     validation_summary.accepted_outputs,
                     validation_summary.rejected_outputs,
@@ -2215,6 +2294,7 @@ impl<'a> StimuliGenerator<'a> {
                     attempts,
                     generation_successes,
                     generation_errors,
+                    target_timeout_errors,
                     helper_timeout_errors,
                     total_targets,
                     applied_targets,
@@ -7066,6 +7146,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
                 target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode,
@@ -7094,6 +7175,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation,
+                target_generation_timeout_ms: 0,
                 target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
@@ -7122,6 +7204,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
                 target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
@@ -7151,6 +7234,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
                 target_helper_generation_timeout_ms: 1000,
                 recovery_mode,
                 mutation_mode: StimuliMutationMode::Baseline,
@@ -7729,6 +7813,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 2,
                 target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
                 target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
@@ -7846,6 +7931,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
                 target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
@@ -7902,6 +7988,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
                 target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
@@ -8249,6 +8336,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
                 target_helper_generation_timeout_ms: 1000,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
@@ -8752,6 +8840,7 @@ mod tests {
             alternate_entry_attempts: 16,
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 15,
+            target_timeout_errors: 0,
             helper_timeout_errors: 0,
         };
 
@@ -8876,6 +8965,7 @@ mod tests {
             alternate_entry_attempts: 16,
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 15,
+            target_timeout_errors: 0,
             helper_timeout_errors: 0,
         };
 
@@ -8936,6 +9026,7 @@ mod tests {
             alternate_entry_attempts: 16,
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 15,
+            target_timeout_errors: 0,
             helper_timeout_errors: 0,
         };
 
@@ -9360,6 +9451,7 @@ mod tests {
             alternate_entry_attempts: 2,
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 1,
+            target_timeout_errors: 0,
             helper_timeout_errors: 0,
         };
 
@@ -9569,7 +9661,14 @@ mod tests {
 
         let mut generator = simple_generator(&grammar_tree, &rule_order, 917);
         let err = generator
-            .generate_from_entry_with_optional_timeout("start", Some(Duration::from_millis(0)))
+            .generate_from_entry_with_optional_timeout(
+                "start",
+                Some(GenerationTimeoutBudget {
+                    duration: Duration::from_millis(0),
+                    error_prefix: HELPER_TIMEOUT_ERROR_PREFIX,
+                    budget_ms: 0,
+                }),
+            )
             .expect_err("expired helper timeout should abort generation");
         assert!(
             err.to_string()
@@ -9588,12 +9687,46 @@ mod tests {
     }
 
     #[test]
+    fn target_generation_timeout_aborts_entry_and_restores_generator_state() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 918);
+        let err = generator
+            .generate_from_entry_with_optional_timeout(
+                "start",
+                Some(GenerationTimeoutBudget {
+                    duration: Duration::from_millis(0),
+                    error_prefix: TARGET_TIMEOUT_ERROR_PREFIX,
+                    budget_ms: 0,
+                }),
+            )
+            .expect_err("expired primary target timeout should abort generation");
+        assert!(
+            err.to_string()
+                .contains("Stimuli generation target timeout exceeded"),
+            "timeout error should explain the target budget, got: {err}"
+        );
+        assert!(
+            generator.active_generation_deadline.is_none(),
+            "target timeout wrapper should restore the generator deadline state"
+        );
+
+        let sample = generator
+            .generate_from_entry("start")
+            .expect("subsequent direct generation should still succeed");
+        assert_eq!(sample, "ok");
+    }
+
+    #[test]
     fn target_drive_summary_reports_helper_timeout_errors() {
         let summary = TargetDriveSummary {
             entry_rule: "start".to_string(),
             attempts: 12,
             generation_successes: 5,
             generation_errors: 3,
+            target_timeout_errors: 1,
             helper_timeout_errors: 2,
             total_targets: 9,
             applied_targets: 9,
@@ -9604,6 +9737,10 @@ mod tests {
         assert!(
             summary.summary_line().contains("helper_timeout_errors=2"),
             "target-drive summaries should expose helper timeout counts for auditability"
+        );
+        assert!(
+            summary.summary_line().contains("target_timeout_errors=1"),
+            "target-drive summaries should expose primary target timeout counts for auditability"
         );
     }
 
@@ -9666,6 +9803,7 @@ mod tests {
             alternate_entry_attempts: 16,
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 15,
+            target_timeout_errors: 0,
             helper_timeout_errors: 0,
         };
 
@@ -9725,6 +9863,7 @@ mod tests {
             alternate_entry_attempts: 16,
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 15,
+            target_timeout_errors: 0,
             helper_timeout_errors: 0,
         };
 

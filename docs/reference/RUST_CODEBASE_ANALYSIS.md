@@ -1947,6 +1947,35 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
     - keep reusing the normalized generation-AST bundle for main-SV gate/runtime work; it removes a real source of misleading proof-lane cost
     - still do not promote the main-SV live status row from this alone; this is bounded proof-lane hardening, not a full contract-default refresh
     - paired with the gate-local default `low` replay logs, the maintained main-SV shell lane is now both cheaper and more inspectable than it was before the last two slices
+- The next bounded main-SV containment seam is now explicit too.
+  - retained problem shape after the last two slices:
+    - the active hotspot was no longer grammar loading
+    - a real contract-default rerun could still spend minutes inside a single canonical target-drive attempt
+  - retained implementation:
+    - `StimuliConfig` now carries:
+      - `target_generation_timeout_ms`
+      - `target_helper_generation_timeout_ms`
+    - the primary budget defaults to `0`, so maintained replay behavior stays unchanged unless explicitly requested
+    - helper probes still use the existing separate helper-only budget
+    - target-drive summaries/traces now report:
+      - `target_timeout_errors`
+      - `helper_timeout_errors`
+    - `rust/src/main.rs` now exposes:
+      - `--target-generation-timeout-ms`
+    - `rust/scripts/sv_stimuli_quality_gate.sh` now accepts:
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS`
+      - and records both primary/helper budgets in the gate header plus `summary.txt`
+    - replay-shadow aggregate output now preserves:
+      - `target_timeout_errors_total`
+  - retained direct SystemVerilog smoke:
+    - dumped generation bundle created from `grammars/systemverilog.ebnf`
+    - replay run:
+      - `rust/target/debug/ast_pipeline /tmp/pgen-sv-target-timeout-smoke/systemverilog_gen_ast.json --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 1 --seed 202 --output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability.sv --coverage-output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_coverage.json --gap-report-json /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.json --gap-report-text /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.txt --target-max-attempts 2 --target-generation-timeout-ms 1 --target-report-input /tmp/pgen-sv-target-timeout-smoke/initial_gap.json`
+    - observed summary:
+      - `Target-driven generation: resolved 0/2560 targets in 2 attempts (generation_successes=0, generation_errors=2, target_timeout_errors=2, helper_timeout_errors=0)`
+  - important boundary:
+    - current generated-parser parseability validation still does not support `systemverilog` on the `ast_pipeline` binary path
+    - so this slice's retained end-to-end proof is target-drive summary evidence plus focused unit coverage, not a validator-backed parseability report refresh
 - Literalish sample steering is now a broader stimuli-runtime tool too.
   - retained runtime widening:
     - `rust/src/ast_pipeline/stimuli_generator.rs` now honors literalish semantic hints for:

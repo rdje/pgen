@@ -18,6 +18,7 @@ SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
 TARGET_MAX_ATTEMPTS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-}"
 PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION:-}"
+TARGET_GENERATION_TIMEOUT_MS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS:-}"
 TARGET_HELPER_TIMEOUT_MS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS:-}"
 CARGO_BUILD_JOBS_OVERRIDE="${PGEN_SV_STIMULI_CARGO_BUILD_JOBS:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
@@ -1479,6 +1480,13 @@ if [[ -n "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE" ]]; then
         "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE"
     )
 fi
+target_generation_timeout_args=()
+if [[ -n "$TARGET_GENERATION_TIMEOUT_MS_OVERRIDE" ]]; then
+    target_generation_timeout_args=(
+        --target-generation-timeout-ms
+        "$TARGET_GENERATION_TIMEOUT_MS_OVERRIDE"
+    )
+fi
 target_helper_timeout_args=()
 if [[ -n "$TARGET_HELPER_TIMEOUT_MS_OVERRIDE" ]]; then
     target_helper_timeout_args=(
@@ -1692,6 +1700,8 @@ echo "closed_loop_effective_enabled: $closed_loop_effective_enabled"
 echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
+echo "closed_loop_target_generation_timeout_ms: ${TARGET_GENERATION_TIMEOUT_MS_OVERRIDE:-0}"
+echo "closed_loop_target_helper_timeout_ms: ${TARGET_HELPER_TIMEOUT_MS_OVERRIDE:-1000}"
 echo "closed_loop_replay_trace_verbosity: $REPLAY_TRACE_VERBOSITY"
 echo "cargo_build_jobs: ${CARGO_BUILD_JOBS_OVERRIDE:-<default>}"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
@@ -2014,6 +2024,7 @@ closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_attempts_total=0
 closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=0
+closed_loop_parseability_shadow_target_timeout_errors_total=0
 closed_loop_parseability_shadow_helper_timeout_errors_total=0
 if [[ "$declared_shadow_enabled" -eq 1 ]]; then
     : >"$declared_shadow_cases_jsonl"
@@ -2059,6 +2070,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             "${pending_frontier_extra_stagnation_args[@]}" \
+            "${target_generation_timeout_args[@]}" \
             "${target_helper_timeout_args[@]}" \
             --output "$closed_loop_initial_stimuli" \
             --coverage-output "$closed_loop_initial_coverage" \
@@ -2085,6 +2097,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             "${pending_frontier_extra_stagnation_args[@]}" \
+            "${target_generation_timeout_args[@]}" \
             "${target_helper_timeout_args[@]}" \
             --output "$closed_loop_initial_replay_stimuli" \
             --coverage-output "$closed_loop_initial_replay_coverage" \
@@ -2114,6 +2127,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             "${pending_frontier_extra_stagnation_args[@]}" \
+            "${target_generation_timeout_args[@]}" \
             "${target_helper_timeout_args[@]}" \
             --output "$closed_loop_replay_stimuli" \
             --coverage-output "$closed_loop_replay_coverage" \
@@ -2196,6 +2210,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                 --max-repeat "$mode_max_repeat" \
                 --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
                 "${pending_frontier_extra_stagnation_args[@]}" \
+                "${target_generation_timeout_args[@]}" \
                 "${target_helper_timeout_args[@]}" \
                 --output "$closed_loop_replay_parseability_shadow_stimuli" \
                 --target-max-attempts "$target_max_attempts" \
@@ -2223,6 +2238,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             shadow_alternate_entry_attempts="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_attempts")"
             shadow_alternate_entry_accepted_outputs="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_accepted_outputs")"
             shadow_alternate_entry_rejected_outputs="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_rejected_outputs")"
+            shadow_target_timeout_errors="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "target_timeout_errors")"
             shadow_helper_timeout_errors="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "helper_timeout_errors")"
 
             closed_loop_parseability_shadow_requested_total=$((closed_loop_parseability_shadow_requested_total + shadow_requested))
@@ -2239,6 +2255,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             closed_loop_parseability_shadow_alternate_entry_attempts_total=$((closed_loop_parseability_shadow_alternate_entry_attempts_total + shadow_alternate_entry_attempts))
             closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total + shadow_alternate_entry_accepted_outputs))
             closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total + shadow_alternate_entry_rejected_outputs))
+            closed_loop_parseability_shadow_target_timeout_errors_total=$((closed_loop_parseability_shadow_target_timeout_errors_total + shadow_target_timeout_errors))
             closed_loop_parseability_shadow_helper_timeout_errors_total=$((closed_loop_parseability_shadow_helper_timeout_errors_total + shadow_helper_timeout_errors))
             if (( shadow_counterexamples_captured > 0 )); then
                 jq -c \
@@ -2265,6 +2282,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                 --argjson alternate_entry_attempts "$shadow_alternate_entry_attempts" \
                 --argjson alternate_entry_accepted_outputs "$shadow_alternate_entry_accepted_outputs" \
                 --argjson alternate_entry_rejected_outputs "$shadow_alternate_entry_rejected_outputs" \
+                --argjson target_timeout_errors "$shadow_target_timeout_errors" \
                 --argjson helper_timeout_errors "$shadow_helper_timeout_errors" \
                 '{
                     profile: $profile,
@@ -2287,6 +2305,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                         alternate_entry_attempts: $alternate_entry_attempts,
                         alternate_entry_accepted_outputs: $alternate_entry_accepted_outputs,
                         alternate_entry_rejected_outputs: $alternate_entry_rejected_outputs,
+                        target_timeout_errors: $target_timeout_errors,
                         helper_timeout_errors: $helper_timeout_errors
                     }
                 }' >>"$closed_loop_parseability_shadow_profiles_jsonl"
@@ -2330,6 +2349,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             "${pending_frontier_extra_stagnation_args[@]}" \
+            "${target_generation_timeout_args[@]}" \
             "${target_helper_timeout_args[@]}" \
             --output "$sample_file"
         require_nonempty_file "$sample_file"
@@ -3088,6 +3108,7 @@ jq -n \
     --argjson alternate_entry_attempts_total "$closed_loop_parseability_shadow_alternate_entry_attempts_total" \
     --argjson alternate_entry_accepted_outputs_total "$closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" \
     --argjson alternate_entry_rejected_outputs_total "$closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" \
+    --argjson target_timeout_errors_total "$closed_loop_parseability_shadow_target_timeout_errors_total" \
     --argjson helper_timeout_errors_total "$closed_loop_parseability_shadow_helper_timeout_errors_total" \
     --argjson profiles "$closed_loop_parseability_shadow_profiles_json" \
     '{
@@ -3114,6 +3135,7 @@ jq -n \
             alternate_entry_attempts_total: $alternate_entry_attempts_total,
             alternate_entry_accepted_outputs_total: $alternate_entry_accepted_outputs_total,
             alternate_entry_rejected_outputs_total: $alternate_entry_rejected_outputs_total,
+            target_timeout_errors_total: $target_timeout_errors_total,
             helper_timeout_errors_total: $helper_timeout_errors_total
         },
         profiles: $profiles
@@ -3300,6 +3322,8 @@ jq -n \
     echo "closed_loop_gap_report_threshold: $gap_report_threshold"
     echo "closed_loop_target_max_attempts: $target_max_attempts"
     echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
+    echo "closed_loop_target_generation_timeout_ms: ${TARGET_GENERATION_TIMEOUT_MS_OVERRIDE:-0}"
+    echo "closed_loop_target_helper_timeout_ms: ${TARGET_HELPER_TIMEOUT_MS_OVERRIDE:-1000}"
     echo "closed_loop_replay_trace_verbosity: $REPLAY_TRACE_VERBOSITY"
     echo "closed_loop_replay_sample_count: $replay_sample_count"
     echo "closed_loop_profiles_passed: $closed_loop_profile_pass_count/$profile_count"
@@ -3329,6 +3353,7 @@ jq -n \
     echo "closed_loop_parseability_shadow_alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total"
     echo "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
     echo "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
+    echo "closed_loop_parseability_shadow_target_timeout_errors_total: $closed_loop_parseability_shadow_target_timeout_errors_total"
     echo "closed_loop_parseability_shadow_helper_timeout_errors_total: $closed_loop_parseability_shadow_helper_timeout_errors_total"
     echo "closed_loop_parseability_shadow_report_json: $closed_loop_parseability_shadow_report_json"
     echo "declared_identifier_suite_status: $declared_identifier_suite_status"
