@@ -59,13 +59,15 @@ That split matters because a hint that is useful when probing a single dependenc
 The heavy replay gates are intentionally quiet by default, but the retained SystemVerilog replay lane now has an opt-in progress surface when a closed-loop stage is CPU-hot and needs inspection.
 
 - `rust/scripts/sv_stimuli_quality_gate.sh` accepts `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
-- keep the default at `none` for ordinary runs
-- use `low` when you want replay-stage start/progress/completion lines from the Rust target-drive loop without turning the whole gate into an always-on debug dump
+- the maintained shell-gate default is now `low`
+- that does not make the terminal noisy because `run_logged` still captures replay-stage output into the stage log files
+- direct `ast_pipeline` invocations still keep their own ordinary default trace posture
+- use the environment variable when you want something other than the gate default
 - low trace now also surfaces:
   - immediate helper-probe activation lines when replay switches away from the primary entry rule
   - helper-probe result lines showing pending-target payoff after each helper attempt
 
-That trace is meant for honest progress visibility during stubborn replay work, not as a replacement for the gate's final summary artifacts.
+That trace is meant for honest progress visibility during stubborn replay work, not as a replacement for the gate's final summary artifacts. The practical payoff is simple: if a long `profile_2017_closed_loop_replay` run is still active, the stage log is now tail-able by default instead of staying empty unless someone remembered an extra env override first.
 
 PGEN now also lets the replay selector learn a little within a single target-drive run. If a helper rule has already retired meaningful target debt earlier in that same run, later probe selection can treat that observed payoff as part of the ranking signal instead of relying only on static dependency heuristics. This is intentionally bounded to the current replay session; it is replay-local guidance, not a persisted cross-run learning system.
 

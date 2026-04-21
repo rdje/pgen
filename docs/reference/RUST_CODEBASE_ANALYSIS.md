@@ -1826,8 +1826,9 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
     - the contract-default and bounded (`PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100`) `sv_stimuli_quality_gate` reruns are still too heavy for first local iteration on this seam because `profile_2017_closed_loop_replay` chases a retained `2597`-target initial gap and stays CPU-hot for minutes without becoming a good quick loop
     - that replay seam is no longer completely opaque though:
       - `rust/src/ast_pipeline/stimuli_generator.rs` now emits low-verbosity start/progress/completion telemetry for target-driven generation
-      - `rust/scripts/sv_stimuli_quality_gate.sh` now forwards opt-in replay-only tracing through `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
-      - default remains `none` so ordinary gate runs stay quiet, but a focused local replay investigation can now ask for `low` and see concrete progress instead of waiting blindly for process exit
+      - `rust/scripts/sv_stimuli_quality_gate.sh` now forwards replay-stage tracing through `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
+      - the maintained shell-gate default is now `low`, which keeps the terminal quiet because stage output is still captured by `run_logged` into per-stage log files
+      - direct `ast_pipeline` invocations still keep their own ordinary default trace posture
       - a one-attempt direct probe against the retained `profile_2017_initial_gap.json` now logs `341/2593` resolved targets on the first attempt, which is enough to distinguish “making progress slowly” from “not entering target-drive at all”
       - helper-probe activation and payoff are now visible immediately too, not only through coarse periodic checkpoints:
         - the same bounded replay lane now logs `Target-drive helper probe` whenever generation switches away from `systemverilog_file`
@@ -1945,6 +1946,7 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - steering consequence:
     - keep reusing the normalized generation-AST bundle for main-SV gate/runtime work; it removes a real source of misleading proof-lane cost
     - still do not promote the main-SV live status row from this alone; this is bounded proof-lane hardening, not a full contract-default refresh
+    - paired with the gate-local default `low` replay logs, the maintained main-SV shell lane is now both cheaper and more inspectable than it was before the last two slices
 - Literalish sample steering is now a broader stimuli-runtime tool too.
   - retained runtime widening:
     - `rust/src/ast_pipeline/stimuli_generator.rs` now honors literalish semantic hints for:

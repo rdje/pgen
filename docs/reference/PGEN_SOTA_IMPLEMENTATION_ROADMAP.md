@@ -4537,6 +4537,16 @@ Initial Phase U milestones:
   - roadmap consequence:
     - keep this runtime reuse path; it makes bounded main-SV proof reruns materially more honest and cheaper
     - do not overclaim from it yet: the next honest status-moving step is still a fuller main-SV gate refresh on the maintained contract-default lane
+- The next keepable main-SV slice after that is shell-gate observability, not another parser edit.
+  - retained motivation:
+    - a real contract-default rerun on the canonical `rust/target/sv_stimuli_quality_gate` surface showed the new runtime path was working, but `profile_2017_closed_loop_replay` could still sit CPU-hot for minutes while leaving its stage log empty unless `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY=low` had been set manually
+  - retained implementation:
+    - `rust/scripts/sv_stimuli_quality_gate.sh` now defaults that gate-local replay trace setting to `low`
+    - replay and replay-shadow stages both forward the effective value into `PGEN_TRACE_VERBOSITY`
+    - the gate banner and final `summary.txt` now record `closed_loop_replay_trace_verbosity`
+  - roadmap consequence:
+    - direct `ast_pipeline` invocations still keep their own ordinary default trace posture
+    - the maintained shell gate now gives long replay stages tail-able progress logs by default, which is the right tradeoff for the active main-SV closure lane
 Tracker note (2026-04-19): literalish sample steering is now a real branch-local replay tool rather than a regex-only convenience. [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) now honors parser-proven literalish hints on non-regex non-OR rules and inline branch-local OR alternatives, preserving branch-success accounting for the latter. [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) uses that new retained path on selected `assignment_pattern`, `case_statement`, `clocking_declaration`, `conditional_statement`, struct/enum `block_data_type` / `data_type`, simple function/task bodies, and `net_type_declaration_sv_2017` branches. The focused adapter-backed replay loop now measures `sv_2017: 180/181 accepted, 1 parser reject, 319/2613 targets resolved` and `sv_2023: 179/180 accepted, 1 parser reject, 387/2393 targets resolved` in the retained 200-attempt runs. Future work should keep the new rule strict:
 - parser-proven branch-local seeds are fair game
 - blind blanket `@sample` sweeps are still the wrong tactic

@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-21 - Main-SV shell-gate replay logs now default to low trace
+### Context
+After the generation-AST reuse slice landed, the next honest step was a real contract-default `sv_stimuli_quality_gate` rerun on the canonical `rust/target/sv_stimuli_quality_gate` surface.
+
+That run taught two things at once:
+- the runtime reuse fix worked:
+  - a CPU sample no longer showed repeated grammar loading / semantic-annotation parsing
+  - the hot stack was now dominated by real `StimuliGenerator::generate_*` recursion
+- but the full `5000`-attempt `profile_2017_closed_loop_replay` stage still stayed opaque for minutes unless a developer had remembered to set `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY=low`
+
+The shell gate already captures each stage into its own log file, so the real defect was not "we have no trace mode." It was:
+- the useful replay trace existed,
+- but the maintained gate default still left those stage logs empty during the slowest part of the run.
+
+### Decision
+- Keep `ast_pipeline`'s own default trace behavior unchanged.
+- Change only the shell gate's replay-stage default so captured stage logs are useful by default.
+- Record the effective replay trace mode in the gate header and final summary so future sessions do not have to guess whether a log should contain progress.
+
+### What Was Changed
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added gate-local default:
+    - `REPLAY_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-low}"`
+  - replay and replay-shadow stages now forward that value into:
+    - `PGEN_TRACE_VERBOSITY`
+  - startup banner and final `summary.txt` now include:
+    - `closed_loop_replay_trace_verbosity`
+
+### Why This Split Is The Right One
+This keeps the behavior scoped correctly:
+- unchanged:
+  - direct `ast_pipeline` CLI invocations still use their own ordinary default trace posture
+- improved:
+  - long-running shell-gate replay stages now leave live progress in their stage logs by default
+
+That is exactly what we want for the active main-SV proof lane:
+- no extra terminal chatter from `run_logged`
+- but a useful `tail -f` target when `profile_2017_closed_loop_replay` is CPU-hot for minutes
+
+### Validation
+- Passed:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - started bounded gate run:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-replay-trace-low-gate PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=16 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - confirmed gate header reports:
+    - `closed_loop_replay_trace_verbosity: low`
+  - `rg -n "Target-drive (start|progress|helper probe|helper result|completion)" /tmp/pgen-sv-replay-trace-low-gate/logs/profile_2017_closed_loop_replay.log`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-21 - Main-SV quality-gate runtime now reuses normalized generation AST bundles
 ### Context
 The active closure lane is still main `systemverilog`, so I tried the next honest proof step: rerun `sv_stimuli_quality_gate` locally with a bounded replay budget.

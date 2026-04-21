@@ -8,6 +8,37 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog shell-gate replay logs now default to low trace while keeping the underlying CLI default unchanged:
+  - changed:
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - the shell gate now sets:
+      - `REPLAY_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-low}"`
+    - both replay stages forward that value into `PGEN_TRACE_VERBOSITY`
+    - gate startup and `summary.txt` now record:
+      - `closed_loop_replay_trace_verbosity`
+  - motivation:
+    - a real contract-default main-SV rerun proved the new generation-AST reuse removed grammar-loading overhead
+    - but the long `profile_2017_closed_loop_replay` stage still stayed opaque for minutes with empty log files unless the replay-trace env var had been set manually
+    - because `run_logged` already captures stage output into log files, defaulting replay logs to `low` gives live tail-able progress without making terminal output noisy
+  - validation:
+    - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+    - started bounded gate run:
+      - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-replay-trace-low-gate PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=16 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - confirmed gate header reports:
+      - `closed_loop_replay_trace_verbosity: low`
+    - `rg -n "Target-drive (start|progress|helper probe|helper result|completion)" /tmp/pgen-sv-replay-trace-low-gate/logs/profile_2017_closed_loop_replay.log`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - important continuity detail:
+    - this is a shell-gate observability change, not a parser-family status change
+    - direct `ast_pipeline` runs still keep their own ordinary default trace posture
 - Main-SystemVerilog bounded quality-gate reruns now reuse a normalized generation-AST bundle instead of reparsing `grammars/systemverilog.ebnf` on every later `ast_pipeline` invocation:
   - changed:
     - [rust/src/main.rs](rust/src/main.rs)

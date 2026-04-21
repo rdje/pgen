@@ -43,6 +43,7 @@ PERF_BUDGET_MODE="${PGEN_SV_STIMULI_PERF_BUDGET_MODE:-auto}"
 REALISTIC_CORPUS_MODE="${PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE:-auto}"
 REALISTIC_CORPUS_OVERRIDE="${PGEN_SV_STIMULI_REALISTIC_CORPUS:-}"
 REALISTIC_CORPUS_MAX_CASES="${PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES:-0}"
+REPLAY_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-low}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
@@ -1691,6 +1692,7 @@ echo "closed_loop_effective_enabled: $closed_loop_effective_enabled"
 echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
+echo "closed_loop_replay_trace_verbosity: $REPLAY_TRACE_VERBOSITY"
 echo "cargo_build_jobs: ${CARGO_BUILD_JOBS_OVERRIDE:-<default>}"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
@@ -2100,7 +2102,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         closed_loop_initial_replay_determinism_pass_count=$((closed_loop_initial_replay_determinism_pass_count + 1))
 
         run_logged "profile_${profile_key}_closed_loop_replay" \
-            env PGEN_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-none}" \
+            env PGEN_TRACE_VERBOSITY="$REPLAY_TRACE_VERBOSITY" \
             "$AST_PIPELINE_BIN" "$grammar_runtime_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
@@ -2182,7 +2184,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             closed_loop_replay_parseability_shadow_report="$WORK_DIR/profile_${profile_key}_replay_parseability_shadow_report.json"
 
             run_logged "profile_${profile_key}_closed_loop_replay_parseability_shadow" \
-                env PGEN_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-none}" \
+                env PGEN_TRACE_VERBOSITY="$REPLAY_TRACE_VERBOSITY" \
                 "$AST_PIPELINE_BIN" "$grammar_runtime_input" \
                 --generate-stimuli \
                 --grammar-profile "$lrm_profile" \
@@ -3298,6 +3300,7 @@ jq -n \
     echo "closed_loop_gap_report_threshold: $gap_report_threshold"
     echo "closed_loop_target_max_attempts: $target_max_attempts"
     echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
+    echo "closed_loop_replay_trace_verbosity: $REPLAY_TRACE_VERBOSITY"
     echo "closed_loop_replay_sample_count: $replay_sample_count"
     echo "closed_loop_profiles_passed: $closed_loop_profile_pass_count/$profile_count"
     echo "closed_loop_profiles_skipped: $closed_loop_profile_skip_count/$profile_count"

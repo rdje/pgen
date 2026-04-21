@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-21 - Default main-SV replay logs to low trace inside the shell gate
+### Achievement Summary
+Made the active main-SystemVerilog proof lane less opaque without making the terminal noisy. `sv_stimuli_quality_gate.sh` now defaults replay stages to `low` trace inside their captured stage logs, so long closed-loop runs can be tailed live by reading the log files even when the gate itself stays quiet on stdout.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added gate-local default:
+    - `REPLAY_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-low}"`
+  - `profile_*_closed_loop_replay` now forwards that gate-local value into:
+    - `PGEN_TRACE_VERBOSITY`
+  - `profile_*_closed_loop_replay_parseability_shadow` now does the same
+  - gate startup and final `summary.txt` now record:
+    - `closed_loop_replay_trace_verbosity`
+- Updated tracked docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - started bounded gate run:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-replay-trace-low-gate PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=16 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - confirmed gate header reports:
+    - `closed_loop_replay_trace_verbosity: low`
+  - `rg -n "Target-drive (start|progress|helper probe|helper result|completion)" /tmp/pgen-sv-replay-trace-low-gate/logs/profile_2017_closed_loop_replay.log`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+
 ## 2026-04-21 - Reuse normalized generation ASTs in the main SV quality gate
 ### Achievement Summary
 Removed a real runtime bottleneck from the active main-SystemVerilog proof lane. `ast_pipeline --dump-gen-ast` now emits a directly reloadable transformed-style generation bundle, and `sv_stimuli_quality_gate` now reuses that bundle instead of reparsing `grammars/systemverilog.ebnf` for every later `ast_pipeline` invocation.
