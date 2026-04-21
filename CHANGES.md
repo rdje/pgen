@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-04-21 - Refresh `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` to current `rtl_frontend` state
+### Achievement Summary
+Refreshed the living SOTA roadmap so its `rtl_frontend` current-state bullets no longer lag behind the live status, README, and Rust analysis surfaces. The roadmap now reflects the current `125`-sample generated/handwritten manifest, the `59`-sample elaboration replay floor, and the latest package-qualified selector replay slice.
+
+### Scope of Changes
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - refreshed the roadmap header date
+  - corrected the current `rtl_frontend` summary bullets from the stale `120` / `54` state to the current `125` / `59` state
+  - recorded the latest package-qualified selector replay and assignment-target-guard slice as a new dated `rtl_frontend` progress note
+  - preserved older dated roadmap notes as historical checkpoints rather than silently rewriting their point-in-time values
+
+### Validation
+- Passed:
+  - `git diff --check`
+
 ## 2026-04-20 - Support package-qualified selector actuals in `rtl_frontend`
 ### Achievement Summary
 Extended the handwritten `rtl_frontend` semantic lane so package-qualified selector roots such as `cfg_pkg::MASK_BITS[7:4]` now survive the same typed actual / bounded selector-override flow as unqualified constant selectors. The same slice also tightened assignment-target validation so package constants remain legal RHS/override inputs but stay illegal LHS targets.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-20 (+0200, task: rtl_frontend-package-qualified-selector-actuals)
+Last updated: 2026-04-21 (+0200, task: roadmap-rtl_frontend-doc-sync)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,21 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Refreshed the living SOTA roadmap so it no longer lags the current `rtl_frontend` baseline:
+  - changed:
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - corrected the roadmap's current `rtl_frontend` summary bullets from the stale `120` / `54` state to the current `125` / `59` state
+    - added a dated roadmap progress note for the package-qualified selector replay slice and assignment-target guard
+    - preserved the older dated roadmap notes as historical checkpoints instead of rewriting them retroactively
+  - validation:
+    - `git diff --check`
+  - important continuity detail:
+    - this was a roadmap/live-doc synchronization task
+    - `LIVE_ACHIEVEMENT_STATUS.md` remains unchanged; `rtl_frontend` is still `In Progress`
 - Extended `rtl_frontend` so package-qualified constant selectors now survive the handwritten semantic lane while package constants stay illegal assignment targets:
   - changed:
     - [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs)

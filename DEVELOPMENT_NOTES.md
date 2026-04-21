@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-21 - Synced the SOTA roadmap to the live `rtl_frontend` baseline
+### Context
+After the latest `rtl_frontend` package-qualified selector work landed, the maintained live surfaces agreed on the new baseline:
+- `README.md`
+- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md`
+- `MEMORY.md`
+
+But [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) still described the older `rtl_frontend` replay floor:
+- `120` manifest samples
+- `54` elaboration replay samples
+
+That made the roadmap lag the current live steering picture even though the underlying work had already been documented elsewhere.
+
+### Decision
+- Treat the roadmap drift as a real maintenance defect.
+- Update the roadmap's current-state bullets to the live `125` / `59` baseline.
+- Add a fresh dated roadmap note for the package-qualified selector slice instead of mutating older dated progress notes that were correct when written.
+
+### What Was Changed
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - refreshed the header date
+  - corrected the current `rtl_frontend` summary bullets to:
+    - `125` manifest samples
+    - `59` elaboration replay samples
+    - `46` accepts
+    - `13` rejects
+    - `20` child-path samples
+    - `37` top-parameter checks
+    - `21` child-parameter checks
+    - `85` child-port-binding checks
+  - added a dated `2026-04-20` `rtl_frontend` progress note capturing:
+    - package-qualified selector actual replay
+    - package-qualified selector-only parameter-override replay
+    - package/global constant assignment-target rejection
+- Left older `2026-04-18` roadmap notes intact as historical point-in-time checkpoints.
+
+### Validation
+- Passed:
+  - `git diff --check`
+
 ## 2026-04-20 - `rtl_frontend` now carries package-qualified selector roots through the semantic lane
 ### Context
 The previous selector-only parameter-override slice only closed unqualified constant selectors such as:
