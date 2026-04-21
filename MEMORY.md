@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-21 (+0200, task: main-sv-primary-timeout-budget)
+Last updated: 2026-04-21 (+0200, task: timeout-telemetry-shell-propagation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,50 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Primary target-timeout telemetry now survives the higher shell/report stack instead of stopping at the direct main-SV gate:
+  - changed:
+    - [rust/scripts/annotation_stimuli_quality_gate.sh](rust/scripts/annotation_stimuli_quality_gate.sh)
+    - [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh)
+    - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
+    - [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh)
+    - [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh)
+    - [rust/scripts/sv_parse_full_ratio_promotion_gate.sh](rust/scripts/sv_parse_full_ratio_promotion_gate.sh)
+    - [rust/scripts/sv_declared_shadow_promotion_gate.sh](rust/scripts/sv_declared_shadow_promotion_gate.sh)
+    - [rust/scripts/vhdl_strict_promotion_gate.sh](rust/scripts/vhdl_strict_promotion_gate.sh)
+    - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - implementation:
+    - annotation and SV preprocessor direct gates now preserve `target_timeout_errors_total` in aggregate parseability report JSON and operator-facing summaries
+    - VHDL replay-shadow `summary.txt` now preserves `closed_loop_parseability_shadow_target_timeout_errors_total`
+    - SV declared-shadow, SV parse-full-ratio, and VHDL strict promotion reports now preserve:
+      - `closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total`
+    - `sota_exit_gate` now carries the same counter for:
+      - direct SV replay-shadow quality
+      - direct VHDL replay-shadow quality
+      - SV declared-shadow promotion
+      - SV parse-full-ratio promotion
+      - VHDL strict promotion
+    - aggregate contract checks now also sanity-check copied target-timeout totals in:
+      - `sv_preprocessor_aggregate_contract_gate.sh`
+      - `sv_parser_aggregate_contract_gate.sh`
+  - retained validation:
+    - `bash -n` passed for all touched shell scripts
+    - bounded proof runs passed for:
+      - annotation quality
+      - SV preprocessor quality
+      - VHDL direct quality
+      - VHDL strict promotion
+    - retained artifact:
+      - `/tmp/pgen-vhdl-strict-promo-timeout/work/vhdl_strict_promotion_report.json` now preserves `closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total`
+  - important continuity detail:
+    - this is telemetry/continuity widening only
+    - no runtime target-drive behavior changed in this slice
 - Main-SystemVerilog target-drive now has an explicit opt-in primary-attempt timeout budget, separate from the existing helper-probe timeout:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

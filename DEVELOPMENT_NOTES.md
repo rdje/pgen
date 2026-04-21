@@ -1,4 +1,75 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-21 - Propagate primary timeout telemetry through shell/promotion/SOTA layers
+### Context
+The previous slice landed the actual primary target-drive timeout control plus honest runtime telemetry:
+- target-drive summaries report `target_timeout_errors`
+- parseability-side target-drive telemetry preserves the same counter
+- the main SystemVerilog shell gate republished `target_timeout_errors_total`
+
+That was good enough for direct focused replay work, but it still left an avoidable continuity gap higher in the shell stack. Several maintained gates and promotion layers already repackage target-drive validation into CSV summaries, promotion reports, or the aggregate `sota_exit_gate` surface. Without a follow-up, those layers would keep dropping the new primary-timeout signal even though the runtime and direct gate underneath them were already telling the truth.
+
+### Decision
+- Treat this as telemetry-propagation work, not as a new runtime behavior change.
+- Preserve `target_timeout_errors_total` anywhere the shell/report stack already republishes target-drive validation or replay-shadow totals.
+- Add gate-side sanity checks where an aggregate report is supposed to mirror a stage-local target-drive report.
+
+### What Was Changed
+- Updated direct gate/report consumers:
+  - [rust/scripts/annotation_stimuli_quality_gate.sh](rust/scripts/annotation_stimuli_quality_gate.sh)
+  - [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh)
+  - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
+  - all three now preserve `target_timeout_errors_total` in the same places that already carried stage-level replay/parseability summaries
+- Updated promotion/aggregate consumers:
+  - [rust/scripts/sv_parse_full_ratio_promotion_gate.sh](rust/scripts/sv_parse_full_ratio_promotion_gate.sh)
+  - [rust/scripts/sv_declared_shadow_promotion_gate.sh](rust/scripts/sv_declared_shadow_promotion_gate.sh)
+  - [rust/scripts/vhdl_strict_promotion_gate.sh](rust/scripts/vhdl_strict_promotion_gate.sh)
+  - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh)
+  - those surfaces now retain `closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total` through:
+    - per-trial report JSON
+    - final promotion report JSON
+    - `summary.txt`
+    - top-level SOTA stage/final summary output
+- Updated contract/parity checks:
+  - [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh)
+    - now parity-checks copied `target_timeout_errors_total` against stage-2 raw target-drive telemetry
+  - [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh)
+    - now bounds copied `target_timeout_errors_total` by:
+      - `generation_errors_total`
+      - `primary_entry_attempts_total`
+
+### Validation
+- Passed shell syntax validation:
+  - `bash -n rust/scripts/annotation_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
+  - `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - `bash -n rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+  - `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh`
+  - `bash -n rust/scripts/vhdl_strict_promotion_gate.sh`
+  - `bash -n rust/scripts/sota_exit_gate.sh`
+- Passed bounded proof runs:
+  - annotation:
+    - `PGEN_ANNOTATION_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-annotation-timeout-telemetry PGEN_ANNOTATION_STIMULI_QUALITY_FILTER=return PGEN_ANNOTATION_STIMULI_QUALITY_COUNT=1 PGEN_ANNOTATION_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=8 make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate`
+  - SV preprocessor:
+    - `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR=/tmp/pgen-svpp-timeout-telemetry PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=8 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY=auto PGEN_SV_PREPROCESSOR_DIFF_MODE=0 make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
+  - VHDL direct quality:
+    - `PGEN_VHDL_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-vhdl-timeout-telemetry PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=8 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - VHDL strict promotion:
+    - `PGEN_VHDL_STRICT_PROMOTION_STATE_DIR=/tmp/pgen-vhdl-strict-promo-timeout PGEN_VHDL_STRICT_PROMOTION_MODE=auto PGEN_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_VHDL_STRICT_PROMOTION_COUNT=1 PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY=0 PGEN_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE=0 PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+- Retained proof artifact:
+  - `/tmp/pgen-vhdl-strict-promo-timeout/work/vhdl_strict_promotion_report.json` now contains:
+    - `closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total`
+
+### Important Boundary
+- This slice does not change target-drive runtime semantics.
+- It widens observability and continuity only:
+  - direct gate summaries,
+  - promotion reports,
+  - aggregate SOTA exit summaries,
+  - and contract checks
+  now preserve the already-landed primary-timeout signal instead of silently dropping it.
+
 ## 2026-04-21 - Primary target-drive timeout is now explicit and auditable
 ### Context
 After the generation-AST reuse and replay-log visibility slices, the next honest main-SV runtime question was no longer "are we reparsing the grammar?" It was "what do we do when one canonical-entry target-drive attempt itself goes pathological?"

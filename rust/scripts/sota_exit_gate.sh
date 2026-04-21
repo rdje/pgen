@@ -364,6 +364,7 @@ SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PER
 SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="<unset>"
 SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="<unset>"
 SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="<unset>"
+SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="<unset>"
@@ -393,6 +394,7 @@ SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PE
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="<unset>"
 VHDL_STRICT_PROMOTION_REPORT_JSON="<unset>"
 VHDL_STRICT_PROMOTION_RECOMMENDATION="<unset>"
 VHDL_STRICT_PROMOTION_ELIGIBLE="<unset>"
@@ -410,6 +412,7 @@ VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="<
 VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="<unset>"
 VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="<unset>"
 VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="<unset>"
+VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="<unset>"
 SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR="<unset>"
 SV_PREPROCESSOR_QUALITY_SUMMARY_CSV="<unset>"
 SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON="<unset>"
@@ -708,6 +711,7 @@ SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="<unset>"
 SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="<unset>"
 SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="<unset>"
 SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="<unset>"
+SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="<unset>"
 SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="<unset>"
 SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="<unset>"
 SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL="<unset>"
@@ -728,6 +732,7 @@ VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="<unset>"
 VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="<unset>"
 VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="<unset>"
 VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="<unset>"
+VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="<unset>"
 VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="<unset>"
 VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="<unset>"
 VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE="<unset>"
@@ -1436,6 +1441,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_target_timeout_errors_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_STATE_DIR}/work/systemverilog_closed_loop_parseability_shadow_report.json"
     if [[ ! -f "$SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON" ]]; then
         SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="$(summary_value_from_log "closed_loop_parseability_shadow_report_json" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
@@ -1453,6 +1459,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL:-unknown}"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL:-unknown}"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL:-unknown}"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL:-unknown}"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON:-<missing>}"
 
     SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="$(summary_value_from_log "parseability_generation_enabled" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
@@ -2231,6 +2238,7 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
         declared_shadow_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_attempts_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         declared_shadow_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_accepted_outputs_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         declared_shadow_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_rejected_outputs_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        declared_shadow_closed_loop_parseability_shadow_target_timeout_errors_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         SV_DECLARED_SHADOW_PROMOTION_REPORT_JSON="$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON"
         SV_DECLARED_SHADOW_PROMOTION_RECOMMENDATION="$declared_shadow_recommendation"
         SV_DECLARED_SHADOW_PROMOTION_ELIGIBLE="$declared_shadow_eligible"
@@ -2254,6 +2262,7 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
         SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$declared_shadow_closed_loop_parseability_shadow_alternate_entry_attempts_total"
         SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$declared_shadow_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
         SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$declared_shadow_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
+        SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$declared_shadow_closed_loop_parseability_shadow_target_timeout_errors_total"
     else
         SV_DECLARED_SHADOW_PROMOTION_REPORT_JSON="<missing>"
     fi
@@ -2281,6 +2290,7 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
     echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
     echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
     echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+    echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_target_timeout_errors_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL"
 fi
 
 if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
@@ -2339,6 +2349,7 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_attempts_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_accepted_outputs_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_rejected_outputs_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        promotion_closed_loop_parseability_shadow_target_timeout_errors_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON"
         SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="$promotion_recommendation"
         SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="$promotion_primary_blocker"
@@ -2361,6 +2372,7 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total"
         SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
         SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
+        SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$promotion_closed_loop_parseability_shadow_target_timeout_errors_total"
     else
         SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<missing>"
     fi
@@ -2387,6 +2399,7 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
     echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
     echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
     echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+    echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_target_timeout_errors_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL"
 fi
 
 if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
@@ -2431,6 +2444,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_target_timeout_errors_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${VHDL_STIMULI_QUALITY_STAGE_STATE_DIR}/work/closed_loop_replay_parseability_shadow_report.json"
     if [[ ! -f "$VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON" ]]; then
         VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
@@ -2452,6 +2466,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL:-unknown}"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL:-unknown}"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL:-unknown}"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL:-unknown}"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON:-<missing>}"
 
     VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="$(summary_value_from_log_or_txt "parseability_generation_enabled" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
@@ -2544,6 +2559,7 @@ if [[ "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
         vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_attempts_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_accepted_outputs_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_rejected_outputs_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        vhdl_promotion_closed_loop_parseability_shadow_target_timeout_errors_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         VHDL_STRICT_PROMOTION_REPORT_JSON="$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON"
         VHDL_STRICT_PROMOTION_RECOMMENDATION="$vhdl_promotion_recommendation"
         VHDL_STRICT_PROMOTION_ELIGIBLE="$vhdl_promotion_eligible"
@@ -2564,6 +2580,7 @@ if [[ "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
         VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total"
         VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
         VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
+        VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_target_timeout_errors_total"
     else
         VHDL_STRICT_PROMOTION_REPORT_JSON="<missing>"
     fi
@@ -2588,6 +2605,7 @@ if [[ "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+    echo "vhdl_strict_promotion_closed_loop_parseability_shadow_target_timeout_errors_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL"
 fi
 
 if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
@@ -3179,6 +3197,7 @@ informational_failures=$((all_failures - required_failures))
         echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
         echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
         echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+        echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_target_timeout_errors_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL"
     fi
     if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         echo
@@ -3205,6 +3224,7 @@ informational_failures=$((all_failures - required_failures))
         echo "sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
         echo "sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
         echo "sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+        echo "sv_stimuli_quality_closed_loop_parseability_shadow_target_timeout_errors_total: $SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL"
         echo "sv_stimuli_quality_closed_loop_parseability_shadow_report_json: $SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON"
         echo "sv_stimuli_quality_parseability_generation_enabled: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED"
         echo "sv_stimuli_quality_parseability_generation_requested_total: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL"
@@ -3607,6 +3627,7 @@ informational_failures=$((all_failures - required_failures))
         echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
         echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
         echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+        echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_target_timeout_errors_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL"
     fi
     if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
         echo
@@ -3631,6 +3652,7 @@ informational_failures=$((all_failures - required_failures))
         echo "vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_attempts_total: $VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
         echo "vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
         echo "vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+        echo "vhdl_stimuli_quality_closed_loop_parseability_shadow_target_timeout_errors_total: $VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL"
         echo "vhdl_stimuli_quality_closed_loop_parseability_shadow_report_json: $VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON"
         echo "vhdl_stimuli_quality_parseability_generation_enabled: $VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED"
         echo "vhdl_stimuli_quality_parseability_generation_effective: $VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE"
@@ -3667,6 +3689,7 @@ informational_failures=$((all_failures - required_failures))
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+        echo "vhdl_strict_promotion_closed_loop_parseability_shadow_target_timeout_errors_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL"
     fi
     if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
         echo

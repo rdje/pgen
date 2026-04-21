@@ -253,6 +253,14 @@ if ! jq -e '
         )
     )
     and (
+        (.target_drive_validation.target_timeout_errors_total | numbers)
+        <= (.observed.generation_errors_total | numbers)
+    )
+    and (
+        (.target_drive_validation.target_timeout_errors_total | numbers)
+        <= (.target_drive_validation.primary_entry_attempts_total | numbers)
+    )
+    and (
         (.target_drive_validation.helper_timeout_errors_total | numbers)
         <= (.observed.generation_errors_total | numbers)
     )

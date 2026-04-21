@@ -1967,12 +1967,27 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
       - and records both primary/helper budgets in the gate header plus `summary.txt`
     - replay-shadow aggregate output now preserves:
       - `target_timeout_errors_total`
+    - the higher shell/report stack now also preserves that same signal instead of dropping it:
+      - `annotation_stimuli_quality_gate.sh`
+      - `sv_preprocessor_quality_gate.sh`
+      - `vhdl_stimuli_quality_gate.sh`
+      - `sv_parse_full_ratio_promotion_gate.sh`
+      - `sv_declared_shadow_promotion_gate.sh`
+      - `vhdl_strict_promotion_gate.sh`
+      - `sota_exit_gate.sh`
+    - aggregate sanity checks now also validate copied target-timeout totals in:
+      - `sv_preprocessor_aggregate_contract_gate.sh`
+      - `sv_parser_aggregate_contract_gate.sh`
   - retained direct SystemVerilog smoke:
     - dumped generation bundle created from `grammars/systemverilog.ebnf`
     - replay run:
       - `rust/target/debug/ast_pipeline /tmp/pgen-sv-target-timeout-smoke/systemverilog_gen_ast.json --generate-stimuli --grammar-profile 2017 --enforce-word-boundary-spacing --count 1 --seed 202 --output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability.sv --coverage-output /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_coverage.json --gap-report-json /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.json --gap-report-text /tmp/pgen-sv-target-timeout-smoke/replay_no_parseability_gap.txt --target-max-attempts 2 --target-generation-timeout-ms 1 --target-report-input /tmp/pgen-sv-target-timeout-smoke/initial_gap.json`
-    - observed summary:
+  - observed summary:
       - `Target-driven generation: resolved 0/2560 targets in 2 attempts (generation_successes=0, generation_errors=2, target_timeout_errors=2, helper_timeout_errors=0)`
+  - retained shell-layer propagation proof:
+    - bounded VHDL strict promotion now produces:
+      - `closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total`
+    - aggregate report consumers can therefore keep the primary-timeout distinction intact beyond the direct quality-gate layer
   - important boundary:
     - current generated-parser parseability validation still does not support `systemverilog` on the `ast_pipeline` binary path
     - so this slice's retained end-to-end proof is target-drive summary evidence plus focused unit coverage, not a validator-backed parseability report refresh

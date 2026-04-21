@@ -276,6 +276,7 @@ parseability_counterexamples_captured_total=0
 target_drive_alternate_entry_attempts_total=0
 target_drive_alternate_entry_accepted_outputs_total=0
 target_drive_alternate_entry_rejected_outputs_total=0
+target_drive_target_timeout_errors_total=0
 target_drive_helper_timeout_errors_total=0
 target_drive_primary_entry_attempts_total=0
 target_drive_primary_entry_accepted_outputs_total=0
@@ -536,6 +537,7 @@ if [[ "$parseability_enabled" -eq 1 ]]; then
     target_drive_alternate_entry_attempts_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_attempts")"
     target_drive_alternate_entry_accepted_outputs_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_accepted_outputs")"
     target_drive_alternate_entry_rejected_outputs_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_rejected_outputs")"
+    target_drive_target_timeout_errors_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "target_timeout_errors")"
     target_drive_helper_timeout_errors_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "helper_timeout_errors")"
     target_drive_primary_entry_attempts_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "primary_entry_attempts")"
     target_drive_primary_entry_accepted_outputs_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "primary_entry_accepted_outputs")"
@@ -651,6 +653,7 @@ if [[ "$parseability_enabled" -eq 1 ]]; then
         --argjson alternate_entry_attempts_total "$target_drive_alternate_entry_attempts_total" \
         --argjson alternate_entry_accepted_outputs_total "$target_drive_alternate_entry_accepted_outputs_total" \
         --argjson alternate_entry_rejected_outputs_total "$target_drive_alternate_entry_rejected_outputs_total" \
+        --argjson target_timeout_errors_total "$target_drive_target_timeout_errors_total" \
         --argjson helper_timeout_errors_total "$target_drive_helper_timeout_errors_total" \
         --slurpfile stage0 "$stage0a_parseability_json" \
         --slurpfile stage1 "$stage1_parseability_json" \
@@ -683,6 +686,7 @@ if [[ "$parseability_enabled" -eq 1 ]]; then
                 alternate_entry_attempts_total: $alternate_entry_attempts_total,
                 alternate_entry_accepted_outputs_total: $alternate_entry_accepted_outputs_total,
                 alternate_entry_rejected_outputs_total: $alternate_entry_rejected_outputs_total,
+                target_timeout_errors_total: $target_timeout_errors_total,
                 helper_timeout_errors_total: $helper_timeout_errors_total
             },
             stages: {
@@ -1080,6 +1084,7 @@ target_drive_primary_entry_rejected_outputs_total,$target_drive_primary_entry_re
 target_drive_alternate_entry_attempts_total,$target_drive_alternate_entry_attempts_total
 target_drive_alternate_entry_accepted_outputs_total,$target_drive_alternate_entry_accepted_outputs_total
 target_drive_alternate_entry_rejected_outputs_total,$target_drive_alternate_entry_rejected_outputs_total
+target_drive_target_timeout_errors_total,$target_drive_target_timeout_errors_total
 target_drive_helper_timeout_errors_total,$target_drive_helper_timeout_errors_total
 fuzz_rounds,$FUZZ_ROUNDS
 fuzz_accepted,$fuzz_accepted

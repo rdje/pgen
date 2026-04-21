@@ -111,7 +111,8 @@ if [[ "$PROMOTION_MODE" == "0" ]]; then
                     primary_entry_rejected_outputs_total: 0,
                     alternate_entry_attempts_total: 0,
                     alternate_entry_accepted_outputs_total: 0,
-                    alternate_entry_rejected_outputs_total: 0
+                    alternate_entry_rejected_outputs_total: 0,
+                    target_timeout_errors_total: 0
                 }
             }
         }' >"$PROMOTION_REPORT_JSON"
@@ -213,6 +214,7 @@ closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_attempts_total=0
 closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=0
+closed_loop_parseability_shadow_target_timeout_errors_total=0
 
 summary_value_from_file() {
     local key="$1"
@@ -340,6 +342,7 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
     trial_closed_loop_parseability_shadow_alternate_entry_attempts_total=0
     trial_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=0
     trial_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=0
+    trial_closed_loop_parseability_shadow_target_timeout_errors_total=0
     trial_closed_loop_parseability_shadow_acceptance_rate_percent="0.00"
 
     if [[ -f "$trial_closed_loop_parseability_shadow_report_json" ]]; then
@@ -358,6 +361,7 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
         trial_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(jq -er '(.target_drive_validation.alternate_entry_attempts_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
         trial_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(jq -er '(.target_drive_validation.alternate_entry_accepted_outputs_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
         trial_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(jq -er '(.target_drive_validation.alternate_entry_rejected_outputs_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
+        trial_closed_loop_parseability_shadow_target_timeout_errors_total="$(jq -er '(.target_drive_validation.target_timeout_errors_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
         trial_closed_loop_parseability_shadow_acceptance_rate_percent="$(jq -er '(.observed.acceptance_rate_percent // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo "0.00")"
     elif [[ -f "$trial_summary_txt" ]]; then
         trial_closed_loop_parseability_shadow_enabled="$(summary_value_from_file "closed_loop_parseability_shadow_enabled" "$trial_summary_txt")"
@@ -375,6 +379,7 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
         trial_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(summary_value_from_file "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$trial_summary_txt")"
         trial_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(summary_value_from_file "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$trial_summary_txt")"
         trial_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(summary_value_from_file "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_target_timeout_errors_total="$(summary_value_from_file "closed_loop_parseability_shadow_target_timeout_errors_total" "$trial_summary_txt")"
         trial_closed_loop_parseability_shadow_acceptance_rate_percent="$(summary_value_from_file "closed_loop_parseability_shadow_acceptance_rate_percent" "$trial_summary_txt")"
     fi
 
@@ -399,6 +404,7 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
     trial_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_alternate_entry_attempts_total")"
     trial_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total")"
     trial_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total")"
+    trial_closed_loop_parseability_shadow_target_timeout_errors_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_target_timeout_errors_total")"
     trial_closed_loop_parseability_shadow_acceptance_rate_percent="$(number_or_zero "$trial_closed_loop_parseability_shadow_acceptance_rate_percent")"
 
     parseability_generation_requested_total=$((parseability_generation_requested_total + trial_parseability_generation_requested_total))
@@ -421,6 +427,7 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
     closed_loop_parseability_shadow_alternate_entry_attempts_total=$((closed_loop_parseability_shadow_alternate_entry_attempts_total + trial_closed_loop_parseability_shadow_alternate_entry_attempts_total))
     closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total + trial_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total))
     closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total + trial_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total))
+    closed_loop_parseability_shadow_target_timeout_errors_total=$((closed_loop_parseability_shadow_target_timeout_errors_total + trial_closed_loop_parseability_shadow_target_timeout_errors_total))
 
     trial_status="gate_fail"
     trial_note="strict ratio trial failed before ratio extraction"
@@ -487,6 +494,7 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
         --argjson closed_loop_parseability_shadow_alternate_entry_attempts_total "$trial_closed_loop_parseability_shadow_alternate_entry_attempts_total" \
         --argjson closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total "$trial_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" \
         --argjson closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total "$trial_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" \
+        --argjson closed_loop_parseability_shadow_target_timeout_errors_total "$trial_closed_loop_parseability_shadow_target_timeout_errors_total" \
         --argjson closed_loop_parseability_shadow_acceptance_rate_percent "$trial_closed_loop_parseability_shadow_acceptance_rate_percent" \
         '{
             trial_index: $trial_index,
@@ -533,7 +541,8 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
                     primary_entry_rejected_outputs_total: $closed_loop_parseability_shadow_primary_entry_rejected_outputs_total,
                     alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total,
                     alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total,
-                    alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total
+                    alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total,
+                    target_timeout_errors_total: $closed_loop_parseability_shadow_target_timeout_errors_total
                 }
             }
         }' >>"$TRIAL_CASES_JSONL"
@@ -638,6 +647,7 @@ jq -n \
     --argjson closed_loop_parseability_shadow_alternate_entry_attempts_total "$closed_loop_parseability_shadow_alternate_entry_attempts_total" \
     --argjson closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total "$closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" \
     --argjson closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total "$closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" \
+    --argjson closed_loop_parseability_shadow_target_timeout_errors_total "$closed_loop_parseability_shadow_target_timeout_errors_total" \
     --argjson closed_loop_parseability_shadow_acceptance_rate_percent "$closed_loop_parseability_shadow_acceptance_rate_percent" \
     --argjson trials_json "$trial_cases_json" \
     '{
@@ -701,7 +711,8 @@ jq -n \
                 primary_entry_rejected_outputs_total: $closed_loop_parseability_shadow_primary_entry_rejected_outputs_total,
                 alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total,
                 alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total,
-                alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total
+                alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total,
+                target_timeout_errors_total: $closed_loop_parseability_shadow_target_timeout_errors_total
             }
         },
         trials: $trials_json
@@ -739,6 +750,7 @@ jq -n \
     echo "closed_loop_parseability_shadow_alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total"
     echo "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
     echo "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
+    echo "closed_loop_parseability_shadow_target_timeout_errors_total: $closed_loop_parseability_shadow_target_timeout_errors_total"
     echo "report_json: $PROMOTION_REPORT_JSON"
 } >"$SUMMARY_TXT"
 
