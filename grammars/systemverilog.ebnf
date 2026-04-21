@@ -1784,7 +1784,8 @@ program_nonansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? 
 
 property_actual_arg := property_expr | sequence_actual_arg
 
-property_case_item := expression_or_dist ( comma expression_or_dist )* colon property_expr semi | kw_default_7505d64a ( colon )? property_expr semi
+property_case_item := @probe_sample: "1: 1;" expression_or_dist ( comma expression_or_dist )* colon property_expr semi
+                    | @probe_sample: "default: 1;" kw_default_7505d64a ( colon )? property_expr semi
 
 property_declaration := kw_property_269fe373 declared_property_identifier ( lparen ( property_port_list )? rparen )? semi assertion_variable_declaration* property_spec ( semi )? kw_endproperty_6594321c ( colon property_identifier )?
 

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-21 (+0200, task: sv-shell-timeout-default-and-replay-unblockers)
+Last updated: 2026-04-22 (+0200, task: sv-property-case-item-helper-probe-seeds)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,46 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog bounded replay no longer wedges on `property_case_item` helper generation:
+  - changed:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - implementation:
+    - `property_case_item` now carries helper-only branch-local seeds:
+      - `@probe_sample: "1: 1;"`
+      - `@probe_sample: "default: 1;"`
+    - this is deliberately probe-only steering for the alternate-entry replay lane, not a blanket ordinary-generation sample override
+  - retained validation:
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule property_case_item --count 3 --seed 712001 --output /tmp/pgen-property-case-item.txt`
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule property_case_item --count 1 --seed 712001`
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-property-case-item-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained bounded proof outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_initial_targets_total=5273`
+    - `closed_loop_replay_targets_total=4608`
+    - `closed_loop_parseability_shadow_accepted_total=68`
+    - `closed_loop_parseability_shadow_rejected_total=0`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=151`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=31`
+    - `parseability_generation_parser_rejections_total=0`
+    - `parse_full_passes=16/16`
+    - `perf_observed_generate_avg_ms=213`
+    - `perf_observed_generate_max_ms=646`
+  - retained seam movement:
+    - the old `profile_2017_closed_loop_replay` helper wedge on `property_case_item` is gone
+    - the first visible helper pivot is now:
+      - `generation_entry='expression'`
+      - `resolved_delta=91`
+  - important continuity detail:
+    - this is still proof-lane hardening, not a live-status promotion
+    - the repair is intentionally helper-only because the point was to clear alternate-entry churn, not to flatten ordinary `property_case_item` generation
 - Main-SystemVerilog replay generation now has its two immediate blockers cleared, and the maintained shell workflow no longer leaves primary replay attempts unbounded by default:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

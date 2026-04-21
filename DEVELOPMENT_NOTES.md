@@ -1,4 +1,65 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-22 - Clear the next main-SV replay-helper seam with helper-only `property_case_item` seeds
+### Context
+After the maintained shell gate gained a gate-local `5ms` primary target-drive budget, the next honest full bounded rerun finally exposed a narrower replay seam instead of just "slow proof":
+- `profile_2017_closed_loop_replay` no longer sat inside one unbounded primary attempt
+- but it could still churn on helper-entry generation for `property_case_item`
+- the retained low replay log showed repeated `Stimuli generation helper timeout exceeded for rule 'property_case_item'` with `resolved_delta=0`
+
+That is a different class of problem from the earlier runtime containment work. The replay engine was no longer disappearing into one canonical attempt; it was repeatedly trying to rediscover the simplest legal `property_case_item` fragment through a deep recursive property-expression path.
+
+### Decision
+- Treat this as a helper-entry grammar seam, not as a reason to widen ordinary generation broadly.
+- Add canonical branch-local `@probe_sample` hints to the two `property_case_item` alternatives:
+  - `"1: 1;"`
+  - `"default: 1;"`
+- Keep the repair helper-only:
+  - `@probe_sample`, not `@sample`
+  - so alternate-entry target-drive helpers get a deterministic foothold without flattening ordinary generation diversity whenever `property_case_item` appears naturally inside a larger sample
+
+### What Was Changed
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - `property_case_item` now carries:
+    - `@probe_sample: "1: 1;"`
+    - `@probe_sample: "default: 1;"`
+- Updated continuity/reference/public docs:
+  - [CHANGES.md](CHANGES.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Direct helper-entry generation is immediate now:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule property_case_item --count 1 --seed 712001`
+  - observed output:
+    - `1: 1;`
+- The broader bounded main-SV proof lane now completes instead of sticking in the old 2017 replay seam:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-property-case-item-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=4608`
+    - `closed_loop_parseability_shadow_accepted_total=68`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=151`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=31`
+    - `parseability_generation_parser_rejections_total=0`
+    - `parse_full_passes=16/16`
+- The replay seam is visibly different now:
+  - `profile_2017_closed_loop_replay.log` no longer shows `property_case_item` helper-timeout churn
+  - the first helper activation now pivots to:
+    - `generation_entry='expression'`
+    - `resolved_delta=91`
+
+### Important Boundary
+- Do not overread the larger timeout totals in the bounded 128-attempt proof.
+- The earlier shell-gate proof that established the `5ms` containment posture was only a `32`-attempt run; this slice is a broader `128`-attempt bounded refresh that gets much further into the frontier.
+- The meaningful result is not "timeouts disappeared." It is:
+  - the old `property_case_item` helper wedge is gone
+  - the full bounded gate now completes both profiles
+  - the next honest frontier has moved on to a different helper dependency
+
 ## 2026-04-21 - Make the maintained main-SV shell gate effort-bounded without changing the runtime default
 ### Context
 The previous two bounded main-SystemVerilog slices improved observability and containment, but they also made the next real problem easier to see:

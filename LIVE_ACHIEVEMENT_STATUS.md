@@ -1,6 +1,6 @@
 # Live Achievement Status
 
-Last updated: 2026-04-21
+Last updated: 2026-04-22
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -28,6 +28,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-04-22): the active main-`systemverilog` proof lane no longer wedges on `property_case_item` helper generation, without changing any live parser-family label. [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now gives the two `property_case_item` alternatives helper-only seeds via `@probe_sample: "1: 1;"` and `@probe_sample: "default: 1;"`, which is a deliberate alternate-entry repair rather than an ordinary-generation `@sample` widening. A direct `property_case_item` generation probe now returns immediately, and a bounded maintained-shell refresh (`PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128`, `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`) now completes both profiles with `closed_loop_profiles_passed=2/2`, `closed_loop_replay_targets_total=4608`, `closed_loop_parseability_shadow_accepted_total=68`, `closed_loop_parseability_shadow_parser_rejections_total=0`, `parseability_generation_parser_rejections_total=0`, and `parse_full_passes=16/16`. The old replay-helper churn on `property_case_item` is gone; the retained `profile_2017_closed_loop_replay` log now pivots first to `generation_entry='expression'` and retires `resolved_delta=91` in one helper probe. Status stays unchanged because this is proof-lane hardening and frontier movement, not a refreshed closure claim.
 
 Tracker note (2026-04-21): the active main-`systemverilog` shell gate now defaults its primary target-drive timeout budget to `5ms` without changing any live parser-family label. The underlying runtime/API default remains `0`, but [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh) now uses a gate-local default of `5` so the maintained main-SV replay workflow does not sit indefinitely inside one pathological canonical attempt. This change landed together with two narrow replay-unblockers in the same proof lane: [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) now treats built-in `epsilon` as an empty expansion, and [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now seeds `simple_identifier_no_scope` with `@sample: "foo"` so closed-loop generation no longer depends on synthesizing an unsupported negative-lookahead regex. A bounded gate proof with the new effective default (`count=1`, `target_max_attempts=32`, `realistic_corpus_mode=0`) passed both profiles, recorded `closed_loop_parseability_shadow_accepted_total=21`, `closed_loop_parseability_shadow_parser_rejections_total=0`, `closed_loop_parseability_shadow_target_timeout_errors_total=40`, and `closed_loop_parseability_shadow_helper_timeout_errors_total=1`. Status stays unchanged because this is proof-lane hardening and workflow containment, not a refreshed full contract-default closure proof.
 

@@ -79,6 +79,47 @@ Observed outcome:
 
 Replay-facing telemetry still distinguishes `target_timeout_errors` from `helper_timeout_errors`, the SystemVerilog shell gate still carries that signal through `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS` plus replay-shadow aggregate `target_timeout_errors_total`, and the higher shell/report stack still preserves the same distinction through the annotation and SV preprocessor direct gates, the VHDL replay-shadow summary surface, the SV/VHDL promotion reports, and the aggregate `sota_exit_gate` summary layer, with aggregate contract checks sanity-checking copied target-timeout totals where stage-local parity is expected.
 
+Tracker note (2026-04-22): the next active main-SystemVerilog replay seam turned out to be a narrow helper-entry grammar gap, not another runtime-control problem. Once the maintained shell workflow had a bounded primary target-drive posture, the next bounded `128`-attempt rerun showed `profile_2017_closed_loop_replay` churning on repeated helper timeouts for `property_case_item` with no resolved delta. The keepable fix is deliberately helper-only:
+- [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now adds:
+  - `@probe_sample: "1: 1;"`
+  - `@probe_sample: "default: 1;"`
+  - on the two `property_case_item` alternatives
+- direct proof:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule property_case_item --count 1 --seed 712001`
+  - now returns:
+    - `1: 1;`
+- bounded maintained-shell proof:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-property-case-item-r1`
+  - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128`
+  - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`
+  - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed outcome:
+- `closed_loop_profiles_passed=2/2`
+- `closed_loop_initial_targets_total=5273`
+- `closed_loop_replay_targets_total=4608`
+- `closed_loop_parseability_shadow_accepted_total=68`
+- `closed_loop_parseability_shadow_rejected_total=0`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=151`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=31`
+- `parseability_generation_parser_rejections_total=0`
+- `parse_full_passes=16/16`
+- `perf_observed_generate_avg_ms=213`
+- `perf_observed_generate_max_ms=646`
+
+Retained seam movement:
+- the old `property_case_item` helper-timeout loop is gone from `profile_2017_closed_loop_replay.log`
+- the first visible helper pivot is now:
+  - `generation_entry='expression'`
+  - `resolved_delta=91`
+
+Important boundary:
+- this is still proof-lane hardening, not a parser-family closure claim
+- the `@probe_sample` choice is intentional:
+  - clear alternate-entry churn first
+  - do not widen ordinary generation with `@sample` unless that diversity tradeoff is explicitly worth it
+
 Tracker note (2026-04-09): the first two queued stimuli-platform strengthening steps are now landed in initial form. Grammar-aware mutation now exists behind `--stimuli-mutation-mode grammar_aware_local`, using a local trace/replay strategy that can perturb:
 - OR-branch selection
 - quantifier repeat counts

@@ -2014,6 +2014,42 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
     - this remains proof-lane containment, not a closure claim
     - keep the runtime/API default conservative at `0`
     - keep the main-SV shell workflow bounded by default unless a session explicitly wants the old unbounded behavior
+  - follow-up seam and repair:
+    - after that shell containment landed, the next bounded `128`-attempt rerun finally exposed a narrower grammar seam instead of just "slow proof"
+    - retained failure shape before the fix:
+      - `profile_2017_closed_loop_replay.log` churned on repeated helper-entry timeouts for `property_case_item`
+      - helper probes retired no target debt there (`resolved_delta=0`)
+    - keepable grammar-side repair:
+      - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now gives the two `property_case_item` alternatives helper-only footholds:
+        - `@probe_sample: "1: 1;"`
+        - `@probe_sample: "default: 1;"`
+      - this is intentionally `@probe_sample`, not `@sample`, so the alternate-entry lane gets deterministic shapes without flattening ordinary generation
+    - direct proof:
+      - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule property_case_item --count 1 --seed 712001`
+      - observed output:
+        - `1: 1;`
+    - bounded maintained-shell refresh:
+      - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-property-case-item-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+      - outcome:
+        - `closed_loop_profiles_passed=2/2`
+        - `closed_loop_initial_targets_total=5273`
+        - `closed_loop_replay_targets_total=4608`
+        - `closed_loop_parseability_shadow_accepted_total=68`
+        - `closed_loop_parseability_shadow_rejected_total=0`
+        - `closed_loop_parseability_shadow_parser_rejections_total=0`
+        - `closed_loop_parseability_shadow_target_timeout_errors_total=151`
+        - `closed_loop_parseability_shadow_helper_timeout_errors_total=31`
+        - `parseability_generation_parser_rejections_total=0`
+        - `parse_full_passes=16/16`
+        - `perf_observed_generate_avg_ms=213`
+        - `perf_observed_generate_max_ms=646`
+    - retained replay movement:
+      - the old `property_case_item` helper wedge disappears from the bounded `profile_2017_closed_loop_replay.log`
+      - the first visible helper activation now pivots to `expression`
+      - that first helper retires `resolved_delta=91`
+    - interpretation:
+      - the meaningful result is not "timeouts vanished"
+      - it is that the previous replay blocker is gone and the bounded proof lane now gets further into the frontier with a different next dependency
 - Literalish sample steering is now a broader stimuli-runtime tool too.
   - retained runtime widening:
     - `rust/src/ast_pipeline/stimuli_generator.rs` now honors literalish semantic hints for:

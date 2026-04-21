@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-04-22 - Seed helper-only `property_case_item` probes for the active main-SV proof lane
+### Achievement Summary
+Cleared the next narrow main-SystemVerilog replay-helper seam by adding helper-only canonical samples to `property_case_item`, so the bounded `sv_stimuli_quality_gate` no longer stalls inside `profile_2017_closed_loop_replay` while rediscovering the simplest property-case shapes.
+
+### Scope of Changes
+- Updated the SystemVerilog grammar steering surface:
+  - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - added branch-local helper-only seeds:
+      - `@probe_sample: "1: 1;"`
+      - `@probe_sample: "default: 1;"`
+    - on the two `property_case_item` alternatives
+    - this keeps the repair scoped to alternate helper-entry probes instead of flattening ordinary generation with a blanket `@sample`
+- Updated tracked docs and continuity surfaces:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Direct helper-entry probe:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule property_case_item --count 3 --seed 712001 --output /tmp/pgen-property-case-item.txt` ✅
+  - retained outcome:
+    - `Stimuli coverage: rules 1/1354 (0.07%), branches 2/1589 (0.13%), sample_successes=3/3`
+- Focused single-sample echo:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule property_case_item --count 1 --seed 712001` ✅
+  - observed output:
+    - `1: 1;`
+- Bounded maintained-shell proof:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-property-case-item-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_initial_targets_total=5273`
+    - `closed_loop_replay_targets_total=4608`
+    - `closed_loop_parseability_shadow_accepted_total=68`
+    - `closed_loop_parseability_shadow_rejected_total=0`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=151`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=31`
+    - `parseability_generation_parser_rejections_total=0`
+    - `parse_full_passes=16/16`
+    - `perf_observed_generate_avg_ms=213`
+    - `perf_observed_generate_max_ms=646`
+- Replay-log seam check:
+  - `profile_2017_closed_loop_replay.log` no longer churns on `property_case_item`
+  - the first visible helper pivot is now:
+    - `generation_entry='expression'`
+    - `resolved_delta=91`
+
+### Important Boundary
+- This is still proof-lane hardening, not a status promotion.
+- The repair is intentionally helper-only:
+  - use `@probe_sample` when a stubborn alternate-entry rule has an obvious canonical fragment form
+  - do not silently broaden that into ordinary-generation `@sample` steering unless diversity loss is actually acceptable
+
 ## 2026-04-21 - Bound the main-SV shell gate while clearing two replay-generation seams
 ### Achievement Summary
 Hardened the active main-SystemVerilog proof lane in three complementary places: the stimuli runtime now treats built-in `epsilon` as an empty expansion, `simple_identifier_no_scope` now has a safe literal seed instead of relying on unsupported negative-lookahead regex synthesis, and the maintained `sv_stimuli_quality_gate` workflow now defaults its primary target-drive timeout budget to `5ms` while the underlying runtime/API default stays at `0`.
