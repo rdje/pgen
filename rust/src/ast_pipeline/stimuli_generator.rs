@@ -3372,6 +3372,13 @@ impl<'a> StimuliGenerator<'a> {
         depth: usize,
         call_stack: &mut Vec<String>,
     ) -> Result<String> {
+        if rule_name == "epsilon" {
+            self.trace(
+                TraceLevel::Debug,
+                format_args!("Builtin epsilon expansion: depth={}", depth),
+            );
+            return Ok(String::new());
+        }
         self.enforce_generation_deadline(rule_name, "rule")?;
         self.trace(
             TraceLevel::Debug,
@@ -7465,6 +7472,29 @@ mod tests {
             "mutated OR sample should stay grammar-valid, got {:?}",
             mutated[0]
         );
+    }
+
+    #[test]
+    fn built_in_epsilon_rule_reference_generates_empty_string() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "{"),
+                    token("rule_reference", "epsilon"),
+                    token("quoted_string", "}"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 4402);
+        let generated = generator
+            .generate_many(1, Some("start"))
+            .expect("epsilon-backed generation should succeed");
+
+        assert_eq!(generated, vec!["{}".to_string()]);
     }
 
     #[test]

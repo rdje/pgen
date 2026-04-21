@@ -56,7 +56,28 @@ Execution preference for this roadmap:
   - alternate-entry probe failures are helper-rule exploration telemetry
   - target-drive counterexample capture should therefore stay primary-entry-only when the goal is to triage full-entry parser debt
 
-Tracker note (2026-04-21): the active main-SystemVerilog proof lane now also has an explicit primary-attempt containment knob. `ast_pipeline` exposes `--target-generation-timeout-ms`, the runtime keeps it separate from `--target-helper-generation-timeout-ms`, and the maintained default stays conservative with `target_generation_timeout_ms = 0`. This is intentionally a proof-lane control rather than a closure claim: it exists so local/focused replay work can bound pathological canonical-entry attempts without silently changing the ordinary retained replay posture. Replay-facing telemetry now distinguishes `target_timeout_errors` from `helper_timeout_errors`, and the SystemVerilog shell gate now carries that same signal through `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS` plus replay-shadow aggregate `target_timeout_errors_total`. That target-timeout distinction now also survives the higher shell/report stack through the annotation and SV preprocessor direct gates, the VHDL replay-shadow summary surface, the SV/VHDL promotion reports, and the aggregate `sota_exit_gate` summary layer, with aggregate contract checks now sanity-checking copied target-timeout totals where stage-local parity is expected.
+Tracker note (2026-04-21): the active main-SystemVerilog proof lane now also has an explicit primary-attempt containment knob. `ast_pipeline` exposes `--target-generation-timeout-ms`, the runtime keeps it separate from `--target-helper-generation-timeout-ms`, and the maintained runtime default stays conservative with `target_generation_timeout_ms = 0`. This remains a proof-lane control rather than a closure claim: it exists so local/focused replay work can bound pathological canonical-entry attempts without silently changing ordinary API posture. After the built-in `epsilon` seam was fixed in the stimuli runtime and [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) gained `@sample: "foo"` for `simple_identifier_no_scope`, the next contract-default shell rerun proved one more practical point: the maintained main-SV shell workflow could still sit indefinitely inside one canonical replay attempt. The keepable adjustment is deliberately gate-local, not a runtime semantic change:
+- `sv_stimuli_quality_gate.sh` now defaults `closed_loop_target_generation_timeout_ms` to `5`
+- `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS=0` restores the legacy unbounded shell posture explicitly
+- the underlying CLI/runtime default still remains `0`
+
+That gate-local default is backed by a fresh bounded proof run with no timeout override:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-target-timeout-default`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1`
+- `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=32`
+- `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`
+- with the effective gate default `closed_loop_target_generation_timeout_ms=5`
+
+Observed outcome:
+- `closed_loop_profiles_passed=2/2`
+- `closed_loop_parseability_shadow_accepted_total=21`
+- `closed_loop_parseability_shadow_rejected_total=0`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=40`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=1`
+- `parse_full_passes=2/2`
+
+Replay-facing telemetry still distinguishes `target_timeout_errors` from `helper_timeout_errors`, the SystemVerilog shell gate still carries that signal through `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS` plus replay-shadow aggregate `target_timeout_errors_total`, and the higher shell/report stack still preserves the same distinction through the annotation and SV preprocessor direct gates, the VHDL replay-shadow summary surface, the SV/VHDL promotion reports, and the aggregate `sota_exit_gate` summary layer, with aggregate contract checks sanity-checking copied target-timeout totals where stage-local parity is expected.
 
 Tracker note (2026-04-09): the first two queued stimuli-platform strengthening steps are now landed in initial form. Grammar-aware mutation now exists behind `--stimuli-mutation-mode grammar_aware_local`, using a local trace/replay strategy that can perturb:
 - OR-branch selection

@@ -155,6 +155,10 @@ PGEN is a production-focused parser and stimuli generator platform.
     - `rust/target/stimuli_cross_family_platform_gate/summary.json`
 - SV quality gate:
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - gate-local default:
+    - the shell workflow now applies `closed_loop_target_generation_timeout_ms=5` unless overridden
+    - the underlying CLI/runtime default is still `0`
+    - set `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS=0` to restore the legacy unbounded shell-gate posture deliberately
   - bounded replay rerun example:
     - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - explicit primary-attempt containment example for stubborn replay triage:

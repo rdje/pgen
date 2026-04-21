@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-04-21 - Bound the main-SV shell gate while clearing two replay-generation seams
+### Achievement Summary
+Hardened the active main-SystemVerilog proof lane in three complementary places: the stimuli runtime now treats built-in `epsilon` as an empty expansion, `simple_identifier_no_scope` now has a safe literal seed instead of relying on unsupported negative-lookahead regex synthesis, and the maintained `sv_stimuli_quality_gate` workflow now defaults its primary target-drive timeout budget to `5ms` while the underlying runtime/API default stays at `0`.
+
+### Scope of Changes
+- Updated runtime generation behavior:
+  - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - built-in `epsilon` now expands to `""` instead of erroring as a missing user-defined rule
+    - added focused regression coverage for that built-in expansion
+- Updated the SystemVerilog grammar steering surface:
+  - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - `simple_identifier_no_scope` now carries `@sample: "foo"`
+    - this avoids depending on unsupported look-ahead regex synthesis during replay generation
+- Updated the maintained main-SV shell workflow:
+  - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - gate-local default `closed_loop_target_generation_timeout_ms` is now `5`
+    - `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS=0` restores the legacy unbounded shell posture explicitly
+    - startup banner and final `summary.txt` now report the effective gate-local primary timeout budget rather than only the raw env override
+- Updated tracked docs and continuity surfaces:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Focused runtime tests:
+  - `cargo test --manifest-path rust/Cargo.toml built_in_epsilon_rule_reference_generates_empty_string` ✅
+  - `cargo test --manifest-path rust/Cargo.toml helper_generation_timeout_aborts_entry_and_restores_generator_state` ✅
+- Direct generation probe:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --entry-rule simple_identifier_no_scope --count 3 --seed 4403 --output /tmp/pgen-simple-identifier-no-scope.txt` ✅
+  - observed output:
+    - `foo`
+    - `foo`
+    - `foo`
+- Shell gate validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` ✅
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-target-timeout-default PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=32 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+    - retained bounded outcome:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_parseability_shadow_accepted_total=21`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=40`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=1`
+      - `parse_full_passes=2/2`
+
 ## 2026-04-21 - Carry primary timeout telemetry through gate and aggregate report layers
 ### Achievement Summary
 Extended the new primary target-drive timeout metric past the immediate main-SystemVerilog shell gate so higher-level report consumers now preserve `target_timeout_errors_total` instead of collapsing canonical-entry budget expirations back into anonymous generation churn.

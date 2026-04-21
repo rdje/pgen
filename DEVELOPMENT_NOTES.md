@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-21 - Make the maintained main-SV shell gate effort-bounded without changing the runtime default
+### Context
+The previous two bounded main-SystemVerilog slices improved observability and containment, but they also made the next real problem easier to see:
+- the old `Missing rule 'epsilon'` failure during replay helper expansion was a real generator seam
+- after clearing that seam, the next contract-default `sv_stimuli_quality_gate` rerun no longer failed immediately, but it could still sit indefinitely inside one canonical-entry target-drive attempt
+
+That meant the honest next fix was not "claim closure." It was "stop the maintained shell workflow from disappearing into one pathological attempt while keeping the core runtime/API default conservative."
+
+### Decision
+- Treat built-in `epsilon` as a real generator primitive:
+  - expand it to `""`
+  - do not require a user-defined `epsilon` grammar rule
+- Give `simple_identifier_no_scope` a safe literal seed:
+  - `@sample: "foo"`
+  - so replay generation no longer depends on synthesizing an unsupported negative-lookahead regex
+- Keep the runtime/API primary timeout default at `0`
+- Change only the main-SV shell gate default:
+  - `closed_loop_target_generation_timeout_ms = 5`
+  - with `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS=0` as the explicit escape hatch back to the legacy unbounded shell posture
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - `generate_rule()` now treats `epsilon` as a built-in empty expansion
+  - added regression test:
+    - `built_in_epsilon_rule_reference_generates_empty_string`
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - added:
+    - `@sample: "foo"`
+  - above:
+    - `simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*(?![ \t\r\n]*::)/`
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - introduced a gate-local effective default:
+    - `TARGET_GENERATION_TIMEOUT_MS_DEFAULT=5`
+  - replay stages now always pass the effective value
+  - startup banner and final `summary.txt` now report the effective budget instead of treating "unset" as `0`
+
+### Validation
+- Passed focused runtime tests:
+  - `cargo test --manifest-path rust/Cargo.toml built_in_epsilon_rule_reference_generates_empty_string`
+  - `cargo test --manifest-path rust/Cargo.toml helper_generation_timeout_aborts_entry_and_restores_generator_state`
+- Passed direct grammar probe:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --entry-rule simple_identifier_no_scope --count 3 --seed 4403 --output /tmp/pgen-simple-identifier-no-scope.txt`
+  - output was three lines of `foo`
+- Passed bounded maintained-shell proof:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-target-timeout-default PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=32 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_parseability_shadow_accepted_total=21`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=40`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=1`
+    - `parse_full_passes=2/2`
+
+### Important Boundary
+- This is still proof-lane hardening, not a live-status promotion.
+- The runtime/API default remains `0`.
+- Only the maintained main-SV shell workflow now defaults to `5ms`, because that workflow had empirical evidence of spending unbounded time inside one canonical attempt even after the narrower replay-generation seams were fixed.
+
 ## 2026-04-21 - Propagate primary timeout telemetry through shell/promotion/SOTA layers
 ### Context
 The previous slice landed the actual primary target-drive timeout control plus honest runtime telemetry:

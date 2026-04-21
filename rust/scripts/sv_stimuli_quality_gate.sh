@@ -18,7 +18,9 @@ SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
 TARGET_MAX_ATTEMPTS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-}"
 PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_PENDING_FRONTIER_EXTRA_STAGNATION:-}"
+TARGET_GENERATION_TIMEOUT_MS_DEFAULT=5
 TARGET_GENERATION_TIMEOUT_MS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS:-}"
+TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE="${PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS:-$TARGET_GENERATION_TIMEOUT_MS_DEFAULT}"
 TARGET_HELPER_TIMEOUT_MS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS:-}"
 CARGO_BUILD_JOBS_OVERRIDE="${PGEN_SV_STIMULI_CARGO_BUILD_JOBS:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
@@ -1273,6 +1275,10 @@ if [[ -n "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE" ]]; then
         exit 2
     fi
 fi
+if ! [[ "$TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE" =~ ^[0-9]+$ ]]; then
+    echo "error: PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS must be an integer >= 0 when set" >&2
+    exit 2
+fi
 if ! [[ "$REALISTIC_CORPUS_MAX_CASES" =~ ^[0-9]+$ ]] || [[ "$REALISTIC_CORPUS_MAX_CASES" -lt 0 ]]; then
     echo "error: PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES must be an integer >= 0" >&2
     exit 2
@@ -1481,10 +1487,10 @@ if [[ -n "$PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE" ]]; then
     )
 fi
 target_generation_timeout_args=()
-if [[ -n "$TARGET_GENERATION_TIMEOUT_MS_OVERRIDE" ]]; then
+if [[ -n "$TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE" ]]; then
     target_generation_timeout_args=(
         --target-generation-timeout-ms
-        "$TARGET_GENERATION_TIMEOUT_MS_OVERRIDE"
+        "$TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE"
     )
 fi
 target_helper_timeout_args=()
@@ -1700,7 +1706,7 @@ echo "closed_loop_effective_enabled: $closed_loop_effective_enabled"
 echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
-echo "closed_loop_target_generation_timeout_ms: ${TARGET_GENERATION_TIMEOUT_MS_OVERRIDE:-0}"
+echo "closed_loop_target_generation_timeout_ms: $TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE"
 echo "closed_loop_target_helper_timeout_ms: ${TARGET_HELPER_TIMEOUT_MS_OVERRIDE:-1000}"
 echo "closed_loop_replay_trace_verbosity: $REPLAY_TRACE_VERBOSITY"
 echo "cargo_build_jobs: ${CARGO_BUILD_JOBS_OVERRIDE:-<default>}"
@@ -3322,7 +3328,7 @@ jq -n \
     echo "closed_loop_gap_report_threshold: $gap_report_threshold"
     echo "closed_loop_target_max_attempts: $target_max_attempts"
     echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
-    echo "closed_loop_target_generation_timeout_ms: ${TARGET_GENERATION_TIMEOUT_MS_OVERRIDE:-0}"
+    echo "closed_loop_target_generation_timeout_ms: $TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE"
     echo "closed_loop_target_helper_timeout_ms: ${TARGET_HELPER_TIMEOUT_MS_OVERRIDE:-1000}"
     echo "closed_loop_replay_trace_verbosity: $REPLAY_TRACE_VERBOSITY"
     echo "closed_loop_replay_sample_count: $replay_sample_count"

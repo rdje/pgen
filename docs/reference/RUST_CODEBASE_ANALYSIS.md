@@ -1955,7 +1955,7 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
     - `StimuliConfig` now carries:
       - `target_generation_timeout_ms`
       - `target_helper_generation_timeout_ms`
-    - the primary budget defaults to `0`, so maintained replay behavior stays unchanged unless explicitly requested
+    - the primary budget still defaults to `0` in the runtime/CLI surface, so maintained API behavior stays unchanged unless explicitly requested
     - helper probes still use the existing separate helper-only budget
     - target-drive summaries/traces now report:
       - `target_timeout_errors`
@@ -1978,6 +1978,16 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
     - aggregate sanity checks now also validate copied target-timeout totals in:
       - `sv_preprocessor_aggregate_contract_gate.sh`
       - `sv_parser_aggregate_contract_gate.sh`
+  - retained follow-on fixes and measured consequence:
+    - `rust/src/ast_pipeline/stimuli_generator.rs` now treats built-in `epsilon` as an empty expansion instead of erroring on a missing user-defined rule
+    - `grammars/systemverilog.ebnf` now gives `simple_identifier_no_scope` a safe ordinary hint:
+      - `@sample: "foo"`
+    - after those two seams were cleared, the next contract-default shell rerun still showed the practical workflow problem clearly:
+      - the maintained main-SV shell lane could sit indefinitely inside one primary attempt
+    - the keepable adjustment is deliberately shell-local:
+      - `rust/scripts/sv_stimuli_quality_gate.sh` now defaults `closed_loop_target_generation_timeout_ms` to `5`
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS=0` restores legacy unbounded shell behavior explicitly
+      - the runtime/CLI default remains `0`
   - retained direct SystemVerilog smoke:
     - dumped generation bundle created from `grammars/systemverilog.ebnf`
     - replay run:
@@ -1988,9 +1998,22 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
     - bounded VHDL strict promotion now produces:
       - `closed_loop_parseability_shadow.target_drive_validation.target_timeout_errors_total`
     - aggregate report consumers can therefore keep the primary-timeout distinction intact beyond the direct quality-gate layer
+  - retained bounded maintained-shell proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-target-timeout-default PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=32 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - outcome:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_parseability_shadow_accepted_total=21`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=40`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=1`
+      - `parse_full_passes=2/2`
   - important boundary:
     - current generated-parser parseability validation still does not support `systemverilog` on the `ast_pipeline` binary path
     - so this slice's retained end-to-end proof is target-drive summary evidence plus focused unit coverage, not a validator-backed parseability report refresh
+  - steering consequence:
+    - this remains proof-lane containment, not a closure claim
+    - keep the runtime/API default conservative at `0`
+    - keep the main-SV shell workflow bounded by default unless a session explicitly wants the old unbounded behavior
 - Literalish sample steering is now a broader stimuli-runtime tool too.
   - retained runtime widening:
     - `rust/src/ast_pipeline/stimuli_generator.rs` now honors literalish semantic hints for:

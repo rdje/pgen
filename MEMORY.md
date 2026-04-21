@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-21 (+0200, task: timeout-telemetry-shell-propagation)
+Last updated: 2026-04-21 (+0200, task: sv-shell-timeout-default-and-replay-unblockers)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,44 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog replay generation now has its two immediate blockers cleared, and the maintained shell workflow no longer leaves primary replay attempts unbounded by default:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [README.md](README.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - implementation:
+    - built-in `epsilon` now expands to `""` in the stimuli runtime instead of erroring as a missing user-defined grammar rule
+    - `simple_identifier_no_scope` now carries:
+      - `@sample: "foo"`
+    - `sv_stimuli_quality_gate.sh` now uses a gate-local default:
+      - `closed_loop_target_generation_timeout_ms = 5`
+    - the runtime/API default still remains:
+      - `target_generation_timeout_ms = 0`
+    - the shell escape hatch back to the legacy unbounded posture is:
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS=0`
+  - retained validation:
+    - `cargo test --manifest-path rust/Cargo.toml built_in_epsilon_rule_reference_generates_empty_string`
+    - `cargo test --manifest-path rust/Cargo.toml helper_generation_timeout_aborts_entry_and_restores_generator_state`
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --entry-rule simple_identifier_no_scope --count 3 --seed 4403 --output /tmp/pgen-simple-identifier-no-scope.txt`
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-target-timeout-default PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=32 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained bounded proof outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_parseability_shadow_accepted_total=21`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=40`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=1`
+    - `parse_full_passes=2/2`
+  - important continuity detail:
+    - this is shell-workflow hardening, not a runtime/API default change
+    - next honest follow-up is still a broader refreshed main-SV proof read, not a status promotion from this slice alone
 - Primary target-timeout telemetry now survives the higher shell/report stack instead of stopping at the direct main-SV gate:
   - changed:
     - [rust/scripts/annotation_stimuli_quality_gate.sh](rust/scripts/annotation_stimuli_quality_gate.sh)
