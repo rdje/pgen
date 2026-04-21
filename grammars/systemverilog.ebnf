@@ -1378,12 +1378,12 @@ module_common_item_sv_2023 := module_or_generate_item_declaration | interface_in
 module_common_item := module_common_item_sv_2017 | module_common_item_sv_2023
 
 @profiles: ["sv_2017"]
-module_declaration_sv_2017 := module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot_star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | kw_extern_bf1ee311 module_nonansi_header | kw_extern_bf1ee311 module_ansi_header
+module_declaration_sv_2017 := @sample: "module m; endmodule" module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "module m(a); endmodule" module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot_star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
 
 @profiles: ["sv_2023"]
-module_declaration_sv_2023 := module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | kw_extern_bf1ee311 module_nonansi_header | kw_extern_bf1ee311 module_ansi_header
+module_declaration_sv_2023 := @sample: "module m; endmodule" module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "module m(a); endmodule" module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
 
-module_declaration := module_declaration_sv_2017 | module_declaration_sv_2023
+module_declaration := @sample: "module m; endmodule" module_declaration_sv_2017 | @sample: "module m; endmodule" module_declaration_sv_2023
 
 module_identifier := declaration_identifier
 
@@ -1762,12 +1762,12 @@ production_item := production_item_sv_2017
 program_ansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
 
 @profiles: ["sv_2017"]
-program_declaration_sv_2017 := program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | program_ansi_header ( timeunits_declaration )? non_port_program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | attribute_instance* kw_program_81d9aeea program_identifier lparen dot_star rparen semi ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | kw_extern_bf1ee311 program_nonansi_header | kw_extern_bf1ee311 program_ansi_header
+program_declaration_sv_2017 := @sample: "program p(a); endprogram" program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "program p; endprogram" program_ansi_header ( timeunits_declaration )? non_port_program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "program p(.*); endprogram" attribute_instance* kw_program_81d9aeea program_identifier lparen dot_star rparen semi ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "extern program p(a);" kw_extern_bf1ee311 program_nonansi_header | @sample: "extern program p;" kw_extern_bf1ee311 program_ansi_header
 
 @profiles: ["sv_2023"]
-program_declaration_sv_2023 := program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | program_ansi_header ( timeunits_declaration )? non_port_program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | attribute_instance* kw_program_81d9aeea program_identifier lparen dot star rparen semi ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | kw_extern_bf1ee311 program_nonansi_header | kw_extern_bf1ee311 program_ansi_header
+program_declaration_sv_2023 := @sample: "program p(a); endprogram" program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "program p; endprogram" program_ansi_header ( timeunits_declaration )? non_port_program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "program p(.*); endprogram" attribute_instance* kw_program_81d9aeea program_identifier lparen dot star rparen semi ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "extern program p(a);" kw_extern_bf1ee311 program_nonansi_header | @sample: "extern program p;" kw_extern_bf1ee311 program_ansi_header
 
-program_declaration := program_declaration_sv_2017 | program_declaration_sv_2023
+program_declaration := @sample: "program p; endprogram" program_declaration_sv_2017 | @sample: "program p; endprogram" program_declaration_sv_2023
 
 @profiles: ["sv_2017"]
 program_generate_item_sv_2017 := loop_generate_construct | conditional_generate_construct | generate_region | elaboration_system_task

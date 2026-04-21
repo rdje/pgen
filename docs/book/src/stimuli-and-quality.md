@@ -179,3 +179,60 @@ The doctrinal point is simple: keep the cheaper runtime path, but do not overcla
 - `docs/reference/STRESS_TEST_STANDARDIZATION.md`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `regex_corpus_bundle/README.md`
+
+## Alternation Steering Boundary
+
+One practical lesson from the active main-SystemVerilog closure lane is that not every annotation placement can steer every runtime node shape.
+
+- ordinary rule-level literal overrides still do not fire on `ASTNode::Or`
+- so a standalone rule-level `@sample` above an alternation-heavy declaration rule can look correct in the grammar and still be operationally dead
+
+That mattered directly on the retained declaration-family replay frontier. After the header-seeding slice, the next bounded main-SV proof debt clustered around declaration forms such as:
+
+- `module_declaration*`
+- `program_declaration*`
+- `udp_declaration_port_list`
+
+The first repair attempt used standalone rule-level `@sample` on the declaration rules themselves. Direct probes showed those hints were not taking effect. The kept fix in [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf) therefore moved to supported inline branch-local `@sample` placement on the declaration alternatives, plus branch-local canonical samples on the `module_declaration` / `program_declaration` profile wrapper branches.
+
+The direct entry probes now return the intended canonical declaration footholds:
+
+- `module_declaration` -> `module m; endmodule`
+- `program_declaration` -> `program p; endprogram`
+- `module_declaration_sv_2017` -> `module m(a); endmodule`
+- `program_declaration_sv_2017` -> `program p(a); endprogram`
+
+Matching `sv_2023` probes return the same canonical declaration shapes.
+
+The retained bounded proof:
+
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-decl-samples-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+records:
+
+- `closed_loop_profiles_passed=2/2`
+- `closed_loop_replay_targets_total=4423`
+- `closed_loop_parseability_shadow_accepted_total=90`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=145`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+- `parse_full_passes=16/16`
+- `perf_observed_generate_avg_ms=154`
+- `perf_observed_generate_max_ms=243`
+
+The right interpretation is deliberately narrow.
+
+- wrapper-level replay debt for `module_declaration` and `program_declaration` disappeared in the bounded replay-gap sidecars
+- the declaration-family frontier did not fully close
+- the remaining declaration-adjacent bounded replay debt is still:
+  - `module_declaration_sv_2017`
+  - `module_declaration_sv_2023`
+  - `program_declaration_sv_2017`
+  - `program_declaration_sv_2023`
+  - `udp_declaration_port_list`
+
+So the maintained rule is simple:
+
+- use standalone annotations when the steering is meant for a non-`Or` rule as a whole
+- use inline branch-local annotations when the rule is an alternation-heavy `Or` surface and the runtime needs deterministic footholds today
+- do not overclaim a frontier move as closure just because wrapper-level replay debt disappeared

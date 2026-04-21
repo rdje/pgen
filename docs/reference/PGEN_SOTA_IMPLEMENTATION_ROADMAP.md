@@ -4648,3 +4648,40 @@ Tracker note (2026-04-19): literalish sample steering is now a real branch-local
   - if VHDL is reopened, keep using branch-level probes only as generation-shape evidence
   - non-default `--entry-rule` parseability validation stays intentionally blocked because validation still flows through the full grammar entry
   - `coverage_gap_triage` plus `top_failure_reasons` remains the preferred restart surface
+- The next retained main-SV slice after that is declaration-family OR steering, and the keepable lesson is a placement boundary rather than a new runtime feature.
+  - retained root cause:
+    - ordinary rule-level literal overrides still do not fire on `ASTNode::Or`
+    - a first standalone rule-level `@sample` attempt on `module_declaration*` / `program_declaration*` therefore looked plausible but was structurally dead
+  - kept repair:
+    - `grammars/systemverilog.ebnf`
+      - moved declaration-family steering to inline branch-local `@sample` on the declaration alternatives
+      - added branch-local canonical steering to the `module_declaration` / `program_declaration` profile wrappers too
+  - direct proof:
+    - wrapper probes now emit:
+      - `module m; endmodule`
+      - `program p; endprogram`
+    - profile-specific probes now emit:
+      - `module m(a); endmodule`
+      - `program p(a); endprogram`
+      - with matching `sv_2023` probes returning the same canonical forms
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-decl-samples-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=4423`
+      - `closed_loop_parseability_shadow_accepted_total=90`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=145`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=154`
+      - `perf_observed_generate_max_ms=243`
+  - roadmap truth:
+    - wrapper-level replay debt for `module_declaration` and `program_declaration` is gone in the bounded replay-gap sidecars
+    - the remaining declaration-adjacent bounded debt is now:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+      - `udp_declaration_port_list`
+    - do not call this closure yet; it is another honest frontier move inside the still-open main-SV exhaustive-proof lane

@@ -17456,3 +17456,35 @@ Use this file to resume work without replaying full chat history.
     - the key implementation boundary is deliberate:
       - generate-body aliases are local parser state only
       - future sessions should preserve the snapshot/restore model unless there is an explicit semantic reason to widen alias lifetime
+- 2026-04-22: main-SV declaration-family replay steering now has a captured placement rule.
+  - runtime/frontend truth:
+    - ordinary rule-level literal overrides still do not fire on `ASTNode::Or`
+    - so the first standalone rule-level `@sample` attempt on `module_declaration*` / `program_declaration*` was structurally dead
+  - landed fix:
+    - `grammars/systemverilog.ebnf`
+      - declaration-family steering is now inline branch-local `@sample`
+      - wrapper rules `module_declaration` / `program_declaration` also carry branch-local canonical samples
+  - direct probes:
+    - `module_declaration -> module m; endmodule`
+    - `program_declaration -> program p; endprogram`
+    - `module_declaration_sv_2017 -> module m(a); endmodule`
+    - `program_declaration_sv_2017 -> program p(a); endprogram`
+  - retained bounded proof:
+    - `/tmp/pgen-sv-decl-samples-r1`
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_parseability_shadow_accepted_total=90`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=145`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+    - `parse_full_passes=16/16`
+  - bounded frontier truth:
+    - wrapper-level declaration replay debt is gone
+    - remaining declaration-adjacent bounded debt:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+      - `udp_declaration_port_list`
+  - status truth:
+    - proof lane improved
+    - live status rows stay unchanged

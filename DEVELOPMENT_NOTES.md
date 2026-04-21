@@ -41104,3 +41104,50 @@ Architectural north star:
   - continuity truth:
     - the old “two tiny surviving parser rejects” read is now obsolete
     - after the frontend tokenizer fix, the retained branch-sample loop is back in a pure target-resolution state; the next remaining work is coverage closure, not known parse rejection
+- 2026-04-22: main-SV declaration-family steering exposed a real runtime/frontend boundary: ordinary rule-level literal overrides still do not fire on `ASTNode::Or`.
+  - concrete trigger:
+    - the next bounded replay frontier after the header seeding slice clustered around declaration families:
+      - `module_declaration*`
+      - `program_declaration*`
+      - `udp_declaration_port_list`
+    - a first follow-up tried standalone rule-level `@sample` on the declaration rules themselves
+  - retained root cause:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `node_supports_rule_literal_override(...)` still returns `false` for `ASTNode::Or`
+    - so ordinary rule-level literal overrides on alternation-heavy declaration rules were structurally dead even though the grammar surface looked reasonable
+  - keepable correction:
+    - `grammars/systemverilog.ebnf`
+      - moved the declaration-family steering to supported inline branch-local `@sample` placement on the actual declaration alternatives
+      - also added branch-local canonical steering to the `module_declaration` / `program_declaration` profile wrapper branches
+  - direct proof:
+    - wrapper rules now emit:
+      - `module m; endmodule`
+      - `program p; endprogram`
+    - profile-specific rules now emit:
+      - `module m(a); endmodule`
+      - `program p(a); endprogram`
+      - with matching `sv_2023` direct probes returning the same canonical forms
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-decl-samples-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_parseability_shadow_accepted_total=90`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=145`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=154`
+      - `perf_observed_generate_max_ms=243`
+  - retained replay-gap truth:
+    - wrapper-level replay debt for `module_declaration` and `program_declaration` is gone in the bounded sidecars
+    - the remaining declaration-family bounded replay debt is now:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+      - `udp_declaration_port_list`
+  - local iteration note:
+    - a qualitative contract-default `sv_stimuli_quality_gate` rerun was started, observed to move deeper into assertion/property coverage debt, and then intentionally stopped in favor of the retained bounded proof above
+  - doctrine:
+    - on `Or` rules, use inline branch-local annotations when you want deterministic steering today
+    - do not assume a rule-level literal override will help unless the runtime actually supports that node shape

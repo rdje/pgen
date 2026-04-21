@@ -37019,3 +37019,40 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - helper-ranking trace now shows `pending_frontier_unlocked=false` throughout those retained cheap probes
     - broad pending-frontier selection still exists, but is now intentionally postponed past the ordinary helper threshold instead of triggering immediately
     - no parser-family status row changed
+- 2026-04-22: seeded the main-SystemVerilog declaration-family OR branches with branch-local canonical samples.
+  - landed:
+    - `grammars/systemverilog.ebnf`
+      - `module_declaration_sv_2017`, `module_declaration_sv_2023`, `program_declaration_sv_2017`, and `program_declaration_sv_2023` now use inline branch-local `@sample` footholds on their declaration alternatives
+      - the profile wrapper rules `module_declaration` and `program_declaration` also now carry branch-local canonical samples
+  - direct proof:
+    - `rust/target/debug/ast_pipeline ... --entry-rule module_declaration --count 1`
+      - `module m; endmodule`
+    - `rust/target/debug/ast_pipeline ... --entry-rule program_declaration --count 1`
+      - `program p; endprogram`
+    - `rust/target/debug/ast_pipeline ... --entry-rule module_declaration_sv_2017 --count 1`
+      - `module m(a); endmodule`
+    - `rust/target/debug/ast_pipeline ... --entry-rule program_declaration_sv_2017 --count 1`
+      - `program p(a); endprogram`
+    - matching `sv_2023` direct probes now return the same canonical declaration forms
+  - bounded retained proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-decl-samples-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=4423`
+      - `closed_loop_parseability_shadow_accepted_total=90`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=145`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+      - `parseability_generation_parser_rejections_total=0`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=154`
+      - `perf_observed_generate_max_ms=243`
+  - continuity truth:
+    - wrapper-level replay debt for `module_declaration` and `program_declaration` disappeared in the retained bounded replay-gap sidecars
+    - the remaining declaration-adjacent bounded replay debt is now narrower:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+      - `udp_declaration_port_list`
+    - no parser-family status row changed
