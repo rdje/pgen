@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-22 (+0200, task: sv-property-case-item-helper-probe-seeds)
+Last updated: 2026-04-22 (+0200, task: sv-rule-level-header-seeds)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,59 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog bounded replay now uses true rule-level declaration-header seeds instead of stranded single-branch inline annotations:
+  - changed:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - implementation:
+    - the first attempt to seed:
+      - `module_ansi_header`
+      - `module_nonansi_header`
+      - `program_ansi_header`
+      - `program_nonansi_header`
+      used same-line inline `@sample`, which landed in `branch_semantic_annotations` for a single alternative instead of `semantic_annotations`
+    - the retained fix moves those samples into standalone rule-level annotation lines:
+      - `@sample: "module m(input logic a);"`
+      - `@sample: "module m(a,b);"`
+      - `@sample: "program p(input logic a);"`
+      - `@sample: "program p(a,b);"`
+    - this is intentionally ordinary-generation steering, not probe-only steering, because these header rules must short-circuit when reached from larger declaration rules
+  - retained validation:
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule module_ansi_header --count 1`
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule module_nonansi_header --count 1`
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule program_ansi_header --count 1`
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule program_nonansi_header --count 1`
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-header-seed-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained bounded proof outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=4217`
+    - `closed_loop_parseability_shadow_accepted_total=73`
+    - `closed_loop_parseability_shadow_rejected_total=0`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=157`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=24`
+    - `parseability_generation_parser_rejections_total=0`
+    - `parse_full_passes=16/16`
+    - `perf_observed_generate_avg_ms=214`
+    - `perf_observed_generate_max_ms=648`
+  - retained measured movement vs the previous bounded replay:
+    - parseability-shadow acceptance improved:
+      - `68/73 -> 73/73`
+    - replay targets improved:
+      - `4608 -> 4217`
+    - helper timeout totals improved:
+      - `31 -> 24`
+    - the 2023 replay debt no longer carries `module_declaration` / `module_declaration_sv_2023` as unresolved rule debt
+  - important continuity detail:
+    - same-line inline annotations inside a rule body are branch-local in this frontend
+    - standalone annotation lines above a rule are the maintained rule-level form
+    - next honest follow-up is still broader declaration-family replay coverage, especially the remaining 2017 module/program/udp lanes and the still-open 2023 program/udp lanes
 - Main-SystemVerilog bounded replay no longer wedges on `property_case_item` helper generation:
   - changed:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

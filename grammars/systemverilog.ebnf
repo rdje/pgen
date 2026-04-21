@@ -1366,6 +1366,7 @@ modport_tf_port := method_prototype | tf_identifier
 
 modport_tf_ports_declaration := import_export modport_tf_port ( comma modport_tf_port )*
 
+@sample: "module m(input logic a);"
 module_ansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
 
 @profiles: ["sv_2017"]
@@ -1392,6 +1393,7 @@ module_item := port_declaration semi | non_port_module_item
 
 module_keyword := kw_module_fbd34a2b | kw_macromodule_df04b866
 
+@sample: "module m(a,b);"
 module_nonansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
 
 module_or_generate_item := attribute_instance* parameter_override | attribute_instance* gate_instantiation | attribute_instance* udp_instantiation | attribute_instance* module_instantiation | attribute_instance* module_common_item
@@ -1756,6 +1758,7 @@ production_item_sv_2017 := production_identifier ( lparen list_of_arguments rpar
 
 production_item := production_item_sv_2017
 
+@sample: "program p(input logic a);"
 program_ansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
 
 @profiles: ["sv_2017"]
@@ -1780,6 +1783,7 @@ program_instantiation := program_identifier ( parameter_value_assignment )? hier
 
 program_item := port_declaration semi | non_port_program_item
 
+@sample: "program p(a,b);"
 program_nonansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
 
 property_actual_arg := property_expr | sequence_actual_arg

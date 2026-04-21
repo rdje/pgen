@@ -1,6 +1,6 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-04-21
+Last updated: 2026-04-22
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -22,6 +22,10 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It is not a replacement for the live closure tracker in `LIVE_ACHIEVEMENT_STATUS.md`.
 - It should be read alongside the roadmap priority rule:
   - active parser-family closure work is now centered on the remaining main-`systemverilog` debt and still outranks deferred maintainability refactors.
+  - annotation placement is now an explicit frontend-semantics rule for the active main-SV proof lane:
+    - standalone semantic annotations above a rule definition are the maintained rule-level form
+    - same-line inline semantic annotations inside the rule body are branch-local, even when the rule has only one alternative
+    - the retained `module_ansi_header` / `module_nonansi_header` / `program_ansi_header` / `program_nonansi_header` repair depended on this distinction: the first inline attempt landed in `branch_semantic_annotations` and therefore did not behave like ordinary rule-level `@sample` steering
   - same-line inline semantic-annotation payload parsing in `rust/src/ebnf_frontend.rs` is now an explicit correctness seam rather than scanner trivia:
     - the maintained rule is that same-line inline annotations consume only their own payload (quoted, balanced, or scalar) and must leave following rule-body syntax intact
     - this recently removed a false-epsilon branch leak from the focused main-`systemverilog` replay lane
@@ -2050,6 +2054,54 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
     - interpretation:
       - the meaningful result is not "timeouts vanished"
       - it is that the previous replay blocker is gone and the bounded proof lane now gets further into the frontier with a different next dependency
+  - follow-up annotation-placement repair:
+    - the next retained replay experiment tried to seed:
+      - `module_ansi_header`
+      - `module_nonansi_header`
+      - `program_ansi_header`
+      - `program_nonansi_header`
+    - the first attempt used same-line inline `@sample`
+    - the dumped generation-input bundle showed those hints landing in `branch_semantic_annotations`, not rule-level `semantic_annotations`
+    - for these single-alternative rules, that meant the canonical samples were structurally branch-local and did not behave like ordinary rule-level steering
+  - keepable correction:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now spells those four seeds as standalone annotation lines above the rules:
+      - `@sample: "module m(input logic a);"`
+      - `@sample: "module m(a,b);"`
+      - `@sample: "program p(input logic a);"`
+      - `@sample: "program p(a,b);"`
+  - direct proof:
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule module_ansi_header --count 1`
+      - `module m(input logic a);`
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule module_nonansi_header --count 1`
+      - `module m(a,b);`
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule program_ansi_header --count 1`
+      - `program p(input logic a);`
+    - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule program_nonansi_header --count 1`
+      - `program p(a,b);`
+  - bounded maintained-shell refresh:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-header-seed-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - outcome:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=4217`
+      - `closed_loop_parseability_shadow_accepted_total=73`
+      - `closed_loop_parseability_shadow_rejected_total=0`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=157`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=24`
+      - `parseability_generation_parser_rejections_total=0`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=214`
+      - `perf_observed_generate_max_ms=648`
+  - measured movement vs the previous retained bounded run:
+    - shadow acceptance improved `68/73 -> 73/73`
+    - replay targets improved `4608 -> 4217`
+    - helper timeout totals improved `31 -> 24`
+    - the 2023 replay debt no longer carries `module_declaration` / `module_declaration_sv_2023` as unresolved rule debt
+  - interpretation:
+    - this is still proof-lane hardening, not a closure claim
+    - the durable lesson is frontend-semantic, not merely local:
+      - standalone annotations are the maintained rule-level form
+      - inline same-line annotations inside a rule body are branch-local, even when the rule has only one alternative
 - Literalish sample steering is now a broader stimuli-runtime tool too.
   - retained runtime widening:
     - `rust/src/ast_pipeline/stimuli_generator.rs` now honors literalish semantic hints for:

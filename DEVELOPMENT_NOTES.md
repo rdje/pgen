@@ -1,4 +1,75 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-22 - Fix rule-vs-branch annotation placement for SV header seeds
+### Context
+After the `property_case_item` helper-only repair, the next active main-SystemVerilog replay experiment targeted declaration headers:
+- `module_ansi_header`
+- `module_nonansi_header`
+- `program_ansi_header`
+- `program_nonansi_header`
+
+The first attempt looked reasonable on the grammar surface because each rule carried an inline same-line `@sample: "..."`. But direct generation immediately proved something was off: those entry rules still emitted noisy organic headers instead of the canonical samples.
+
+Dumping the generation-input bundle exposed the real issue:
+- the four new samples were not landing in `semantic_annotations`
+- they were landing in `branch_semantic_annotations`
+- for these single-alternative rules, that meant the hints were branch-local but not true rule-level ordinary-generation overrides
+
+So the bug was not "the generator ignores `@sample`." The bug was "the sample was attached to the wrong semantic surface."
+
+### Decision
+- Treat this as an annotation-placement correction, not as a runtime rewrite.
+- Use the same maintained pattern as `simple_identifier_no_scope`:
+  - standalone annotation line above the rule definition
+- Keep these as ordinary `@sample` directives, not `@probe_sample`, because these header rules should short-circuit when reached naturally from larger declaration rules.
+
+### What Was Changed
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - moved the header samples out of inline same-line form and into standalone rule-level annotations:
+    - `@sample: "module m(input logic a);"`
+    - `@sample: "module m(a,b);"`
+    - `@sample: "program p(input logic a);"`
+    - `@sample: "program p(a,b);"`
+  - on:
+    - `module_ansi_header`
+    - `module_nonansi_header`
+    - `program_ansi_header`
+    - `program_nonansi_header`
+- Updated continuity/reference/public docs:
+  - [CHANGES.md](CHANGES.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Direct entry probes now return the intended canonical headers immediately:
+  - `module_ansi_header -> module m(input logic a);`
+  - `module_nonansi_header -> module m(a,b);`
+  - `program_ansi_header -> program p(input logic a);`
+  - `program_nonansi_header -> program p(a,b);`
+- The maintained bounded shell proof now moves materially:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-header-seed-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=4217`
+    - `closed_loop_parseability_shadow_accepted_total=73`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=24`
+    - `parse_full_passes=16/16`
+- Compared with the previous retained bounded run:
+  - parseability-shadow acceptance improved from `68/73` to `73/73`
+  - replay targets improved from `4608` to `4217`
+  - helper timeout totals improved from `31` to `24`
+  - the 2023 replay debt no longer carries `module_declaration` / `module_declaration_sv_2023` as unresolved rule debt
+
+### Important Boundary
+- This does not mean the declaration-family frontier is closed.
+- It means the previous attempt had been structurally miswired:
+  - same-line inline annotations inside a rule body are branch-local in this frontend
+  - standalone annotation lines above the rule are the correct rule-level form
+- The next honest main-SV frontier is still broader declaration-family coverage, especially the remaining 2017 module/program/udp lanes and the still-open 2023 program/udp lanes.
+
 ## 2026-04-22 - Clear the next main-SV replay-helper seam with helper-only `property_case_item` seeds
 ### Context
 After the maintained shell gate gained a gate-local `5ms` primary target-drive budget, the next honest full bounded rerun finally exposed a narrower replay seam instead of just "slow proof":

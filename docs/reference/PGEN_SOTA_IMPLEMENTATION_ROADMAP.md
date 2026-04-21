@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-21
+Last updated: 2026-04-22
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -119,6 +119,36 @@ Important boundary:
 - the `@probe_sample` choice is intentional:
   - clear alternate-entry churn first
   - do not widen ordinary generation with `@sample` unless that diversity tradeoff is explicitly worth it
+
+Tracker note (2026-04-22): the next main-SystemVerilog replay slice then exposed a second grammar-side lesson: annotation placement matters. The first attempt to seed `module_ansi_header`, `module_nonansi_header`, `program_ansi_header`, and `program_nonansi_header` used same-line inline `@sample`, which this frontend recorded as branch-local annotations for a single alternative rather than as rule-level ordinary-generation steering. The kept repair is to spell those as standalone annotation lines above the rules. After that correction:
+- direct entry probes now return:
+  - `module m(input logic a);`
+  - `module m(a,b);`
+  - `program p(input logic a);`
+  - `program p(a,b);`
+- the retained bounded main-SV shell proof:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-header-seed-r1`
+  - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128`
+  - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`
+  - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  now reports:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_replay_targets_total=4217`
+  - `closed_loop_parseability_shadow_accepted_total=73`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+  - `closed_loop_parseability_shadow_helper_timeout_errors_total=24`
+  - `parse_full_passes=16/16`
+- measured movement vs the previous retained bounded run:
+  - shadow acceptance improved `68/73 -> 73/73`
+  - replay targets improved `4608 -> 4217`
+  - helper timeout totals improved `31 -> 24`
+  - the 2023 replay debt no longer carries `module_declaration` / `module_declaration_sv_2023` as unresolved rule debt
+
+Important boundary:
+- this is still proof-lane hardening, not a closure claim
+- the doctrinal takeaway is durable:
+  - standalone annotations are the maintained rule-level form
+  - inline same-line annotations inside a rule body are branch-local, even for single-alternative rules
 
 Tracker note (2026-04-09): the first two queued stimuli-platform strengthening steps are now landed in initial form. Grammar-aware mutation now exists behind `--stimuli-mutation-mode grammar_aware_local`, using a local trace/replay strategy that can perturb:
 - OR-branch selection

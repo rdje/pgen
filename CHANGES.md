@@ -1,4 +1,74 @@
 # CHANGES.md
+## 2026-04-22 - Promote SV header seeds to true rule-level annotations
+### Achievement Summary
+Fixed a real main-SystemVerilog steering mistake in the active proof lane: the new canonical samples for `module_ansi_header`, `module_nonansi_header`, `program_ansi_header`, and `program_nonansi_header` had first been written inline, which this frontend interpreted as branch-local annotations on a single alternative instead of rule-level `@sample` directives. Moving them into standalone annotation lines restored the intended ordinary-generation short-circuit and materially improved the bounded replay frontier.
+
+### Scope of Changes
+- Updated the SystemVerilog grammar steering surface:
+  - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - moved these header seeds into standalone rule-level annotations:
+      - `@sample: "module m(input logic a);"`
+      - `@sample: "module m(a,b);"`
+      - `@sample: "program p(input logic a);"`
+      - `@sample: "program p(a,b);"`
+    - on:
+      - `module_ansi_header`
+      - `module_nonansi_header`
+      - `program_ansi_header`
+      - `program_nonansi_header`
+    - this is intentionally ordinary-generation steering, because these header rules need to short-circuit when reached naturally from larger declaration rules
+- Updated tracked docs and continuity surfaces:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Direct header-entry probes:
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule module_ansi_header --count 1` ✅
+    - observed output:
+      - `module m(input logic a);`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule module_nonansi_header --count 1` ✅
+    - observed output:
+      - `module m(a,b);`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule program_ansi_header --count 1` ✅
+    - observed output:
+      - `program p(input logic a);`
+  - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule program_nonansi_header --count 1` ✅
+    - observed output:
+      - `program p(a,b);`
+- Bounded maintained-shell proof:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-header-seed-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=4217`
+    - `closed_loop_parseability_shadow_accepted_total=73`
+    - `closed_loop_parseability_shadow_rejected_total=0`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=157`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=24`
+    - `parseability_generation_parser_rejections_total=0`
+    - `parse_full_passes=16/16`
+    - `perf_observed_generate_avg_ms=214`
+    - `perf_observed_generate_max_ms=648`
+- Measured replay movement relative to the previous retained bounded run:
+  - parseability-shadow acceptance improved:
+    - `68/73 -> 73/73`
+  - replay targets improved:
+    - `4608 -> 4217`
+  - helper timeout totals improved:
+    - `31 -> 24`
+  - the 2023 replay debt no longer carries `module_declaration` / `module_declaration_sv_2023` as unresolved rule debt
+
+### Important Boundary
+- This slice fixes annotation placement, not runtime semantics.
+- The important lesson is structural:
+  - same-line inline annotations in a rule body are branch-local in this frontend
+  - standalone annotation lines above a rule are the correct form for rule-level ordinary-generation steering
+- Status remains unchanged because this is still main-SV proof-lane hardening, not a closure claim.
+
 ## 2026-04-22 - Seed helper-only `property_case_item` probes for the active main-SV proof lane
 ### Achievement Summary
 Cleared the next narrow main-SystemVerilog replay-helper seam by adding helper-only canonical samples to `property_case_item`, so the bounded `sv_stimuli_quality_gate` no longer stalls inside `profile_2017_closed_loop_replay` while rediscovering the simplest property-case shapes.

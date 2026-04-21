@@ -114,6 +114,45 @@ PGEN now uses the same "smallest honest fix" doctrine for stubborn helper-entry 
 
 That distinction matters. `@probe_sample` gives the alternate-entry helper a deterministic foothold without flattening ordinary generation the way a blanket `@sample` would. After that repair, the retained bounded `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128` main-SV gate now completes both profiles, and the old `property_case_item` wedge disappears from `profile_2017_closed_loop_replay.log`; the first visible helper pivot moves on to `expression` and retires `91` targets in one probe. The doctrinal lesson is simple: if a helper-entry rule has an obvious canonical fragment shape, prefer a probe-only seed before reaching for heavier runtime changes.
 
+## Rule-Level Vs Branch-Level Annotation Placement
+
+One practical lesson from the same SystemVerilog closure lane is that annotation placement is not cosmetic.
+
+- a standalone annotation line above a rule definition is rule-level
+- a same-line inline annotation inside the rule body is branch-level
+
+That distinction is easy to miss on single-alternative rules, because there is only one branch. But the semantics still differ. In the retained main-SV header slice, the first attempt used inline same-line `@sample` on:
+
+- `module_ansi_header`
+- `module_nonansi_header`
+- `program_ansi_header`
+- `program_nonansi_header`
+
+The generation dump showed those hints landing in `branch_semantic_annotations`, not rule-level `semantic_annotations`, so ordinary direct generation still emitted noisy organic headers. After moving those same samples into standalone annotation lines, direct entry probes returned the intended canonical headers immediately:
+
+- `module m(input logic a);`
+- `module m(a,b);`
+- `program p(input logic a);`
+- `program p(a,b);`
+
+The bounded retained `128`-attempt main-SV gate then improved from:
+
+- parseability-shadow acceptance `68/73`
+- replay targets `4608`
+- helper timeout totals `31`
+
+to:
+
+- parseability-shadow acceptance `73/73`
+- replay targets `4217`
+- helper timeout totals `24`
+
+The maintained rule is therefore simple:
+
+- use standalone annotations when the steering is meant to apply to the rule as a whole
+- use inline annotations when the steering is deliberately branch-local
+- do not assume a single-alternative rule makes inline placement “close enough”
+
 ## Main-SV Runtime Reuse
 
 One practical lesson from the active main-SystemVerilog closure lane is that "slow proof" is not always "hard grammar." Sometimes it is just repeated front-end work.
