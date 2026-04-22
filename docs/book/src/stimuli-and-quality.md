@@ -174,6 +174,26 @@ The maintained rule is therefore simple:
 - use inline annotations when the steering is deliberately branch-local
 - do not assume a single-alternative rule makes inline placement “close enough”
 
+## Profile Symmetry Matters
+
+Another practical lesson from the active main-SystemVerilog replay lane is that stubborn debt is sometimes just profile asymmetry in disguise.
+
+The retained `net_declaration` seam looked at first like a runtime bug: a `debug` direct-entry probe on `net_declaration_sv_2023` generated a huge organic sample instead of short-circuiting. Max-trace inspection showed the real story. The runtime was not ignoring a branch literal hint; `net_declaration_sv_2023` simply had no helper-only branch probes, while the sibling `net_declaration_sv_2017` rule already had:
+
+- `@probe_sample: "wire a;"`
+- `@probe_sample: "nt a;"`
+- `@probe_sample: "interconnect logic a;"`
+
+Mirroring those same three branch-local `@probe_sample` footholds onto `net_declaration_sv_2023` restored the intended direct replay behavior. The direct `debug` probe now reports `Selected OR branch literal hint` and emits `interconnect logic a;`, and the retained bounded main-SV shell proof improved its replay frontier from `3870` targets to `3860`.
+
+The honest lesson is simple:
+
+- use max-trace evidence when a seam feels mysterious
+- compare sibling profiles before assuming the runtime is wrong
+- keep the real metric in view after the fix
+
+That last point matters. This slice was worth keeping because replay debt improved, but some secondary telemetry moved sideways, so the right takeaway is “real frontier reduction,” not “everything got uniformly better.”
+
 ## Main-SV Runtime Reuse
 
 One practical lesson from the active main-SystemVerilog closure lane is that "slow proof" is not always "hard grammar." Sometimes it is just repeated front-end work.

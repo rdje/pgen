@@ -157,6 +157,42 @@ Important boundary:
   - standalone annotations are the maintained rule-level form
   - inline same-line annotations inside a rule body are branch-local, even for single-alternative rules
 
+Tracker note (2026-04-22): the next kept main-SystemVerilog replay slice was a profile-symmetry repair discovered through max-trace root-cause work, not another broad hint experiment. A `debug` direct-entry probe on `net_declaration_sv_2023` proved the runtime was not “ignoring” branch hints: it simply descended through branch `2` and emitted a 5.5KB sample because `net_declaration_sv_2023` had no helper-only branch probes, even though the sibling `net_declaration_sv_2017` rule already carried:
+- `@probe_sample: "wire a;"`
+- `@probe_sample: "nt a;"`
+- `@probe_sample: "interconnect logic a;"`
+
+The kept repair mirrors those same three helper-only footholds onto the 2023 rule. After that:
+- direct `debug` proof:
+  - `Selected OR branch literal hint: rule='net_declaration_sv_2023' ... output_len=21`
+  - generated output:
+    - `interconnect logic a;`
+- retained bounded main-SV shell proof:
+  - `PGEN_TRACE_VERBOSITY=high`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-netdecl-2023-probes-r1`
+  - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128`
+  - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`
+  - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed outcome:
+- `closed_loop_profiles_passed=2/2`
+- `closed_loop_replay_targets_total=3860`
+- `closed_loop_parseability_shadow_accepted_total=100`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=135`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=10`
+- `parse_full_passes=16/16`
+
+Measured movement vs the previous retained run:
+- replay targets improved `3870 -> 3860`
+- helper timeout totals improved `27 -> 10`
+- parseability-shadow acceptance softened `102 -> 100`
+- target timeout totals rose `124 -> 135`
+
+Important boundary:
+- this is a keeper because the primary replay frontier improved
+- it is not a pure telemetry win, so future work should keep watching timeout pressure instead of overgeneralizing from one mirrored profile repair
+
 Tracker note (2026-04-09): the first two queued stimuli-platform strengthening steps are now landed in initial form. Grammar-aware mutation now exists behind `--stimuli-mutation-mode grammar_aware_local`, using a local trace/replay strategy that can perturb:
 - OR-branch selection
 - quantifier repeat counts

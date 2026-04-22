@@ -1,4 +1,76 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-22 - Fix missing helper-only 2023 net-declaration probes
+### Context
+After a string of losing broad experiments, the active main-SystemVerilog replay lane needed a real root-cause pass instead of another “maybe this seed helps” loop.
+
+The useful debugging step was to turn the trace all the way up on the exact stubborn rule:
+- `PGEN_TRACE_VERBOSITY=debug`
+- direct entry:
+  - `net_declaration_sv_2023`
+
+That trace made the failure mode concrete. The generator did **not** print `Selected OR branch literal hint`. Instead it descended through the full rule, selected branch `2`, and exited with an output length of `5516`. So the problem was not “branch hints are broken on complex OR rules.” The problem was more basic: there was no 2023 branch hint to take.
+
+Cross-checking the grammar exposed the asymmetry:
+- `net_declaration_sv_2017` already had:
+  - `@probe_sample: "wire a;"`
+  - `@probe_sample: "nt a;"`
+  - `@probe_sample: "interconnect logic a;"`
+- `net_declaration_sv_2023` had the same three structural alternatives but none of those probe-only seeds
+
+### Decision
+- Treat this as a profile-symmetry repair in the grammar, not as a new runtime heuristic.
+- Mirror the three kept helper-only branch probes from `net_declaration_sv_2017` onto `net_declaration_sv_2023`.
+- Validate with max-trace direct entry first, then with the bounded maintained shell proof.
+
+### What Was Changed
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - `net_declaration_sv_2023` now carries:
+    - `@probe_sample: "wire a;"`
+    - `@probe_sample: "nt a;"`
+    - `@probe_sample: "interconnect logic a;"`
+- Updated continuity/reference/public docs:
+  - [CHANGES.md](CHANGES.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Before the fix, the `debug` direct-entry trace showed:
+  - no `Selected OR branch literal hint`
+  - `Selected OR branch: rule='net_declaration_sv_2023' path='root' branch=2 output_len=5516`
+- After the fix, the same `debug` direct-entry probe showed:
+  - `Selected OR branch literal hint: rule='net_declaration_sv_2023' path='root' branch=2 output_len=21`
+  - output:
+    - `interconnect logic a;`
+- Bounded maintained-shell proof:
+  - `PGEN_TRACE_VERBOSITY=high PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-netdecl-2023-probes-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=3860`
+    - `closed_loop_parseability_shadow_accepted_total=100`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=135`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=10`
+    - `parse_full_passes=16/16`
+
+### Interpretation
+- This is a keeper because the project’s primary metric improved:
+  - `closed_loop_replay_targets_total: 3870 -> 3860`
+- But the secondary telemetry is mixed, and that matters for future steering:
+  - parseability-shadow acceptance softened:
+    - `102 -> 100`
+  - target timeout totals rose:
+    - `124 -> 135`
+  - helper timeout totals improved sharply:
+    - `27 -> 10`
+
+So the honest reading is not “this fixed everything.” The honest reading is:
+- the root cause was a missing 2023 helper-only probe surface
+- the repair is real and worth keeping because it reduces the retained replay frontier
+- future follow-up should still watch timeout pressure, not assume every mirrored profile seed is automatically a pure win
+
 ## 2026-04-22 - Make five-level tracing a documented tool-design rule
 ### Context
 The active replay work made one process issue obvious: traceability should not depend on whether a particular tool happened to grow bespoke debug knobs over time. PGEN already has a maintained Rust tracing surface:

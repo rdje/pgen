@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-04-22 - Restore missing 2023 net-declaration probe seeds
+### Achievement Summary
+Fixed a real profile asymmetry in the active main-SystemVerilog proof lane: `net_declaration_sv_2017` already had branch-level `@probe_sample` footholds, but `net_declaration_sv_2023` had none. A `debug` direct-entry trace proved the result was not a weak seed but a missing one: generation walked the full branch and emitted a 5.5KB sample instead of short-circuiting. Mirroring the three helper-only canonical probes onto the 2023 rule restored the intended active-entry behavior and improved the retained bounded replay frontier.
+
+### Scope of Changes
+- Updated the SystemVerilog grammar steering surface:
+  - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - added branch-local helper-only probes to `net_declaration_sv_2023`:
+      - `@probe_sample: "wire a;"`
+      - `@probe_sample: "nt a;"`
+      - `@probe_sample: "interconnect logic a;"`
+    - this intentionally mirrors the already-kept `net_declaration_sv_2017` steering surface instead of inventing a new runtime heuristic
+- Updated tracked docs and continuity surfaces:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Root-cause direct-entry trace:
+  - before the fix, a `debug` direct probe showed `net_declaration_sv_2023` selecting branch `2` and exiting with output length `5516`, proving there was no literal-hint short-circuit
+- Direct `debug` proof after the fix:
+  - `PGEN_TRACE_VERBOSITY=debug cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --entry-rule net_declaration_sv_2023 --count 1 --seed 722401` ✅
+  - observed:
+    - `Selected OR branch literal hint: rule='net_declaration_sv_2023' path='root' branch=2 output_len=21`
+    - generated output:
+      - `interconnect logic a;`
+- Bounded maintained-shell proof:
+  - `PGEN_TRACE_VERBOSITY=high PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-netdecl-2023-probes-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - retained outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=3860`
+    - `closed_loop_parseability_shadow_accepted_total=100`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=135`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=10`
+    - `parse_full_passes=16/16`
+- Measured replay movement relative to the previous retained bounded run:
+  - replay targets improved:
+    - `3870 -> 3860`
+  - helper timeout totals improved:
+    - `27 -> 10`
+  - parseability-shadow acceptance softened slightly:
+    - `102 -> 100`
+  - target timeout totals increased:
+    - `124 -> 135`
+
+### Important Boundary
+- This is a real replay-frontier improvement, but not a blanket “everything got better” story.
+- The honest lesson is:
+  - max-trace root-cause work mattered here
+  - the problem was not an ignored branch hint in the runtime
+  - the problem was that the 2023 profile simply lacked the same branch hints already present in 2017
+- Status remains unchanged because this is still main-SV proof-lane hardening, not a closure claim.
+
 ## 2026-04-22 - Codify the five-level tracing doctrine for future tools
 ### Achievement Summary
 Captured a new project-wide engineering rule in the maintained docs: future PGEN tools should expose one shared tracing contract with the five levels `none`, `low`, `medium`, `high`, and `debug`, and should route instrumentation through shared trace helpers/macros instead of ad hoc debug prints.

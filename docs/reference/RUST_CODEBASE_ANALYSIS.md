@@ -41,6 +41,12 @@ This is a live document, not an archival write-up. It should be amended whenever
     - standalone semantic annotations above a rule definition are the maintained rule-level form
     - same-line inline semantic annotations inside the rule body are branch-local, even when the rule has only one alternative
     - the retained `module_ansi_header` / `module_nonansi_header` / `program_ansi_header` / `program_nonansi_header` repair depended on this distinction: the first inline attempt landed in `branch_semantic_annotations` and therefore did not behave like ordinary rule-level `@sample` steering
+  - profile symmetry is now an explicit root-cause check for stubborn replay debt:
+    - before assuming the runtime ignored a branch literal hint, compare the active profile’s rule body against the sibling profile’s steering surface
+    - the retained `net_declaration_sv_2023` repair came from exactly that check:
+      - `net_declaration_sv_2017` already carried helper-only probes for `wire a;`, `nt a;`, and `interconnect logic a;`
+      - `net_declaration_sv_2023` had the same three structural branches but none of those `@probe_sample` footholds
+      - a direct `debug` trace confirmed the runtime was descending through a full branch because the hint surface was missing, not because branch-level hint consumption was broken
   - same-line inline semantic-annotation payload parsing in `rust/src/ebnf_frontend.rs` is now an explicit correctness seam rather than scanner trivia:
     - the maintained rule is that same-line inline annotations consume only their own payload (quoted, balanced, or scalar) and must leave following rule-body syntax intact
     - this recently removed a false-epsilon branch leak from the focused main-`systemverilog` replay lane

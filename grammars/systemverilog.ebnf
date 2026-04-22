@@ -1464,7 +1464,9 @@ net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( drive_strength | 
                          | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
 
 @profiles: ["sv_2023"]
-net_declaration_sv_2023 := net_type ( drive_strength | charge_strength )? ( kw_vectored_53eb166d | kw_scalared_92ab459c )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi | nettype_identifier ( delay_control )? list_of_net_decl_assignments semi | kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
+net_declaration_sv_2023 := @probe_sample: "wire a;" net_type ( drive_strength | charge_strength )? ( kw_vectored_53eb166d | kw_scalared_92ab459c )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
+                         | @probe_sample: "nt a;" nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
+                         | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
 
 net_declaration := net_declaration_sv_2017 | net_declaration_sv_2023
 

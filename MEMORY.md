@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-22 (+0200, task: tracing-doctrine)
+Last updated: 2026-04-22 (+0200, task: sv-netdecl-2023-probes)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,50 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog bounded replay now carries the missing helper-only 2023 net-declaration seeds:
+  - changed:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - implementation:
+    - root-cause `debug` tracing on `net_declaration_sv_2023` showed the rule was not failing to honor a branch hint; it had no 2023 branch hint to take
+    - `net_declaration_sv_2017` already had helper-only branch probes for:
+      - `wire a;`
+      - `nt a;`
+      - `interconnect logic a;`
+    - `net_declaration_sv_2023` now mirrors those three `@probe_sample` footholds
+  - retained validation:
+    - `PGEN_TRACE_VERBOSITY=debug cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --entry-rule net_declaration_sv_2023 --count 1 --seed 722401`
+    - `PGEN_TRACE_VERBOSITY=high PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-netdecl-2023-probes-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained proof outcome:
+    - direct trace now shows:
+      - `Selected OR branch literal hint: rule='net_declaration_sv_2023' path='root' branch=2 output_len=21`
+      - generated output:
+        - `interconnect logic a;`
+    - bounded maintained-shell proof now reports:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=3860`
+      - `closed_loop_parseability_shadow_accepted_total=100`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=135`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=10`
+      - `parse_full_passes=16/16`
+  - important continuity detail:
+    - this is a keeper because the retained replay frontier improved:
+      - `3870 -> 3860`
+    - but the telemetry is mixed and should stay visible:
+      - parseability-shadow acceptance softened:
+        - `102 -> 100`
+      - target timeout totals rose:
+        - `124 -> 135`
+      - helper timeout totals improved:
+        - `27 -> 10`
+    - next honest follow-up is still root-cause replay work on the remaining coverage/property/declaration seams, not assuming profile mirroring closes the lane by itself
 - Tracing is now a documented future-tool doctrine rather than just an implicit preference:
   - changed:
     - [README.md](README.md)
