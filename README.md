@@ -23,6 +23,9 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Deliver parser/stimuli quality via deterministic gates, coverage/gap analysis, and closed-loop replay.
 - Treat parser quality as the product:
   - generated parsers must be correct, fast, accurate, predictable, observable, and trustworthy in real systems.
+- Rust toolchain floor:
+  - the maintained Cargo packages in this repository now declare an explicit MSRV of `1.95`
+  - if you are building the Rust-owned surfaces directly, assume Rust `1.95` or newer
 - Tracing doctrine:
   - every new tool or operational surface added to PGEN should expose the same trace-verbosity contract:
     - `none`

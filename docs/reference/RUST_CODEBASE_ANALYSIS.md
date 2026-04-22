@@ -165,6 +165,11 @@ This is a live document, not an archival write-up. It should be amended whenever
   - root `Cargo.toml`
     - repository-local Rust surface, but not the canonical source for the main parser-generation architecture described here
 
+Current toolchain floor:
+- the maintained Cargo packages in this repository now declare:
+  - `rust-version = "1.95"`
+- treat Rust `1.95` as the explicit MSRV for the repo's maintained Rust surfaces unless a future task deliberately raises it again
+
 Operational rule:
 - When a task says “the Rust codebase,” default to `rust/` first, then pull in `rtl_const_expr/` and `rtl_frontend/` when the task touches Phase S or frontend/constant-expression ownership.
 - Do not let peripheral Cargo manifests distract from the main architecture unless the task is explicitly about those support crates.

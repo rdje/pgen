@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-22 - Make the repo MSRV explicit at Rust 1.95
+### Context
+The compiler/toolchain baseline had already moved up to Rust `1.95`, but the repo’s Cargo manifests were still leaving MSRV implicit. That is workable locally, but it is poor continuity: a future session or downstream builder should not have to infer the floor from compiler errors or ambient environment state.
+
+### Decision
+- Declare `rust-version = "1.95"` explicitly on the repository’s maintained Cargo packages.
+- Surface the same floor in the primary README, the book’s getting-started page, and the Rust architecture notes so the metadata and docs tell the same story.
+
+### What Was Changed
+- Added `rust-version = "1.95"` to:
+  - [Cargo.toml](Cargo.toml)
+  - [rust/Cargo.toml](rust/Cargo.toml)
+  - [rtl_const_expr/Cargo.toml](rtl_const_expr/Cargo.toml)
+  - [rtl_frontend/Cargo.toml](rtl_frontend/Cargo.toml)
+  - [tools/generators/Cargo.toml](tools/generators/Cargo.toml)
+  - [test_parsers/json_test/Cargo.toml](test_parsers/json_test/Cargo.toml)
+- Updated docs:
+  - [README.md](README.md)
+  - [docs/book/src/getting-started.md](docs/book/src/getting-started.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+- Updated continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `cargo metadata --manifest-path rust/Cargo.toml --no-deps`
+- `cargo metadata --manifest-path rtl_frontend/Cargo.toml --no-deps`
+- `cargo metadata --manifest-path rtl_const_expr/Cargo.toml --no-deps`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+
+### Important Boundary
+- This is a metadata/documentation clarification slice, not a parser-status or architecture-status promotion.
+- The important operational effect is that future builders now have one explicit answer to “what Rust floor does this repo expect?”:
+  - Rust `1.95`
+
 ## 2026-04-22 - Fix missing helper-only 2023 net-declaration probes
 ### Context
 After a string of losing broad experiments, the active main-SystemVerilog replay lane needed a real root-cause pass instead of another “maybe this seed helps” loop.

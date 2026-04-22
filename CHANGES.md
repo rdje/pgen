@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-22 - Declare Rust MSRV 1.95 across repo Cargo packages
+### Achievement Summary
+Made the Rust toolchain floor explicit across the repository’s Cargo surfaces. The maintained Rust packages now declare `rust-version = "1.95"`, matching the raised local/compiler baseline instead of leaving MSRV implicit.
+
+### Scope of Changes
+- Updated Cargo package metadata:
+  - [Cargo.toml](Cargo.toml)
+  - [rust/Cargo.toml](rust/Cargo.toml)
+  - [rtl_const_expr/Cargo.toml](rtl_const_expr/Cargo.toml)
+  - [rtl_frontend/Cargo.toml](rtl_frontend/Cargo.toml)
+  - [tools/generators/Cargo.toml](tools/generators/Cargo.toml)
+  - [test_parsers/json_test/Cargo.toml](test_parsers/json_test/Cargo.toml)
+- Updated user/developer-facing docs so the build floor is visible:
+  - [README.md](README.md)
+  - [docs/book/src/getting-started.md](docs/book/src/getting-started.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+- Updated continuity surfaces:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Cargo metadata parsing:
+  - `cargo metadata --manifest-path rust/Cargo.toml --no-deps` ✅
+  - `cargo metadata --manifest-path rtl_frontend/Cargo.toml --no-deps` ✅
+  - `cargo metadata --manifest-path rtl_const_expr/Cargo.toml --no-deps` ✅
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Whitespace/sync check:
+  - `git diff --check`
+
+### Important Boundary
+- This is an explicit metadata/documentation floor, not a claim that every historical CI artifact or old local environment has already been rebuilt with Rust `1.95`.
+- The maintained expectation going forward is simple:
+  - if you build the repo’s Rust-owned surfaces directly, use Rust `1.95` or newer.
+
 ## 2026-04-22 - Restore missing 2023 net-declaration probe seeds
 ### Achievement Summary
 Fixed a real profile asymmetry in the active main-SystemVerilog proof lane: `net_declaration_sv_2017` already had branch-level `@probe_sample` footholds, but `net_declaration_sv_2023` had none. A `debug` direct-entry trace proved the result was not a weak seed but a missing one: generation walked the full branch and emitted a 5.5KB sample instead of short-circuiting. Mirroring the three helper-only canonical probes onto the 2023 rule restored the intended active-entry behavior and improved the retained bounded replay frontier.

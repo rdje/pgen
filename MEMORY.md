@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-22 (+0200, task: sv-netdecl-2023-probes)
+Last updated: 2026-04-22 (+0200, task: msrv-1.95)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repository now declares an explicit Rust MSRV of `1.95` across its maintained Cargo packages:
+  - changed:
+    - [Cargo.toml](Cargo.toml)
+    - [rust/Cargo.toml](rust/Cargo.toml)
+    - [rtl_const_expr/Cargo.toml](rtl_const_expr/Cargo.toml)
+    - [rtl_frontend/Cargo.toml](rtl_frontend/Cargo.toml)
+    - [tools/generators/Cargo.toml](tools/generators/Cargo.toml)
+    - [test_parsers/json_test/Cargo.toml](test_parsers/json_test/Cargo.toml)
+    - [README.md](README.md)
+    - [docs/book/src/getting-started.md](docs/book/src/getting-started.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation:
+    - the maintained Cargo packages now explicitly set:
+      - `rust-version = "1.95"`
+    - the public/developer docs now state that Rust `1.95` is the repo’s maintained floor for Rust-owned surfaces
+  - retained validation:
+    - `cargo metadata --manifest-path rust/Cargo.toml --no-deps`
+    - `cargo metadata --manifest-path rtl_frontend/Cargo.toml --no-deps`
+    - `cargo metadata --manifest-path rtl_const_expr/Cargo.toml --no-deps`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - this is an explicit metadata/documentation floor, not a parser-status change
+    - future sessions should assume Rust `1.95` or newer when building the repo’s maintained Rust surfaces directly
 - Main-SystemVerilog bounded replay now carries the missing helper-only 2023 net-declaration seeds:
   - changed:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

@@ -2,6 +2,8 @@
 
 The quickest way to get productive in PGEN is to treat the repository as a Rust-first active platform with strong documentation discipline.
 
+The maintained Rust toolchain floor is explicit now: the repo's Cargo packages declare an MSRV of `1.95`. If you are building the Rust-owned surfaces directly, start from Rust `1.95` or newer.
+
 ## First Files To Read
 
 1. `README.md`
@@ -22,6 +24,7 @@ make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate
 ## What To Expect
 
 - generated artifacts are version controlled,
+- the maintained Rust MSRV is `1.95`,
 - quality gates matter,
 - continuity docs matter,
 - user-facing claims are expected to align with executable proof.
