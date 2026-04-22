@@ -47,6 +47,12 @@ This is a live document, not an archival write-up. It should be amended whenever
       - `net_declaration_sv_2017` already carried helper-only probes for `wire a;`, `nt a;`, and `interconnect logic a;`
       - `net_declaration_sv_2023` had the same three structural branches but none of those `@probe_sample` footholds
       - a direct `debug` trace confirmed the runtime was descending through a full branch because the hint surface was missing, not because branch-level hint consumption was broken
+  - recursive replay debt now has one sharper steering rule too:
+    - when the replay-gap artifacts show that the open debt is owned by a recursive parent branch, prefer steering that parent branch directly over probing the child rule named in the first visible failure reason
+    - the retained `sequence_expr::root#11` SystemVerilog repair is the current reference example:
+      - child-rule probes on `clocking_event_sv_2023` regressed the bounded replay frontier
+      - a branch-local helper probe on the parent alternative `clocking_event sequence_expr` improved the frontier and retired the separate `clocking_event_sv_2023::root#2` debt
+    - treat that as a concrete replay-triage heuristic, not as a one-off anecdote
   - same-line inline semantic-annotation payload parsing in `rust/src/ebnf_frontend.rs` is now an explicit correctness seam rather than scanner trivia:
     - the maintained rule is that same-line inline annotations consume only their own payload (quoted, balanced, or scalar) and must leave following rule-body syntax intact
     - this recently removed a false-epsilon branch leak from the focused main-`systemverilog` replay lane

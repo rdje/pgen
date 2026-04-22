@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-22 (+0200, task: msrv-1.95)
+Last updated: 2026-04-22 (+0200, task: sequence-expr-branch11-probe)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,54 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog bounded replay now attacks the recursive parent seam directly instead of probing `clocking_event_sv_2023` itself:
+  - changed:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - implementation:
+    - retained baseline:
+      - `/tmp/pgen-sv-netdecl-2023-probes-r1`
+      - `closed_loop_replay_targets_total=3860`
+    - root-cause replay-gap inspection showed the real 2023 recursive seam was:
+      - `branch::sequence_expr::root#11`
+      - `clocking_event sequence_expr`
+    - two max-trace child-rule experiments on `clocking_event_sv_2023` were intentionally *not* kept:
+      - broad 2023 clocking-event probe mirror:
+        - `/tmp/pgen-sv-clocking-2023-probes-r1`
+        - regressed to:
+          - `closed_loop_replay_targets_total=3959`
+      - branch-2-only `@(posedge clk)` rescue:
+        - `/tmp/pgen-sv-clocking-2023-branch2-only-r1`
+        - regressed to:
+          - `closed_loop_replay_targets_total=4245`
+    - the kept repair is higher in the recursive ownership chain:
+      - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - branch-local helper-only probe:
+        - `@probe_sample: "@clk 1"`
+      - on:
+        - `sequence_expr ... | clocking_event sequence_expr`
+  - retained validation:
+    - `PGEN_TRACE_VERBOSITY=high PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-sequence-branch11-probe-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained proof outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=3835`
+    - `closed_loop_parseability_shadow_accepted_total=114`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=126`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=8`
+    - `parse_full_passes=16/16`
+  - important continuity detail:
+    - the 2023 retained replay debt no longer includes:
+      - `branch::clocking_event_sv_2023::root#2`
+    - the retained 2023 recursive debt still includes:
+      - `branch::sequence_expr::root#11`
+    - the durable lesson is to prefer steering the recursive parent branch when replay debt is carried there, instead of probing a child rule that only looks guilty in the first failure reason
 - The repository now declares an explicit Rust MSRV of `1.95` across its maintained Cargo packages:
   - changed:
     - [Cargo.toml](Cargo.toml)

@@ -54,6 +54,17 @@ That split matters because a hint that is useful when probing a single dependenc
 - use `@sample` when the grammar really should always short-circuit to that literal shape
 - use `@probe_sample` when the literal is meant to accelerate targeted replay of a specific rule without flattening ordinary coverage
 
+The next SystemVerilog lesson made that rule more precise. If the retained replay debt is actually carried by a recursive parent branch, probing the child rule can be the wrong seam. A kept example is the 2023 assertion/sequence lane:
+
+- probing `clocking_event_sv_2023` directly made the local surface look simpler but regressed the bounded replay frontier
+- probing the recursive parent branch on `sequence_expr` (`clocking_event sequence_expr`) with `@probe_sample: "@clk 1"` improved the retained replay frontier and retired the separate `clocking_event_sv_2023` debt
+
+So the maintained doctrine is:
+
+- use replay-gap evidence to locate the rule or branch that truly owns the debt
+- prefer branch-local `@probe_sample` on that owning seam over broad child-rule canonicalization
+- keep the recursive branch visible if it still remains open after the local debt around it has been reduced
+
 ## Replay Progress Tracing
 
 The heavy replay gates are intentionally quiet by default, but the retained SystemVerilog replay lane now has an opt-in progress surface when a closed-loop stage is CPU-hot and needs inspection.

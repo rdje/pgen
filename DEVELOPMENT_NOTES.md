@@ -1,4 +1,116 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-22 - Probe the recursive `sequence_expr` branch instead of `clocking_event_sv_2023`
+### Context
+The retained bounded main-SystemVerilog replay baseline after the net-declaration repair was:
+- `/tmp/pgen-sv-netdecl-2023-probes-r1`
+- `closed_loop_replay_targets_total=3860`
+
+The tempting next fix was the visible 2023 debt:
+- `branch::clocking_event_sv_2023::root#2`
+
+But the retained gap and replay logs showed a more precise shape:
+- the retained 2023 reachable debt was:
+  - `branch::clocking_event_sv_2023::root#2`
+  - `branch::sequence_expr::root#11`
+- `sequence_expr::root#11` is the recursive alternative:
+  - `clocking_event sequence_expr`
+- retained failure reasons on that branch were still dominated by recursion pressure:
+  - helper timeout on `sequence_expr`
+  - `max_rule_visits` on `sequence_expr`
+  - occasional `event_expression` exhaustion
+
+So `clocking_event_sv_2023` was a real symptom, but it was not obviously the correct steering surface.
+
+### What We Tried First And Why It Lost
+Two max-trace experiments confirmed that steering the child rule was the wrong cut.
+
+1. Broad `clocking_event_sv_2023` probe mirror
+- mirrored the 2017 helper footholds onto the 2023 rule
+- bounded proof:
+  - `/tmp/pgen-sv-clocking-2023-probes-r1`
+- result:
+  - `closed_loop_replay_targets_total=3959`
+- useful lesson:
+  - this improved the local acceptance surface but worsened the replay frontier
+
+2. Branch-2-only `clocking_event_sv_2023` rescue
+- only the `@(posedge clk)` branch received a helper probe
+- bounded proof:
+  - `/tmp/pgen-sv-clocking-2023-branch2-only-r1`
+- result:
+  - `closed_loop_replay_targets_total=4245`
+- sharper lesson:
+  - this did not just “fail to help”
+  - it changed both `clocking_event_sv_2023` and `sequence_expr::root#11` from `selected_but_failed` to `never_selected`
+  - so the probe was perturbing helper selection more than it was solving the recursive seam
+
+### Decision
+- Revert all `clocking_event_sv_2023` probe experiments.
+- Fix the recursive parent branch directly instead:
+  - add a branch-local helper-only foothold to `sequence_expr` on:
+    - `clocking_event sequence_expr`
+- Keep the probe narrow and helper-only:
+  - `@probe_sample: "@clk 1"`
+
+This uses the already-kept `sequence_expr` rule-level `@probe_sample: "1"` as the simple nonrecursive foothold, while giving the recursive `clocking_event` branch its own deterministic helper shape instead of trying to reshape the child rule globally.
+
+### What Was Changed
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - reverted all experimental `clocking_event_sv_2023` helper probes
+  - kept:
+    - `@probe_sample: "@clk 1"` on the `sequence_expr` branch:
+      - `clocking_event sequence_expr`
+- Updated continuity/reference/public docs:
+  - [CHANGES.md](CHANGES.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Baseline retained gap:
+  - `/tmp/pgen-sv-netdecl-2023-probes-r1/work/profile_2023_replay_gap.json`
+  - before the kept change, retained 2023 reachable branch debt included:
+    - `branch::clocking_event_sv_2023::root#2`
+    - `branch::sequence_expr::root#11`
+- Kept bounded maintained-shell proof:
+  - `PGEN_TRACE_VERBOSITY=high PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-sequence-branch11-probe-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - retained outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=3835`
+    - `closed_loop_parseability_shadow_accepted_total=114`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=126`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=8`
+    - `parse_full_passes=16/16`
+- Post-fix retained gap:
+  - `/tmp/pgen-sv-sequence-branch11-probe-r1/work/profile_2023_replay_gap.json`
+  - now the retained 2023 reachable branch debt includes:
+    - `branch::sequence_expr::root#11`
+  - and no longer includes:
+    - `branch::clocking_event_sv_2023::root#2`
+
+### Interpretation
+- This slice is a real keep because the primary frontier improved:
+  - `3860 -> 3835`
+- It also improved the supporting telemetry:
+  - parseability-shadow acceptance:
+    - `100 -> 114`
+  - target timeout totals:
+    - `135 -> 126`
+  - helper timeout totals:
+    - `10 -> 8`
+
+The most important lesson is not the exact probe string. It is the seam choice:
+- child-rule probes on `clocking_event_sv_2023` attacked the visible symptom and regressed the frontier
+- a branch-local helper probe on the recursive parent `sequence_expr` branch removed the separate child-rule debt and improved the retained bounded proof
+
+### Important Boundary
+- `sequence_expr::root#11` is still open debt.
+- The failure mix changed, but the recursive branch still has zero successes in the retained proof.
+- So this is another frontier-reduction slice, not a closure claim.
+
 ## 2026-04-22 - Make the repo MSRV explicit at Rust 1.95
 ### Context
 The compiler/toolchain baseline had already moved up to Rust `1.95`, but the repo’s Cargo manifests were still leaving MSRV implicit. That is workable locally, but it is poor continuity: a future session or downstream builder should not have to infer the floor from compiler errors or ambient environment state.

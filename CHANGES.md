@@ -1,4 +1,68 @@
 # CHANGES.md
+## 2026-04-22 - Retire the 2023 clocking-event replay debt through `sequence_expr`
+### Achievement Summary
+Landed the next kept main-SystemVerilog replay slice by fixing the right seam. Max-trace replay-gap inspection showed the real retained 2023 blocker was not `clocking_event_sv_2023` in isolation, but the recursive `sequence_expr` branch `clocking_event sequence_expr`. The kept repair adds a helper-only branch-local foothold directly on that recursive `sequence_expr` alternative, which retires the separate `clocking_event_sv_2023::root#2` debt and improves the retained bounded replay frontier again.
+
+### Scope of Changes
+- Updated the SystemVerilog grammar steering surface:
+  - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - kept:
+      - branch-local `@probe_sample: "@clk 1"` on the recursive `sequence_expr` alternative `clocking_event sequence_expr`
+    - intentionally not kept:
+      - broad helper probes on `clocking_event_sv_2023`
+      - those experiments regressed the replay frontier and only helped the surface symptom
+- Updated tracked docs and continuity surfaces:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
+### Validation
+- Root-cause retained-gap inspection:
+  - baseline retained bounded run:
+    - `/tmp/pgen-sv-netdecl-2023-probes-r1`
+  - confirmed 2023 replay debt initially included:
+    - `branch::clocking_event_sv_2023::root#2`
+    - `branch::sequence_expr::root#11`
+- Losing root-cause experiments, kept for doctrine:
+  - broad `clocking_event_sv_2023` probe mirror:
+    - `/tmp/pgen-sv-clocking-2023-probes-r1`
+    - regressed:
+      - `closed_loop_replay_targets_total: 3860 -> 3959`
+  - branch-2-only `clocking_event_sv_2023` rescue:
+    - `/tmp/pgen-sv-clocking-2023-branch2-only-r1`
+    - regressed harder:
+      - `closed_loop_replay_targets_total: 3860 -> 4245`
+- Kept bounded maintained-shell proof:
+  - `PGEN_TRACE_VERBOSITY=high PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-sequence-branch11-probe-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - retained outcome:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=3835`
+    - `closed_loop_parseability_shadow_accepted_total=114`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=126`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=8`
+    - `parse_full_passes=16/16`
+- Measured replay movement relative to the previous retained bounded run:
+  - replay targets improved:
+    - `3860 -> 3835`
+  - parseability-shadow acceptance improved:
+    - `100 -> 114`
+  - target timeout totals improved:
+    - `135 -> 126`
+  - helper timeout totals improved:
+    - `10 -> 8`
+
+### Important Boundary
+- This is a keeper because it improves the project’s primary bounded proof metric while also improving the secondary replay-shadow telemetry.
+- It does **not** close the remaining recursive assertion/sequence seam:
+  - `branch::sequence_expr::root#11` still remains in retained 2023 replay debt
+- The durable lesson from this slice is architectural:
+  - when replay debt is carried by a recursive parent branch, probing the child rule can be the wrong seam
+  - in this case the child `clocking_event_sv_2023` probes regressed the frontier, while the parent-branch `sequence_expr` probe retired the separate `clocking_event_sv_2023` debt cleanly
+
 ## 2026-04-22 - Declare Rust MSRV 1.95 across repo Cargo packages
 ### Achievement Summary
 Made the Rust toolchain floor explicit across the repository’s Cargo surfaces. The maintained Rust packages now declare `rust-version = "1.95"`, matching the raised local/compiler baseline instead of leaving MSRV implicit.

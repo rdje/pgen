@@ -193,6 +193,45 @@ Important boundary:
 - this is a keeper because the primary replay frontier improved
 - it is not a pure telemetry win, so future work should keep watching timeout pressure instead of overgeneralizing from one mirrored profile repair
 
+Tracker note (2026-04-22): the next kept main-SystemVerilog replay slice then showed that the right steering seam can sit above the rule named in the first visible failure reason. Starting from the retained bounded baseline at `/tmp/pgen-sv-netdecl-2023-probes-r1`, max-trace replay-gap inspection showed that the visible 2023 `clocking_event_sv_2023::root#2` debt was paired with the deeper recursive parent branch `sequence_expr::root#11` (`clocking_event sequence_expr`). Two direct child-rule experiments on `clocking_event_sv_2023` were intentionally rejected:
+- broad helper-probe mirroring regressed:
+  - `closed_loop_replay_targets_total: 3860 -> 3959`
+- branch-2-only `@(posedge clk)` rescue regressed harder:
+  - `closed_loop_replay_targets_total: 3860 -> 4245`
+
+The kept repair is therefore on the recursive parent branch itself:
+- [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+  - `sequence_expr` now carries:
+    - `@probe_sample: "@clk 1"`
+  - on the recursive alternative:
+    - `clocking_event sequence_expr`
+
+Bounded maintained-shell proof:
+- `PGEN_TRACE_VERBOSITY=high`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-sequence-branch11-probe-r1`
+- `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128`
+- `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`
+- `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed outcome:
+- `closed_loop_profiles_passed=2/2`
+- `closed_loop_replay_targets_total=3835`
+- `closed_loop_parseability_shadow_accepted_total=114`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=126`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=8`
+- `parse_full_passes=16/16`
+
+Retained seam movement:
+- 2023 reachable replay debt no longer includes:
+  - `branch::clocking_event_sv_2023::root#2`
+- the remaining recursive seam still includes:
+  - `branch::sequence_expr::root#11`
+
+Steering lesson:
+- if replay debt is carried by a recursive parent branch, do not assume a child-rule probe is the right lever just because the child name appears in the first failure reason
+- prove the debt owner from the replay-gap artifacts first, then steer that branch directly
+
 Tracker note (2026-04-09): the first two queued stimuli-platform strengthening steps are now landed in initial form. Grammar-aware mutation now exists behind `--stimuli-mutation-mode grammar_aware_local`, using a local trace/replay strategy that can perturb:
 - OR-branch selection
 - quantifier repeat counts
