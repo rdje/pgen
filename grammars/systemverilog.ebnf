@@ -2387,6 +2387,7 @@ udp_declaration_sv_2023 := udp_nonansi_declaration udp_port_declaration udp_port
 
 udp_declaration := udp_declaration_sv_2017 | udp_declaration_sv_2023
 
+@sample: "output o, input i"
 udp_declaration_port_list := udp_output_declaration comma udp_input_declaration ( comma udp_input_declaration )*
 
 udp_identifier := identifier

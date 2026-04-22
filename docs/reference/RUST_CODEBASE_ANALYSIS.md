@@ -2159,3 +2159,39 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - architectural rule:
     - for alternation-heavy rules, keep using inline branch-local annotations when deterministic steering is needed today
     - do not assume the rule-level literal-override path will help until the runtime is widened beyond the current `ASTNode::Or` restriction
+- The next retained main-SV slice after that is a child-rule UDP foothold, and the keepable lesson is when a seed should live below the family-selection layer.
+  - retained trigger:
+    - after the declaration-wrapper slice, the bounded replay-gap sidecars still carried:
+      - `udp_ansi_declaration`
+      - `udp_declaration_port_list`
+    - unlike the wrapper-level declaration debt, the UDP family was already being entered
+  - kept grammar-side repair:
+    - `grammars/systemverilog.ebnf`
+      - `udp_declaration_port_list` now has `@sample: "output o, input i"`
+    - the sample was intentionally placed on the child list rule rather than on `udp_ansi_declaration` or the surrounding `udp_declaration_sv_*` branch
+  - why that placement matters:
+    - a new wrapper or branch literal override would likely have repeated the earlier parent-debt short-circuit
+    - the child-rule sample makes `udp_ansi_declaration` cheap through real descent
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-udp-ansi-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - outcome:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=4158`
+      - `closed_loop_parseability_shadow_accepted_total=98`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=136`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=145`
+      - `perf_observed_generate_max_ms=233`
+  - retained replay-gap truth:
+    - `udp_ansi_declaration` disappeared from both bounded replay-gap sidecars
+    - `udp_declaration_port_list` disappeared from both bounded replay-gap sidecars
+    - the remaining declaration-adjacent bounded replay debt is now:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+  - architectural rule:
+    - when a family is already being entered, prefer a child-rule foothold that preserves real descent
+    - keep wrapper/branch short-circuits for genuine family-selection seams only

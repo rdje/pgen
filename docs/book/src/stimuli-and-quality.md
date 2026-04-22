@@ -236,3 +236,63 @@ So the maintained rule is simple:
 - use standalone annotations when the steering is meant for a non-`Or` rule as a whole
 - use inline branch-local annotations when the rule is an alternation-heavy `Or` surface and the runtime needs deterministic footholds today
 - do not overclaim a frontier move as closure just because wrapper-level replay debt disappeared
+
+## Child Footholds
+
+The next retained main-SystemVerilog slice showed the complementary rule.
+
+If a family is already being entered, prefer a child-rule foothold that preserves real descent instead of adding another parent or wrapper short-circuit.
+
+That was the right move for the ANSI UDP seam. After the declaration-wrapper slice, the bounded replay-gap sidecars still carried:
+
+- `udp_ansi_declaration`
+- `udp_declaration_port_list`
+
+This was different from the wrapper-level declaration seam:
+
+- the UDP family was already being entered
+- the missing debt was inside the ANSI child path
+- so another wrapper literal override would have risked retiring only parent debt again
+
+The kept repair in [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf) is intentionally small:
+
+- `udp_declaration_port_list` now carries `@sample: "output o, input i"`
+
+That placement matters. It makes the ANSI UDP path cheap through real descent:
+
+- `udp_declaration_sv_*`
+- `udp_ansi_declaration`
+- `udp_declaration_port_list`
+
+The retained bounded proof:
+
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-udp-ansi-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+records:
+
+- `closed_loop_profiles_passed=2/2`
+- `closed_loop_replay_targets_total=4158`
+- `closed_loop_parseability_shadow_accepted_total=98`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=136`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+- `parse_full_passes=16/16`
+- `perf_observed_generate_avg_ms=145`
+- `perf_observed_generate_max_ms=233`
+
+The replay-gap sidecars now no longer carry:
+
+- `udp_ansi_declaration`
+- `udp_declaration_port_list`
+
+and the remaining declaration-adjacent bounded frontier is down to:
+
+- `module_declaration_sv_2017`
+- `module_declaration_sv_2023`
+- `program_declaration_sv_2017`
+- `program_declaration_sv_2023`
+
+So the practical rule is:
+
+- use wrapper or branch short-circuits when the real problem is selecting a family at all
+- use child-rule footholds when the family is already being entered and you want honest descent through the missing inner path

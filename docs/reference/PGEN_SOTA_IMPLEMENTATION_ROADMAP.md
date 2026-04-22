@@ -4685,3 +4685,33 @@ Tracker note (2026-04-19): literalish sample steering is now a real branch-local
       - `program_declaration_sv_2023`
       - `udp_declaration_port_list`
     - do not call this closure yet; it is another honest frontier move inside the still-open main-SV exhaustive-proof lane
+- The next retained main-SV slice after that is a child-rule UDP foothold, and the keepable lesson is when not to use another wrapper shortcut.
+  - retained trigger:
+    - after the declaration-wrapper slice, the bounded replay-gap sidecars still carried:
+      - `udp_ansi_declaration`
+      - `udp_declaration_port_list`
+  - kept repair:
+    - `grammars/systemverilog.ebnf`
+      - `udp_declaration_port_list` now carries `@sample: "output o, input i"`
+    - this was intentionally placed on the child list rule so the ANSI UDP path gets cheaper by real descent instead of just retiring parent debt
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-udp-ansi-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=4158`
+      - `closed_loop_parseability_shadow_accepted_total=98`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=136`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=145`
+      - `perf_observed_generate_max_ms=233`
+  - roadmap truth:
+    - `udp_ansi_declaration` disappeared from the bounded replay-gap sidecars
+    - `udp_declaration_port_list` disappeared from the bounded replay-gap sidecars
+    - the remaining declaration-adjacent bounded debt is now only:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+    - live status still does not move; this is another bounded frontier reduction inside the still-open main-SV exhaustive-proof lane

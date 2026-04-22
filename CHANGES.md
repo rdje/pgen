@@ -37056,3 +37056,28 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `program_declaration_sv_2023`
       - `udp_declaration_port_list`
     - no parser-family status row changed
+- 2026-04-22: cleared the bounded ANSI-UDP replay seam with a child-rule foothold instead of another wrapper short-circuit.
+  - landed:
+    - `grammars/systemverilog.ebnf`
+      - `udp_declaration_port_list` now carries `@sample: "output o, input i"`
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-udp-ansi-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=4158`
+      - `closed_loop_parseability_shadow_accepted_total=98`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=136`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+      - `parseability_generation_parser_rejections_total=0`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=145`
+      - `perf_observed_generate_max_ms=233`
+  - continuity truth:
+    - `udp_ansi_declaration` and `udp_declaration_port_list` disappeared from the retained bounded replay-gap sidecars
+    - the remaining declaration-adjacent bounded replay debt is now down to:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+    - no parser-family status row changed

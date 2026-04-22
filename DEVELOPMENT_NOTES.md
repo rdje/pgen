@@ -41151,3 +41151,39 @@ Architectural north star:
   - doctrine:
     - on `Or` rules, use inline branch-local annotations when you want deterministic steering today
     - do not assume a rule-level literal override will help unless the runtime actually supports that node shape
+- 2026-04-22: the follow-up ANSI-UDP seam confirms the complementary rule: prefer child-rule footholds when you want real descent, not just parent-rule debt retirement.
+  - concrete trigger:
+    - after the declaration-wrapper slice, the bounded replay-gap sidecars still carried:
+      - `udp_ansi_declaration`
+      - `udp_declaration_port_list`
+    - unlike the wrapper-level declaration debt, this was a real inner-rule seam inside a family that was already being entered
+  - keepable correction:
+    - `grammars/systemverilog.ebnf`
+      - added `@sample: "output o, input i"` to `udp_declaration_port_list`
+    - this was intentionally placed on the child list rule, not on `udp_ansi_declaration` and not on the surrounding `udp_declaration_sv_*` branch
+  - why that placement matters:
+    - a wrapper or branch-level literal override would have repeated the earlier short-circuit pattern and risked retiring only parent debt
+    - the child-rule sample makes the ANSI path cheap by real descent through `udp_ansi_declaration -> udp_declaration_port_list`
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-udp-ansi-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=4158`
+      - `closed_loop_parseability_shadow_accepted_total=98`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=136`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=145`
+      - `perf_observed_generate_max_ms=233`
+  - retained replay-gap truth:
+    - `udp_ansi_declaration` disappeared from both bounded replay-gap sidecars
+    - `udp_declaration_port_list` disappeared from both bounded replay-gap sidecars
+    - the remaining declaration-adjacent bounded replay debt is now only:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+  - doctrine:
+    - when the parent family is already being entered, prefer a child-rule foothold that preserves real descent
+    - use wrapper/branch short-circuits only when the target seam is genuinely about selecting that family at all

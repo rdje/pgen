@@ -17488,3 +17488,28 @@ Use this file to resume work without replaying full chat history.
   - status truth:
     - proof lane improved
     - live status rows stay unchanged
+- 2026-04-22: the next retained main-SV win used a child foothold, not another wrapper shortcut.
+  - landed:
+    - `grammars/systemverilog.ebnf`
+      - `udp_declaration_port_list` now has `@sample: "output o, input i"`
+  - retained bounded proof:
+    - `/tmp/pgen-sv-udp-ansi-r1`
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=4158`
+    - `closed_loop_parseability_shadow_accepted_total=98`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=136`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=7`
+    - `parse_full_passes=16/16`
+    - `perf_observed_generate_avg_ms=145`
+    - `perf_observed_generate_max_ms=233`
+  - bounded frontier truth:
+    - `udp_ansi_declaration` is gone from the replay-gap sidecars
+    - `udp_declaration_port_list` is gone from the replay-gap sidecars
+    - remaining declaration-adjacent bounded debt:
+      - `module_declaration_sv_2017`
+      - `module_declaration_sv_2023`
+      - `program_declaration_sv_2017`
+      - `program_declaration_sv_2023`
+  - doctrine:
+    - when a family is already entered, prefer child-rule seeds that preserve real descent over new wrapper-level short-circuits
