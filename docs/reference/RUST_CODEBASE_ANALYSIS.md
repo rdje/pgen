@@ -22,6 +22,21 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It is not a replacement for the live closure tracker in `LIVE_ACHIEVEMENT_STATUS.md`.
 - It should be read alongside the roadmap priority rule:
   - active parser-family closure work is now centered on the remaining main-`systemverilog` debt and still outranks deferred maintainability refactors.
+  - tracing is now an explicit repo doctrine for future tools and operational binaries:
+    - new Rust-owned tools should expose the shared five-level trace contract:
+      - `none`
+      - `low`
+      - `medium`
+      - `high`
+      - `debug`
+    - prefer `TraceVerbosity`, `PGEN_TRACE_VERBOSITY`, and the existing `pgen_trace*` macro family over bespoke debug flags or scattered prints
+    - instrument real control-flow seams, not just final errors:
+      - function entry/exit
+      - meaningful branch decisions
+      - fallbacks
+      - retries
+      - timeout paths
+      - failure boundaries
   - annotation placement is now an explicit frontend-semantics rule for the active main-SV proof lane:
     - standalone semantic annotations above a rule definition are the maintained rule-level form
     - same-line inline semantic annotations inside the rule body are branch-local, even when the rule has only one alternative
@@ -231,6 +246,9 @@ Operational rule:
   - `semantic_runtime.rs`
 - The generated parser path, stimuli/coverage closure path, semantic-steering path, and proof/gate path are deeply integrated rather than loosely bolted together.
 - The strongest quality of the Rust codebase is coherence around determinism, observability, and machine-checkable proof.
+- The maintained tracing reference surface is already centralized rather than fragmented:
+  - `rust/src/ast_pipeline/mod.rs` owns `TraceVerbosity`, `PGEN_TRACE_VERBOSITY` resolution, trace-log routing, and the `pgen_trace*` macro family
+  - `rust/src/main.rs`, `rust/src/bin/pgen_ast.rs`, `rust/src/bin/ebnf_dual_run_diff.rs`, and `rust/src/bin/parseability_probe.rs` already consume that common surface instead of inventing separate verbosity models
 - The main architectural risk is concentration of complexity in a few very large modules and a few repeated adapter seams.
 - The newest downstream-trust expansion for `regex` is no longer just synthetic or narrative: `regex_corpus_bundle/` now feeds a maintained compile-oracle lane through `normalize_pcre2_compile_oracle.py`, `regex_corpus_probe`, `regex_pcre2_compile_oracle_gate.sh`, and a dedicated post-parse compile-contract layer in `rust/src/regex_compile_validation.rs`; the generated regex host path also retains a larger bounded worker stack plus widened generated recursion guard for legal deep PCRE2 conformance inputs.
 

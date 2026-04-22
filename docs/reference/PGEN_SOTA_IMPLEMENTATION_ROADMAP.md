@@ -23,6 +23,13 @@ Execution preference for this roadmap:
 - explicit performance budgets,
 - deterministic reproducibility,
 - embedder-facing diagnostics and AST visibility,
+- one maintained tracing contract for new tools and operational binaries:
+  - `none`
+  - `low`
+  - `medium`
+  - `high`
+  - `debug`
+- prefer shared trace helpers/macros and branch-aware instrumentation over ad hoc debug prints,
 - checked-in external corpora only count toward closure after they are consumed by repeatable gates or reports rather than merely present in the tree.
 - when a family is down to a small stubborn replay/rejection set and repeated broad grammar/sample tweaks keep failing, prefer branch-level introspection tooling over more blanket hint sweeps.
 - when a parser family is already `Done` on its published closure bar, downstream-hardening follow-up should not reopen that family automatically unless the published syntax/contract is intentionally widened.

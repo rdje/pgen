@@ -23,6 +23,23 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Deliver parser/stimuli quality via deterministic gates, coverage/gap analysis, and closed-loop replay.
 - Treat parser quality as the product:
   - generated parsers must be correct, fast, accurate, predictable, observable, and trustworthy in real systems.
+- Tracing doctrine:
+  - every new tool or operational surface added to PGEN should expose the same trace-verbosity contract:
+    - `none`
+    - `low`
+    - `medium`
+    - `high`
+    - `debug`
+  - prefer one shared tracing model over per-tool ad hoc debug flags or bespoke log levels,
+  - route instrumentation through shared trace helpers/macros rather than scattered `println!`-style debugging,
+  - instrument the real control flow:
+    - entry/exit,
+    - important branch decisions,
+    - fallbacks,
+    - retries,
+    - timeouts,
+    - and failure boundaries,
+  - the current Rust AST pipeline already provides the maintained reference shape for this doctrine through `TraceVerbosity`, `PGEN_TRACE_VERBOSITY`, and the `pgen_trace*` macros; future tools should align with that surface instead of inventing incompatible tracing schemes.
 - North-star trust goal:
   - make PGEN the de facto go-to platform for parsers because projects can trust it,
   - make PGEN sign-off-grade when parsing correctness materially affects downstream flows.

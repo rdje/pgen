@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-22 - Codify the five-level tracing doctrine for future tools
+### Achievement Summary
+Captured a new project-wide engineering rule in the maintained docs: future PGEN tools should expose one shared tracing contract with the five levels `none`, `low`, `medium`, `high`, and `debug`, and should route instrumentation through shared trace helpers/macros instead of ad hoc debug prints.
+
+### Scope of Changes
+- Updated repo doctrine/public surfaces:
+  - [README.md](README.md)
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+- Updated continuity surfaces:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Whitespace/sync check:
+  - `git diff --check`
+
+### Important Boundary
+- This is a doctrine/documentation slice, not a claim that every existing historical tool already meets the new standard.
+- The honest rule is:
+  - future tools should converge on the shared five-level tracing surface
+  - existing surfaces should align with it as they are created, amended, or meaningfully refactored
+
 ## 2026-04-22 - Promote SV header seeds to true rule-level annotations
 ### Achievement Summary
 Fixed a real main-SystemVerilog steering mistake in the active proof lane: the new canonical samples for `module_ansi_header`, `module_nonansi_header`, `program_ansi_header`, and `program_nonansi_header` had first been written inline, which this frontend interpreted as branch-local annotations on a single alternative instead of rule-level `@sample` directives. Moving them into standalone annotation lines restored the intended ordinary-generation short-circuit and materially improved the bounded replay frontier.

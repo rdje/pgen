@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-22 (+0200, task: sv-rule-level-header-seeds)
+Last updated: 2026-04-22 (+0200, task: tracing-doctrine)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tracing is now a documented future-tool doctrine rather than just an implicit preference:
+  - changed:
+    - [README.md](README.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - implementation:
+    - future tools and operational binaries should expose the shared five-level trace contract:
+      - `none`
+      - `low`
+      - `medium`
+      - `high`
+      - `debug`
+    - future tracing should prefer shared helpers/macros over ad hoc prints
+    - instrumentation should cover:
+      - entry/exit
+      - meaningful branch choices
+      - fallbacks
+      - retries
+      - timeout paths
+      - failure boundaries
+    - the current Rust reference surface is now explicitly named as:
+      - `TraceVerbosity`
+      - `PGEN_TRACE_VERBOSITY`
+      - `pgen_trace*`
+  - retained validation:
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - this is a doctrine/documentation slice, not a claim that every older tool is already retrofitted
+    - future and meaningfully amended tools should converge on the shared trace surface instead of growing bespoke debug knobs
 - Main-SystemVerilog bounded replay now uses true rule-level declaration-header seeds instead of stranded single-branch inline annotations:
   - changed:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

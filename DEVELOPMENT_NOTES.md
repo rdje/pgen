@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-22 - Make five-level tracing a documented tool-design rule
+### Context
+The active replay work made one process issue obvious: traceability should not depend on whether a particular tool happened to grow bespoke debug knobs over time. PGEN already has a maintained Rust tracing surface:
+- `TraceVerbosity`
+- `PGEN_TRACE_VERBOSITY`
+- `--verbosity`
+- `trace.log` routing
+- `pgen_trace*` macros
+
+But the project doctrine had not yet said the quiet part out loud: future tools should align with that same model instead of inventing incompatible local tracing schemes.
+
+### Decision
+- Promote tracing to explicit project doctrine for future tools and operational binaries.
+- Standardize on the five-level contract:
+  - `none`
+  - `low`
+  - `medium`
+  - `high`
+  - `debug`
+- Prefer shared trace helpers/macros over ad hoc prints.
+- Instrument real execution seams, not only terminal failures:
+  - function entry/exit
+  - branch decisions
+  - fallbacks
+  - retries
+  - timeout paths
+  - failure boundaries
+
+### What Was Changed
+- Updated [README.md](README.md):
+  - added a repo-level tracing doctrine under the project objective section
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added the shared five-level tracing contract to the roadmap execution preferences
+- Updated [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md):
+  - added a user-facing tracing doctrine section that explains the maintained direction for future tools
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
+  - recorded the doctrine as part of the current Rust steering picture
+  - explicitly named the current Rust reference surface:
+    - `TraceVerbosity`
+    - `PGEN_TRACE_VERBOSITY`
+    - `pgen_trace*`
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+
+### Important Boundary
+- This is a doctrine capture slice, not a retroactive claim that every existing tool already meets the standard.
+- The maintained stance is:
+  - future tools should implement the five-level trace contract from the start
+  - existing tools should converge toward that same surface when they are touched meaningfully
+
 ## 2026-04-22 - Fix rule-vs-branch annotation placement for SV header seeds
 ### Context
 After the `property_case_item` helper-only repair, the next active main-SystemVerilog replay experiment targeted declaration headers:

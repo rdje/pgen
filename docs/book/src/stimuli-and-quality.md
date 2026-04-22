@@ -69,6 +69,27 @@ The heavy replay gates are intentionally quiet by default, but the retained Syst
 
 That trace is meant for honest progress visibility during stubborn replay work, not as a replacement for the gate's final summary artifacts. The practical payoff is simple: if a long `profile_2017_closed_loop_replay` run is still active, the stage log is now tail-able by default instead of staying empty unless someone remembered an extra env override first.
 
+## Tracing Doctrine
+
+PGEN now treats tracing as a first-class tool-design requirement, not as optional afterthought logging.
+
+- every new tool or operational binary should implement the same trace levels:
+  - `none`
+  - `low`
+  - `medium`
+  - `high`
+  - `debug`
+- use one shared tracing model instead of bespoke per-tool debug switches
+- prefer shared trace helpers/macros over scattered ad hoc prints
+- instrument real execution seams:
+  - function entry and exit
+  - meaningful branch choices
+  - fallbacks and retries
+  - timeout paths
+  - error boundaries
+
+The current Rust reference surface already follows this shape through `TraceVerbosity`, `PGEN_TRACE_VERBOSITY`, and the `pgen_trace*` macros. The maintained direction for future tools is to align with that contract rather than inventing incompatible local tracing schemes.
+
 PGEN now also lets the replay selector learn a little within a single target-drive run. If a helper rule has already retired meaningful target debt earlier in that same run, later probe selection can treat that observed payoff as part of the ranking signal instead of relying only on static dependency heuristics. This is intentionally bounded to the current replay session; it is replay-local guidance, not a persisted cross-run learning system.
 
 Low replay trace now also exposes the helper competition directly. At each helper activation, PGEN can show the selected helper pool plus the top dependency and pending candidates. That makes replay tuning less mystical: you can see whether a stubborn lane is dominated by one stable pending frontier or by rapidly changing dependency probes.
