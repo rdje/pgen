@@ -17537,3 +17537,30 @@ Use this file to resume work without replaying full chat history.
     - the still-open reachable debt is now the real active-profile declaration/UDP frontier rather than bogus cross-profile wrapper churn
   - doctrine:
     - if `@profiles` removes a referenced rule from the active grammar tree, every proof/reporting surface must respect that effective grammar, not the raw source-grammar `Or`
+- 2026-04-22: the next retained main-SV slice repaired a previously-dead runtime path and then used it narrowly.
+  - runtime fact:
+    - rule-level literal/probe overrides now work on `ASTNode::Or` roots in `rust/src/ast_pipeline/stimuli_generator.rs`
+    - focused regression coverage now exists for:
+      - rule-level `@sample` on `Or`
+      - rule-level `@probe_sample` on `Or` that must stay inactive during non-entry expansion
+  - experiment truth:
+    - `statement_or_null` was the first post-fix probe target and was intentionally rejected
+    - direct entry behaved correctly, but the bounded kept metric regressed to `closed_loop_replay_targets_total=4070`
+  - kept use:
+    - `grammars/systemverilog.ebnf`
+      - `sequence_expr` now has standalone `@probe_sample: "1"`
+    - direct profile probes now emit `1` in both `sv_2017` and `sv_2023`
+  - retained bounded proof:
+    - `/tmp/pgen-sv-or-probe-sequence-r1`
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=3870`
+    - `closed_loop_parseability_shadow_accepted_total=102`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=124`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=27`
+    - `parse_full_passes=16/16`
+    - `perf_observed_generate_avg_ms=151`
+    - `perf_observed_generate_max_ms=230`
+  - doctrine:
+    - the old “rule-level override on `Or` is dead” restriction is no longer true
+    - still prefer the narrow helper seam over the broad one when activating this new capability

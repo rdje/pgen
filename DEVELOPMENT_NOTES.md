@@ -41222,3 +41222,38 @@ Architectural north star:
   - doctrine:
     - when `@profiles` prunes rule definitions from the active grammar tree, every proof surface must agree with that effective grammar
     - do not leave impossible profile-opposite branches in actionable replay debt just because they still exist in the source `Or`
+- 2026-04-22: the next retained main-SV slice used a runtime capability repair first, then spent it on the narrower helper seam rather than the broader one.
+  - trigger:
+    - a direct `statement_or_null` probe experiment showed that the standalone rule-level `@probe_sample` form was still structurally dead on `ASTNode::Or`
+    - the root cause was in `generate_rule()`: rule-level literal/probe overrides were gated by `node_supports_rule_literal_override()`, which explicitly rejected `ASTNode::Or`
+  - kept runtime repair:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `ASTNode::Or` now participates in the rule-level literal/probe override path
+      - added focused regression tests:
+        - `semantic_usage_stimuli_rule_level_sample_overrides_or_entry_rule`
+        - `semantic_usage_stimuli_rule_level_probe_sample_overrides_or_only_for_active_entry`
+  - discarded sibling experiment:
+    - after the runtime repair, `statement_or_null` was re-tried with standalone `@probe_sample: ";"`
+    - it behaved correctly on direct entry but was intentionally rejected because the bounded gate regressed to:
+      - `closed_loop_replay_targets_total=4070`
+    - that experiment was intentionally reverted before continuing
+  - kept grammar-side use:
+    - `grammars/systemverilog.ebnf`
+      - `sequence_expr` now uses standalone `@probe_sample: "1"`
+    - direct entry probes now emit only `1` for both `sv_2017` and `sv_2023`
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-or-probe-sequence-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=3870`
+      - `closed_loop_parseability_shadow_accepted_total=102`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=124`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=27`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=151`
+      - `perf_observed_generate_max_ms=230`
+  - doctrine:
+    - rule-level `@sample` / `@probe_sample` on `Or` roots is now a valid runtime tool
+    - but it should still be spent on the narrowest seam that earns replay-debt movement
+    - `sequence_expr` was a keeper; `statement_or_null` was too broad

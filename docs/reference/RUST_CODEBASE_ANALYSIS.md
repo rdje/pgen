@@ -2220,3 +2220,34 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - architectural rule:
     - once `@profiles` removes a rule from the active grammar tree, every target-drive and replay-gap surface must respect that effective grammar
     - do not leave impossible cross-profile wrapper branches in actionable debt just because the source grammar still contains them textually
+- The next retained main-SV slice after that widened one specific runtime boundary: rule-level literal/probe overrides are no longer blocked on `ASTNode::Or`.
+  - retained trigger:
+    - a standalone `@probe_sample` experiment on `statement_or_null` exposed that `generate_rule()` still gated rule-level literal/probe overrides through `node_supports_rule_literal_override()`
+    - that helper explicitly rejected `ASTNode::Or`, so top-level alternation wrappers could not use the rule-level footholds available to non-`Or` roots
+  - kept runtime repair:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `node_supports_rule_literal_override()` now only rejects regex atoms, not `Or` roots
+      - this reactivates rule-level `@sample` and active-entry `@probe_sample` for alternation-root rules
+      - focused regression tests now cover:
+        - rule-level `@sample` on an `Or`-root entry rule
+        - rule-level `@probe_sample` on an `Or`-root helper rule that must remain inactive during non-entry expansion
+  - experiment truth:
+    - the first post-fix grammar use on `statement_or_null` was intentionally reverted after bounded proof regressed to `closed_loop_replay_targets_total=4070`
+    - the kept use is narrower:
+      - `grammars/systemverilog.ebnf`
+      - standalone `@probe_sample: "1"` on `sequence_expr`
+  - retained bounded proof:
+    - `/tmp/pgen-sv-or-probe-sequence-r1`
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=3870`
+    - `closed_loop_parseability_shadow_accepted_total=102`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=124`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=27`
+    - `parse_full_passes=16/16`
+    - `perf_observed_generate_avg_ms=151`
+    - `perf_observed_generate_max_ms=230`
+  - architectural rule:
+    - the old “rule-level literal/probe overrides are dead on `ASTNode::Or`” statement is no longer true
+    - but the broader lesson survived: enabling a capability is not the same as finding the right seam to spend it on
+    - `sequence_expr` was a keeper; `statement_or_null` was too broad

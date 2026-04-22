@@ -338,3 +338,52 @@ So the maintained rule is:
 
 - if a rule reference is pruned out by profile selection, generation and replay-gap accounting must both treat that branch as outside the active grammar
 - proof surfaces should report impossible branches as unreachable, not as reachable work we merely failed to hit
+
+## Or-Root Rule-Level Probes
+
+Another useful boundary in the same main-SystemVerilog lane was the old runtime restriction on rule-level steering.
+
+Until this slice, rule-level `@sample` and active-entry `@probe_sample` could not fire when the target rule root was an `Or`. That meant top-level wrapper rules with plain alternation could only be steered with branch-local annotations, even when the cleaner design would have been a rule-level helper foothold.
+
+That runtime restriction is now gone in [stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs). Rule-level literal and probe overrides now work on `Or` roots too, with focused regression tests covering:
+
+- rule-level `@sample` on an `Or`-root entry rule
+- rule-level `@probe_sample` on an `Or`-root helper rule that must stay inactive during non-entry expansion
+
+The important practical lesson is that a newly-valid capability is not automatically a good idea everywhere.
+
+The first broad use, a standalone `@probe_sample: ";"` on `statement_or_null`, was intentionally rejected because the bounded maintained gate regressed to:
+
+- `closed_loop_replay_targets_total=4070`
+
+The kept use was narrower:
+
+- [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf)
+- standalone `@probe_sample: "1"` on `sequence_expr`
+
+Direct probes now emit only `1` for both profiles:
+
+- `sv_2017`
+- `sv_2023`
+
+The retained bounded proof:
+
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-or-probe-sequence-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+records:
+
+- `closed_loop_profiles_passed=2/2`
+- `closed_loop_replay_targets_total=3870`
+- `closed_loop_parseability_shadow_accepted_total=102`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=124`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=27`
+- `parse_full_passes=16/16`
+- `perf_observed_generate_avg_ms=151`
+- `perf_observed_generate_max_ms=230`
+
+That is a small but real replay improvement over the retained `3878` baseline, and it gives us a sharper rule for future work:
+
+- `Or`-root rule-level probes are now a valid runtime tool
+- still spend them on the narrowest helper seam that actually lowers replay debt
+- do not keep a broader probe just because the runtime now supports it

@@ -37105,3 +37105,32 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - those branches now live in `unreachable_branch_debt` with the explicit reason `references_rule_missing_from_active_grammar`
     - the remaining reachable debt is the real active-profile frontier, not bogus cross-profile wrapper churn
     - no parser-family status row changed
+- 2026-04-22: widened the stimuli runtime so rule-level literal/probe overrides now work on `ASTNode::Or` roots, then used that narrower capability to improve the retained main-SV replay lane.
+  - landed:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `generate_rule()` no longer blocks rule-level literal/probe overrides just because a rule root is `ASTNode::Or`
+      - added focused regression tests for:
+        - rule-level `@sample` on an `Or`-root entry rule
+        - rule-level `@probe_sample` on an `Or`-root helper rule that must stay inactive during non-entry expansion
+    - `grammars/systemverilog.ebnf`
+      - `sequence_expr` now has a standalone `@probe_sample: "1"` foothold
+  - direct proof:
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule sequence_expr --count 4 --seed 57041 --output /tmp/pgen-sequence-expr-2017-r2.txt`
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --entry-rule sequence_expr --count 4 --seed 57042 --output /tmp/pgen-sequence-expr-2023-r2.txt`
+    - both profiles now emit only `1`
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-or-probe-sequence-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=3870`
+      - `closed_loop_parseability_shadow_accepted_total=102`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=124`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=27`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=151`
+      - `perf_observed_generate_max_ms=230`
+  - continuity truth:
+    - the retained replay debt improved from `3878` to `3870`
+    - the broader sibling experiment on `statement_or_null` using the same new runtime capability was intentionally rejected after regressing to `closed_loop_replay_targets_total=4070`
+    - no parser-family live-status row changed

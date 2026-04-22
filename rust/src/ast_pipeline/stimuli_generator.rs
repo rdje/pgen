@@ -5449,7 +5449,9 @@ impl<'a> StimuliGenerator<'a> {
 
     fn node_supports_rule_literal_override(node: &ASTNode) -> bool {
         match node {
-            ASTNode::Or { .. } => false,
+            // Rule-level samples and probe samples should also steer wrapper rules whose root is
+            // an OR node; branch accounting is still handled by the ordinary expansion path when
+            // no explicit literal override is active.
             ASTNode::Atom { value } => !matches!(
                 value,
                 ASTValue::Token(parts)
@@ -10520,6 +10522,95 @@ mod tests {
         assert_eq!(
             helper_values[0], "seeded-helper",
             "literalish hints should still override when the hinted rule is the active generation entry"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_rule_level_sample_overrides_or_entry_rule() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", "alpha"),
+                    token("quoted_string", "beta"),
+                ],
+            },
+        );
+        let rule_order = vec!["helper".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "helper".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"seeded-helper\"".to_string(),
+                    value: UnifiedSemanticValue::String("seeded-helper".to_string()),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 92961);
+        let helper_values = generator
+            .generate_many(1, Some("helper"))
+            .expect("direct helper generation should succeed");
+        assert_eq!(
+            helper_values[0], "seeded-helper",
+            "rule-level samples should override OR-root entry rules too"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_rule_level_probe_sample_overrides_or_only_for_active_entry() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "helper")],
+            },
+        );
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", "alpha"),
+                    token("quoted_string", "beta"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "helper".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "probe_sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"seeded-helper\"".to_string(),
+                    value: UnifiedSemanticValue::String("seeded-helper".to_string()),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 92962);
+        let nested_values = generator
+            .generate_many(12, Some("start"))
+            .expect("nested generation should succeed");
+        assert!(
+            nested_values
+                .iter()
+                .all(|value| value == "alpha" || value == "beta"),
+            "probe samples should not short-circuit non-entry OR rules during ordinary generation: {:?}",
+            nested_values
+        );
+
+        let helper_values = generator
+            .generate_many(1, Some("helper"))
+            .expect("direct helper generation should succeed");
+        assert_eq!(
+            helper_values[0], "seeded-helper",
+            "probe samples should override OR-root rules when they are the active generation entry"
         );
     }
 

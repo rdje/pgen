@@ -4740,3 +4740,36 @@ Tracker note (2026-04-19): literalish sample steering is now a real branch-local
     - those branches now live in `unreachable_branch_debt` with an explicit missing-active-grammar reason
     - the still-open reachable debt is now the real active-profile declaration/UDP frontier rather than bogus cross-profile wrapper churn
     - live status still does not move; this is proof-surface correctness work inside the still-open main-SV exhaustive-proof lane
+- The next retained main-SV slice after that reopened one runtime capability and then proved it on the narrower helper seam.
+  - retained trigger:
+    - a direct standalone `@probe_sample` attempt on `statement_or_null` exposed that rule-level literal/probe overrides were still structurally dead when a rule root was `ASTNode::Or`
+    - that meant top-level alternation wrappers could not use the same rule-level footholds that already worked on non-`Or` roots
+  - kept runtime repair:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `generate_rule()` now honors rule-level literal/probe overrides for `ASTNode::Or` roots too
+      - focused regression tests now pin both behaviors:
+        - `semantic_usage_stimuli_rule_level_sample_overrides_or_entry_rule`
+        - `semantic_usage_stimuli_rule_level_probe_sample_overrides_or_only_for_active_entry`
+  - discarded sibling experiment:
+    - after enabling that runtime path, `statement_or_null` was tried first with standalone `@probe_sample: ";"`
+    - it behaved correctly on direct entry but was intentionally rejected because the bounded gate regressed to `closed_loop_replay_targets_total=4070`
+  - kept grammar-side use:
+    - `grammars/systemverilog.ebnf`
+      - `sequence_expr` now has standalone `@probe_sample: "1"`
+    - direct profile probes now emit only `1` for both `sv_2017` and `sv_2023`
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-or-probe-sequence-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - outcome:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=3870`
+      - `closed_loop_parseability_shadow_accepted_total=102`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=124`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=27`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=151`
+      - `perf_observed_generate_max_ms=230`
+  - roadmap truth:
+    - the retained replay debt improved from `3878` to `3870`
+    - `Or`-root rule-level literal/probe overrides are now a real tool in the runtime
+    - but the first broad use (`statement_or_null`) was not kept, so the doctrine is still to spend the capability on the narrowest helper seam that actually improves replay debt
