@@ -37081,3 +37081,27 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `program_declaration_sv_2017`
       - `program_declaration_sv_2023`
     - no parser-family status row changed
+- 2026-04-22: aligned main-SV replay-gap debt with the active-profile runtime by pruning profile-opposite `Or` branches from actionable coverage debt.
+  - landed:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `ASTNode::Or` generation now prunes alternatives whose rule references are missing from the active grammar tree
+      - `generate_gap_report()` now classifies those same branches as unreachable debt with reason `references_rule_missing_from_active_grammar` instead of leaving them in reachable `never_selected` debt
+      - added focused regression coverage for both generation and gap-report classification
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-profile-prune-r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=3878`
+      - `closed_loop_parseability_shadow_accepted_total=118`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=119`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=0`
+      - `parseability_generation_parser_rejections_total=0`
+      - `parse_full_passes=16/16`
+      - `perf_observed_generate_avg_ms=168`
+      - `perf_observed_generate_max_ms=676`
+  - continuity truth:
+    - opposite-profile wrapper branches such as `module_declaration -> module_declaration_sv_2023` under `sv_2017`, `program_declaration -> program_declaration_sv_2023`, and the matching `udp_declaration` branch are no longer surfaced as reachable actionable debt
+    - those branches now live in `unreachable_branch_debt` with the explicit reason `references_rule_missing_from_active_grammar`
+    - the remaining reachable debt is the real active-profile frontier, not bogus cross-profile wrapper churn
+    - no parser-family status row changed

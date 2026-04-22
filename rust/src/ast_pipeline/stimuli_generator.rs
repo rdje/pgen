@@ -1575,9 +1575,6 @@ impl<'a> StimuliGenerator<'a> {
             };
             let reachable = reachable_rules.contains(group.rule_name.as_str());
             total_branches = total_branches.saturating_add(group.total_branches);
-            if reachable {
-                reachable_branches = reachable_branches.saturating_add(group.total_branches);
-            }
             let branch_nodes =
                 self.or_alternatives_for_group_path(&group.rule_name, &group.node_path);
 
@@ -1588,13 +1585,6 @@ impl<'a> StimuliGenerator<'a> {
 
                 if success_hits > 0 {
                     covered_branches = covered_branches.saturating_add(1);
-                    if reachable {
-                        covered_reachable_branches = covered_reachable_branches.saturating_add(1);
-                    }
-                }
-                if reachable && success_hits >= threshold {
-                    reachable_branches_at_threshold =
-                        reachable_branches_at_threshold.saturating_add(1);
                 }
                 if deficit == 0 {
                     continue;
@@ -1602,28 +1592,46 @@ impl<'a> StimuliGenerator<'a> {
 
                 let mut rule_refs = Vec::new();
                 let mut uncovered_rule_refs = Vec::new();
+                let mut missing_rule_refs = Vec::new();
                 if let Some(alternatives) = branch_nodes {
                     if let Some(branch_node) = alternatives.get(branch_idx) {
                         let mut refs = HashSet::new();
                         self.collect_rule_references(branch_node, &mut refs);
                         rule_refs = refs.into_iter().collect();
                         rule_refs.sort();
+                        missing_rule_refs = self.missing_rule_references(branch_node);
                         uncovered_rule_refs = rule_refs
                             .iter()
                             .filter(|rule_name| {
-                                self.coverage
-                                    .rule_success_hits
-                                    .get(rule_name.as_str())
-                                    .copied()
-                                    .unwrap_or(0)
-                                    < threshold
+                                !missing_rule_refs
+                                    .iter()
+                                    .any(|missing| missing == *rule_name)
+                                    && self
+                                        .coverage
+                                        .rule_success_hits
+                                        .get(rule_name.as_str())
+                                        .copied()
+                                        .unwrap_or(0)
+                                        < threshold
                             })
                             .cloned()
                             .collect();
                     }
                 }
 
-                let reason = if reachable {
+                let branch_reachable = reachable && missing_rule_refs.is_empty();
+                if branch_reachable {
+                    reachable_branches = reachable_branches.saturating_add(1);
+                }
+                if success_hits > 0 && branch_reachable {
+                    covered_reachable_branches = covered_reachable_branches.saturating_add(1);
+                }
+                if branch_reachable && success_hits >= threshold {
+                    reachable_branches_at_threshold =
+                        reachable_branches_at_threshold.saturating_add(1);
+                }
+
+                let reason = if branch_reachable {
                     if selected_hits == 0 {
                         "never_selected"
                     } else if success_hits == 0 {
@@ -1631,12 +1639,14 @@ impl<'a> StimuliGenerator<'a> {
                     } else {
                         "below_threshold"
                     }
+                } else if !missing_rule_refs.is_empty() {
+                    "references_rule_missing_from_active_grammar"
                 } else {
                     "unreachable_from_entry"
                 };
 
                 let mut priority_score = 0u64;
-                if reachable {
+                if branch_reachable {
                     priority_score = 1000u64
                         .saturating_add(deficit.saturating_mul(120))
                         .saturating_add(if selected_hits == 0 { 200 } else { 0 })
@@ -1686,7 +1696,7 @@ impl<'a> StimuliGenerator<'a> {
                     rule_name: group.rule_name.clone(),
                     node_path: group.node_path.clone(),
                     branch_index: branch_idx,
-                    reachable,
+                    reachable: branch_reachable,
                     selected_hits,
                     success_hits,
                     required_successes: threshold,
@@ -1698,7 +1708,7 @@ impl<'a> StimuliGenerator<'a> {
                     top_failure_reasons,
                 };
 
-                if reachable {
+                if branch_reachable {
                     targets.push(StimuliCoverageTarget {
                         id: branch_id,
                         target_type: StimuliCoverageTargetType::Branch,
@@ -3532,6 +3542,22 @@ impl<'a> StimuliGenerator<'a> {
             });
         }
 
+        candidate_indices.retain(|idx| {
+            let missing = self.missing_rule_references(&prepared[*idx].1);
+            if missing.is_empty() {
+                true
+            } else {
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Pruned OR branch with missing rule references: rule='{}' path='{}' branch={} missing={:?}",
+                        current_rule, node_path, idx, missing
+                    ),
+                );
+                false
+            }
+        });
+
         if candidate_indices.is_empty() {
             return Err(anyhow!(
                 "No candidate branches available for rule '{}' during stimuli generation",
@@ -4669,6 +4695,18 @@ impl<'a> StimuliGenerator<'a> {
         });
         names.len()
     }
+
+    fn missing_rule_references(&self, node: &ASTNode) -> Vec<String> {
+        let mut names = HashSet::new();
+        self.collect_rule_references(node, &mut names);
+        let mut missing: Vec<String> = names
+            .into_iter()
+            .filter(|rule_name| !self.grammar_tree.contains_key(rule_name))
+            .collect();
+        missing.sort();
+        missing
+    }
+
     fn target_guidance_multiplier(
         &self,
         current_rule: &str,
@@ -8246,6 +8284,62 @@ mod tests {
     }
 
     #[test]
+    fn gap_report_marks_branches_with_missing_rule_references_unreachable() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("rule_reference", "wrapper"));
+        grammar_tree.insert(
+            "wrapper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "available"),
+                    token("rule_reference", "missing_profile_branch"),
+                ],
+            },
+        );
+        grammar_tree.insert("available".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec![
+            "start".to_string(),
+            "wrapper".to_string(),
+            "available".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 778);
+        let _ = generator
+            .generate_many(8, Some("start"))
+            .expect("generation should succeed via available branch");
+
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+
+        assert!(
+            report
+                .reachable_branch_debt
+                .iter()
+                .all(|debt| debt.branch_id != "branch::wrapper::root#1"),
+            "missing-rule branch should not remain actionable reachable debt"
+        );
+        let branch = report
+            .unreachable_branch_debt
+            .iter()
+            .find(|debt| debt.branch_id == "branch::wrapper::root#1")
+            .expect("missing-rule branch should be classified as unreachable");
+        assert_eq!(branch.reason, "references_rule_missing_from_active_grammar");
+        assert_eq!(
+            branch.rule_references,
+            vec!["missing_profile_branch".to_string()]
+        );
+        assert!(branch.uncovered_rule_references.is_empty());
+        assert!(
+            report
+                .targets
+                .iter()
+                .all(|target| target.id != "branch::wrapper::root#1"),
+            "missing-rule branch should not become a target-drive item"
+        );
+    }
+
+    #[test]
     fn target_driven_generation_resolves_branch_targets() {
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -10329,6 +10423,53 @@ mod tests {
             group.success_counts.first().copied().unwrap_or(0) > 0,
             "branch literal hint should register branch success, got {:?}",
             group.success_counts
+        );
+    }
+
+    #[test]
+    fn stimuli_generation_prunes_or_branches_that_reference_missing_rules() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "wrapper")],
+            },
+        );
+        grammar_tree.insert(
+            "wrapper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "available"),
+                    token("rule_reference", "missing_profile_branch"),
+                ],
+            },
+        );
+        grammar_tree.insert("available".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec![
+            "start".to_string(),
+            "wrapper".to_string(),
+            "available".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 92955);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("generation should prune missing-rule branches and succeed");
+        assert_eq!(values[0], "ok");
+
+        let group = generator
+            .coverage_metrics()
+            .branch_groups
+            .get("wrapper::root")
+            .expect("branch coverage group should exist");
+        assert_eq!(
+            group.selected_counts.get(1).copied().unwrap_or(0),
+            0,
+            "branch referencing a missing rule should be pruned instead of selected"
+        );
+        assert!(
+            group.success_counts.first().copied().unwrap_or(0) > 0,
+            "reachable branch should still succeed after pruning missing-rule alternatives"
         );
     }
 

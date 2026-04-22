@@ -17513,3 +17513,27 @@ Use this file to resume work without replaying full chat history.
       - `program_declaration_sv_2023`
   - doctrine:
     - when a family is already entered, prefer child-rule seeds that preserve real descent over new wrapper-level short-circuits
+- 2026-04-22: the following retained main-SV slice reconciled profile-pruned runtime behavior with replay-gap accounting.
+  - landed:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `ASTNode::Or` generation prunes alternatives whose rule references are missing from the active grammar tree
+      - `generate_gap_report()` now classifies those same branches as unreachable debt with reason `references_rule_missing_from_active_grammar`
+      - missing-rule references are excluded from actionable `uncovered_rule_references`
+      - focused regression tests cover both generation pruning and gap-report classification
+  - retained bounded proof:
+    - `/tmp/pgen-sv-profile-prune-r2`
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_replay_targets_total=3878`
+    - `closed_loop_parseability_shadow_accepted_total=118`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `closed_loop_parseability_shadow_target_timeout_errors_total=119`
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total=0`
+    - `parse_full_passes=16/16`
+    - `perf_observed_generate_avg_ms=168`
+    - `perf_observed_generate_max_ms=676`
+  - bounded frontier truth:
+    - opposite-profile wrapper branches such as `branch::module_declaration::root#1` under `sv_2017` and `branch::module_declaration::root#0` under `sv_2023` are no longer reachable actionable debt
+    - those wrapper branches now live in `unreachable_branch_debt` with explicit missing-active-grammar reasons
+    - the still-open reachable debt is now the real active-profile declaration/UDP frontier rather than bogus cross-profile wrapper churn
+  - doctrine:
+    - if `@profiles` removes a referenced rule from the active grammar tree, every proof/reporting surface must respect that effective grammar, not the raw source-grammar `Or`

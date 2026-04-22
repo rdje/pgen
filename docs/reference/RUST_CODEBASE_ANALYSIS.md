@@ -2195,3 +2195,28 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - architectural rule:
     - when a family is already being entered, prefer a child-rule foothold that preserves real descent
     - keep wrapper/branch short-circuits for genuine family-selection seams only
+- The next retained main-SV slice after that is a runtime/report alignment fix for profile-pruned wrappers rather than another grammar annotation move.
+  - retained trigger:
+    - a focused wrapper-descent experiment showed that active-profile generation had stopped selecting opposite-profile wrapper branches
+    - but `generate_gap_report()` was still classifying those branches as reachable `never_selected` debt because it reasoned over the raw source-grammar `Or` rather than the active profile-pruned grammar tree
+  - kept runtime/report repair:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `missing_rule_references()` now feeds both `ASTNode::Or` generation-time pruning and branch-debt classification
+      - branch debt with missing active-grammar rule references is now marked unreachable with reason `references_rule_missing_from_active_grammar`
+      - missing-rule references are excluded from actionable `uncovered_rule_references`, so `depends_on` only carries rules that actually exist in the active grammar tree
+      - focused regression tests now pin both halves of the behavior:
+        - `stimuli_generation_prunes_or_branches_that_reference_missing_rules`
+        - `gap_report_marks_branches_with_missing_rule_references_unreachable`
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-profile-prune-r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - outcome:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=3878`
+      - `closed_loop_parseability_shadow_accepted_total=118`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=119`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=0`
+      - `parse_full_passes=16/16`
+  - architectural rule:
+    - once `@profiles` removes a rule from the active grammar tree, every target-drive and replay-gap surface must respect that effective grammar
+    - do not leave impossible cross-profile wrapper branches in actionable debt just because the source grammar still contains them textually

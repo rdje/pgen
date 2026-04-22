@@ -296,3 +296,45 @@ So the practical rule is:
 
 - use wrapper or branch short-circuits when the real problem is selecting a family at all
 - use child-rule footholds when the family is already being entered and you want honest descent through the missing inner path
+
+## Active-Profile Truth
+
+One more practical lesson from the same main-SystemVerilog lane is that the runtime and the proof surface have to agree about what the active grammar actually is.
+
+That mattered after the declaration and UDP foothold slices. A focused wrapper-descent experiment showed something subtle:
+
+- active-profile generation was no longer selecting opposite-profile wrapper branches such as `module_declaration -> module_declaration_sv_2023` while running under `sv_2017`
+- but the replay-gap sidecars were still reporting those branches as reachable `never_selected` debt
+
+That is not just noisy reporting. It misstates the real closure frontier. Once `@profiles` removes a referenced rule from the active grammar tree, that branch is not an actionable replay target anymore.
+
+The kept fix lives in [stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+
+- `ASTNode::Or` generation now prunes alternatives whose referenced rules are missing from the active grammar tree
+- `generate_gap_report()` now mirrors that same rule and classifies those branches as `unreachable_branch_debt`
+- the explicit recorded reason is `references_rule_missing_from_active_grammar`
+
+The retained bounded proof:
+
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-profile-prune-r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+records:
+
+- `closed_loop_profiles_passed=2/2`
+- `closed_loop_replay_targets_total=3878`
+- `closed_loop_parseability_shadow_accepted_total=118`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=119`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=0`
+- `parse_full_passes=16/16`
+
+The important interpretation is again narrow and honest:
+
+- this does not close the remaining declaration or UDP frontier
+- it does remove bogus opposite-profile wrapper debt from the reachable/actionable lane
+- the remaining reachable debt is now the real active-profile frontier, not proof-surface churn caused by branches that cannot exist in the active grammar tree
+
+So the maintained rule is:
+
+- if a rule reference is pruned out by profile selection, generation and replay-gap accounting must both treat that branch as outside the active grammar
+- proof surfaces should report impossible branches as unreachable, not as reachable work we merely failed to hit

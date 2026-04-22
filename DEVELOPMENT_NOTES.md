@@ -41187,3 +41187,38 @@ Architectural north star:
   - doctrine:
     - when the parent family is already being entered, prefer a child-rule foothold that preserves real descent
     - use wrapper/branch short-circuits only when the target seam is genuinely about selecting that family at all
+- 2026-04-22: the next main-SV slice was a runtime/report alignment fix, not another grammar-seeding move.
+  - concrete trigger:
+    - a wrapper-descent experiment proved that active-profile generation was no longer selecting opposite-profile declaration wrappers, but the replay-gap sidecars still carried those branches as reachable `never_selected` debt:
+      - `branch::module_declaration::root#1` under `sv_2017`
+      - `branch::program_declaration::root#1` under `sv_2017`
+      - the matching `root#0` branches under `sv_2023`
+      - the matching `udp_declaration` wrapper branches
+    - that meant the runtime and the proof surface were disagreeing about profile-pruned `Or` alternatives
+  - kept repair:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `ASTNode::Or` generation already prunes branch candidates whose referenced rules are absent from the active grammar tree
+      - `generate_gap_report()` now mirrors that runtime truth by classifying any branch with missing active-grammar references as unreachable debt with reason `references_rule_missing_from_active_grammar`
+      - `uncovered_rule_references` now excludes those missing-rule references, so actionable branch targets only depend on rules that exist in the active grammar tree
+      - added focused regression tests:
+        - `stimuli_generation_prunes_or_branches_that_reference_missing_rules`
+        - `gap_report_marks_branches_with_missing_rule_references_unreachable`
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-profile-prune-r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=3878`
+      - `closed_loop_parseability_shadow_accepted_total=118`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=119`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=0`
+      - `parse_full_passes=16/16`
+  - retained replay-gap truth:
+    - the profile-opposite wrapper branches moved out of `reachable_branch_debt`
+    - they now appear only in `unreachable_branch_debt` with reason `references_rule_missing_from_active_grammar`
+    - the still-open reachable debt is the real active-profile frontier:
+      - `module_declaration_sv_2017` / `program_declaration_sv_2017` plus UDP inner debt for `sv_2017`
+      - `module_declaration_sv_2023` / `program_declaration_sv_2023` plus UDP inner debt for `sv_2023`
+  - doctrine:
+    - when `@profiles` prunes rule definitions from the active grammar tree, every proof surface must agree with that effective grammar
+    - do not leave impossible profile-opposite branches in actionable replay debt just because they still exist in the source `Or`

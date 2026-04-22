@@ -4715,3 +4715,28 @@ Tracker note (2026-04-19): literalish sample steering is now a real branch-local
       - `program_declaration_sv_2017`
       - `program_declaration_sv_2023`
     - live status still does not move; this is another bounded frontier reduction inside the still-open main-SV exhaustive-proof lane
+- The next retained main-SV slice after that is a runtime/report alignment fix for profile-pruned wrappers.
+  - retained trigger:
+    - a focused wrapper-descent run proved that active-profile generation was no longer selecting opposite-profile wrapper branches such as `module_declaration -> module_declaration_sv_2023` under `sv_2017`
+    - but the replay-gap sidecars still surfaced those branches as reachable `never_selected` debt
+    - that was proof-surface drift: the runtime and the replay-gap analyzer were disagreeing about the effective active grammar after `@profiles`
+  - kept repair:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - `ASTNode::Or` generation now prunes alternatives whose referenced rules are missing from the active grammar tree
+      - `generate_gap_report()` now classifies those same branches as unreachable debt with reason `references_rule_missing_from_active_grammar`
+      - focused regression tests cover both generation-time pruning and gap-report classification
+  - retained bounded proof:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-profile-prune-r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - result:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_replay_targets_total=3878`
+      - `closed_loop_parseability_shadow_accepted_total=118`
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `closed_loop_parseability_shadow_target_timeout_errors_total=119`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=0`
+      - `parse_full_passes=16/16`
+  - roadmap truth:
+    - opposite-profile wrapper branches for `module_declaration`, `program_declaration`, and `udp_declaration` no longer remain in actionable reachable debt
+    - those branches now live in `unreachable_branch_debt` with an explicit missing-active-grammar reason
+    - the still-open reachable debt is now the real active-profile declaration/UDP frontier rather than bogus cross-profile wrapper churn
+    - live status still does not move; this is proof-surface correctness work inside the still-open main-SV exhaustive-proof lane
