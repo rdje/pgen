@@ -1,4 +1,75 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-25 - LRM-to-EBNF extractor: structural literal-bracket/brace recovery
+### Context
+The retained main-`systemverilog` baseline at `/tmp/pgen-sv-sequence-branch11-probe-r1` had `closed_loop_replay_targets_total=3835` and shadow acceptance `114`. While auditing the active grammar for unrelated work, a structural pattern surfaced that was clearly an extraction artifact, not an intentional grammar choice: `bins_or_options` carried branches with `( ( ( covergroup_expression )? )? )?` — three nested optionals — which is semantically just `( covergroup_expression )?` and pointed at a deeper bug.
+
+### Root Cause
+The IEEE 1800 LRM markdown source uses the same `[ ... ]` characters for both BNF metasyntax (optionality) and literal SV array-dim bracket tokens. After markdown extraction there is no typographic signal to discriminate them. The same applies to `{ ... }` (metasyntax repetition vs literal SV block-delimiter braces).
+
+The pre-fix extractor (`tools/extract_systemverilog_lrm_profiles.py`) handled this with two narrow allowlists:
+- `DOUBLE_BRACKET_LITERAL_PATTERNS` — 5 inner-rule names triggering a string-replacement rewrite.
+- `LITERAL_BRACKET_RULES` and `LITERAL_BRACE_RULES` — per-rule hand-coded fixups.
+
+Anything outside the allowlists fell through to `parse_item`, which uniformly translated `[` to `OptionalNode` and `{` to `RepeatNode` (or literal-brace based on a different per-rule allowlist). Rules like `bins_or_options` whose inner-name (`covergroup_expression`) was not in the allowlist silently lost their literal brackets, producing the `( ( ( X )? )? )?` fingerprint.
+
+The brace analog in `cross_body`, `constraint_block`, and `constraint_set` produced the `( ( X )* )*` / `( X* )*` fingerprints — same root cause, different delimiter family.
+
+### The Fix
+Replace allowlist-based bracket discrimination with a structural rule rooted in semantic redundancy: when nested metasyntax wraps only another delimiter group (with nothing else inside), one of the two pairs *must* be literal SV tokens, because the pure-metasyntax interpretation is redundant.
+
+Crucially, the discrimination direction differs between bracket and brace nesting because of how SV uses each delimiter:
+
+- `[ [ X ] ]`: outer is meta optional, inner is literal SV brackets. SV array dims are typically used optionally with literal brackets around the content.
+- `{ { X } }`: outer is literal SV braces, inner is meta repeat. SV brace blocks have fixed outer braces with repetition inside.
+
+The fix iterates to fixed point so deeper LRM nestings like `[ [ [ X ] ] ]` decompose correctly as outer-meta + middle-literal + inner-meta.
+
+The active grammar was hand-synced rule-by-rule from a freshly-regenerated `systemverilog-debug.ebnf` (the user ported the deltas directly), affecting 4 rule definitions.
+
+### What We Tried First And Why It Lost
+None — the structural rule was right on the first attempt. The 10-case smoke test passed cleanly, the regenerated debug grammar showed zero structural fingerprints, and the active grammar (after manual sync) showed zero across all 8 fingerprint variants scanned.
+
+### Validation
+- 10-case smoke test of the structural rewrite ✅
+- Grammar parses cleanly via Rust EBNF frontend (`--emit-raw-ast-json`) ✅
+- Direct entry probes:
+  - `bins_or_options` 2017: `bins bNt [ ... ]= ...` (literal brackets) ✅
+  - `cross_body_sv_2023` 2023: `{ ... function ... }` (literal braces) ✅
+- Bounded maintained-shell proof at `/tmp/pgen-sv-bracket-brace-fix-r1`:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5157`
+  - `closed_loop_replay_targets_total=4099`
+  - `closed_loop_parseability_shadow_accepted_total=95`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+  - `parse_full_passes=16/16`
+- Final 8-fingerprint audit on the active grammar: all zero.
+
+### Honest Assessment Of The Replay-Frontier Movement
+The replay frontier moved from 3835 to 4099 targets — **worse on the headline metric**. Two effects compose:
+1. Initial debt fell by 116 because phantom branches (the collapsed-redundancy `( ( ( X )? )? )?` constructs) no longer exist.
+2. New structural branches (literal `lbrack`/`rbrack`/`lbrace`/`rbrace` paths) that the existing helper-probe seeds were tuned against the **old** shape are now untouched, so replay spends budget on them without retiring debt.
+
+This is a proof-lane shift, not a regression in the "fix is wrong" sense. The grammar is now LRM-correct — that is the primary contract — and replay-frontier re-tuning is its own follow-up work.
+
+### Hand-Edit Inventory (Stage 4-c, Documentation Only)
+For any future full extractor regeneration, the active grammar diverges from a fresh extractor run in the following ways:
+- 96 hand-added rules (largest cluster: ~60 identifier-disambiguation rules — `declared_*`, `known_unscoped_*`, `scoped_*` — plus method-call refactoring, expression-operand layering, lexical helpers like `timeunit_separator_slash`).
+- 2 extractor-only rules absent from active: `unary_module_path_operator_sv_2023`, `unary_operator_sv_2023`.
+- 4 asymmetric profile-variant pairs: `block_data_declaration` and `method_call_receiver` exist as profile splits in active only; `unary_module_path_operator` and `unary_operator` have 2023 splits in debug only.
+- ~143 hand-added annotations: 34 `@sample` lines (52 occurrences), 41 `@probe_sample`, 33 `@predicate`, 15 `@emit_fact`, 20 `@branch_policy`, 1 `@priority`.
+- Known token-collision hand-fix: the `assign` SV keyword vs `=` punctuation share a token name in the extractor's `PUNCTUATION_TOKEN_NAMES` mapping; the active grammar hand-fixes the keyword path to `kw_assign_9009b730`.
+
+### Outcome
+- Extractor `apply_structural_literal_bracket_rewrite` is in place; allowlist-based mechanisms are retained as belt-and-braces.
+- Active grammar is structurally LRM-correct on bracket/brace literals.
+- `systemverilog-debug.ebnf` artifact used for the rule-by-rule sync was generated, reviewed, and removed.
+- No live parser-family row changes.
+
+### Durable Rule
+- LRM-to-EBNF extractors must distinguish metasyntax from literal delimiter tokens. Where typographic signal is lost in markdown extraction, the structural redundancy argument provides the next-best discriminator: nested metasyntax that wraps only another delimiter group is redundant unless one of the pairs is literal.
+- Bracket nesting and brace nesting in the LRM use **opposite** discrimination directions — this asymmetry is genuine, not a quirk, and reflects how SV uses each delimiter family.
+- `( ( ( X )? )? )?` and `( ( X )* )*` (or `( X* )*`) are diagnostic fingerprints in any extracted grammar; their presence is evidence of the bug, and they should be scanned for as a regression check.
+
 ## 2026-04-24 - `bins_or_options` branch-local `@probe_sample` seeds — intentionally not kept
 ### Context
 The retained main-SystemVerilog bounded baseline after the `sequence_expr::root#11` repair was:

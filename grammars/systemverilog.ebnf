@@ -230,7 +230,7 @@ bins_keyword := kw_bins_7de92be6 | kw_illegal_bins_909dfbf3 | kw_ignore_bins_c8b
 
 bins_or_empty := ( attribute_instance* ( bins_or_options semi )* )* | semi
 
-bins_or_options := coverage_option | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( ( ( covergroup_expression )? )? )? assign covergroup_range_list* ( kw_with_8fcd25a3 lparen with_covergroup_expression rparen )? ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( ( ( covergroup_expression )? )? )? assign cover_point_identifier kw_with_8fcd25a3 lparen with_covergroup_expression rparen ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( ( ( covergroup_expression )? )? )? assign set_covergroup_expression ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( ( epsilon )? )? assign trans_list ( kw_iff_ee1c009e lparen expression rparen )? | bins_keyword bin_identifier ( ( ( covergroup_expression )? )? )? assign kw_default_7505d64a ( kw_iff_ee1c009e lparen expression rparen )? | bins_keyword bin_identifier assign kw_default_7505d64a kw_sequence_92504616 ( kw_iff_ee1c009e lparen expression rparen )?
+bins_or_options := coverage_option | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign covergroup_range_list* ( kw_with_8fcd25a3 lparen with_covergroup_expression rparen )? ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign cover_point_identifier kw_with_8fcd25a3 lparen with_covergroup_expression rparen ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign set_covergroup_expression ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack rbrack )? assign trans_list ( kw_iff_ee1c009e lparen expression rparen )? | bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign kw_default_7505d64a ( kw_iff_ee1c009e lparen expression rparen )? | bins_keyword bin_identifier assign kw_default_7505d64a kw_sequence_92504616 ( kw_iff_ee1c009e lparen expression rparen )?
 
 bins_selection := bins_keyword bin_identifier assign select_expression ( kw_iff_ee1c009e lparen expression rparen )?
 
@@ -538,7 +538,7 @@ constant_range_expression := constant_expression | constant_part_select_range
 
 constant_select := ( ( dot member_identifier constant_bit_select )* dot member_identifier )? ( lbrack constant_part_select_range rbrack | constant_bit_select ( lbrack constant_part_select_range rbrack )? | epsilon )
 
-constraint_block := ( constraint_block_item* )*
+constraint_block := lbrace constraint_block_item* rbrace
 
 constraint_block_item := kw_solve_f544e4c9 solve_before_list kw_before_51de2b83 solve_before_list semi | constraint_expression
 
@@ -577,7 +577,7 @@ constraint_prototype := constraint_prototype_sv_2017 | constraint_prototype_sv_2
 
 constraint_prototype_qualifier := kw_extern_bf1ee311 | kw_pure_afe003f1
 
-constraint_set := constraint_expression | ( constraint_expression* )*
+constraint_set := constraint_expression | lbrace constraint_expression* rbrace
 
 continuous_assign := kw_assign_9009b730 ( drive_strength )? ( delay )? list_of_net_assignments semi | kw_assign_9009b730 ( delay_control )? list_of_variable_assignments semi
 
@@ -632,10 +632,10 @@ covergroup_value_range := covergroup_value_range_sv_2017 | covergroup_value_rang
 covergroup_variable_identifier := variable_identifier
 
 @profiles: ["sv_2017"]
-cross_body_sv_2017 := ( ( cross_body_item semi )* )* | semi
+cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace | semi
 
 @profiles: ["sv_2023"]
-cross_body_sv_2023 := ( cross_body_item* )* | semi
+cross_body_sv_2023 := lbrace cross_body_item* rbrace | semi
 
 cross_body := cross_body_sv_2017 | cross_body_sv_2023
 
@@ -862,7 +862,7 @@ enum_base_type := integer_atom_type ( signing )? | integer_vector_type ( signing
 
 enum_identifier := declaration_identifier
 
-enum_name_declaration := enum_identifier ( ( integral_number ( colon integral_number )? )? )? ( assign constant_expression )?
+enum_name_declaration := enum_identifier ( lbrack integral_number ( colon integral_number )? rbrack )? ( assign constant_expression )?
 
 error_limit_value := limit_value
 

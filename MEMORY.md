@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-24 (+0200, task: bins-or-options-probe-sample-not-kept)
+Last updated: 2026-04-25 (+0200, task: lrm-extractor-structural-bracket-brace-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,61 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- LRM-to-EBNF extractor: structural literal-bracket/brace recovery — kept:
+  - changed:
+    - [tools/extract_systemverilog_lrm_profiles.py](tools/extract_systemverilog_lrm_profiles.py)
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause:
+    - LRM markdown source uses `[ ... ]` and `{ ... }` for both metasyntax and literal SV tokens
+    - extractor previously discriminated via two narrow allowlists (`DOUBLE_BRACKET_LITERAL_PATTERNS`, `LITERAL_BRACKET_RULES`)
+    - rules outside the allowlists silently lost their literal delimiters
+    - the diagnostic fingerprint `( ( ( X )? )? )?` in `bins_or_options` was the trigger
+  - fix:
+    - new `apply_structural_literal_bracket_rewrite` in the extractor
+    - handles `[ [ X ] ]` -> `[ __SV_LBRACK__ X __SV_RBRACK__ ]` (outer meta + inner literal)
+    - handles `[ [ ] ]` -> `[ __SV_LBRACK__ __SV_RBRACK__ ]`
+    - handles `{ [ X ] }` -> `{ __SV_LBRACK__ X __SV_RBRACK__ }`
+    - handles `{ { X } }` -> `__SV_LBRACE__ { X } __SV_RBRACE__` (outer literal + inner meta — opposite direction from brackets, intentional)
+    - iterates to fixed point so `[ [ [ X ] ] ]` decomposes correctly
+  - active grammar deltas (4 rule definitions):
+    - `bins_or_options`: `( lbrack ( covergroup_expression )? rbrack )?` and `( lbrack rbrack )?` shapes
+    - `cross_body_sv_2017`: `lbrace ( cross_body_item semi )* rbrace | semi`
+    - `cross_body_sv_2023`: `lbrace cross_body_item* rbrace | semi`
+    - `constraint_block`: `lbrace constraint_block_item* rbrace`
+    - `constraint_set` (2nd alternative): `lbrace constraint_expression* rbrace`
+  - validation:
+    - 10-case smoke test on the structural rewrite ✅
+    - grammar parses via Rust EBNF frontend ✅
+    - direct probes confirm literal brackets/braces in generated output ✅
+    - bounded gate `/tmp/pgen-sv-bracket-brace-fix-r1`:
+      - `closed_loop_profiles_passed=2/2`
+      - `closed_loop_initial_targets_total=5157` (vs 5273 baseline, -116)
+      - `closed_loop_replay_targets_total=4099` (vs 3835 baseline, +264 — proof-lane shift, not regression)
+      - `closed_loop_parseability_shadow_parser_rejections_total=0`
+      - `parse_full_passes=16/16`
+    - final 8-fingerprint audit on active grammar: all zero
+  - hand-edit inventory (preservation contract for future regeneration):
+    - 96 hand-added rules in active (largest cluster: ~60 identifier-disambiguation rules)
+    - 2 extractor-only rules absent from active: `unary_module_path_operator_sv_2023`, `unary_operator_sv_2023`
+    - 4 asymmetric profile-variant pairs: `block_data_declaration*` and `method_call_receiver*` (active-only); `unary_*_operator_sv_2023` (debug-only)
+    - ~143 hand-added annotations: 34 `@sample`, 41 `@probe_sample`, 33 `@predicate`, 15 `@emit_fact`, 20 `@branch_policy`, 1 `@priority`
+    - known token-collision hand-fix: `assign` keyword vs `=` punctuation share a token name in `PUNCTUATION_TOKEN_NAMES`; active uses `kw_assign_9009b730` for the keyword
+  - durable rules:
+    - LRM-to-EBNF extractors must structurally distinguish metasyntax from literal delimiter tokens
+    - bracket and brace nesting use opposite discrimination directions — this is intentional, not a quirk
+    - `( ( ( X )? )? )?` and `( ( X )* )*` / `( X* )*` are diagnostic fingerprints; scan for them as a regression check
+  - status impact:
+    - no live parser-family row changes
+    - main `systemverilog` proof normalization remains `In Progress`
+    - replay-frontier re-tuning against the corrected grammar is now follow-up work
+  - artifact cleanup:
+    - `grammars/systemverilog-debug.ebnf` was used for the rule-by-rule sync, then removed
+
+## Prior Session Note
 - Main-SystemVerilog bounded replay attempt on `bins_or_options` branch-local `@probe_sample` seeds was **intentionally not kept**:
   - changed during the experiment (then reverted):
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

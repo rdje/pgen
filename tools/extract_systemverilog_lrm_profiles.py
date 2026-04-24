@@ -418,10 +418,113 @@ def normalize_rule_reference_candidates(body: str) -> str:
     return RULE_NAME_REF_RE.sub(repl, body)
 
 
+def _find_balanced_bracket(body: str, start: int) -> int:
+    """Given body[start] is `[` or `{`, return the index of the matching close."""
+    opener = body[start]
+    if opener == "[":
+        closer = "]"
+    elif opener == "{":
+        closer = "}"
+    else:
+        return -1
+    depth = 1
+    i = start + 1
+    n = len(body)
+    while i < n:
+        c = body[i]
+        if c == opener:
+            depth += 1
+        elif c == closer:
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return -1
+
+
+def _structural_bracket_rewrite_pass(body: str) -> tuple[str, bool]:
+    """Single pass. Rewrite one structural delimiter-nesting occurrence.
+
+    Two opposite directions handled:
+    - `[ [ X ] ]` and `{ [ X ] }`: rewrite INNER brackets to literal markers.
+      (Array-dim brackets sit inside a meta wrapper that owns optionality or
+      repetition.)
+    - `{ { X } }`: rewrite OUTER braces to literal markers.
+      (Block-delimiter braces own the outside; the meta repeat lives inside.)
+    """
+    i = 0
+    n = len(body)
+    while i < n:
+        ch = body[i]
+        if ch in ("[", "{"):
+            outer_close = _find_balanced_bracket(body, i)
+            if outer_close >= 0:
+                a = i + 1
+                while a < outer_close and body[a].isspace():
+                    a += 1
+                if a < outer_close:
+                    inner_ch = body[a]
+                    inner_close = _find_balanced_bracket(body, a)
+                    if 0 <= inner_close < outer_close:
+                        tail = body[inner_close + 1 : outer_close]
+                        if tail.strip() == "":
+                            if inner_ch == "[":
+                                new_body = (
+                                    body[:a]
+                                    + "__SV_LBRACK__"
+                                    + body[a + 1 : inner_close]
+                                    + "__SV_RBRACK__"
+                                    + body[inner_close + 1 :]
+                                )
+                                return new_body, True
+                            if inner_ch == "{" and ch == "{":
+                                new_body = (
+                                    body[:i]
+                                    + "__SV_LBRACE__"
+                                    + body[i + 1 : outer_close]
+                                    + "__SV_RBRACE__"
+                                    + body[outer_close + 1 :]
+                                )
+                                return new_body, True
+        i += 1
+    return body, False
+
+
+def apply_structural_literal_bracket_rewrite(body: str) -> str:
+    """Structurally recover literal SV delimiter tokens from LRM nested metasyntax.
+
+    The IEEE 1800 LRM uses the same `[ ... ]` and `{ ... }` character sequences
+    for both metasyntax (optionality, repetition) and literal SV tokens (array
+    dimensions, block-delimiter braces). After markdown extraction there is no
+    typographic signal to distinguish them, but there is a reliable structural
+    one: nested metasyntax that wraps only another delimiter group (with
+    nothing else inside) is semantically redundant as pure metasyntax, so one
+    of the pairs must be literal. Which one depends on the SV semantics of
+    each delimiter family:
+
+    Brackets — array-dim style, outer is meta, inner is literal:
+        [ [ X ] ]   ->  [ __SV_LBRACK__ X __SV_RBRACK__ ]
+        [ [ ] ]     ->  [ __SV_LBRACK__ __SV_RBRACK__ ]
+        { [ X ] }   ->  { __SV_LBRACK__ X __SV_RBRACK__ }
+
+    Braces — block-delimiter style, outer is literal, inner is meta:
+        { { X } }   ->  __SV_LBRACE__ { X } __SV_RBRACE__
+
+    Iterates until fixed point so deeper nestings like `[ [ [ X ] ] ]`
+    decompose as outer-meta / middle-literal / inner-meta by repeated
+    application.
+    """
+    changed = True
+    while changed:
+        body, changed = _structural_bracket_rewrite_pass(body)
+    return body
+
+
 def pre_rewrite_body(rule_name: str, body: str) -> str:
     body = normalize_text(body)
     body = re.sub(r"(?<=[A-Za-z_)\]}])(\d+(,\d+)*)", "", body)
     body = normalize_rule_reference_candidates(body)
+    body = apply_structural_literal_bracket_rewrite(body)
     for inner in DOUBLE_BRACKET_LITERAL_PATTERNS:
         body = body.replace(
             f"[ [ {inner} ] ]",

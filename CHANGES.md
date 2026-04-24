@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-04-25 - LRM-to-EBNF extractor: structural literal-bracket/brace recovery
+### Achievement Summary
+Fixed a class of LRM extraction bugs where `[ ... ]` and `{ ... }` characters from the IEEE 1800 markdown source were uniformly interpreted as metasyntax (optionality / repetition), losing their literal SV-token meaning when the LRM nested them. The fix is structural — it recognizes that nested metasyntax wrapping a single delimiter group is semantically redundant, so one of the two pairs must be literal SV tokens. Bracket nesting (`[ [ X ] ]`) gives outer-meta + inner-literal (array-dim style); brace nesting (`{ { X } }`) gives outer-literal + inner-meta (block-delimiter style). Iterates to fixed point so deeper LRM patterns like `[ [ [ X ] ] ]` decompose correctly. The fix replaces an allowlist-based mechanism (`DOUBLE_BRACKET_LITERAL_PATTERNS`, hand-curated 5-entry list of inner rule names) with a structural rule that handles any nested case the LRM produces. The active grammar was hand-synced rule-by-rule with the regenerated debug output.
+
+### Scope of Changes
+- Updated extractor:
+  - [tools/extract_systemverilog_lrm_profiles.py](tools/extract_systemverilog_lrm_profiles.py)
+    - new `apply_structural_literal_bracket_rewrite` helper
+    - new `_structural_bracket_rewrite_pass` and `_find_balanced_bracket` workers
+    - called at the top of `pre_rewrite_body`, before existing per-rule fixups
+- Updated active grammar (4 productions, structurally LRM-correct now):
+  - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - `bins_or_options`: 5 branches now carry `( lbrack ( covergroup_expression )? rbrack )?`; one branch carries `( lbrack rbrack )?` for the empty-literal-bracket case (was `( ( ( covergroup_expression )? )? )?` and `( ( epsilon )? )?`)
+    - `cross_body_sv_2017`: `lbrace ( cross_body_item semi )* rbrace | semi` (was `( ( cross_body_item semi )* )* | semi`)
+    - `cross_body_sv_2023`: `lbrace cross_body_item* rbrace | semi` (was `( cross_body_item* )* | semi`)
+    - `constraint_block`: `lbrace constraint_block_item* rbrace` (was `( constraint_block_item* )*`)
+    - `constraint_set`: second alternative is now `lbrace constraint_expression* rbrace` (was `( constraint_expression* )*`)
+- Updated tracked docs and continuity surfaces:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [CHANGES.md](CHANGES.md)
+
+### Validation
+- Smoke test of the structural rewrite over 10 cases (3 bracket patterns, 1 brace pattern, 6 no-op cases) ✅
+- Grammar parses cleanly via Rust EBNF frontend:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --emit-raw-ast-json /tmp/sv-raw.json` ✅
+- Direct entry probes confirm new literal-bracket/brace shapes generate correctly:
+  - `bins_or_options` profile 2017: emits `bins bNt [ ... ]= ...` (literal SV brackets)
+  - `cross_body_sv_2023` profile 2023: emits `{ ...body... }` (literal SV braces)
+- Bounded maintained-shell proof:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-bracket-brace-fix-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - measured outcome vs retained `/tmp/pgen-sv-sequence-branch11-probe-r1` baseline:
+    - `closed_loop_profiles_passed=2/2` (unchanged)
+    - `closed_loop_initial_targets_total: 5273 -> 5157` (-116, fewer phantom branches from collapsed-redundancy fingerprints)
+    - `closed_loop_replay_targets_total: 3835 -> 4099` (+264, replay frontier shifted)
+    - `closed_loop_parseability_shadow_accepted_total: 114 -> 95` (-19)
+    - `closed_loop_parseability_shadow_parser_rejections_total: 0` (unchanged)
+    - `closed_loop_parseability_shadow_target_timeout_errors_total: 126 -> 143` (+17)
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total: 8` (unchanged)
+    - `parseability_generation_parser_rejections_total: 0` (unchanged)
+    - `parse_full_passes: 16/16` (unchanged)
+- Final fingerprint audit on the active grammar — all eight scanned patterns are zero (`( ( ( X )? )? )?`, `( ( X )? )?`, `( ( X )* )*`, `( X* )*`, `( X* )?`, `( X? )*`, `( ( X )? )*`, `( ( X )* )?`).
+
+### Important Boundary
+- This is a grammar-correctness fix, not a closure claim. The retained replay-frontier metrics moved unevenly (initial debt down, replay debt up): the grammar's branch structure genuinely changed, so existing helper-probe seeds tuned against the prior shape no longer steer the same coverage. This is a proof-lane shift — future replay-frontier work would re-tune against the corrected grammar.
+- No live parser-family row changes. Main `systemverilog` proof normalization remains `In Progress`.
+- Other extractor bugs noted but **not** fixed in this wave:
+  - `assign` keyword vs `=` punctuation share a token name (the active grammar hand-fixes this with `kw_assign_9009b730`).
+  - The `systemverilog-debug.ebnf` artifact used during the rule-by-rule sync was generated, reviewed, and then removed.
+
 ## 2026-04-24 - `bins_or_options` branch-local `@probe_sample` seeds — intentionally not kept
 ### Achievement Summary
 Recorded a losing experiment for doctrine. Triage on the retained bounded baseline showed `bins_or_options::root#1..#6` as the highest-priority `never_selected` branches in both profiles. Branch-local `@probe_sample` seeds on three alternatives (`bins a = 1`, `bins a = default`, `bins a = default sequence`) fire correctly in direct probes, but the bounded `sv_stimuli_quality_gate` rerun regressed the primary replay-frontier metric from `3835` to `4008` targets and bumped helper timeouts from `8` to `28`. Root cause: the parent `covergroup_declaration_sv_*` wrapper is itself `never_selected`, so child-rule probes deep in the family burn helper budget against a surrounding context the generator is not reaching. Grammar reverted; the experiment and its rule stay captured in the continuity docs.
