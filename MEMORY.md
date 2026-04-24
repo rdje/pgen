@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-22 (+0200, task: sequence-expr-branch11-probe)
+Last updated: 2026-04-24 (+0200, task: bins-or-options-probe-sample-not-kept)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,42 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Main-SystemVerilog bounded replay attempt on `bins_or_options` branch-local `@probe_sample` seeds was **intentionally not kept**:
+  - changed during the experiment (then reverted):
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+  - kept (continuity docs only):
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - experiment:
+    - retained baseline:
+      - `/tmp/pgen-sv-sequence-branch11-probe-r1`
+      - `closed_loop_replay_targets_total=3835`
+      - `closed_loop_parseability_shadow_accepted_total=114`
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total=8`
+    - probes added on three of six `bins_or_options` alternatives:
+      - branch#3: `@probe_sample: "bins a = 1"`
+      - branch#5: `@probe_sample: "bins a = default"`
+      - branch#6: `@probe_sample: "bins a = default sequence"`
+    - direct entry probes emitted the seeded literals correctly
+    - bounded `sv_stimuli_quality_gate` at `/tmp/pgen-sv-bins-or-options-r1` regressed:
+      - `closed_loop_replay_targets_total: 3835 -> 4008` (+173)
+      - `closed_loop_parseability_shadow_accepted_total: 114 -> 112` (-2)
+      - `closed_loop_parseability_shadow_helper_timeout_errors_total: 8 -> 28` (+20)
+  - root cause:
+    - the parent chain is `systemverilog_file -> ... -> covergroup_declaration_sv_* -> coverage_spec_or_option -> cover_point/cross -> bins_or_empty -> bins_or_options`
+    - `covergroup_declaration_sv_2023::root#0/#1` is itself `never_selected` at priority `1584/1560`
+    - the child-rule probes fired but had no retained-debt payoff because the surrounding covergroup context never gets synthesized
+  - durable rule:
+    - before seeding deep into a family, check whether the family's top wrapper is `never_selected` in the Target Plan
+    - if the wrapper is cold, steer the wrapper first; child-rule `@probe_sample` hints against an unreached context only burn helper budget
+  - next plausible seam for the covergroup family:
+    - `module_common_item` or `package_or_generate_item_declaration` wrapper seeds that cause primary generation to emit a bounded covergroup shape
+  - status impact:
+    - no live parser-family row changes; this slice is failed-experiment preservation only
+
+## Prior Session Note
 - Main-SystemVerilog bounded replay now attacks the recursive parent seam directly instead of probing `clocking_event_sv_2023` itself:
   - changed:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-24 - `bins_or_options` branch-local `@probe_sample` seeds — intentionally not kept
+### Context
+The retained main-SystemVerilog bounded baseline after the `sequence_expr::root#11` repair was:
+- `/tmp/pgen-sv-sequence-branch11-probe-r1`
+- `closed_loop_replay_targets_total=3835`
+- `closed_loop_parseability_shadow_accepted_total=114`
+- `closed_loop_parseability_shadow_helper_timeout_errors_total=8`
+- `closed_loop_parseability_shadow_target_timeout_errors_total=126`
+
+The next visible bounded replay frontier sat at `bins_or_options::root#1..#6` at priority `1584/1560` in both profiles, with six `never_selected` branches and no existing sample seeds. Those branches each have a clean canonical shape (`bins a = 1`, `bins a = default`, `bins a = default sequence`, and so on), which looked like an obvious next probe-seed target.
+
+### What We Tried
+Added branch-local `@probe_sample` seeds on three of the six `bins_or_options` alternatives:
+- branch `#3`: `@probe_sample: "bins a = 1"`
+- branch `#5`: `@probe_sample: "bins a = default"`
+- branch `#6`: `@probe_sample: "bins a = default sequence"`
+
+Direct entry probes confirmed the seeds fire correctly:
+- `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule bins_or_options --count 6 --seed 901001`
+- returned `bins a = default` / `bins a = 1` outputs for the seeded branches.
+
+### Why The Measurement Rejected The Slice
+Bounded maintained-shell proof:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-bins-or-options-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed outcome vs retained baseline:
+- `closed_loop_profiles_passed=2/2` (unchanged)
+- `closed_loop_initial_targets_total: 5273 -> 5155` (smaller, -118)
+- `closed_loop_replay_targets_total: 3835 -> 4008` (REGRESSED, +173)
+- `closed_loop_parseability_shadow_accepted_total: 114 -> 112` (-2)
+- `closed_loop_parseability_shadow_parser_rejections_total: 0` (unchanged)
+- `closed_loop_parseability_shadow_target_timeout_errors_total: 126 -> 114` (-12)
+- `closed_loop_parseability_shadow_helper_timeout_errors_total: 8 -> 28` (REGRESSED, +20)
+- `parse_full_passes: 16/16` (unchanged)
+
+Resolution rate dropped from `27%` (`5273 -> 3835`, `1438` retired) to `22%` (`5155 -> 4008`, `1147` retired). The primary retained proof metric regressed, and helper-timeout totals jumped by +20.
+
+### Root Cause
+The parent chain for `bins_or_options` is:
+- `systemverilog_file` -> ... -> `covergroup_declaration_sv_*` -> `coverage_spec_or_option` -> `cover_point`/`cross` -> `bins_or_empty` -> `bins_or_options`
+
+The 2023 Target Plan confirms `covergroup_declaration_sv_2023::root#0/#1` itself is `never_selected` at priority `1584/1560`. The helper-ranking trace shows `bins_or_options` helper activations that each succeed at seeding but do not retire broader replay debt because the surrounding covergroup context still has to be synthesized and primary generation never enters covergroups on its own.
+
+The lesson matches the recorded `clocking_event_sv_2023` failure: "if the retained replay debt is actually carried by a recursive parent branch, probing the child rule can be the wrong seam." Here the problem is one level up — the family is not being entered at all, so child-rule probes just burn helper budget.
+
+### Durable Rule
+- Before seeding deep into a family, check whether the family's top wrapper is itself `never_selected` in the Target Plan.
+- If the wrapper is cold, steer the wrapper (rule-level `@sample` or top-entry construct seeding) before adding child-rule `@probe_sample` hints; otherwise the child probes just waste helper budget on an unreachable context.
+- For `bins_or_options` specifically, the right next repair will probably be seeding `module_common_item` / `package_or_generate_item_declaration` so primary generation produces covergroups first.
+
+### Outcome
+- Grammar fully reverted to the `sequence_expr::root#11` baseline.
+- Losing experiment preserved here and in `CHANGES.md` / `MEMORY.md` for doctrine.
+- No live parser-family status row changes.
+
 ## 2026-04-22 - Probe the recursive `sequence_expr` branch instead of `clocking_event_sv_2023`
 ### Context
 The retained bounded main-SystemVerilog replay baseline after the net-declaration repair was:

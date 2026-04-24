@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-24 - `bins_or_options` branch-local `@probe_sample` seeds — intentionally not kept
+### Achievement Summary
+Recorded a losing experiment for doctrine. Triage on the retained bounded baseline showed `bins_or_options::root#1..#6` as the highest-priority `never_selected` branches in both profiles. Branch-local `@probe_sample` seeds on three alternatives (`bins a = 1`, `bins a = default`, `bins a = default sequence`) fire correctly in direct probes, but the bounded `sv_stimuli_quality_gate` rerun regressed the primary replay-frontier metric from `3835` to `4008` targets and bumped helper timeouts from `8` to `28`. Root cause: the parent `covergroup_declaration_sv_*` wrapper is itself `never_selected`, so child-rule probes deep in the family burn helper budget against a surrounding context the generator is not reaching. Grammar reverted; the experiment and its rule stay captured in the continuity docs.
+
+### Scope of Changes
+- Grammar unchanged on disk after revert:
+  - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) — no diff vs prior retained baseline
+- Updated tracked docs and continuity surfaces:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [CHANGES.md](CHANGES.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Validation
+- Direct probe confirmation (before revert):
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule bins_or_options --count 6 --seed 901001`
+  - emitted `bins a = default`, `bins a = 1` as expected
+- Bounded maintained-shell proof (before revert):
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen-sv-bins-or-options-r1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=128 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - measured outcome vs retained `/tmp/pgen-sv-sequence-branch11-probe-r1` baseline:
+    - `closed_loop_replay_targets_total: 3835 -> 4008` (worse, +173)
+    - `closed_loop_parseability_shadow_accepted_total: 114 -> 112` (worse, -2)
+    - `closed_loop_parseability_shadow_helper_timeout_errors_total: 8 -> 28` (worse, +20)
+    - `closed_loop_parseability_shadow_target_timeout_errors_total: 126 -> 114` (better, -12)
+    - `parse_full_passes: 16/16` (unchanged)
+    - `parseability_generation_parser_rejections_total=0` (unchanged)
+    - `closed_loop_profiles_passed=2/2` (unchanged)
+- Revert verified with `git diff --stat grammars/systemverilog.ebnf` producing no output.
+
+### Important Boundary
+- This is not a keeper — it regresses the primary retained proof metric.
+- The lesson generalizes: before seeding deep into a family, confirm the family's top wrapper is being entered at all. If the wrapper is itself `never_selected`, steer the wrapper first; child-rule `@probe_sample` seeds against an unreached context just waste helper budget.
+- No live parser-family status row changes; this slice only preserves the failed experiment and its rule.
+
 ## 2026-04-22 - Retire the 2023 clocking-event replay debt through `sequence_expr`
 ### Achievement Summary
 Landed the next kept main-SystemVerilog replay slice by fixing the right seam. Max-trace replay-gap inspection showed the real retained 2023 blocker was not `clocking_event_sv_2023` in isolation, but the recursive `sequence_expr` branch `clocking_event sequence_expr`. The kept repair adds a helper-only branch-local foothold directly on that recursive `sequence_expr` alternative, which retires the separate `clocking_event_sv_2023::root#2` debt and improves the retained bounded replay frontier again.
