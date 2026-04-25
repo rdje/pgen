@@ -31,6 +31,11 @@ path = "src/bin/perf_bench.rs"
 required-features = ["generated_parsers"]
 
 [[bin]]
+name = "regex_perf_probe"
+path = "src/bin/regex_perf_probe.rs"
+required-features = ["generated_parsers"]
+
+[[bin]]
 name = "ebnf_dual_run_diff"
 path = "src/bin/ebnf_dual_run_diff.rs"
 required-features = ["ebnf_dual_run"]

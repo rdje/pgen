@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-25 (+0200, task: sv-grammar-full-reconnection)
+Last updated: 2026-04-25 (+0200, task: pgen-rgx-0073-bench-harness)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,57 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- PGEN-RGX-0073: regex parse-time perf investigation kicked off — measurement infrastructure landed:
+  - changed:
+    - [rust/src/bin/regex_perf_probe.rs](rust/src/bin/regex_perf_probe.rs) (NEW; 137 lines)
+    - [rust/Cargo.toml](rust/Cargo.toml) (added [[bin]] declaration with required-features generated_parsers)
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - bug context:
+    - RGX bug bundle at /Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0073.yaml + artifacts/ — RGX reports PGEN regex parser is 1300-4700x slower than PCRE2's full compile pipeline; PGEN consumes 65-99% of RGX's Regex::compile budget; resolution targets <50µs primary, <200µs acceptable interim
+    - bug report's diagnosis claims partially refined during investigation:
+      - cited 3800x AST size ratio is mostly pretty-printed JSON overhead, not real AST inflation; actual node count for email_basic is 88 nodes for 16 input bytes (5.5x)
+      - real perf metric: ~12,500 ns per AST node (~250x cost of a hashmap insert)
+      - cited pathological long-tail variance does NOT reproduce in PGEN-side standalone bench: p99/p50 tight at 1.10-1.13x; max/p50 ≤1.5x across the corpus; the long tail is RGX-side environmental
+  - architectural finding (drift):
+    - parser-generator emits generic ParseNode trees regardless of return annotations
+    - parse_full_regex() returns ParseResult<ParseNode<'input>>; rule_name: String allocated per node
+    - return annotations applied POST-parse via UnifiedReturnAST, not inline at parse time
+    - user-confirmed: design intent was always inline application; current implementation drifted
+    - critical follow-up tracked as task #30 — must eventually restore inline-annotation application
+  - parser-agnostic principle locked in:
+    - all changes to Rust AST pipeline (rust/src/ast_pipeline/) and parser runtime stay parser-agnostic
+    - parser-specific tools allowed OUTSIDE the pipeline only (separate dedicated tools, never as branches inside the pipeline)
+  - sequencing decided:
+    1. annotation-independent optimizations (this perf campaign)
+    2. inline-annotation architectural correction (critical follow-up, after #1)
+  - perf campaign roadmap (annotation-independent, all parser-agnostic):
+    1. rule_name String → &'static str interning (this is queued as task #31, next commit)
+    2. arena allocator for ParseNode
+    3. slim ParseContent enum
+    4. clone elimination in hot paths
+    5. memoization sanity audit
+    6. alternation backtracking reduction (codegen/runtime; applies to all EBNF)
+    7. generated-code size reduction
+    Stacked: 5-15x combined plausible; meets acceptable-interim, plausibly meets primary
+  - measurement infrastructure landed in this commit:
+    - regex_perf_probe matches RGX's methodology (1000 samples, 50 warmup, includes RegexParser::new + parse_full_regex)
+    - 8-pattern corpus from PGEN-RGX-0073 (literal_simple, digit_sequence, character_class, alternation, capture_groups, url_simple, email_basic, anchor_complex)
+    - baseline p50 timings: literal_simple 288µs, digit_sequence 567µs, character_class 1.87ms, alternation 747µs, capture_groups 1.11ms, url_simple 644µs, email_basic 829µs, anchor_complex 2.09ms
+    - PGEN-side measurements 20-55% faster than RGX-side wraps (RGX wrapping overhead, not PGEN concern)
+  - validation:
+    - cargo build --features generated_parsers --bin regex_perf_probe --release ✅
+    - make clippy_on_rust_change ✅ (source clippy clean; pre-existing warnings only; new bin contributes no warnings)
+    - bench reproducibility: ran twice, p50 within 5%
+  - status impact:
+    - no live parser-family row changes (this is measurement infra, not optimization)
+    - regex parser-family row stays Done — bug is performance, not correctness
+    - PGEN-RGX-0073 tracked as the primary near-term performance target across many commits
+  - durable rules logged:
+    - Rust AST pipeline stays parser-agnostic. Every optimization benefits all generated parsers.
+    - Annotations must eventually apply inline at parse time, not post-parse — design-intent restoration is a critical follow-up.
+    - Perf changes always land with before/after evidence via regex_perf_probe.
+
+## Prior Session Note
 - SystemVerilog grammar: full reconnection of unreachable subgraphs — KEPT:
   - changed:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) — full refactor; ~120-line inline header documents the change

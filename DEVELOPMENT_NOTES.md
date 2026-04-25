@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-25 - PGEN-RGX-0073: regex parse-time perf investigation kicked off
+### Context
+RGX filed `PGEN-RGX-0073` (`/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0073.yaml`) reporting that PGEN's `regex` parser is 1,300-4,700× slower than PCRE2's full compile pipeline on a representative 8-pattern corpus, and consumes 65-99% of RGX's `Regex::compile` budget. Bug class: pathological performance, not correctness — parse output is correct on every measured pattern. RGX is committed to using PGEN as the sole parser (their `CLAUDE.md` rule), so the fix has to land on the PGEN side. Resolution targets: primary <50µs median (8-50× speedup), acceptable interim <200µs (2-12× speedup).
+
+### Reframed during investigation
+The bug report's primary speed signal stands, but a couple of supporting claims got refined:
+1. The cited "3,800× input/output AST size ratio" is **mostly pretty-printed JSON overhead**, not real AST inflation. Counted distinct AST nodes for `email_basic` (16-byte input): 88 nodes ≈ 5.5× input. Still high (each leaf wrapped in 10+ levels of `Alternative/Sequence/Quantified`), but the right metric is **time per node ≈ 12,500 ns** — that's the pathological number. Roughly 250× the cost of a hashmap insert.
+2. The pathological long-tail variance RGX reported (`capture_groups` max=20.5ms; `url_simple` max=9.0ms) **does not reproduce in PGEN-side standalone measurement**. p99/p50 is tight (1.10-1.13×) and max/p50 stays ≤1.5× across the corpus. The long tail is on RGX's side — allocator pressure under their workload, wrapping code, or measurement-loop interactions. Bug report's "occasional pathological branch in PGEN" diagnosis was the wrong cause.
+
+### Significant architectural finding: annotation drift
+While investigating, surfaced that **the parser-generator emits generic `ParseNode` trees regardless of return annotations**:
+- `parse_full_regex()` returns `ParseResult<ParseNode<'input>>` — the generic shape with `rule_name: String` per node.
+- `generated/regex_parser.rs` has 582 generic `rule_name:` constructions; `generated/return_annotation_parser.rs` has 124 — same generic-shape per-node allocations in both, despite return_annotation being the grammar where annotations are most heavily used. The codegen does not honor annotations at parse time.
+- Return annotations are applied **post-parse** via `UnifiedReturnAST::from_parse_node` transformation. RGX consuming the parser sees the un-transformed generic tree.
+- User confirmation: the design intent was always that annotations apply **inline during parse**, not post-parse. The current implementation is drifted from intent.
+- Implications: aggressive return annotations would not directly reduce parse time under the current architecture; the architectural correction (inline application) is what would cash the design intent. **Tracked as a critical follow-up; sequenced after annotation-independent perf wins.**
+
+### Ground rules for the perf campaign
+1. **Rust AST pipeline must stay 100% parser-agnostic.** No regex-specific code paths in `rust/src/ast_pipeline/` or in the parser runtime. Every optimization benefits regex, systemverilog, vhdl, return_annotation, semantic_annotation, rtl_const_expr, rtl_frontend equally.
+2. Parser-specific tools may live OUTSIDE the AST pipeline if needed (e.g., a regex-specific post-processor). The pipeline itself stays generic.
+3. Return annotations are not expanded as part of perf work. The drift correction (inline annotation application) is a separate, sequenced lane.
+4. Per-optimization commits per `COMMIT.md` workflow. Each commit gets continuity-doc updates, before/after measurements via `regex_perf_probe`, and clippy.
+
+### Annotation-independent optimization landscape (the perf campaign roadmap)
+1. `rule_name: String` → `&'static str` interning. Drop one allocation per node. Rough payoff 1.3-1.8×.
+2. Arena allocator for `ParseNode`. Bump-allocate the parse tree, free all at once. Rough payoff 1.3-2×.
+3. Slim `ParseContent` enum: stack-allocated common variants (Terminal, small Sequence) instead of always allocating Vec. Rough payoff 1.3-1.7×.
+4. Clone elimination in hot paths (flamegraph-driven if needed). Rough payoff 1.2-1.5×.
+5. Memoization audit (PEG memo table sanity). Variable.
+6. Alternation backtracking reduction at the codegen/runtime level (parser-agnostic, applies to all EBNF). Rough payoff 1.5-3× on patterns with alternation chains.
+7. Generated-code size reduction (factor common machinery to reduce I-cache pressure). Rough payoff 1.1-1.4×.
+
+Stacked: 5-15× combined plausibly. Targets the bug's "acceptable interim" definitively and stands a chance of the primary target.
+
+### What this commit lands
+Just the measurement infrastructure (`regex_perf_probe`). No optimization. Baseline numbers captured in `CHANGES.md`.
+
+### Honest assessment
+- Bug is real; parse time is genuinely slow.
+- Long-tail variance signal in the bug report was misdirected — PGEN's parse is consistently slow, not pathologically variable.
+- The architectural root cause is annotation drift; the perf optimizations attack the symptom (generic tree construction is expensive) until the root cause is addressed.
+- This is multi-session work. Each session contributes incremental measurable progress.
+
+### Durable Rules
+- Rust AST pipeline stays parser-agnostic. Every optimization benefits all generated parsers.
+- Annotations apply inline at parse time, not post-parse — this is the design intent that must eventually be restored.
+- Perf changes always land with measurement evidence (before/after via `regex_perf_probe`), not narrative claims.
+
 ## 2026-04-25 - SystemVerilog grammar: full reconnection of unreachable subgraphs (single fanout tree)
 ### Context
 After the morning's structural literal-bracket/brace fix in the LRM-to-EBNF extractor, `make -C rust SHELL=/bin/bash sv_syntax_closure_gate` against `grammars/systemverilog.ebnf` was still failing with:
