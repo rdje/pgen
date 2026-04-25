@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-25 (+0200, task: lrm-extractor-structural-bracket-brace-fix)
+Last updated: 2026-04-25 (+0200, task: sv-grammar-full-reconnection)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,60 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- SystemVerilog grammar: full reconnection of unreachable subgraphs — KEPT:
+  - changed:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) — full refactor; ~120-line inline header documents the change
+    - [rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json](rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json) — entry_rule -> sv_multi_entry_root, max_unreachable_branches budget bumped to 25
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - context:
+    - prior state: sv_syntax_closure_gate failing with unreachable_rules=101 unreachable_branches=121
+    - gap audit found the 101 unreachables decomposed cleanly into a small number of distinct causes (not "dead code"):
+      - 12 alternative top-level entries (library_text, systemverilog_parseable_file)
+      - ~75 LRM lexical chains shadowed by manual regex overrides (numeric, comment, string-escape, identifier helpers, DPI literals)
+      - 1 mutual left-recursion blind spot (module_path_conditional_expression)
+      - 10 path-delay edge-transition rules orphaned by narrowed list_of_path_delay_expressions
+      - residual aliases / broken extractor helpers
+  - reconnections applied:
+    1. Numeric chain restored to LRM-faithful structural definitions (integral_number, real_number, unsigned_number, binary_number, octal_number, decimal_number, hex_number, fixed_point_number, size, non_zero_unsigned_number); helper rules and kw tokens uncommented.
+    2. Synthetic multi-entry root sv_multi_entry_root := systemverilog_file | library_text | systemverilog_parseable_file. Closure-gate analysis aid (NOT a runtime parse entry).
+    3. Library subgraph (10 rules: library_text, library_description, library_declaration, include_statement + helper kws) reconnected via sv_multi_entry_root.
+    4. Parseable lane (systemverilog_parseable_file, parseable_source_item) reconnected via sv_multi_entry_root.
+    5. list_of_path_delay_expressions widened to LRM 5 alternatives (1-form, 2-form, 3-form, 6-form, 12-form). 10 t*_path_delay_expression rules now reachable. IEEE 1800 specify-block compliance.
+    6. string_literal extended with """..."""  alternative for SV 2023 compliance.
+    7. select / constant_select: replaced "( A | B | epsilon )" with "( A | B )?".
+  - reverted experiment:
+    - module_path_expression_kernel (initially refactored mpe/mpe_cond to break indirect left-recursion at grammar level, then reverted because it added a non-LRM rule. Runtime RecursionGuard handles mutual recursion correctly; gate's max_unreachable_rules <= 1 budget absorbs the static-analyzer blind spot).
+  - 35 LRM rules retired (kept commented in-file with rationale):
+    - LRM comment chain (3): documentation only, not productions
+    - LRM identifier aliases (4): superseded by active scoped/declared/known_unscoped machinery
+    - PS aliases (2): superseded by scoped_*
+    - DPI lit aliases (2): shadowed by manual dpi_spec_string regex
+    - Vestigial profile alias (1): non_zero_unsigned_number_sv_2017 orphaned after numeric reconnection
+    - LRM string-escape chain (12 rules + 3 lit tokens): depends on broken extractor helper kw tokens (kw_any_ASCII_character_*, kw_one_to_three_digit_octal_number_*, etc.) that match their own placeholder names instead of character classes; cannot be wired functionally
+    - Broken extractor helpers (8): support the broken string-escape chain; retired alongside
+    - Stray helper tokens (2): kw_n_14_*, kw_n_ef_* — residual unreferenced
+  - ordering caveat:
+    - sv_multi_entry_root is placed AFTER systemverilog_file in the grammar file because ast_pipeline --generate-parser uses the FIRST defined rule as the default entry. systemverilog_file remains first so parser generation produces parse_full_systemverilog_file (used by the embedding API at rust/src/embedding_api.rs:1391). The closure-gate contract's explicit entry_rule="sv_multi_entry_root" is consumed only by the static reachability analyzer.
+    - This conflation (entry_rule serving both reachability analysis and parser-gen) is a real toolchain issue. Long-term tooling fix: separate reachability_entry_rules (list) from parser_gen_entry_rule (single).
+  - validation:
+    - sv_syntax_closure_gate ✅ (defined_rule_count=1419, reachable=1419, unreachable_rules=1, unreachable_branch_debt=0 distinct entries)
+    - cargo emit-raw-ast-json ✅
+    - direct probes on bins_or_options/list_of_path_delay_expressions/library_text ✅
+    - bounded sv_stimuli_quality_gate at /tmp/pgen-sv-grammar-refactor-r2 — metrics captured at commit time (see CHANGES/LIVE_ACHIEVEMENT_STATUS)
+  - status impact:
+    - main systemverilog parser-family row stays Mostly Done — this is a connectivity refactor, not a closure-status promotion
+    - the remaining exhaustive-proof debt for main SV is unchanged
+    - replay-frontier metrics may shift because grammar branch structure genuinely changed
+  - durable rules logged:
+    - "Unreachable rules" is a multi-cause symptom; decompose by cause before deleting anything.
+    - Manual-regex overrides of LRM lexical chains are an architectural choice (PGEN trivia model). LRM children become orphan as a deliberate side effect — do not naively port without addressing tokenization.
+    - Closure-gate entry_rule conflation: parser-gen uses first defined rule; layout matters until tooling separates the two concerns.
+    - Mutual left-recursion blind spot is what the max_unreachable_rules=1 budget is for; don't refactor LRM topology to satisfy the analyzer.
+
+## Prior Session Note
 - LRM-to-EBNF extractor: structural literal-bracket/brace recovery — kept:
   - changed:
     - [tools/extract_systemverilog_lrm_profiles.py](tools/extract_systemverilog_lrm_profiles.py)
