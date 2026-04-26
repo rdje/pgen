@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Codegen fix: return-annotation transforms now apply for non-Or rule roots
+
+### What this milestone landed
+
+Fixes a silent codegen drop in [`generate_rule_method`](rust/src/ast_pipeline/ast_based_generator.rs). Before this commit, return-annotation transforms were emitted ONLY by [`generate_or_logic`](rust/src/ast_pipeline/ast_based_generator.rs); rules whose top-level AST node was `Sequence`, `Atom`, `Quantified`, or `Lookahead` had their `result = #transform` step skipped entirely because that code never ran. Annotations were correctly extracted from the grammar's raw AST, parsed through the generated `return_annotation_parser`, and stored on `generator.branch_return_annotations` with non-empty `parsed_ast` — but the codegen template never consumed them for non-Or roots.
+
+### Why this matters
+
+`grammars/regex.ebnf` declares two object-literal return annotations:
+
+- `regex = pattern? -> {type: "regex", pattern: $1}` (Quantified root)
+- `piece = atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}` (Sequence root)
+
+Neither emitted a transform in `generated/regex_parser.rs`. `grep -cE "json_obj|serde_json::to_string|serde_json::json!\\(|ParseContent::Json"` returned `0` for that file. The published `parse_full_regex` therefore returned a raw `ParseContent::Quantified(...)` tree, not the declared `{type: "regex", pattern: ...}` shape.
+
+The same drop applied across every other grammar: any rule whose AST root was not Or (e.g., the `return_annotation` extraction/spread/property/array-access expressions, the `semantic_annotation` literal forms, the `ebnf` rule expressions and quantified elements) silently lost its declared shape unless it happened to be wrapped in an outer Or.
+
+### How the investigation resolved
+
+Traced the wiring step by step using a temporary file-write at the codegen entry:
+
+1. `generated/regex.json` correctly carries `["return_object", "{type: \"regex\", pattern: $1}"]` in `raw_ast` for the `regex` rule.
+2. `metadata.annotations` is `null` in the JSON file but `transform_from_raw_ast` re-extracts annotations from `raw_ast`, so the in-memory `Annotations` struct ends up with `branch_return_annotations` correctly populated for `regex`, `pattern`, `posix_class`, `piece`.
+3. Wiring at [ast_generator_direct.rs:129](rust/src/ast_pipeline/ast_generator_direct.rs) copies the map into `generator.branch_return_annotations` with `parsed_ast: Some(UnifiedReturnAST::Object{...})`.
+4. `generate_rule_method` calls `generate_node_parsing_logic(ast_node, ...)` which dispatches by node type. The dispatch at [ast_based_generator.rs:1481](rust/src/ast_pipeline/ast_based_generator.rs) routes `Or` to `generate_or_logic` (where transforms ARE applied) and routes other roots elsewhere (where they are NOT).
+5. The transform-emit logic at [ast_based_generator.rs:1614](rust/src/ast_pipeline/ast_based_generator.rs) was therefore unreachable for `regex` (Quantified root) and `piece` (Sequence root).
+
+### Fix shape
+
+Added a `post_parse_transform_tokens` block in `generate_rule_method` that, for non-`Or` `ASTNode` roots with `branch_return_annotations[rule][0] = Some(annotation)`, emits a `let result = <transform>;` shadow rebind right after `#parse_logic;`. The Or path is unchanged so multi-branch rules with per-branch transforms are not double-applied. The shadow rebind is safe because `#parse_logic` introduces a `let result = ...` binding that the transform expression reads, and downstream code (relational guards, coverage events, telemetry, ParseNode wrap) sees the shadowed `result`.
+
+### Why no tracked parsers were regenerated in this commit
+
+The fix is a codegen capability. Regenerating tracked parsers would activate transforms for roughly 173 additional rules across the 4 grammars that emit transforms today (`regex`: 4, `return_annotation`: 12, `semantic_annotation`: 72, `ebnf`: 85). Most are passthrough-style with minimal runtime effect, but `regex.regex` and `regex.piece` produce structurally different runtime AST output once the typed-Json carrier wraps the parse result. That changes the public API for `parse_full_regex` and would break the regex_parser_integration_contract's `required_rule_names` traversal, which expects `class_item`, `posix_class`, etc. to be reachable through the regex-rule subtree. RGX integrates against contract `1.1.31`; changing AST shape requires version coordination and a contract bump.
+
+The conservative path is therefore: land the codegen fix as capability, defer tracked-parser regenerations to per-family follow-up commits where each one can be coordinated with its consumers and contract surface.
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 472 passed (471 prior + 1 new regression test).
+- New unit test `return_annotation_on_non_or_root_rule_emits_transform_at_codegen` builds a synthetic Atom-root rule with an object-literal return annotation and asserts the rendered parser source contains the typed `ParseContent::Json(serde_json::Value::Object(...))` carrier.
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` — pass.
+- `make -C rust SHELL=/bin/bash return_annotation_support_gate` — pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` — strict source lint pass.
+- Direct codegen probe: regenerating `generated/regex.json` to a scratch file shows 2 typed-Json transforms emitted (one for `regex`, one for `piece`) where previously there were 0.
+
+### Tracked follow-ups
+
+1. **Per-family parser regeneration with contract coordination**. For each of `regex`, `return_annotation`, `semantic_annotation`, `ebnf`, `rtl_const_expr`, regenerate the tracked parser, verify the contract gate, update declared AST shapes / `required_rule_names` / consumer code as needed, and bump integration contract versions where the change is publicly observable. Regex is the highest-blast-radius family (RGX integrates `parse_full_regex`), so it needs explicit RGX coordination before regen.
+2. **Per-parser-family AST-shape contract gates**. Add gates that, for each grammar with declared return annotations, parse a small input through the generated parser and assert the runtime AST shape matches the declared annotation. Drift between "what the grammar says" and "what the running parser emits" should be caught at gate time, not by manual investigation. The user explicitly flagged this systemic gap; the fix is to make declared AST shapes part of the executable contract surface for every parser family.
+3. **Comprehensive `pgen_trace` instrumentation coverage audit**. Today instrumentation is partial. The user pointed out that systematic `trace_log!()` coverage across every Rust AST pipeline function and every function/branch in the generated parsers' code would have made this investigation much shorter. Auditing tracing coverage and filling gaps is a separate maintained lane.
+
 ## 2026-04-26 - Phase 2 typed-carrier: remove stringify roundtrip in return-annotation transforms
 
 ### What this milestone landed

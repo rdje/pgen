@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-26 - Codegen fix: apply return-annotation transforms uniformly for non-Or rule roots
+### Achievement Summary
+Fixes a silent codegen drop. Before this commit, [`generate_rule_method`](rust/src/ast_pipeline/ast_based_generator.rs) only applied return-annotation transforms via [`generate_or_logic`](rust/src/ast_pipeline/ast_based_generator.rs); rules whose top-level AST node was `Sequence`, `Atom`, `Quantified`, or `Lookahead` silently dropped their return annotation at codegen. The annotations made it into `generator.branch_return_annotations` and into `parsed_ast`, but no `result = #transform` step was ever emitted because the codegen check lived inside `generate_or_logic` only.
+
+This explained the regex-grammar drop: `regex = pattern? -> {type: "regex", pattern: $1}` (Quantified root) and `piece = atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}` (Sequence root) declared object-literal annotations that never reached `generated/regex_parser.rs`.
+
+The fix applies the rule-level transform uniformly inside `generate_rule_method` for non-`Or` roots that have an annotation on branch 0. The Or path keeps its per-branch transform handling unchanged, so multi-branch rules with per-branch transforms are not double-applied. The transform is emitted as a `let result = <transform>;` shadow rebind right after `#parse_logic;` so the existing `#relational_guards`, coverage events, and downstream code see the shaped result.
+
+### Scope of Changes
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs): `generate_rule_method` now computes a `post_parse_transform_tokens` block that, for non-`Or` ASTNode roots with a `branch_return_annotations[rule][0] = Some(annotation)` entry, emits a transform application step. The block is empty for Or roots (already handled in `generate_or_logic`). New focused regression test `return_annotation_on_non_or_root_rule_emits_transform_at_codegen` builds a synthetic Atom-root rule with an object-literal return annotation and asserts the rendered parser source contains the typed `ParseContent::Json(serde_json::Value::Object(...))` carrier.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 472 passed (471 prior + 1 new regression test).
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅ pass.
+- `make -C rust SHELL=/bin/bash return_annotation_support_gate` ✅ pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct codegen probe: regenerating `generated/regex.json` to a scratch file (not committed) shows 2 typed-Json transforms emitted (one for `regex`, one for `piece`) where previously there were 0.
+
+### Important Boundaries
+- **No tracked parsers regenerated in this commit.** The fix is a codegen capability; tracked `generated/*.rs` files are unchanged so downstream consumers (notably RGX, which integrates `generated/regex_parser.rs` per integration contract `1.1.31`) see no AST-shape change. Per-grammar regeneration is deferred so each affected family can be coordinated separately, with its own contract update.
+- **Blast radius if regenerated**: across the 4 grammars that emit transforms today, this fix would activate transforms for ~173 additional rules (`regex`: 4, `return_annotation`: 12, `semantic_annotation`: 72, `ebnf`: 85). Most are passthrough-style annotations with minimal runtime effect; some are object/array literals that produce structurally different output. Per-family regeneration commits will land each one with the matching contract / consumer coordination.
+- **Per-family AST-shape contract gates are queued** as a tracked follow-up. The user-flagged systemic gap is that contracts/gates today do not assert the runtime AST shape declared by a grammar's return annotations. Adding those checks is what would have caught this drop earlier; doing so is a separate maintained lane and is not closed by this commit.
+
 ## 2026-04-26 - Phase 2 typed-carrier: remove stringify roundtrip in return-annotation object/array/property/array-access transforms
 ### Achievement Summary
 Removes the runtime serialise → parse → serialise roundtrip from the return-annotation object/array/property/array-access transform paths by introducing a typed structured carrier in `ParseContent`. Object literals now build `serde_json::Value::Object(...)` directly and wrap as `ParseContent::Json(value)`; property/array access operate on the typed value in place via `ParseContent::to_json_value()` instead of `serde_json::from_str` + `to_string`; array literals/access compose with the same typed carrier. The Debug-format fallback in `parse_content_to_string` is replaced with a structured `to_json_value().to_string()` path. Semantic annotations are unchanged — they already used a typed carrier (`UnifiedSemanticValue` / `SemanticRuntimeValue`).

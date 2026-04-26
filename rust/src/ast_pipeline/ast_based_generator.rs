@@ -1309,6 +1309,39 @@ impl AstBasedGenerator {
             file!(),
             line!()
         );
+
+        // Apply rule-level return annotation for non-Or roots. The Or path
+        // (`generate_or_logic`) already applies per-branch transforms inline,
+        // so applying again would double-transform. For Sequence / Atom /
+        // Quantified / Lookahead roots, the annotation otherwise is silently
+        // dropped at codegen — that was the regex-grammar drop bug. The
+        // shadow-rebind pattern is safe because `parse_logic` introduces a
+        // `let result = ...` binding that the transform expression reads, and
+        // downstream code (relational guards, coverage events, etc.) sees the
+        // shadowed `result`.
+        let post_parse_transform_tokens: TokenStream = match ast_node {
+            ASTNode::Or { .. } => quote! {},
+            _ => {
+                let annotation_opt = self
+                    .branch_return_annotations
+                    .get(rule_name)
+                    .and_then(|branches| branches.get(0).cloned())
+                    .flatten();
+                if let Some(annotation) = annotation_opt {
+                    let transform = self.generate_return_transform(
+                        &annotation,
+                        rule_name,
+                        &["result".to_string()],
+                    )?;
+                    quote! {
+                        let result = #transform;
+                    }
+                } else {
+                    quote! {}
+                }
+            }
+        };
+
         let relational_guards = self.semantic_relational_constraint_tokens(rule_name);
         let coverage_target_policy = self.rule_coverage_target_policy(rule_name);
         let coverage_target_weight = coverage_target_policy.coverage_target_weight;
@@ -1391,6 +1424,10 @@ impl AstBasedGenerator {
                         let mut semantic_raw_content: Option<ParseContent<'input>> = None;
                         // Main parsing logic - produces the 'result' variable
                         #parse_logic;
+
+                        // Apply rule-level return annotation for non-Or roots
+                        // (Or roots apply per-branch transforms inline)
+                        #post_parse_transform_tokens
 
                         #relational_guards
 
@@ -5419,6 +5456,89 @@ mod semantic_usage_tests {
             rendered.contains("[A-Za-z_][A-Za-z0-9_]*"),
             "token_class steering should replace grammar regex with token-class matcher, got: {}",
             rendered
+        );
+    }
+
+    /// Regression test for the regex-grammar codegen drop. Before this fix,
+    /// `generate_rule_method` only applied return-annotation transforms via
+    /// `generate_or_logic`, so any rule whose top-level AST node was Sequence
+    /// / Atom / Quantified / Lookahead silently dropped its return annotation.
+    /// `grammars/regex.ebnf` declares `regex = pattern? -> {type: "regex", pattern: $1}`
+    /// (Quantified root) and `piece = atom quantifier? -> {type: "piece", ...}`
+    /// (Sequence root); neither was emitting a transform in the generated
+    /// parser. This test pins the fix at the codegen level: a synthetic
+    /// non-Or rule with a return annotation must produce a transform-emit
+    /// step in the rendered parser source.
+    #[test]
+    fn return_annotation_on_non_or_root_rule_emits_transform_at_codegen() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST;
+
+        // Build a synthetic grammar: `r = atom -> {type: "x"}` (Atom root).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("r".to_string(), token("quoted_string", "v"));
+        let rule_order = vec!["r".to_string()];
+
+        // Build a return annotation matching the regex-grammar shape:
+        // an object literal with a string field.
+        let mut props = std::collections::HashMap::new();
+        props.insert(
+            "type".to_string(),
+            Box::new(UnifiedReturnAST::StringLiteral {
+                value: "x".to_string(),
+            }),
+        );
+        let parsed_ast = UnifiedReturnAST::Object { properties: props };
+
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "r".to_string(),
+            vec![Some(BranchAnnotation {
+                annotation_type: "return_object".to_string(),
+                annotation_content: "{type: \"x\"}".to_string(),
+                parsed_ast: Some(parsed_ast),
+            })],
+        );
+
+        let mut converted_branches: HashMap<String, Vec<Option<BranchAnnotation>>> = HashMap::new();
+        for (rule, branches) in annotations.branch_return_annotations.iter() {
+            converted_branches.insert(rule.clone(), branches.clone());
+        }
+
+        let mut generator = AstBasedGenerator::new("non_or_anno_test".to_string());
+        generator.enable_debug = false;
+        generator.annotations = Some(annotations);
+        generator.branch_return_annotations = converted_branches;
+
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "non_or_anno_test.rs")
+            .expect("parser generation should succeed");
+
+        // The fix: rule `r` (Atom root) must now apply its object-literal
+        // transform inline. The typed-carrier work emits
+        // `ParseContent::Json(serde_json::Value::Object(...))`.
+        assert!(
+            rendered.contains("ParseContent :: Json (serde_json :: Value :: Object")
+                || rendered.contains("ParseContent::Json(serde_json::Value::Object"),
+            "non-Or rule with object-literal return annotation must emit typed Json/Object carrier; rendered did not contain it. snippet around fn parse_r: {}",
+            rendered
+                .lines()
+                .skip_while(|l| !l.contains("fn parse_r"))
+                .take(60)
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        // The fix introduces a `let result = <transform>;` shadow rebind
+        // after the parse logic. Check that the literal "x" key/value pair
+        // ended up in the generated source for rule `r`.
+        assert!(
+            rendered.contains("\"type\""),
+            "rendered source must contain the annotation's literal field name, got: {}",
+            rendered
+                .lines()
+                .filter(|l| l.contains("type") || l.contains("parse_r"))
+                .take(30)
+                .collect::<Vec<_>>()
+                .join("\n")
         );
     }
 
