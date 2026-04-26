@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-7-presize-memo)
+Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-phase-2-plan-logged)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,16 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- PGEN-RGX-0073 Optim #7: pre-size memo HashMap to skip rehash chain. Skips 4-→8-→16-→...-→256 doubling rehashes during parse.
+- PGEN-RGX-0073 Phase 2 plan logged. The annotation-independent micro-optim lane reached diminishing returns at Optim #7 (cumulative 5.6-8.8x p50 vs original baseline). Optim #8 (Rc-share) was scoped and abandoned (~5% ceiling vs invasive API change). Pivot to Phase 2 (return + semantic annotations applied inline during parse, not post-parse) — task #30 logged since 2026-04-25, now formally captured in tracked docs with M0-M8 milestone breakdown.
+  - changed (docs only):
+    - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md) — new "Phase 2: Inline Annotation Application" section
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [CHANGES.md](CHANGES.md), [MEMORY.md](MEMORY.md) — tracker note + engineering rationale + changelog + this session note
+  - decisions locked: output type for typed methods is serde_json::Value; today's scope is M0 only
+  - next session: M1 — parallel emit infrastructure (--inline-annotations flag, off by default, parse_X_typed methods alongside parse_X, default behavior unchanged)
+  - what M0 is NOT: not a code change, not a parser regeneration, not a public API change
+  - rollback granularity: each milestone is its own commit; abandoning Phase 2 at any milestone is safe (the legacy path is still active until M7)
+  - PGEN-RGX-0073 closure: depends on Phase 2 landing through M5 at minimum (RGX consumer integration). The bug remains explicitly In Progress.
+- PGEN-RGX-0073 Optim #7: pre-size memo HashMap to skip rehash chain (committed 2026-04-26 as 449318d).
   - changed:
     - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — memo: FxHashMap::with_capacity_and_hasher(256, Default::default())
     - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated

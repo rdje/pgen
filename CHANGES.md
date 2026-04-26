@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-26 - Phase 2 plan logged: inline annotation application
+### Achievement Summary
+PGEN-RGX-0073 annotation-independent perf campaign reached its checkpoint: 6 commits delivered cumulative `5.6×–8.8×` p50 across the 8 RGX patterns, but the bug remains In Progress. Further wins on the micro-optim lane are at diminishing returns. Phase 2 (return + semantic annotations applied inline during parse, not post-parse) is the next architectural class of wins. Phase 2 was originally surfaced and tracked as a critical follow-up during the campaign (`task #30`); this commit logs the Phase 2 plan in tracked docs so it survives session boundaries.
+
+### Scope of Changes (docs only)
+- [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md): new section "Phase 2: Inline Annotation Application (planned, in progress)" — rationale, decomposition into milestones M0-M8, output type decision (`serde_json::Value`), risks per milestone, commit cadence.
+- [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md): new tracker note logging the Phase 2 plan agreed and the M0-M8 milestone breakdown.
+- [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md): full engineering rationale, architectural target, why this is critical, decomposition risks.
+- [MEMORY.md](MEMORY.md): session-continuity note for resume/handoff.
+- [CHANGES.md](CHANGES.md): this entry.
+
+### Milestone summary
+M0 plan agreed (this commit). M1 parallel emit infrastructure (next session). M2 differential validation against post-parse oracle. M3 regex grammar migrated to inline path + opt-in `parse_full_regex_typed()` embedding API. M4 perf measurement vs legacy. M5 RGX integration. M6 migrate remaining grammars one-by-one. M7 retire post-parse transform, default flag ON, then remove flag. M8 cleanup pass on the `Annotations` runtime struct + generated parser size.
+
+### Rationale recap
+The PGEN annotation design intent has always been that return + semantic annotations apply inline during parse. The current implementation drifted to a two-phase architecture: parsers emit a generic `ParseNode` tree, and shaped output is built by a post-parse transform (`UnifiedReturnAST::parse_generated_return_annotation`). The drift was surfaced during the PGEN-RGX-0073 perf investigation. Phase 2 restores the original design contract — removes per-parse-hot-path allocation pressure, shrinks the shape consumers see, removes the two-phase indirection. PGEN-RGX-0073 closure depends on Phase 2 landing through M5 at minimum.
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate` ✅
+- No code changes; all tests pass unchanged.
+
+### Important Boundaries
+- This commit is documentation-only. No generator changes, no parser regeneration, no test changes.
+- M1 (parallel emit infrastructure) is the next concrete code change. It will be additive — `--inline-annotations` flag off by default, no behavior change unless explicitly enabled.
+- Output type decision (`serde_json::Value`) is locked. A future wrap-in-newtype is non-breaking on the JSON wire format.
+
 ## 2026-04-26 - Optim #7 (PGEN-RGX-0073): pre-size memo HashMap to skip rehash chain
 ### Achievement Summary
 Path A round 5 samply (post-Optim-#5/#6) showed `__bzero` 5.85% self time and `hashbrown::raw::RawTable::reserve_rehash` 2.63% self time. Caller analysis confirmed the rehashes came from `HashMap::insert` calls during memo growth. Pre-sizing the memo to `with_capacity(256)` skips the 4→8→16→32→64→128→256 rehash chain that ran on every parse.

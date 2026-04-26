@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Phase 2 plan: inline annotation application (return + semantic during parse, not post-parse)
+### Why this matters
+PGEN's design intent has always been that return annotations (`-> $1`, `-> {type: "binary", left: $1, op: $2, right: $3}`, etc.) and semantic annotations (`@priority: [9, 1]`, `@sample: "module m;"`, etc.) apply **inline during parse** — the generated `parse_X` methods directly emit shaped output as they parse. The current implementation has drifted to a two-phase architecture:
+- Phase 1 (parse): every rule method returns `ParseResult<ParseNode<'input>>` — a generic node carrying `rule_name` + `content` + `span`. Annotations are loaded into the `Annotations` runtime struct but never consulted during parser execution.
+- Phase 2 (post-parse): `UnifiedReturnAST::parse_generated_return_annotation` walks the parsed tree and `generate_code()` emits Rust to build the shaped output. For the embedding API's validation paths (`parse_full_regex` → `Result<(), ParseDiagnostic>`), this transform is never run — the tree is discarded.
+
+The drift was surfaced during the PGEN-RGX-0073 perf investigation (RGX bug filed 2026-04-25). The bug measured `~12,500ns per AST node` in the regex parser — a cost class consistent with allocating a generic node, populating its fields, and re-walking the tree post-parse to extract the shape downstream consumers actually want. Six annotation-independent perf optimizations (Optims #2-#7) brought cumulative `5.6×-8.8×` speedup, but the bug remains In Progress. Phase 2 attacks the next class of wins: AST shape and indirection.
+
+### Architecture target
+Each generated `parse_X` method emits shaped output directly. Output type: `ParseResult<serde_json::Value>` (matches the existing AST-dump path consumers see; future newtype wrap is non-breaking on the JSON wire format). For rules with no annotation: passthrough — return whatever the single sub-parse produced (or a default object/array shape for sequences). For rules with structured annotations: emit code that builds the JSON-like value directly per the annotation. The post-parse transform becomes dead code and is retired.
+
+### Why this is not a minor refactor
+- `parse_full_*()` return type changes. Visible to RGX and other downstream consumers.
+- `regex_parser.rs` alone has 582 generic `rule_name:` constructions; all regenerate.
+- 10+ pinned test contracts in `unified_return_ast.rs` + 7+ in `unified_semantic_ast.rs` are the truth oracle. They must be preserved or migrated.
+- Per-rule output type variance: same parser binary produces different shapes per grammar.
+- Cross-repo: RGX consumes our output. Coordination required.
+
+### Decomposition (8 milestones, each its own commit/series)
+| # | Milestone | Risk | Output |
+|---|---|---|---|
+| M0 | Plan agreed (this commit) | none | docs |
+| M1 | Parallel emit: `--inline-annotations` flag, off by default. New `parse_X_typed` methods alongside `parse_X`. Existing behavior unchanged. | low | one grammar emits both paths |
+| M2 | Differential validation: run both paths on `return_annotation` corpus + semantic corpus; assert byte-identical output. | medium | proof inline emit is correct |
+| M3 | Migrate `regex` grammar to inline path. Add `parse_full_regex_typed()` embedding API. Validate against legacy on the regex_parser_integration_contract suite (93 success + failure samples). | medium-high | RGX-side opt-in API |
+| M4 | Perf measurement: `regex_perf_probe` runs both paths. Confirm inline is faster. | low | numbers |
+| M5 | RGX integration: get RGX to consume `parse_full_regex_typed`. Validate end-to-end. | medium | PGEN-RGX-0073 progress |
+| M6 | Migrate remaining grammars (`semantic_annotation`, `return_annotation`, `systemverilog`, `vhdl`, `rtl_const_expr`, `rtl_frontend`). One per commit. | medium | full migration |
+| M7 | Retire post-parse transform. Remove `UnifiedReturnAST::parse_generated_return_annotation` walkers. Default `--inline-annotations` to ON; remove the flag. | high | clean architecture |
+| M8 | Cleanup pass on `Annotations` runtime struct, generated parser size, AST-dump path. | low | final state |
+
+### Risks per milestone
+- **M1**: codegen complexity. Initial design: typed methods are wrappers around the legacy path, no shape logic ports. M2 is when actual port happens.
+- **M2**: differential mismatch reveals undocumented post-parse-only behavior. The post-parse transform is the truth oracle; either inline matches or inline is wrong.
+- **M3**: regex grammar's 582 generated constructions all regenerate. regex_parser_integration_contract suite is the gate.
+- **M5**: RGX consumer code reads our output. Cross-repo coordination; opt-in API surface, RGX migrates on its own schedule.
+- **M7**: removes the safety net. Only after every grammar, every test, every consumer has migrated.
+
+### What this is NOT
+- One-shot atomic refactor. Each milestone has explicit rollback granularity.
+- A public API change at `parse_full_*` legacy entries until M5+ explicitly opts in. M1-M3 are additive only.
+- A substitute for the parser-agnostic micro-optims already landed. Phase 2 attacks AST shape; those landed gains compose.
+
+### Decision log
+- **Output type**: `serde_json::Value`. Considered: typed-enum alternative, deferred (more type-safe but adds API surface, forces RGX-side changes not justified by this phase).
+- **Today's scope**: M0 only (this commit). M1 next session.
+
+### What was the alternative
+- Continue micro-optim grind on the annotation-independent lane. Optim #8 (Rc-share memo subtrees) was scoped — `~5%` theoretical ceiling vs `~91` hand-written destructure sites + API change to `ParseContent`. Abandoned with rationale logged. Diminishing returns on this lane.
+
+### Lessons logged
+- A "critical follow-up" tracked as a task can drift indefinitely if the rationale and decomposition are not in tracked docs. Phase 2 was on the task list since 2026-04-25 (task #30); writing the plan up gives it staying power across session boundaries.
+- The bigger the architectural change, the more important the up-front decomposition. M0 (plan only) as its own commit creates an explicit checkpoint and a place for risk to be visible.
+
 ## 2026-04-26 - Optim #7: pre-size memo HashMap to skip rehash chain
 ### Context
 Path A round 5 samply (post-Optim-#5/#6) showed `__bzero` at 5.85% self time and `hashbrown::raw::RawTable::reserve_rehash` at 2.63%. Direct caller analysis confirmed `reserve_rehash` was almost always called from `HashMap::insert`, with the top inserters being parser methods (`parse_group`, `parse_literal`, `parse_branch_reset_group`, etc.) — which all funnel into `memoize_or_compute`.
