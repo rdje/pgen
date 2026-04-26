@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-27 - AST-shape contract: cfg-gated coverage for systemverilog / systemverilog_preprocessor / vhdl
+### Achievement Summary
+Adds AST-shape contract scaffolding for the three parser families whose generated parsers are NOT in the default `cargo test --features generated_parsers` build: SystemVerilog, SystemVerilog preprocessor, and VHDL. Their generated parsers are produced on-demand by the SV/VHDL stimuli-quality gates into `rust/target/<gate>/work/<parser>.rs` and discarded after the gate run, so the cfgs `has_generated_systemverilog_parser`, `has_generated_systemverilog_preprocessor_parser`, and `has_generated_vhdl_parser` stay off in default builds. The three new unit tests are cfg-gated to those flags, so they compile-out by default and activate whenever the parsers are present (gate runs or `PGEN_<FAMILY>_PARSER_PATH` overrides).
+
+Each grammar declares exactly one top-level object-literal annotation on a non-`Or` root rule, so the same drop class as regex applies. The manifests document declared shapes; the cfg-gated tests will surface drift the first time a build sees the parser source.
+
+### Scope of Changes
+- New manifests:
+  - [rust/test_data/ast_shape_contract/systemverilog_v1.json](rust/test_data/ast_shape_contract/systemverilog_v1.json) — 1 sample (`module m; endmodule`) for `systemverilog_file := trivia source_text trivia -> {type: "systemverilog_file", source_text: $2}`. Includes a `layout_note` flagging that the annotation in [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) line 195 sits AFTER the helper rule `sv_multi_entry_root := systemverilog_file | library_text | systemverilog_parseable_file` (line 193); whether EBNF parsing latches it onto `systemverilog_file` or `sv_multi_entry_root` should be confirmed during first calibration.
+  - [rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json](rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json) — 1 sample (`` `define FOO 1 ``) for `systemverilog_preprocessor_file := pp_item* -> {type: "systemverilog_preprocessor_file", items: $1}`.
+  - [rust/test_data/ast_shape_contract/vhdl_v1.json](rust/test_data/ast_shape_contract/vhdl_v1.json) — 1 sample (`entity e is end e;`) for `vhdl_file := design_unit* -> {type: "vhdl_file", design_units: $1}`.
+- [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs): three new cfg-gated unit tests that wire each parser into `run_manifest`.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 477 passed (unchanged total — the 3 SV/VHDL/SV-preprocessor tests are correctly compiled-out by the cfg gates in the default build).
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ 5 active family tests pass; 3 cfg-gated tests stay inactive in default builds.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
+### Important Boundaries
+- **First-run calibration required**. Each SV/VHDL/SV-preprocessor sample carries a placeholder `current_content_kind` (Sequence for SV; Quantified for SV-preprocessor and VHDL) inferred from the entry rule's grammar shape, not from running the parser. The first time a build with the parser present runs the contract test, the regression-lock will likely fail and report the actual content kind. The fix is one-line: update `current_content_kind` and commit.
+- **`drift_status: parser_unavailable_in_default_build_pending_first_run_calibration`**. New status label distinguishing "parser not built yet, calibration pending" from the existing "annotation dropped at codegen, regen required" cluster. When calibration completes, the status flips to either `aligned` (if regenerated through the `6ad4ffd` codegen fix) or `annotation_dropped_at_codegen_pre_regeneration` (if the parser predates that fix). Either way the manifest update is explicit.
+- **systemverilog.ebnf annotation layout question**. The `-> {type: "systemverilog_file", source_text: $2}` annotation at line 195 is positioned after `sv_multi_entry_root` (line 193). The annotation's `$2` reference matches `systemverilog_file`'s 3-element body but not `sv_multi_entry_root`'s 3-branch Or root. Whether the EBNF frontend latches this annotation onto `systemverilog_file` (positional intent) or `sv_multi_entry_root` (textual proximity) is a separate clarity question. The manifest's `layout_note` documents the question for first-run calibration to resolve.
+
+### Drift snapshot across all 8 covered families (2026-04-27)
+- `regex`: 4 samples, drift class `annotation_dropped_at_codegen_pre_regeneration`.
+- `return_annotation`: 3 samples, 2 aligned, 1 in `rule_level_annotation_not_applied_for_multibranch_or_root`.
+- `semantic_annotation`: 2 samples, drift class `annotation_dropped_at_codegen_pre_regeneration`.
+- `rtl_const_expr`: 2 samples, drift class `annotation_dropped_at_codegen_pre_regeneration`.
+- `rtl_frontend`: 1 sample, drift class `annotation_dropped_at_codegen_pre_regeneration`.
+- `systemverilog`: 1 sample (cfg-gated), drift class `parser_unavailable_in_default_build_pending_first_run_calibration`.
+- `systemverilog_preprocessor`: 1 sample (cfg-gated), same class.
+- `vhdl`: 1 sample (cfg-gated), same class.
+- Active total in default build: 12 samples, 2 aligned, 10 drift across 2 statuses. Reserved cfg-gated total: 3 samples awaiting first calibration. Grand total: 15 samples, 2 aligned, 13 drift across 3 distinct drift classes.
+
 ## 2026-04-27 - AST-shape contract: extend to return_annotation, semantic_annotation, rtl_const_expr, rtl_frontend
 ### Achievement Summary
 Extends the per-parser-family AST-shape contract gate landed in `fd5c620` to four additional grammars: `return_annotation`, `semantic_annotation`, `rtl_const_expr`, `rtl_frontend`. Each family now has its own manifest under `rust/test_data/ast_shape_contract/<grammar>_v1.json` and a per-family unit test that wires its generated parser into the shared runner. Drift surfaces in the gate report exactly as the regex family did.

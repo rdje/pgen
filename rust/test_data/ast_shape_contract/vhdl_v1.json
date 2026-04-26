@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "grammar": "vhdl",
+  "purpose": "Per-parser-family AST-shape contract for the VHDL grammar. Same default-build gating as `systemverilog_v1.json`: the parser is on-demand-only and the cfg `has_generated_vhdl_parser` stays off in default builds.",
+  "doctrine": "First run after the parser becomes available may hit a regression-lock failure because `current_content_kind` is a placeholder. Update on first calibration.",
+  "samples": [
+    {
+      "name": "minimal_entity",
+      "input": "entity e is end e;\n",
+      "rule_under_test": "vhdl_file",
+      "declared_annotation": "{type: \"vhdl_file\", design_units: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "design_units"],
+      "expected_json_object_string_values": {"type": "vhdl_file"},
+      "current_content_kind": "quantified",
+      "drift_status": "parser_unavailable_in_default_build_pending_first_run_calibration",
+      "drift_tracked_in": "PGEN: VHDL per-family contract calibration on first parser availability + regen coordination follow-up"
+    }
+  ]
+}

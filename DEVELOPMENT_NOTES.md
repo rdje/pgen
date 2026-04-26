@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-27 - AST-shape contract: cfg-gated coverage for SV / SV-preprocessor / VHDL
+
+### What this milestone landed
+
+Three new manifests + three cfg-gated unit tests covering the parser families whose generated parsers are produced on-demand by gates rather than living in the canonical `generated/` tree.
+
+### Why these need cfg gating
+
+The `systemverilog`, `systemverilog_preprocessor`, and `vhdl` parsers are produced into `rust/target/<gate>/work/<parser>.rs` by `sv_stimuli_quality_gate`, `vhdl_stimuli_quality_gate`, and similar. After each gate run the work dir may be discarded. The default `cargo test --features generated_parsers` build does not have those parser sources at the path `build.rs` defaults to (`../generated/<parser>.rs`), so the cfgs `has_generated_systemverilog_parser`, `has_generated_systemverilog_preprocessor_parser`, and `has_generated_vhdl_parser` are off and the parser modules in `generated_parsers::*` are absent at compile time.
+
+Adding contract tests with the same cfg gates keeps the default build clean (the test code compiles out cleanly) and lets the contract activate whenever the parsers are present (gate runs that point `PGEN_<FAMILY>_PARSER_PATH` at the produced source, or future work that brings these parsers into the canonical `generated/` tree).
+
+### First-run calibration
+
+Each SV/VHDL/SV-preprocessor sample carries a `current_content_kind` placeholder inferred from the grammar's entry rule shape:
+
+- `systemverilog_file := trivia source_text trivia` (3-element Sequence) → placeholder `sequence`.
+- `systemverilog_preprocessor_file := pp_item*` (Quantified) → placeholder `quantified`.
+- `vhdl_file := design_unit*` (Quantified) → placeholder `quantified`.
+
+When a build with the parser present first runs the contract test, the regression-lock will fail if the actual emitted content kind differs (which is likely if the parser pre-dates the `6ad4ffd` codegen fix and treats the rule as some other root shape). The fix is a one-line manifest update.
+
+### systemverilog.ebnf annotation layout note
+
+[grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) line 195 carries `-> {type: "systemverilog_file", source_text: $2}` AFTER the helper rule `sv_multi_entry_root := systemverilog_file | library_text | systemverilog_parseable_file` (line 193). In typical EBNF parsing logic an annotation latches onto the most recent rule, which would attach this annotation to `sv_multi_entry_root`. But:
+
+- The annotation's content (`type: "systemverilog_file"`, `source_text: $2`) is consistent with `systemverilog_file`'s 3-element Sequence body where `$2` = `source_text`.
+- It is NOT consistent with `sv_multi_entry_root`'s 3-branch Or root where `$2` = `library_text`.
+
+This is either:
+1. A grammar layout that the EBNF frontend tolerates by latching onto a non-adjacent prior rule, OR
+2. A grammar bug where the annotation has drifted from its intended attachment point, OR
+3. An intentional layout that downstream codegen handles via some non-standard rule-level rebinding.
+
+The contract gate doesn't take a position on this. The `layout_note` field in `systemverilog_v1.json` records the question and the expected behavior; first-run calibration of that sample will reveal whether the runtime output matches the `systemverilog_file`-style shape (option 1/3) or some `sv_multi_entry_root`-shaped output (option 2).
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 477 passed (unchanged total). The 3 SV/VHDL/SV-preprocessor tests compile out under the inactive cfg gates.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` — 5 active family tests pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` — strict source lint pass.
+
+### Drift summary across all 8 covered families
+
+Active in default build: 12 samples, 2 aligned, 10 drift across 2 statuses.
+Reserved (cfg-gated, awaiting first calibration): 3 samples.
+Grand total: 15 samples, 2 aligned, 13 drift across 3 distinct drift classes.
+
+The `parser_unavailable_in_default_build_pending_first_run_calibration` class is the third drift class. It captures parsers that are scaffolded but not yet observed running. Each will resolve to either `aligned` (if the parser produces the declared shape) or `annotation_dropped_at_codegen_pre_regeneration` (if the parser predates the `6ad4ffd` codegen fix) on first calibration.
+
 ## 2026-04-27 - AST-shape contract extended to 4 more grammars
 
 ### What this milestone landed

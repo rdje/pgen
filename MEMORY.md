@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-27 (+0200, task: ast-shape-contract-extend-to-four-more-grammars)
+Last updated: 2026-04-27 (+0200, task: ast-shape-contract-cfg-gated-sv-vhdl-svpp)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,16 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- AST-shape contract scaffolding added for `systemverilog`, `systemverilog_preprocessor`, `vhdl`. Each grammar declares 1 top-level object-literal annotation on a non-Or root rule (same drop class as regex). Their generated parsers are produced on-demand by SV/VHDL gates into `rust/target/<gate>/work/<parser>.rs`, so the cfgs `has_generated_systemverilog_parser` / `has_generated_systemverilog_preprocessor_parser` / `has_generated_vhdl_parser` stay off in default builds. The 3 new tests are cfg-gated to those flags — they compile-out by default and activate when the parsers are present.
+- New manifests: [rust/test_data/ast_shape_contract/systemverilog_v1.json](rust/test_data/ast_shape_contract/systemverilog_v1.json), [.../systemverilog_preprocessor_v1.json](rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json), [.../vhdl_v1.json](rust/test_data/ast_shape_contract/vhdl_v1.json).
+- Each SV/VHDL/SV-preprocessor sample carries a `current_content_kind` placeholder calibrated from grammar inspection. First run with parser present will likely hit a regression-lock failure that reports the actual kind; the manifest fix is one-line.
+- New drift class: `parser_unavailable_in_default_build_pending_first_run_calibration` — distinguishes "parser scaffolded but not yet observed" from "annotation dropped pre-regen". Will resolve to `aligned` or `annotation_dropped_at_codegen_pre_regeneration` on first calibration.
+- Layout note worth tracking: [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) line 195 has `-> {type: "systemverilog_file", source_text: $2}` positioned AFTER the helper rule `sv_multi_entry_root` (line 193). The annotation's `$2` reference is consistent with `systemverilog_file`'s sequence body but not with `sv_multi_entry_root`'s Or root. First-run calibration will reveal whether EBNF parsing latches onto `systemverilog_file` (positional intent) or `sv_multi_entry_root` (textual proximity).
+- Coverage: 8 grammars, 15 manifest samples (12 active, 3 cfg-gated). 2 aligned, 13 drift across 3 distinct drift classes.
+- Validation: `cargo test --lib --features generated_parsers` 477 passed (unchanged — cfg-gated tests compile out cleanly). `ast_shape_contract_gate` 5 active family tests pass. clippy strict source lint pass.
+- **Next priority follow-up**: wire `ast_shape_contract_gate` into `ci_workflow_local_gate` audit and `sota_exit_gate` so per-family drift is visible at workflow-parity time and as part of aggregate policy proof.
+
+## Prior Session Note
 - AST-shape contract gate extended to 4 more grammars: `return_annotation`, `semantic_annotation`, `rtl_const_expr`, `rtl_frontend`. Each adds a per-grammar manifest under [rust/test_data/ast_shape_contract](rust/test_data/ast_shape_contract) and a per-family unit test in [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs) that wires the appropriate generated parser into the shared runner.
 - Total drift snapshot across all 5 covered families: 12 samples, 2 aligned, 10 drift across 2 distinct drift statuses:
   - `annotation_dropped_at_codegen_pre_regeneration` (9 samples) — closes when each family is regenerated through the codegen fix from `6ad4ffd`. Regex requires RGX coordination first; the others are independent.

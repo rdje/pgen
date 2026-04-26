@@ -459,4 +459,75 @@ mod tests {
         });
         assert_report("rtl_frontend", &report);
     }
+
+    /// SystemVerilog AST-shape contract. The generated SV parser is NOT in the
+    /// default `cargo test --features generated_parsers` build; it's produced
+    /// on-demand by `sv_stimuli_quality_gate` (and similar) into
+    /// `rust/target/<gate>/work/systemverilog_parser.rs`. This cfg-gated test
+    /// activates whenever the parser is present (gate run or
+    /// `PGEN_SYSTEMVERILOG_PARSER_PATH` override) and stays compiled-out
+    /// otherwise.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_ast_shape_contract_holds_against_running_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        let path = manifest_path("systemverilog_v1.json");
+        let manifest = load_manifest(&path)
+            .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
+
+        let report = run_manifest(&manifest, |input| {
+            let mut parser = SystemverilogParser::new(
+                input,
+                runtime_logger_box("ast_shape_contract.systemverilog"),
+            );
+            parser
+                .parse_full_systemverilog_file()
+                .map_err(|err| err.to_string())
+        });
+        assert_report("systemverilog", &report);
+    }
+
+    #[cfg(all(
+        feature = "generated_parsers",
+        has_generated_systemverilog_preprocessor_parser
+    ))]
+    #[test]
+    fn systemverilog_preprocessor_ast_shape_contract_holds_against_running_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog_preprocessor::SystemverilogPreprocessorParser;
+
+        let path = manifest_path("systemverilog_preprocessor_v1.json");
+        let manifest = load_manifest(&path)
+            .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
+
+        let report = run_manifest(&manifest, |input| {
+            let mut parser = SystemverilogPreprocessorParser::new(
+                input,
+                runtime_logger_box("ast_shape_contract.systemverilog_preprocessor"),
+            );
+            parser
+                .parse_full_systemverilog_preprocessor_file()
+                .map_err(|err| err.to_string())
+        });
+        assert_report("systemverilog_preprocessor", &report);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
+    #[test]
+    fn vhdl_ast_shape_contract_holds_against_running_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::vhdl::VhdlParser;
+
+        let path = manifest_path("vhdl_v1.json");
+        let manifest = load_manifest(&path)
+            .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
+
+        let report = run_manifest(&manifest, |input| {
+            let mut parser = VhdlParser::new(input, runtime_logger_box("ast_shape_contract.vhdl"));
+            parser.parse_full_vhdl_file().map_err(|err| err.to_string())
+        });
+        assert_report("vhdl", &report);
+    }
 }
