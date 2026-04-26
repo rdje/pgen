@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "grammar": "semantic_annotation",
+  "purpose": "Per-parser-family AST-shape contract for the semantic-annotation grammar. Asserts the runtime AST that the generated semantic_annotation parser produces against tracked samples. The grammar's entry rule `semantic_annotation` has Sequence root and an object-literal `-> {type: \"semantic_annotation\", name: $3, value: $6}` annotation that the codegen-fix-landed-in-6ad4ffd would now apply once `generated/semantic_annotation_parser.rs` is regenerated through it. Until the regen happens, the entry rule's annotation drops at codegen.",
+  "doctrine": "When the per-family regeneration of generated/semantic_annotation_parser.rs lands, the entry sample must flip current_content_kind from `sequence` to `json_object`, and drift_status to `aligned`. Structural assertions (object keys present, string values match) will then verify the typed-Json carrier carries the declared shape.",
+  "samples": [
+    {
+      "name": "type_integer",
+      "input": "@type: integer",
+      "rule_under_test": "semantic_annotation",
+      "declared_annotation": "{type: \"semantic_annotation\", name: $3, value: $6}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "name", "value"],
+      "expected_json_object_string_values": {"type": "semantic_annotation"},
+      "current_content_kind": "sequence",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family semantic_annotation regeneration follow-up; tracked parser predates the codegen fix from commit 6ad4ffd."
+    },
+    {
+      "name": "category_constraint",
+      "input": "@category: constraint",
+      "rule_under_test": "semantic_annotation",
+      "declared_annotation": "{type: \"semantic_annotation\", name: $3, value: $6}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "name", "value"],
+      "expected_json_object_string_values": {"type": "semantic_annotation"},
+      "current_content_kind": "sequence",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family semantic_annotation regeneration follow-up"
+    }
+  ]
+}

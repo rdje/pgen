@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "grammar": "rtl_frontend",
+  "purpose": "Per-parser-family AST-shape contract for the RTL frontend grammar. The entry rule `rtl_frontend_file := trivia design_item* trivia -> {type: \"rtl_frontend_file\", items: $2}` is a Sequence root with an object-literal annotation that drops at codegen for the tracked parser today.",
+  "doctrine": "When per-family regeneration of generated/rtl_frontend_parser.rs lands, the entry sample's current_content_kind must flip to json_object and drift_status to aligned in the same commit.",
+  "samples": [
+    {
+      "name": "empty_module",
+      "input": "module m; endmodule\n",
+      "rule_under_test": "rtl_frontend_file",
+      "declared_annotation": "{type: \"rtl_frontend_file\", items: $2}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "items"],
+      "expected_json_object_string_values": {"type": "rtl_frontend_file"},
+      "current_content_kind": "sequence",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family rtl_frontend regeneration follow-up"
+    }
+  ]
+}

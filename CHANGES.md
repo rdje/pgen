@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-27 - AST-shape contract: extend to return_annotation, semantic_annotation, rtl_const_expr, rtl_frontend
+### Achievement Summary
+Extends the per-parser-family AST-shape contract gate landed in `fd5c620` to four additional grammars: `return_annotation`, `semantic_annotation`, `rtl_const_expr`, `rtl_frontend`. Each family now has its own manifest under `rust/test_data/ast_shape_contract/<grammar>_v1.json` and a per-family unit test that wires its generated parser into the shared runner. Drift surfaces in the gate report exactly as the regex family did.
+
+### Scope of Changes
+- New manifests:
+  - [rust/test_data/ast_shape_contract/return_annotation_v1.json](rust/test_data/ast_shape_contract/return_annotation_v1.json) — 3 samples covering the three Or-root branches of `return_annotation := arrow expression | arrow | expression -> $2`. Two samples are aligned at `Alternative` (single-element branches); one (`arrow_then_dollar1`) carries `drift_status: rule_level_annotation_not_applied_for_multibranch_or_root` because the runtime returns `Sequence([arrow, expression])` instead of the expected `$2` extraction.
+  - [rust/test_data/ast_shape_contract/semantic_annotation_v1.json](rust/test_data/ast_shape_contract/semantic_annotation_v1.json) — 2 samples for the entry rule `semantic_annotation := "@" /\s*/ ... -> {type: "semantic_annotation", name: $3, value: $6}`. Both in drift (`annotation_dropped_at_codegen_pre_regeneration`); the Sequence-root annotation will activate when the parser is regenerated through the codegen fix from `6ad4ffd`.
+  - [rust/test_data/ast_shape_contract/rtl_const_expr_v1.json](rust/test_data/ast_shape_contract/rtl_const_expr_v1.json) — 2 samples for the entry rule with `-> {type: "rtl_const_expr", expr: $1}`. Both in drift.
+  - [rust/test_data/ast_shape_contract/rtl_frontend_v1.json](rust/test_data/ast_shape_contract/rtl_frontend_v1.json) — 1 sample for `rtl_frontend_file := trivia design_item* trivia -> {type: "rtl_frontend_file", items: $2}`. In drift.
+- [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs): four new unit tests (`return_annotation_*`, `semantic_annotation_*`, `rtl_const_expr_*`, `rtl_frontend_*`) wiring each grammar's generated parser into `run_manifest`. Refactored the shared `assert_report` and `manifest_path` helpers so per-family tests stay ~10 lines each.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 477 passed (473 prior + 4 new family tests).
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ 5 family tests pass; per-family drift counts visible in log.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
+### Drift summary across all 5 families (2026-04-27 snapshot)
+- `regex`: 4 samples, 0 aligned, 4 drift (`annotation_dropped_at_codegen_pre_regeneration`).
+- `return_annotation`: 3 samples, 2 aligned, 1 drift (`rule_level_annotation_not_applied_for_multibranch_or_root`).
+- `semantic_annotation`: 2 samples, 0 aligned, 2 drift (`annotation_dropped_at_codegen_pre_regeneration`).
+- `rtl_const_expr`: 2 samples, 0 aligned, 2 drift (`annotation_dropped_at_codegen_pre_regeneration`).
+- `rtl_frontend`: 1 sample, 0 aligned, 1 drift (`annotation_dropped_at_codegen_pre_regeneration`).
+- Total: 12 samples, 2 aligned, 10 drift across 2 distinct drift statuses. The `annotation_dropped_at_codegen_pre_regeneration` cluster will close as per-family parser regenerations land. The `rule_level_annotation_not_applied_for_multibranch_or_root` case is a separate codegen design question newly surfaced by this work (not yet addressed): whether a rule-level annotation declared on a multi-branch Or-root rule should apply to every branch arm at codegen.
+
+### Important Boundaries
+- **No tracked parsers regenerated in this commit.** Same blast-radius reasoning as before: the regex regen needs RGX coordination, and the others have public-API implications that should be coordinated separately. Drift is documented; closure is per-family.
+- **New drift class surfaced**: `rule_level_annotation_not_applied_for_multibranch_or_root` is a codegen design question this manifest is the first place to record. Whether the multi-branch-Or path should apply rule-level annotations is a separate decision; for now the gate locks in current behavior and surfaces it in every run.
+- **Manifest workflow when drift closes**: same as regex. When a per-family regen lands, update each affected sample's `current_content_kind` to the new shape and flip `drift_status` to `aligned` in the same commit.
+
 ## 2026-04-26 - Per-parser-family AST-shape contract gate: regex first
 ### Achievement Summary
 Closes the systemic gap that let the regex codegen drop go silently undetected. Before this commit, drift between a grammar's declared return-annotation shape and what its generated parser actually emits at runtime was only discoverable by reading the generated source by hand. This commit adds executable AST-shape contract infrastructure with regex as the first concrete instance.

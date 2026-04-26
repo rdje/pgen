@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "grammar": "return_annotation",
+  "purpose": "Per-parser-family AST-shape contract for the return-annotation grammar. Asserts the runtime AST that the generated return_annotation parser produces against tracked samples. The grammar's entry rule `return_annotation` has Or root with three branches and a rule-level `-> $2` annotation; the Or path applies per-branch transforms via generate_or_logic, so this manifest documents what the running parser actually emits today across representative inputs.",
+  "doctrine": "When per-grammar regeneration coordinates with the codegen fix landed in 6ad4ffd, samples whose declared annotation is a passthrough or extraction may stay aligned at content-kind level (the carrier doesn't change), but samples whose declared annotation is an object literal will flip to ParseContent::Json(Object) and the manifest must update current_content_kind in lockstep.",
+  "samples": [
+    {
+      "name": "passthrough_dollar1",
+      "input": "$1",
+      "rule_under_test": "return_annotation",
+      "declared_annotation": "-> $2",
+      "expected_content_kind": "alternative",
+      "current_content_kind": "alternative",
+      "drift_status": "aligned",
+      "drift_tracked_in": "n/a"
+    },
+    {
+      "name": "arrow_then_dollar1",
+      "input": "-> $1",
+      "rule_under_test": "return_annotation",
+      "declared_annotation": "-> $2",
+      "expected_content_kind": "alternative",
+      "current_content_kind": "sequence",
+      "drift_status": "rule_level_annotation_not_applied_for_multibranch_or_root",
+      "drift_tracked_in": "PGEN: a rule-level `-> $2` annotation declared on a multi-branch Or-root rule is not applied at runtime today. generate_or_logic applies per-branch annotations (none of these branches has its own `-> ...`), and the rule-level annotation is read from branches[0] which on this rule's branch[0] (`arrow expression`) means the runtime returns the full Sequence([arrow, expression]) instead of just the expression. Whether to apply rule-level annotations to every multi-branch arm is a separate codegen design decision; this manifest sample documents the current behavior so any future change is caught."
+    },
+    {
+      "name": "arrow_only",
+      "input": "->",
+      "rule_under_test": "return_annotation",
+      "declared_annotation": "-> $2",
+      "expected_content_kind": "alternative",
+      "current_content_kind": "alternative",
+      "drift_status": "aligned",
+      "drift_tracked_in": "n/a"
+    }
+  ]
+}

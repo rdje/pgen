@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: per-parser-family-ast-shape-contract-gate-regex-first)
+Last updated: 2026-04-27 (+0200, task: ast-shape-contract-extend-to-four-more-grammars)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- AST-shape contract gate extended to 4 more grammars: `return_annotation`, `semantic_annotation`, `rtl_const_expr`, `rtl_frontend`. Each adds a per-grammar manifest under [rust/test_data/ast_shape_contract](rust/test_data/ast_shape_contract) and a per-family unit test in [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs) that wires the appropriate generated parser into the shared runner.
+- Total drift snapshot across all 5 covered families: 12 samples, 2 aligned, 10 drift across 2 distinct drift statuses:
+  - `annotation_dropped_at_codegen_pre_regeneration` (9 samples) — closes when each family is regenerated through the codegen fix from `6ad4ffd`. Regex requires RGX coordination first; the others are independent.
+  - `rule_level_annotation_not_applied_for_multibranch_or_root` (1 sample, `return_annotation::arrow_then_dollar1`) — newly surfaced. The `return_annotation` grammar declares `-> $2` rule-level on a multi-branch Or-root rule; runtime returns `Sequence([arrow, expression])` instead of just `$2 = expression`. Codegen design decision pending.
+- Validation: `cargo test --lib --features generated_parsers` 477 passed (473 prior + 4 new); `ast_shape_contract_gate` pass with 5 family tests; clippy strict source lint pass.
+- **Next priority follow-up**: wire `ast_shape_contract_gate` into `ci_workflow_local_gate` audit and `sota_exit_gate` so per-family drift is visible at workflow-parity time and as part of aggregate policy proof.
+
+## Prior Session Note
 - Per-parser-family AST-shape contract gate landed with regex as the first concrete instance. Closes the systemic gap that let the regex codegen drop go silently undetected.
 - Infrastructure: [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs) — grammar-agnostic runner with `AstShapeContractManifest` schema, stable `ContentKind` labels, and `ContractReport` drift accounting. [rust/test_data/ast_shape_contract/regex_v1.json](rust/test_data/ast_shape_contract/regex_v1.json) — first per-family manifest with 4 samples for the `regex` rule.
 - Make targets: `ast_shape_contract_gate` (every family's contract test) and `regex_ast_shape_contract_gate` (regex-only with `--nocapture`).

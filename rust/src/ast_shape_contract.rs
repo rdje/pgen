@@ -303,26 +303,10 @@ where
 mod tests {
     use super::*;
 
-    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-    #[test]
-    fn regex_ast_shape_contract_holds_against_running_generated_parser() {
-        use crate::ast_pipeline::runtime_logger_box;
-        use crate::generated_parsers::regex::RegexParser;
-
-        let manifest_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("test_data")
-            .join("ast_shape_contract")
-            .join("regex_v1.json");
-        let manifest = load_manifest(&manifest_path)
-            .unwrap_or_else(|err| panic!("failed to load {}: {}", manifest_path.display(), err));
-
-        let report = run_manifest(&manifest, |input| {
-            let mut parser = RegexParser::new(input, runtime_logger_box("ast_shape_contract.regex"));
-            parser.parse_full_regex().map_err(|err| err.to_string())
-        });
-
+    fn assert_report(family: &str, report: &ContractReport) {
         eprintln!(
-            "[ast_shape_contract][regex] {} samples_per_status={:?}",
+            "[ast_shape_contract][{}] {} samples_per_status={:?}",
+            family,
             report.summary_line(),
             report.drift_count_by_status,
         );
@@ -346,18 +330,133 @@ mod tests {
 
         assert!(
             report.regression_lock_failures.is_empty(),
-            "regression-lock failures (parser shape changed without manifest update?):\n{}",
+            "[{}] regression-lock failures (parser shape changed without manifest update?):\n{}",
+            family,
             report.regression_lock_failures.join("\n")
         );
         assert!(
             report.aligned_samples_with_failed_assertions.is_empty(),
-            "aligned samples with failed structural assertions:\n{}",
+            "[{}] aligned samples with failed structural assertions:\n{}",
+            family,
             report.aligned_samples_with_failed_assertions.join("\n")
         );
         assert!(
             report.passed(),
-            "ast-shape contract for regex did not pass; summary={}",
+            "[{}] ast-shape contract did not pass; summary={}",
+            family,
             report.summary_line()
         );
+    }
+
+    fn manifest_path(file: &str) -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("test_data")
+            .join("ast_shape_contract")
+            .join(file)
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_ast_shape_contract_holds_against_running_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::regex::RegexParser;
+
+        let path = manifest_path("regex_v1.json");
+        let manifest = load_manifest(&path)
+            .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
+
+        let report = run_manifest(&manifest, |input| {
+            let mut parser = RegexParser::new(input, runtime_logger_box("ast_shape_contract.regex"));
+            parser.parse_full_regex().map_err(|err| err.to_string())
+        });
+        assert_report("regex", &report);
+    }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn return_annotation_ast_shape_contract_holds_against_running_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::return_annotation::ReturnAnnotationParser;
+
+        let path = manifest_path("return_annotation_v1.json");
+        let manifest = load_manifest(&path)
+            .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
+
+        let report = run_manifest(&manifest, |input| {
+            let mut parser = ReturnAnnotationParser::new(
+                input,
+                runtime_logger_box("ast_shape_contract.return_annotation"),
+            );
+            parser
+                .parse_full_return_annotation()
+                .map_err(|err| err.to_string())
+        });
+        assert_report("return_annotation", &report);
+    }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn semantic_annotation_ast_shape_contract_holds_against_running_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::semantic_annotation::SemanticAnnotationParser;
+
+        let path = manifest_path("semantic_annotation_v1.json");
+        let manifest = load_manifest(&path)
+            .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
+
+        let report = run_manifest(&manifest, |input| {
+            let mut parser = SemanticAnnotationParser::new(
+                input,
+                runtime_logger_box("ast_shape_contract.semantic_annotation"),
+            );
+            parser
+                .parse_full_semantic_annotation()
+                .map_err(|err| err.to_string())
+        });
+        assert_report("semantic_annotation", &report);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_rtl_const_expr_parser))]
+    #[test]
+    fn rtl_const_expr_ast_shape_contract_holds_against_running_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::rtl_const_expr::RtlConstExprParser;
+
+        let path = manifest_path("rtl_const_expr_v1.json");
+        let manifest = load_manifest(&path)
+            .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
+
+        let report = run_manifest(&manifest, |input| {
+            let mut parser = RtlConstExprParser::new(
+                input,
+                runtime_logger_box("ast_shape_contract.rtl_const_expr"),
+            );
+            parser
+                .parse_full_rtl_const_expr()
+                .map_err(|err| err.to_string())
+        });
+        assert_report("rtl_const_expr", &report);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_rtl_frontend_parser))]
+    #[test]
+    fn rtl_frontend_ast_shape_contract_holds_against_running_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::rtl_frontend::RtlFrontendParser;
+
+        let path = manifest_path("rtl_frontend_v1.json");
+        let manifest = load_manifest(&path)
+            .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
+
+        let report = run_manifest(&manifest, |input| {
+            let mut parser = RtlFrontendParser::new(
+                input,
+                runtime_logger_box("ast_shape_contract.rtl_frontend"),
+            );
+            parser
+                .parse_full_rtl_frontend_file()
+                .map_err(|err| err.to_string())
+        });
+        assert_report("rtl_frontend", &report);
     }
 }

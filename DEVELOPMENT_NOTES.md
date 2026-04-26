@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-27 - AST-shape contract extended to 4 more grammars
+
+### What this milestone landed
+
+Per-family manifests + per-family unit tests for `return_annotation`, `semantic_annotation`, `rtl_const_expr`, `rtl_frontend`. Each plugs into the grammar-agnostic runner from commit `fd5c620` via a ~10-line per-family test that calls the appropriate generated parser's `parse_full_<entry>` and forwards the top-level `ParseNode` to `run_manifest`.
+
+### Drift accounting across the 5 covered families
+
+Total 12 samples, 2 aligned, 10 in drift. Two distinct drift statuses now in use:
+
+- `annotation_dropped_at_codegen_pre_regeneration` — 9 samples (regex 4, semantic_annotation 2, rtl_const_expr 2, rtl_frontend 1). Closure path: per-family regeneration of the tracked generated parser through the codegen fix landed in `6ad4ffd`. RGX coordination required for regex; the others can move independently.
+- `rule_level_annotation_not_applied_for_multibranch_or_root` — 1 sample (`return_annotation::arrow_then_dollar1`). Newly surfaced by this work. The `return_annotation` grammar declares `-> $2` as a rule-level annotation on a multi-branch Or-root rule; at runtime, the multi-branch arm `arrow expression` returns `Sequence([arrow, expression])` instead of just `$2 = expression`. Whether `generate_or_logic` should apply the rule-level annotation across every branch arm in the multi-branch case is a separate codegen design question. The manifest locks in current behavior so any future change is caught.
+
+### Two new drift classes are now distinguishable
+
+Before this commit, all known drift was the codegen drop. With four more families covered, the manifest schema's `drift_status` label now distinguishes between two real, separate phenomena:
+
+1. The annotation never reaches the generated parser (codegen drop class — the user-facing systemic bug from the regex investigation).
+2. The annotation IS in the generated code path but its semantic application differs from intent (the multi-branch rule-level case).
+
+Both are real drift; both deserve named status labels; both need explicit closure work. Surfacing both at gate time is the value-add of this contract.
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 477 passed (473 prior + 4 new family tests).
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` — 5 family tests pass; per-family drift visible in the log.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` — strict source lint pass.
+
+### What is still tracked but not addressed by this commit
+
+1. Per-family parser regenerations to close the `annotation_dropped_at_codegen_pre_regeneration` cluster. Regex needs RGX coordination first.
+2. Codegen design decision on rule-level annotations for multi-branch Or-root rules. This manifest sample is the first executable evidence that the current behavior diverges from the declared intent; a future commit should either fix `generate_or_logic` to apply rule-level annotations across every branch (after agreeing that's the intended semantic), or update the grammar to express the intent through per-branch annotations instead.
+3. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+4. `pgen_trace` instrumentation coverage audit.
+5. Downstream contract stabilization umbrella.
+
 ## 2026-04-26 - Per-parser-family AST-shape contract gate
 
 ### What this milestone landed

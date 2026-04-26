@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "grammar": "rtl_const_expr",
+  "purpose": "Per-parser-family AST-shape contract for the RTL constant-expression grammar. The entry rule `rtl_const_expr := conditional_expr -> {type: \"rtl_const_expr\", expr: $1}` is a non-Or root with an object-literal annotation that drops at codegen for the tracked parser today.",
+  "doctrine": "When per-family regeneration of generated/rtl_const_expr_parser.rs lands, the entry sample's current_content_kind must flip to json_object and drift_status to aligned in the same commit.",
+  "samples": [
+    {
+      "name": "literal_42",
+      "input": "42",
+      "rule_under_test": "rtl_const_expr",
+      "declared_annotation": "{type: \"rtl_const_expr\", expr: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "expr"],
+      "expected_json_object_string_values": {"type": "rtl_const_expr"},
+      "current_content_kind": "alternative",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family rtl_const_expr regeneration follow-up"
+    },
+    {
+      "name": "binary_addition",
+      "input": "a + b",
+      "rule_under_test": "rtl_const_expr",
+      "declared_annotation": "{type: \"rtl_const_expr\", expr: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "expr"],
+      "expected_json_object_string_values": {"type": "rtl_const_expr"},
+      "current_content_kind": "alternative",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family rtl_const_expr regeneration follow-up"
+    }
+  ]
+}
