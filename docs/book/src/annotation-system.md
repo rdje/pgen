@@ -91,59 +91,62 @@ Annotation support is not considered real just because syntax exists. It is expe
 - round-trip or comparable contract evidence,
 - maintained aggregate gates.
 
-## Phase 2: Inline Annotation Application (planned, in progress)
+## Phase 2: Eliminate Stringification Roundtrips In Return-Annotation Transforms (retargeted)
 
 Last updated: 2026-04-26.
 
-### Why this phase exists
+### Earlier framing was wrong
 
-The PGEN annotation design intent has always been that return + semantic annotations apply **inline during parse** — the generated `parse_X` methods directly emit shaped output as they parse, with no separate post-parse transform step. The current implementation has drifted from that intent: parsers emit a generic `ParseNode` tree, and shaped output is built by a post-parse transform (`UnifiedReturnAST::parse_generated_return_annotation` walking the tree). The drift was surfaced during the PGEN-RGX-0073 perf investigation, which measured roughly 12,500ns per AST node in the regex parser — a cost class consistent with allocating a generic node, populating its `rule_name` / `content` / `span` fields, and then re-walking the tree post-parse to extract the shape downstream consumers actually want.
+An earlier framing said return + semantic annotations had drifted to a "post-parse transform" applied by `UnifiedReturnAST::parse_generated_return_annotation` walking a generic `ParseNode` tree at parse time, and that Phase 2 had to "restore inline application." A direct read of the codebase shows that framing is wrong:
 
-Phase 2 restores the original design contract. Restoring it removes a class of allocations from the per-parse hot path, shrinks the shape downstream consumers see, and removes the two-phase indirection that has been a source of confusion and drift.
+- Return annotations are already applied inline at runtime. [rust/src/ast_pipeline/ast_based_generator.rs](../../../rust/src/ast_pipeline/ast_based_generator.rs) emits `result = #transform;` directly inside each rule's parse function whenever the rule carries a return annotation, with the transform tokens produced by [rust/src/ast_pipeline/ast_return_transform.rs](../../../rust/src/ast_pipeline/ast_return_transform.rs).
+- `UnifiedReturnAST::parse_generated_return_annotation` is a build-time parser of annotation source text (e.g. `-> $1.foo`); it runs during PGEN code generation, not during downstream input parsing.
+- Semantic annotations already use a typed structured carrier (`UnifiedSemanticValue` / `SemanticRuntimeValue`) — they do not carry an analogous problem.
 
-### Decomposition
+The earlier framing also claimed PGEN-RGX-0073 closure depended on "moving annotations inline for the regex grammar." That claim was retracted after a direct check: [generated/regex_parser.rs](../../../generated/regex_parser.rs) currently has zero hits for `json_obj`, `serde_json::to_string`, or `serde_json::json!(`, and the `parse_regex` / `parse_piece` functions emit raw `ParseContent::Quantified(...)` / `ParseContent::Sequence(...)` with no `result = #transform` step. The regex grammar's two object-literal annotations (`-> {type: "regex", pattern: $1}` and `-> {type: "piece", atom: $1, quantifier: $2}`) are silently dropped at codegen for that grammar today. Whatever the dominant cost in the regex parser is, it is not a stringification roundtrip — that code is not present in the regex parser at all.
 
-Phase 2 is decomposed into ~8 milestones. Each milestone is independently committable with: designed contract, implementation, preserved tests, perf measurement, sign-off before next.
+### What is actually wrong
 
-- **M0** — Plan agreed (this section).
-- **M1** — Parallel emit infrastructure: `--inline-annotations` flag in `ast_pipeline`, off by default. When on, the generator emits a second set of `parse_X_typed` methods alongside existing `parse_X`. Default behavior unchanged. Output type: `serde_json::Value` (matches the AST-dump path consumers already see; future newtype wrap is a follow-up only).
-- **M2** — Differential validation: run both paths on `return_annotation` grammar's existing test corpus + semantic corpus; assert byte-identical output. Proves the inline emit is correct against the post-parse oracle before any other grammar migrates.
-- **M3** — Migrate `regex` grammar to inline path. Add `parse_full_regex_typed()` to the embedding API. Validate against legacy on the regex_parser_integration_contract corpus (93 success + failure samples).
-- **M4** — Perf measurement: `regex_perf_probe` runs both paths. Confirm inline is faster than legacy + post-parse, with the size of the difference reported honestly.
-- **M5** — RGX integration: get RGX to consume `parse_full_regex_typed`. Validate end-to-end across the RGX-side test surface. PGEN-RGX-0073 closure depends on this milestone landing.
-- **M6** — Migrate remaining grammars (`semantic_annotation`, `return_annotation`, `systemverilog`, `vhdl`, `rtl_const_expr`, `rtl_frontend`). One per commit, in that order. Each one runs differential validation against its post-parse oracle.
-- **M7** — Retire post-parse transform. Remove `UnifiedReturnAST::parse_generated_return_annotation` walkers and friends. Default `--inline-annotations` to ON; remove the flag itself in a subsequent commit.
-- **M8** — Cleanup: shrink the `Annotations` runtime struct to only what the stimuli/semantic-runtime paths still need. Generated parser size shrinks. AST-dump JSON either retired or kept as an explicitly opt-in path.
+The real defect is in how return-annotation object literals and property/array access are carried at runtime in the generated parsers that *do* emit transforms (notably [generated/return_annotation_parser.rs](../../../generated/return_annotation_parser.rs)):
 
-### Output type decision
+- [`generate_object_transform`](../../../rust/src/ast_pipeline/ast_return_transform.rs) builds a `serde_json::Value` then `serde_json::to_string`s it and wraps the resulting `String` in `ParseContent::TransformedTerminal(String)`. From that point on the shaped value lives as JSON-encoded text inside a string variant.
+- [`generate_property_access`](../../../rust/src/ast_pipeline/ast_return_transform.rs) deserialises that string back into `serde_json::Value`, looks up a property, and re-stringifies before wrapping again. Each property access pays serialise → parse → serialise.
+- [`generate_array_transform`](../../../rust/src/ast_pipeline/ast_return_transform.rs) builds a `ParseContent::Sequence(Vec<ParseNode>)` with synthetic `element_N` rule names and zero spans, which is a different shape than the JSON-string carrier and does not compose cleanly with property access.
+- `parse_content_to_string` falls back to `format!("{:?}", other)` (Debug formatter) for any non-trivial `ParseContent`, so structured shapes degrade silently into Rust Debug strings rather than failing visibly.
 
-`parse_X_typed` returns `ParseResult<serde_json::Value>`. Rationale:
+That serialise/parse/serialise roundtrip — and the Debug-format fallback — is the "stringification nonsense" Phase 2 retargets to remove.
 
-- Matches the shape RGX and other downstream consumers already see via the existing AST-dump path.
-- Avoids a parser-family explosion of newtypes (one shape per grammar).
-- A future wrap-in-newtype refactor is non-breaking on the JSON wire format.
+### What Phase 2 now does
 
-A typed-enum alternative was considered and deferred. It would be more type-safe but adds API surface and forces RGX-side changes that are not justified by the perf or correctness goals of this phase.
+Phase 2 introduces a typed structured carrier in `ParseContent` so return-annotation transforms operate on values, not on serialised strings.
+
+1. Extend `ParseContent` with a typed structured variant (e.g. `Json(serde_json::Value)`).
+2. `generate_object_transform` builds `serde_json::Value::Object(...)` directly and wraps it as the new variant. No `to_string`.
+3. `generate_array_transform` builds `serde_json::Value::Array(...)` and wraps it as the new variant. The synthetic-`ParseNode` array shape is no longer needed for array literals (it remains for sequence captures the grammar already produces).
+4. `generate_property_access` and `generate_array_access` operate in place on the typed value (`value.get(prop)` / `value.get(idx)`). No `from_str`, no `to_string`.
+5. `parse_content_to_string` is rewritten to handle the typed variant explicitly, and the `format!("{:?}", other)` Debug fallback is removed in favour of structured handling.
+6. `parse_full_<entry>_typed` (M1's seam) returns the typed value directly rather than `serde_json::to_value(&node)`-wrapping a string-encoded tree.
+
+Semantic annotations are out of scope of this work — they already use a typed carrier and are not affected.
 
 ### What this phase is not
 
-- Not a one-shot atomic refactor. Each milestone has an explicit rollback granularity.
-- Not a public API change at the `parse_full_*` legacy entry points until M5+ explicitly opts in. M1-M3 are additive only.
-- Not a substitute for the parser-agnostic micro-optims (Optims #2-#7 already landed). Phase 2 attacks a different cost class — AST shape and indirection — and those gains compose.
+- It is not a "move post-parse to inline" phase. Inline application is already in place.
+- It is not on the critical path for PGEN-RGX-0073 closure as currently understood. The regex parser does not carry the stringify roundtrip today, so removing it cannot directly speed regex parsing. It is, however, a precondition for any future typed-shape API on regex, because turning the dropped annotations on without first fixing the carrier would just import the stringify cost into regex.
+- It is not a `serde_json::Value` lock-in for the public API. `parse_full_<entry>_typed` keeps its `ParseResult<serde_json::Value>` signature; only the internal carrier changes.
 
-### Risks
+### Separate defect surfaced during this investigation
 
-| Milestone | Top risk | Mitigation |
-|---|---|---|
-| M1 | Codegen complexity — porting `UnifiedReturnAST::generate_code` logic into the parser-emit template. | M1 emits a wrapper around the legacy path; no shape logic ports. M2 is when the actual port happens. |
-| M2 | Differential mismatch reveals undocumented post-parse-only behavior. | The post-parse transform is the truth oracle; either the inline emit matches it or the inline emit is wrong. No mismatch is acceptable. |
-| M3 | Regex grammar's 582 generated rule constructions all regenerate. | Tests at the regex_parser_integration_contract surface (93 success + failure samples) are the gate. |
-| M5 | RGX consumer code reads our output. | Cross-repo coordination; opt-in API surface, RGX migrates on its own schedule. |
-| M7 | Removing the safety net. | Only after every grammar has migrated, every test has been migrated, and every consumer has been migrated. |
+The regex grammar declares object-literal return annotations that never reach the generated regex parser. That is a silent codegen drop, separate from the stringification work, and it is not closed by Phase 2 alone. It is tracked as a follow-up to investigate after the typed carrier lands.
 
 ### Commit cadence
 
-Each milestone produces at least one focused commit. Continuity-doc updates are mandatory per the project's `COMMIT.md` workflow. A milestone is not declared complete until its commit lands and continuity docs are synchronized.
+Phase 2 lands in two commits:
+
+1. Documentation retarget — replaces the wrong "post-parse" framing across the book chapter, live tracker, and continuity docs. No code or test changes.
+2. Code change — introduces the typed structured carrier, rewrites the affected codegen helpers, regenerates the affected tracked parsers, and adds a focused differential test that asserts byte-identical wire-JSON output for the existing return + semantic annotation contract corpora before and after the change.
+
+The earlier M1 commit (`4450b93`) remains useful: the `--inline-annotations` flag and the `parse_full_<entry>_typed` skeleton are the right seam for surfacing the typed value through the public API; only the Phase 2 narrative attached to that commit was wrong.
 
 ## Primary Source Docs
 

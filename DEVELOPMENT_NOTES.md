@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Phase 2 framing retargeted
+
+### What this entry corrects
+
+The two earlier 2026-04-26 entries below ("Phase 2 plan logged" and "Phase 2 M1: parallel emit infrastructure") framed the work as restoring inline annotation application against a post-parse transform that was alleged to walk a generic `ParseNode` tree at parse time. That framing was wrong on direct read of the codebase and is replaced by this entry. The earlier entries are kept as written for archaeological honesty; the corrected story is here.
+
+### What the codebase actually does
+
+- Return annotations are already applied inline at runtime. [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) emits `result = #transform;` directly inside each rule's parse function in the codegen path that ends at [`generate_return_transform`](rust/src/ast_pipeline/ast_based_generator.rs) → [`AstReturnTransformer::generate_transform`](rust/src/ast_pipeline/ast_return_transform.rs). For rules that carry a return annotation, the shape is applied during parse, not after.
+- `UnifiedReturnAST::parse_generated_return_annotation` is a build-time parser of annotation source text such as `-> $1.foo`, used by [parse_return_annotation_ast](rust/src/ast_pipeline/mod.rs) so codegen can lower the annotation into inline transform tokens. It does not run on per-input parse trees.
+- Semantic annotations already use a typed structured carrier (`UnifiedSemanticValue` / `SemanticRuntimeValue`). They do not carry an analogous problem and are out of scope of this Phase 2 work.
+
+### What is actually wrong
+
+The defect is the runtime carrier used by return-annotation object literals and property/array access in the generated parsers that *do* emit transforms (notably [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs)):
+
+1. [`generate_object_transform`](rust/src/ast_pipeline/ast_return_transform.rs) builds a `serde_json::Value`, then calls `serde_json::to_string` on it, and wraps the resulting `String` in `ParseContent::TransformedTerminal(String)`. The shaped value lives as JSON-encoded text inside a string variant from this point.
+2. [`generate_property_access`](rust/src/ast_pipeline/ast_return_transform.rs) reverses that: it deserialises the string back into `serde_json::Value`, looks up the property, and re-stringifies via `prop_val.to_string()` before wrapping in `TransformedTerminal(String)` again. Each property access pays serialise → parse → serialise.
+3. [`generate_array_transform`](rust/src/ast_pipeline/ast_return_transform.rs) builds a `ParseContent::Sequence(Vec<ParseNode>)` with synthetic `element_N` rule names and zero spans. That is a different carrier shape than the JSON-string carrier and composes poorly with property access against the string side.
+4. `parse_content_to_string` (line 64) falls back to `format!("{:?}", other)` (Debug formatter) for any `ParseContent` that is not Terminal / TransformedTerminal / Alternative. Structured shapes degrade silently into Rust Debug strings rather than failing visibly.
+
+### Retraction: PGEN-RGX-0073 dependency
+
+The earlier framing claimed PGEN-RGX-0073 closure depended on Phase 2 reaching the regex grammar's nested-object shapes. That claim is retracted on evidence:
+
+- `grep -cE 'json_obj|serde_json::to_string|serde_json::json!\\('` over [generated/regex_parser.rs](generated/regex_parser.rs) returns `0`.
+- `parse_regex` and `parse_piece` in that file emit raw `ParseContent::Quantified(...)` and `ParseContent::Sequence(...)` and wrap as `ParseNode`. There is no inline `result = #transform` step in either function.
+- The two object-literal return annotations declared in [grammars/regex.ebnf](grammars/regex.ebnf) (`-> {type: "regex", pattern: $1}` and `-> {type: "piece", atom: $1, quantifier: $2}`) do not flow into the generated regex parser today.
+
+The regex parser therefore does not pay the stringification roundtrip cost. Removing that roundtrip cannot directly speed regex parsing because that code is not present in the regex parser at all. Whatever dominates the ~12,500ns/AST-node figure cited in the bug, the stringification roundtrip is not it for the regex grammar.
+
+### What Phase 2 now does
+
+Two commits:
+
+1. Documentation retarget — this entry, plus the matching updates in [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md), [CHANGES.md](CHANGES.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [MEMORY.md](MEMORY.md). No code changes.
+2. Code change — introduce a typed structured carrier in `ParseContent` (e.g. `Json(serde_json::Value)`); rewrite `generate_object_transform`, `generate_array_transform`, `generate_property_access`, `generate_array_access`, and `parse_content_to_string` to operate on the typed value in place; drop the Debug-format fallback; regenerate affected tracked parsers; add a focused differential test asserting byte-identical wire-JSON before and after for the existing return + semantic annotation contract corpora.
+
+`parse_full_<entry>_typed` keeps its `ParseResult<serde_json::Value>` public signature; only the internal carrier changes. The M1 commit (`4450b93`) is not reverted; the flag and skeleton method are still the right seam for surfacing the typed value through the public API.
+
+### Separate defect to follow up on
+
+The regex grammar's declared object-literal return annotations never reach the generated regex parser. That silent codegen drop is independent of the stringification work and is not closed by Phase 2 alone. Tracked as a follow-up to investigate after the typed carrier lands; turning emission on for regex without first fixing the carrier would just import the stringify cost into regex.
+
 ## 2026-04-26 - Phase 2 M1: parallel emit infrastructure
 ### What this milestone landed
 - `--inline-annotations` CLI flag on `ast_pipeline` (default off). When passed during `--generate-parser`, the generator emits a parallel `impl` block carrying `parse_full_<entry>_typed(&mut self) -> ParseResult<serde_json::Value>` alongside the existing `parse_full_<entry>(&mut self) -> ParseResult<ParseNode>` method. The M1 typed body is a skeleton wrapper:

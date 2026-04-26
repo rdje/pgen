@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-26 - Phase 2 framing retargeted: actual cost class is stringification roundtrip in return-annotation transforms
+### Achievement Summary
+Documentation-only correction. The earlier 2026-04-26 entries in this file (Phase 2 plan logged + Phase 2 M1 landed) framed Phase 2 as restoring inline annotation application against a "post-parse transform" that was alleged to walk a generic `ParseNode` tree at parse time. Direct read of the codebase shows that framing is wrong:
+
+- Return annotations are already applied inline at runtime. [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) emits `result = #transform;` directly inside each rule's parse function from the codegen path that calls into [rust/src/ast_pipeline/ast_return_transform.rs](rust/src/ast_pipeline/ast_return_transform.rs).
+- `UnifiedReturnAST::parse_generated_return_annotation` parses annotation source text (e.g. `-> $1.foo`) at PGEN build time so codegen can emit inline transform tokens. It does not run on per-input parse trees.
+- Semantic annotations already use a typed structured carrier (`UnifiedSemanticValue` / `SemanticRuntimeValue`); they do not carry the same problem.
+- The earlier claim that PGEN-RGX-0073 closure depends on Phase 2 reaching the regex grammar is retracted. [generated/regex_parser.rs](generated/regex_parser.rs) has zero hits for `json_obj` / `serde_json::to_string` / `serde_json::json!(`, and the `parse_regex` / `parse_piece` functions emit raw `ParseContent::Quantified(...)` / `ParseContent::Sequence(...)` with no `result = #transform` step. The two object-literal annotations declared in [grammars/regex.ebnf](grammars/regex.ebnf) (`-> {type: "regex", pattern: $1}` and `-> {type: "piece", atom: $1, quantifier: $2}`) are silently dropped at codegen for the regex grammar today; whatever the dominant cost in regex parsing is, it is not a stringification roundtrip because that code is not present in the regex parser at all.
+
+The actual defect is in how return-annotation object literals and property/array access are carried at runtime in the generated parsers that *do* emit transforms (notably [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs)):
+
+- [`generate_object_transform`](rust/src/ast_pipeline/ast_return_transform.rs) builds a `serde_json::Value` and then `serde_json::to_string`s it before wrapping the resulting `String` in `ParseContent::TransformedTerminal(String)`. From that point on the shaped value lives as JSON-encoded text inside a string variant.
+- [`generate_property_access`](rust/src/ast_pipeline/ast_return_transform.rs) deserialises that string back, looks up a property, and re-stringifies before wrapping again. Each property access pays serialise → parse → serialise.
+- [`generate_array_transform`](rust/src/ast_pipeline/ast_return_transform.rs) builds a `ParseContent::Sequence(Vec<ParseNode>)` with synthetic `element_N` rule names and zero spans, which composes poorly with property access against the string carrier.
+- `parse_content_to_string` falls back to `format!("{:?}", other)` (Debug formatter) for any non-trivial `ParseContent`, so structured shapes degrade silently into Rust Debug strings instead of failing visibly.
+
+Phase 2 is retargeted to remove that serialise/parse/serialise roundtrip and the Debug-format fallback by introducing a typed structured carrier in `ParseContent` (e.g. `Json(serde_json::Value)`) and rewriting the four affected codegen helpers to operate on values in place. `parse_full_<entry>_typed` (the M1 seam) keeps its `ParseResult<serde_json::Value>` signature; only the internal carrier changes. Semantic annotations are out of scope for this work.
+
+### Scope of Changes (docs only)
+- [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md): "Phase 2: Inline Annotation Application (planned, in progress)" rewritten as "Phase 2: Eliminate Stringification Roundtrips In Return-Annotation Transforms (retargeted)" with explicit statement that the earlier framing was wrong and what the actual defect is.
+- [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md): new tracker note at top of Live Snapshot retracting the post-parse framing and the PGEN-RGX-0073 dependency claim, summarising the actual cost class, and naming the two-commit plan.
+- [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md): retargeting entry covering the same evidence and the typed-carrier plan.
+- [MEMORY.md](MEMORY.md): session-continuity entry so future sessions resume on the corrected framing instead of the post-parse story.
+- [CHANGES.md](CHANGES.md): this entry.
+
+### Validation
+- No code changes. No tests changes. No parser regeneration.
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate` to confirm the book chapter still builds.
+
+### Important Boundaries
+- **Earlier M1 commit (`4450b93`) is not reverted.** The `--inline-annotations` flag and the `parse_full_<entry>_typed` skeleton method are still the right seam for surfacing the typed value; only the narrative attached to that commit was wrong.
+- **Earlier perf-campaign entries (Optims #2-#7) are unaffected.** Those measure parser-agnostic improvements and remain accurate as posted.
+- **Separate defect surfaced and not closed by this work**: the regex grammar's declared object-literal return annotations never reach the generated regex parser. That is a silent codegen drop; it is logged as a follow-up to investigate after the typed carrier lands.
+
 ## 2026-04-26 - Phase 2 M1: parallel emit infrastructure (`--inline-annotations` flag)
 ### Achievement Summary
 First code milestone of Phase 2. Adds `--inline-annotations` to the `ast_pipeline` CLI (off by default). When set, the parser generator emits a parallel `impl<'input> ParserName<'input>` block carrying `pub fn parse_full_<entry>_typed(&mut self) -> ParseResult<serde_json::Value>` alongside the existing `parse_full_<entry>` method. The M1 typed method body is a skeleton wrapper around the legacy method plus `serde_json::to_value(&node)` — functionally equivalent to "parse + AST-dump-as-JSON". M2 will replace the body with truly inline shape-emit logic that honors the rule's return annotation.
