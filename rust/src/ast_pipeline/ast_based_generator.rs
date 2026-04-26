@@ -548,7 +548,12 @@ impl AstBasedGenerator {
                 Self {
                     input,
                     position: 0,
-                    memo: rustc_hash::FxHashMap::default(),
+                    // Optim #7: pre-size memo to skip the 4-→8-→16-→...-→256 rehash
+                    // chain during parse. Even small regex patterns produce ~50-200
+                    // memo entries; large ones produce more. 256 covers the common
+                    // case without growth; FxHashMap doubles past that. The cost is
+                    // a one-time allocation at parser construction (cheap).
+                    memo: rustc_hash::FxHashMap::with_capacity_and_hasher(256, Default::default()),
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
                     grammar_profile: None,
                     recovery_events: Vec::new(),

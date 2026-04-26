@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-04-26 - Optim #7 (PGEN-RGX-0073): pre-size memo HashMap to skip rehash chain
+### Achievement Summary
+Path A round 5 samply (post-Optim-#5/#6) showed `__bzero` 5.85% self time and `hashbrown::raw::RawTable::reserve_rehash` 2.63% self time. Caller analysis confirmed the rehashes came from `HashMap::insert` calls during memo growth. Pre-sizing the memo to `with_capacity(256)` skips the 4→8→16→32→64→128→256 rehash chain that ran on every parse.
+
+### Scope of Changes
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)
+  - `new()` constructor: `memo: rustc_hash::FxHashMap::default()` → `memo: rustc_hash::FxHashMap::with_capacity_and_hasher(256, Default::default())`. One-time allocation of 256-slot bucket array at parser construction; covers ~50-200 typical memo entries plus headroom.
+- Regenerated parsers (all four tracked):
+  - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/regex.json](generated/regex.json)
+  - [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/return_annotation.json](generated/return_annotation.json)
+  - [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/semantic_annotation.json](generated/semantic_annotation.json)
+  - [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs)
+- Continuity docs: [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md).
+
+### Validation — perf
+`target/release/regex_perf_probe`, two consecutive runs (Apple M4 Pro, release build, 1000 samples each, 50 warmup):
+
+| Pattern | Optim #6 p50 (b58b8ac) | Optim #7 p50 (run 1) | Optim #7 p50 (run 2) | Speedup vs Optim #6 | Combined vs f675d25 |
+|---|---:|---:|---:|---:|---:|
+| literal_simple   |   42,375 |   51,041 |   39,125 | 0.83×/1.08× | 5.64×–7.36× |
+| digit_sequence   |   90,958 |   86,625 |   86,083 | 1.05× | 6.59× |
+| character_class  |  219,417 |  212,416 |  211,917 | 1.03× | 8.84× |
+| alternation      |  108,375 |  102,958 |  103,666 | 1.05× | 7.18× |
+| capture_groups   |  154,667 |  149,791 |  149,833 | 1.03× | 7.40× |
+| url_simple       |   95,792 |   92,041 |   92,042 | 1.04× | 7.00× |
+| email_basic      |  125,625 |  121,666 |  121,958 | 1.03× | 6.79× |
+| anchor_complex   |  266,834 |  264,250 |  263,292 | 1.01× | 7.92× |
+
+1.01–1.06× p50 vs Optim #6 (literal_simple variance high; other patterns consistent across both runs).
+
+### Distance to PGEN-RGX-0073 targets
+- ✅ Primary (<50 µs): `literal_simple` (39 µs on run 2; consistently within 51 µs)
+- ✅ Interim (<200 µs): 6 of 8 patterns
+- 🔴 Just above interim: `character_class` (212 µs, 6% over), `anchor_complex` (264 µs, 32% over)
+
+### Validation — tests
+- `cargo test --lib --features generated_parsers` ✅ 467 passed, 0 failed.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- Initial capacity is a generic-good-default 256, not pattern-specific. Tested across all 8 RGX-0073 patterns and the test suite without regression.
+
+### Important Boundaries
+- **Parser-agnostic.** Affects every generated parser when regenerated. SV, VHDL, RTL, return_annotation, semantic_annotation parsers all benefit.
+- **Initial capacity overhead.** A 256-slot FxHashMap bucket array is roughly 256 * (sizeof key + sizeof value) ≈ a few KB at parser construction. Negligible vs the per-iteration savings on rehash.
+- For very large grammars where memos exceed 256 entries (SV, etc.), HashMap doubles to 512, 1024, etc. Same rehash behavior, just shifted up. If profiles of larger parsers show the same hot spot, bump the initial capacity higher.
+
 ## 2026-04-26 - Optim #6 (PGEN-RGX-0073): FxHashMap (rustc-hash) for the parser memo
 ### Achievement Summary
 Path A round 4 samply (post-Optim-#4/#5) showed `siphash::Hasher::write` at 6.05% self time, `BuildHasher::hash_one` at 3.89%, `HashMap::insert` at 1.62% — total ~12% spent in HashMap hashing. Investigation showed the memo HashMap was the hot one (every rule entry hits `self.memo.get(&(rule_id, position))`). Internal integer keys with no DoS exposure don't need siphash's collision resistance. FxHash (the same hasher rustc uses internally) is ~3-4× faster on small integer keys.

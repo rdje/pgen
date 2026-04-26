@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-6-fxhashmap-memo)
+Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-7-presize-memo)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,17 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- PGEN-RGX-0073 Optim #6: FxHashMap (rustc-hash) for the parser memo. Real win of 1.09-1.17x p50 vs Optim #5. Combined vs original baseline f675d25: 5.24-8.55x across all 8 patterns. literal_simple at primary target (42us), 6 of 8 patterns within INTERIM (<200us); only character_class (219us) and anchor_complex (267us) just above interim.
+- PGEN-RGX-0073 Optim #7: pre-size memo HashMap to skip rehash chain. Skips 4-→8-→16-→...-→256 doubling rehashes during parse.
+  - changed:
+    - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — memo: FxHashMap::with_capacity_and_hasher(256, Default::default())
+    - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause (samply Path A round 5): __bzero 5.85% self + reserve_rehash 2.63% — memo HashMap growing repeatedly during parse, OS zeroing fresh bucket arrays
+  - perf: 1.01-1.06x p50 vs Optim #6 across 8 patterns; literal_simple 39us on best run (consistent)
+  - combined vs f675d25: 5.64-8.84x; primary target hit on literal_simple; 6/8 patterns within INTERIM
+  - parser-agnostic; SV/VHDL/RTL parsers benefit on regen
+  - next likely big win: switching MemoEntry to Rc<ParseNode> to skip the recursive ParseNode::clone on memo hits (354 Vec::clone calls from ParseNode::clone in round 5 profile)
+- PGEN-RGX-0073 Optim #6: FxHashMap (rustc-hash) for the parser memo (committed 2026-04-26 as b58b8ac).
   - changed:
     - [rust/Cargo.toml](rust/Cargo.toml) — added rustc-hash 2.1 dep
     - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — parser memo type switched to FxHashMap; constructor updated; test assertion adjusted

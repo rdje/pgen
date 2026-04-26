@@ -124,7 +124,10 @@ impl<'input> RtlConstExprParser<'input> {
         Self {
             input,
             position: 0,
-            memo: rustc_hash::FxHashMap::default(),
+            memo: rustc_hash::FxHashMap::with_capacity_and_hasher(
+                256,
+                Default::default(),
+            ),
             recursion_guard: RecursionGuard::new(4096usize),
             grammar_profile: None,
             recovery_events: Vec::new(),

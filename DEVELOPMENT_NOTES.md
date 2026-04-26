@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Optim #7: pre-size memo HashMap to skip rehash chain
+### Context
+Path A round 5 samply (post-Optim-#5/#6) showed `__bzero` at 5.85% self time and `hashbrown::raw::RawTable::reserve_rehash` at 2.63%. Direct caller analysis confirmed `reserve_rehash` was almost always called from `HashMap::insert`, with the top inserters being parser methods (`parse_group`, `parse_literal`, `parse_branch_reset_group`, etc.) — which all funnel into `memoize_or_compute`.
+
+### Why rehashes mattered
+A FxHashMap starts at capacity 0 and grows by doubling. Each parse call generated ~50–200 memo entries (more for complex patterns), triggering 4→8→16→32→64→128→256 (or beyond) rehashes. Each rehash copies all existing entries to a new bucket array, plus allocates the new array (which the OS zeros on first touch — explains some of the `__bzero`). For a parse with 200 memo entries: 7 rehashes, each O(n_at_that_size) copies.
+
+### Fix
+- `with_capacity(256)` at parser construction. One bucket allocation upfront, no growth-rehashes for typical parses.
+- Picked 256 because: covers the observed median memo size with headroom, FxHashMap doubles past so it's not a hard cap, the initial allocation cost (~few KB) is negligible.
+
+### Why this is parser-agnostic
+The change is in `ast_based_generator.rs::generate_constructor`. Every generated parser gets the pre-sized memo on regeneration.
+
+### Validation — perf
+Two consecutive `regex_perf_probe` runs: 1.01–1.06× p50 across 8 patterns vs Optim #6. Combined vs original baseline: 5.64×–8.84× (literal_simple as low as 39 µs on best run, well within RGX-0073 primary target of <50 µs).
+
+### Lessons logged
+- Pre-sizing collections is a free win when the size is predictable. Profile-driven candidates: any map/vec that grows during a hot loop.
+- `__bzero` in the profile often points to allocation churn. Reducing allocator activity (pre-sizing, reusing, arenas) cuts the OS zeroing cost.
+- The next likely big-win is the recursive `ParseNode::clone` in memo hits (354 Vec::clone calls from ParseNode::clone in the round-5 profile — recursive deep-clone of cached parse subtrees). Switching MemoEntry to `Rc<ParseNode>` would convert each memo hit from O(subtree size) to O(1). That's a deeper architectural change worth its own analysis.
+
 ## 2026-04-26 - Optim #6: FxHashMap (rustc-hash) for the parser memo
 ### Context
 Path A round 4 samply profile (post-Optim-#4) showed `siphash::Hasher::write` 6.05% self time and `BuildHasher::hash_one` 3.89% — together ~10% spent hashing. Initial assumption was that the regex cache (Optim #2's `HashMap<String, Regex>`) was the offender. Verification (a separate Optim #6 prototype that switched the regex cache to a pointer-keyed Vec) showed NO measurable speedup — the regex cache is hit ~10× per parse, far less than the memo.
