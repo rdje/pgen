@@ -55,7 +55,7 @@ pub enum DeterministicPartitionRuntimeMode {
 pub struct RtlConstExprParser<'input> {
     input: &'input str,
     position: usize,
-    memo: HashMap<(RuleId, usize), MemoEntry<'input>>,
+    memo: rustc_hash::FxHashMap<(RuleId, usize), MemoEntry<'input>>,
     recursion_guard: RecursionGuard,
     grammar_profile: Option<String>,
     recovery_events: Vec<RecoveryEvent>,
@@ -124,7 +124,7 @@ impl<'input> RtlConstExprParser<'input> {
         Self {
             input,
             position: 0,
-            memo: HashMap::new(),
+            memo: rustc_hash::FxHashMap::default(),
             recursion_guard: RecursionGuard::new(4096usize),
             grammar_profile: None,
             recovery_events: Vec::new(),

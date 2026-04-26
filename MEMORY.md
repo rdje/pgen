@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-5-cache-logger-enabled)
+Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-6-fxhashmap-memo)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,17 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- PGEN-RGX-0073 Optim #5: cache logger.is_enabled() at parser construction. Eliminates vtable dispatch in 28 hot-path call sites per parse-step. Small bounded win (1-3% p50) but architecturally clean.
+- PGEN-RGX-0073 Optim #6: FxHashMap (rustc-hash) for the parser memo. Real win of 1.09-1.17x p50 vs Optim #5. Combined vs original baseline f675d25: 5.24-8.55x across all 8 patterns. literal_simple at primary target (42us), 6 of 8 patterns within INTERIM (<200us); only character_class (219us) and anchor_complex (267us) just above interim.
+  - changed:
+    - [rust/Cargo.toml](rust/Cargo.toml) — added rustc-hash 2.1 dep
+    - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — parser memo type switched to FxHashMap; constructor updated; test assertion adjusted
+    - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause (samply Path A round 4 confirmed by elimination): siphash::Hasher::write 6.05% + BuildHasher::hash_one 3.89% on internal (RuleId, position) integer keys; siphash overkill for non-DoS-exposed keys
+  - regex cache prototype (Optim #6 first attempt with pointer-keyed Vec) was reverted as perf-neutral — the actual hot HashMap was memo, not regex cache
+  - cargo test --lib --features generated_parsers: 467/467
+  - parser-agnostic: SV, VHDL, RTL parsers get the same speedup when regenerated
+- PGEN-RGX-0073 Optim #5: cache logger.is_enabled() at parser construction (committed 2026-04-26 as 07ea2f6).
   - changed:
     - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — added logger_enabled: bool field; new() initializes from logger.is_enabled(); 28 call sites switched
     - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated

@@ -303,7 +303,11 @@ impl AstBasedGenerator {
             pub struct #parser_name<'input> {
                 input: &'input str,
                 position: usize,
-                memo: HashMap<(RuleId, usize), MemoEntry<'input>>,
+                // Optim #6: FxHashMap (rustc-hash) for the memo. Hit on every rule
+                // entry, with internal (RuleId, usize) integer keys — no DoS exposure,
+                // siphash is overkill. FxHash is the same fast hasher rustc uses
+                // internally; ~3-4× faster on small integer keys.
+                memo: rustc_hash::FxHashMap<(RuleId, usize), MemoEntry<'input>>,
                 recursion_guard: RecursionGuard,
                 grammar_profile: Option<String>,
                 recovery_events: Vec<RecoveryEvent>,
@@ -544,7 +548,7 @@ impl AstBasedGenerator {
                 Self {
                     input,
                     position: 0,
-                    memo: HashMap::new(),
+                    memo: rustc_hash::FxHashMap::default(),
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
                     grammar_profile: None,
                     recovery_events: Vec::new(),
@@ -5373,7 +5377,8 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("memo: HashMap<(RuleId, usize), MemoEntry<'input>>"),
+            rendered.contains("memo: rustc_hash :: FxHashMap < (RuleId, usize), MemoEntry < 'input > >")
+                || rendered.contains("memo: rustc_hash::FxHashMap<(RuleId, usize), MemoEntry<'input>>"),
             "generated parser should memoize rich entries instead of bare shaped nodes, got: {}",
             rendered
         );

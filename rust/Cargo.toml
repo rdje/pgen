@@ -74,6 +74,12 @@ proc-macro2 = "1.0"
 prettyplease = "0.2.37"
 lazy_static = "1.4"
 rustfmt-wrapper = "0.2.1"
+# Optim #6 (PGEN-RGX-0073): rustc-hash (FxHash) for the parser's memo HashMap. The
+# memo is hit on every rule entry; default siphash is overkill for internal
+# (RuleId, position) integer keys with no DoS exposure. FxHash is the same hasher
+# rustc uses internally — small crate, no transitive deps, ~3-4× faster on small
+# integer keys per the standard rustc-hash benchmarks.
+rustc-hash = "2.1"
 
 [features]
 default = ["normal"]

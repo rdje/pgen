@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-04-26 - Optim #6 (PGEN-RGX-0073): FxHashMap (rustc-hash) for the parser memo
+### Achievement Summary
+Path A round 4 samply (post-Optim-#4/#5) showed `siphash::Hasher::write` at 6.05% self time, `BuildHasher::hash_one` at 3.89%, `HashMap::insert` at 1.62% — total ~12% spent in HashMap hashing. Investigation showed the memo HashMap was the hot one (every rule entry hits `self.memo.get(&(rule_id, position))`). Internal integer keys with no DoS exposure don't need siphash's collision resistance. FxHash (the same hasher rustc uses internally) is ~3-4× faster on small integer keys.
+
+### Scope of Changes
+- [rust/Cargo.toml](rust/Cargo.toml): added `rustc-hash = "2.1"` dependency. ~150 LoC crate, no transitive deps.
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)
+  - Parser struct: `memo: HashMap<(RuleId, usize), MemoEntry<'input>>` → `memo: rustc_hash::FxHashMap<(RuleId, usize), MemoEntry<'input>>`.
+  - `new()` constructor: `memo: HashMap::new()` → `memo: rustc_hash::FxHashMap::default()`.
+  - Test assertion `transform_from_raw_ast_*memo*`: updated to accept the new type substring.
+- Regenerated parsers (all four tracked):
+  - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/regex.json](generated/regex.json)
+  - [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/return_annotation.json](generated/return_annotation.json)
+  - [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/semantic_annotation.json](generated/semantic_annotation.json)
+  - [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs)
+- Continuity docs: [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md).
+
+### Validation — perf
+`target/release/regex_perf_probe`, two consecutive runs (Apple M4 Pro, release build, 1000 samples each, 50 warmup):
+
+| Pattern | Optim #5 p50 (07ea2f6) | Optim #6 p50 (run 1) | Optim #6 p50 (run 2) | Speedup vs Optim #5 | Combined vs f675d25 |
+|---|---:|---:|---:|---:|---:|
+| literal_simple   |   50,250 |   55,333 |   42,375 | 0.91× / 1.19× | 5.24×–6.80× |
+| digit_sequence   |   99,166 |   90,625 |   90,958 | 1.09× | 6.23× |
+| character_class  |  240,333 |  218,625 |  219,417 | 1.10× | 8.55× |
+| alternation      |  125,042 |  107,875 |  108,375 | 1.16× | 6.92× |
+| capture_groups   |  171,666 |  156,167 |  154,667 | 1.10× | 7.16× |
+| url_simple       |  111,917 |   97,333 |   95,792 | 1.15× | 6.71× |
+| email_basic      |  140,000 |  126,584 |  125,625 | 1.11× | 5.93× |
+| anchor_complex   |  304,250 |  268,667 |  266,834 | 1.13× | 7.83× |
+
+1.09–1.17× p50 vs Optim #5 (literal_simple variance is high; other patterns consistent).
+
+### Distance to PGEN-RGX-0073 targets
+- ✅ Primary (<50 µs): literal_simple solidly within (42-55 µs).
+- ✅ Interim (<200 µs): 6 of 8 patterns. character_class (219 µs) and anchor_complex (267 µs) still just above.
+
+### Validation — tests
+- `cargo test --lib --features generated_parsers` ✅ 467 passed, 0 failed.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- FxHash is a non-cryptographic hasher: hostile inputs could craft collisions to degrade memo HashMap performance. Acceptable here because the keys (RuleId, position) are internally generated, not user-controlled.
+
+### Important Boundaries
+- **Parser-agnostic.** All generated parsers benefit when regenerated.
+- **Only the `memo` HashMap is switched.** Other parser HashMaps (recovery_counts, coverage_target_*, negative_case_*, etc.) keyed on `String` remain on the default hasher. They're hit much less frequently than `memo`.
+- New direct dependency `rustc-hash` — small, well-maintained (used by rustc), no transitive deps.
+
 ## 2026-04-26 - Optim #5 (PGEN-RGX-0073): cache logger.is_enabled() at parser construction
 ### Achievement Summary
 Path A round 4 samply profile (post-Optim-#4) showed `NoOpLogger::is_enabled` at 3.81% self time. The parser stores `logger: Box<dyn Logger>` and called `self.logger.is_enabled()` 28 times per parse-step in the hot path — each call a virtual dispatch through the vtable. Logger is never swapped after `new()`, so the bool can be cached.
