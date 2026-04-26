@@ -3546,6 +3546,15 @@ impl<'a> StimuliGenerator<'a> {
             let missing = self.missing_rule_references(&prepared[*idx].1);
             if missing.is_empty() {
                 true
+            } else if prepared[*idx].0.is_some() {
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Kept OR branch with missing rule references because it carries an explicit probability (retry loop will handle): rule='{}' path='{}' branch={} missing={:?}",
+                        current_rule, node_path, idx, missing
+                    ),
+                );
+                true
             } else {
                 self.trace(
                     TraceLevel::Debug,
@@ -3559,6 +3568,18 @@ impl<'a> StimuliGenerator<'a> {
         });
 
         if candidate_indices.is_empty() {
+            if let Some(recovery_sample) = self.recovery_stimulus_fallback(current_rule) {
+                self.trace(
+                    TraceLevel::Low,
+                    format_args!(
+                        "OR fallback recovery used after all branches pruned: rule='{}' path='{}' fallback_len={}",
+                        current_rule,
+                        node_path,
+                        recovery_sample.len()
+                    ),
+                );
+                return Ok(recovery_sample);
+            }
             return Err(anyhow!(
                 "No candidate branches available for rule '{}' during stimuli generation",
                 current_rule

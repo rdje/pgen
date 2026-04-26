@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-25 (+0200, task: pgen-rgx-0073-bench-harness)
+Last updated: 2026-04-26 (+0200, task: stimuli-generator-recovery-and-probability-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,15 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- PGEN-RGX-0073: regex parse-time perf investigation kicked off — measurement infrastructure landed:
+- Stimuli generator: missing-rule filter now respects recovery_stimulus_fallback and explicit branch probabilities.
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) (filter + early-exit refinement in generate_or)
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause: 6e0c2801 (2026-04-22) added a missing-rule filter that pre-empted (a) the recovery fallback path and (b) explicit per-branch probability semantics
+  - tests recovered: semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker, or_generation_retries_alternatives_after_selected_branch_error (both in stimuli_generator::tests)
+  - parser-agnostic: applies to all stimuli-generation lanes equally
+  - this is part of a 4-commit sequence to clear the 6 pre-existing test failures at HEAD f675d25 ahead of the Optim #2 (regex caching) commit on the PGEN-RGX-0073 lane
+- PGEN-RGX-0073: regex parse-time perf investigation kicked off — measurement infrastructure landed (committed 2026-04-25):
   - changed:
     - [rust/src/bin/regex_perf_probe.rs](rust/src/bin/regex_perf_probe.rs) (NEW; 137 lines)
     - [rust/Cargo.toml](rust/Cargo.toml) (added [[bin]] declaration with required-features generated_parsers)

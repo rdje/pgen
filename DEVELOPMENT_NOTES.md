@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Stimuli generator missing-rule filter: recovery + probability gaps
+### Context
+Full library test run (`cargo test --lib --features generated_parsers`) at HEAD `f675d25` reported 5 failing unit tests (plus 1 stack-overflow that aborted the runner). Two of those five failures lived in `stimuli_generator::tests` and shared a common root cause in `generate_or`.
+
+### Root cause
+Commit `6e0c2801` (2026-04-22, "SV stimuli: align profile-pruned replay debt") added a missing-rule-references filter to `generate_or` after the depth-bound retain. The intent: when running with `--grammar-profile 2017` (or any active profile), prune branches whose alternatives reference rules absent from the active grammar tree, so the gap-report's branch-debt classification (`references_rule_missing_from_active_grammar`) is consistent with what the generator actually attempts.
+
+The filter had two blind spots:
+1. **Recovery fallback path** — when ALL branches are filtered, `candidate_indices` empties and the function hits the pre-existing early-exit (`anyhow!("No candidate branches available...")`). The recovery fallback (`recovery_stimulus_fallback`) was only reachable from the end of the OR-branch loop, which is now unreachable on this path. Test `semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker` (Feb 2026) explicitly exercised this: an OR with two branches both referencing undefined rules, with `recover: true` + `panic_until: ["}"]` semantic annotations expected to drive a "}" stimulus.
+2. **Explicit probability annotations** — when the filter prunes some-but-not-all branches, surviving probabilities may no longer sum to 100. `build_weights` rejects with "Explicit branch probabilities must sum to 100, found N". The retry loop in `generate_or` was designed to handle missing-rule failures naturally, but the upfront filter pre-empted retry. Test `or_generation_retries_alternatives_after_selected_branch_error` exercised exactly this contract: branch1=Some(100%, missing_rule), branch2=Some(0%, ok); expected branch1 to fail naturally and retry to fall to branch2.
+
+### Fix
+- Refined the filter to skip pruning of probability-annotated branches; pruning a probability-annotated branch distorts weight invariants, so let retry handle the failure.
+- Added recovery-fallback try when `candidate_indices` empties — mirrors the existing fallback at the end of the OR-branch loop, which becomes unreachable when all branches are filtered upfront.
+
+### Validation
+- `cargo test --lib --features generated_parsers stimuli_generator::` 103 passed, 0 failed.
+- The filter still prunes profile-absent branches when neither fallback nor probability annotations apply — preserves the original commit's intent.
+
+### Lessons logged
+- Adding a filter upstream of an existing retry/fallback mechanism risks pre-empting the mechanism's contract. When introducing such a filter, audit the calls below it (recovery_stimulus_fallback at the end of the OR-branch loop, retry-on-Err loop) for assumptions about when they execute.
+- Per-branch probability annotations are part of the public stimuli-generation contract. Pruning logic must preserve them or fall through cleanly.
+
 ## 2026-04-25 - PGEN-RGX-0073: regex parse-time perf investigation kicked off
 ### Context
 RGX filed `PGEN-RGX-0073` (`/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0073.yaml`) reporting that PGEN's `regex` parser is 1,300-4,700× slower than PCRE2's full compile pipeline on a representative 8-pattern corpus, and consumes 65-99% of RGX's `Regex::compile` budget. Bug class: pathological performance, not correctness — parse output is correct on every measured pattern. RGX is committed to using PGEN as the sole parser (their `CLAUDE.md` rule), so the fix has to land on the PGEN side. Resolution targets: primary <50µs median (8-50× speedup), acceptable interim <200µs (2-12× speedup).

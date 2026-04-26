@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-26 - Stimuli generator: restore recovery fallback and probability semantics under missing-rule pruning
+### Achievement Summary
+Fixed two pre-existing test regressions in `rust/src/ast_pipeline/stimuli_generator.rs::generate_or` introduced by commit `6e0c2801` ("SV stimuli: align profile-pruned replay debt", 2026-04-22). That commit added a missing-rule-references filter that pruned OR branches whose alternatives reference rules absent from the active grammar profile, but the filter did not respect (a) the existing `recovery_stimulus_fallback` path or (b) explicit per-branch probability annotations. Both gaps caused legitimate stimuli generation contracts to break.
+
+### Scope of Changes
+- [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+  - `generate_or`: when the missing-rule filter empties `candidate_indices`, try `recovery_stimulus_fallback(current_rule)` before erroring. Mirrors the existing fallback at the end of the OR-branch loop, which becomes unreachable when all branches are filtered upfront.
+  - `generate_or`: do not prune branches that carry an explicit probability annotation. Pruning a probability-annotated branch distorts the weight invariants enforced by `build_weights` (sum-to-100 check). The retry loop already handles missing-rule-reference failures naturally; let it.
+- Continuity docs: [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md).
+
+### Tests recovered
+- `ast_pipeline::stimuli_generator::tests::semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker` — was panicking at `stimuli_generator.rs:3563` "No candidate branches available for rule 'start'"; now passes via recovery fallback.
+- `ast_pipeline::stimuli_generator::tests::or_generation_retries_alternatives_after_selected_branch_error` — was failing with "Explicit branch probabilities must sum to 100, found 0" because the filter pruned the 100%-weighted branch and left only the 0%-weighted survivor; now passes (probability-annotated branch retained, retry loop handles the missing-rule error naturally).
+
+### Validation
+- `cargo test --lib --features generated_parsers stimuli_generator::` ✅ 103 passed, 0 failed.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- Stimuli quality gate behavior under `--grammar-profile 2017` / 2023 unchanged for the active SV grammar (filter still prunes profile-absent rule references when neither fallback nor probability is in play).
+
+### Important Boundaries
+- Parser-agnostic fix in the AST pipeline. Affects all stimuli-generation lanes (regex, sv, vhdl, return_annotation, semantic_annotation, rtl_*) equally.
+- No grammar changes. No parser regeneration needed.
+
 ## 2026-04-25 - regex_perf_probe: PGEN-RGX-0073 baseline measurement infrastructure
 ### Achievement Summary
 Closed PGEN's first-ever regex parse-time perf coverage gap. New release-mode bin `rust/src/bin/regex_perf_probe.rs` measures the regex parser against the 8 representative patterns from the RGX bug report `PGEN-RGX-0073` (literal_simple, digit_sequence, character_class, alternation, capture_groups, url_simple, email_basic, anchor_complex) using RGX's measurement methodology (1000 samples per pattern, 50 warmup, includes `RegexParser::new` + `parse_full_regex` per sample). Prior to this commit, the existing `rust/src/bin/perf_bench.rs` only covered `return_annotation` and `semantic_annotation` parsers; `rust/perf/thresholds.json` had no regex entry. The bug report `/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0073.yaml` was the first systematic regex parse-time measurement against PGEN.
