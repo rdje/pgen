@@ -793,7 +793,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.deterministic_partition_runtime_mode = mode;
     }
     pub fn parse_rtl_const_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("rtl_const_expr", position);
         match cycle_type {
@@ -801,7 +801,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -818,7 +818,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -835,7 +835,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -917,7 +917,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -928,7 +928,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -938,7 +938,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -960,7 +960,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -973,7 +973,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_conditional_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("conditional_expr", position);
         match cycle_type {
@@ -981,7 +981,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -998,7 +998,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -1015,7 +1015,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -1093,7 +1093,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -1187,7 +1187,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -1206,60 +1206,84 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["condition"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["else_expr"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 4usize
-                                                                => { elements[4usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                4usize => { elements[4usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["then_expr"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 2usize
-                                                                => { elements[2usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                2usize => { elements[2usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["type"] = serde_json::json!(("ternary"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "condition".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "else_expr".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 4usize => {
+                                                                                    elements[4usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 4usize => {
+                                                                                    elements[4usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "then_expr".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 2usize => {
+                                                                                    elements[2usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 2usize => {
+                                                                                    elements[2usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("ternary".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -1386,7 +1410,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -1399,7 +1423,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -1420,7 +1444,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -1435,7 +1459,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -1594,7 +1618,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -1607,7 +1631,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -1631,7 +1655,7 @@ impl<'input> RtlConstExprParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/rtl_const_expr_parser.rs",
+                                                "generated/rtl_const_expr_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -1695,7 +1719,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -1706,7 +1730,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -1716,7 +1740,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -1738,7 +1762,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -1751,7 +1775,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_logical_or_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("logical_or_expr", position);
         match cycle_type {
@@ -1759,7 +1783,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -1776,7 +1800,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -1793,7 +1817,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -1900,7 +1924,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -1923,7 +1947,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -1990,7 +2014,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -2001,7 +2025,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -2011,7 +2035,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -2033,7 +2057,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -2046,7 +2070,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_logical_and_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("logical_and_expr", position);
         match cycle_type {
@@ -2054,7 +2078,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -2071,7 +2095,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -2088,7 +2112,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -2195,7 +2219,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -2218,7 +2242,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -2285,7 +2309,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -2296,7 +2320,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -2306,7 +2330,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -2328,7 +2352,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -2341,7 +2365,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_bit_or_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("bit_or_expr", position);
         match cycle_type {
@@ -2349,7 +2373,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -2366,7 +2390,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -2383,7 +2407,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -2490,7 +2514,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -2513,7 +2537,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -2580,7 +2604,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -2591,7 +2615,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -2601,7 +2625,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -2623,7 +2647,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -2636,7 +2660,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_bit_xor_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("bit_xor_expr", position);
         match cycle_type {
@@ -2644,7 +2668,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -2661,7 +2685,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -2678,7 +2702,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -2785,7 +2809,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -2808,7 +2832,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -2875,7 +2899,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -2886,7 +2910,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -2896,7 +2920,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -2918,7 +2942,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -2931,7 +2955,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_bit_and_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("bit_and_expr", position);
         match cycle_type {
@@ -2939,7 +2963,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -2956,7 +2980,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -2973,7 +2997,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -3080,7 +3104,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -3103,7 +3127,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -3170,7 +3194,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -3181,7 +3205,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -3191,7 +3215,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -3213,7 +3237,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -3226,7 +3250,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_equality_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("equality_expr", position);
         match cycle_type {
@@ -3234,7 +3258,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -3251,7 +3275,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -3268,7 +3292,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -3378,7 +3402,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3393,7 +3417,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3537,7 +3561,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3550,7 +3574,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3571,7 +3595,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3586,7 +3610,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3730,7 +3754,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3743,7 +3767,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3767,7 +3791,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
-                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                            "generated/rtl_const_expr_parser.rs",
                                                                             0,
                                                                             &format!(
                                                                                 "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -3824,7 +3848,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -3847,7 +3871,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -3914,7 +3938,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -3925,7 +3949,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -3935,7 +3959,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -3957,7 +3981,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -3970,7 +3994,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_relational_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("relational_expr", position);
         match cycle_type {
@@ -3978,7 +4002,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -3995,7 +4019,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -4012,7 +4036,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -4122,7 +4146,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4137,7 +4161,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4281,7 +4305,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4294,7 +4318,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4315,7 +4339,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4330,7 +4354,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4474,7 +4498,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4487,7 +4511,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4508,7 +4532,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4523,7 +4547,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4667,7 +4691,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4680,7 +4704,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4701,7 +4725,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4716,7 +4740,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4860,7 +4884,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4873,7 +4897,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4897,7 +4921,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
-                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                            "generated/rtl_const_expr_parser.rs",
                                                                             0,
                                                                             &format!(
                                                                                 "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -4954,7 +4978,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -4977,7 +5001,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -5044,7 +5068,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -5055,7 +5079,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -5065,7 +5089,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -5087,7 +5111,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -5100,7 +5124,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_shift_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("shift_expr", position);
         match cycle_type {
@@ -5108,7 +5132,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -5125,7 +5149,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -5142,7 +5166,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -5252,7 +5276,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -5267,7 +5291,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -5411,7 +5435,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -5424,7 +5448,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -5445,7 +5469,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -5460,7 +5484,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -5604,7 +5628,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -5617,7 +5641,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -5641,7 +5665,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
-                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                            "generated/rtl_const_expr_parser.rs",
                                                                             0,
                                                                             &format!(
                                                                                 "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -5698,7 +5722,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -5721,7 +5745,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -5788,7 +5812,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -5799,7 +5823,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -5809,7 +5833,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -5831,7 +5855,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -5844,7 +5868,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_additive_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("additive_expr", position);
         match cycle_type {
@@ -5852,7 +5876,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -5869,7 +5893,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -5886,7 +5910,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -5996,7 +6020,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6011,7 +6035,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -6155,7 +6179,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -6168,7 +6192,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -6189,7 +6213,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6204,7 +6228,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -6348,7 +6372,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -6361,7 +6385,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -6385,7 +6409,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
-                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                            "generated/rtl_const_expr_parser.rs",
                                                                             0,
                                                                             &format!(
                                                                                 "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -6442,7 +6466,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -6465,7 +6489,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -6532,7 +6556,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -6543,7 +6567,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -6553,7 +6577,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -6575,7 +6599,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -6588,7 +6612,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_multiplicative_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -6598,7 +6622,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -6615,7 +6639,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -6632,7 +6656,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -6742,7 +6766,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6757,7 +6781,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -6901,7 +6925,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -6915,7 +6939,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -6936,7 +6960,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6951,7 +6975,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7095,7 +7119,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7109,7 +7133,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7130,7 +7154,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -7145,7 +7169,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
-                                                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                                                "generated/rtl_const_expr_parser.rs",
                                                                                                 0,
                                                                                                 &format!(
                                                                                                     "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7289,7 +7313,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     parser
                                                                                         .logger
                                                                                         .log_info(
-                                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                                            "generated/rtl_const_expr_parser.rs",
                                                                                             0,
                                                                                             &format!(
                                                                                                 "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7303,7 +7327,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/rtl_const_expr_parser.rs",
+                                                                                        "generated/rtl_const_expr_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7327,7 +7351,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
-                                                                            "../generated/rtl_const_expr_parser.rs",
+                                                                            "generated/rtl_const_expr_parser.rs",
                                                                             0,
                                                                             &format!(
                                                                                 "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -7384,7 +7408,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -7407,7 +7431,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/rtl_const_expr_parser.rs",
+                                                    "generated/rtl_const_expr_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -7474,7 +7498,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -7485,7 +7509,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -7495,7 +7519,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -7517,7 +7541,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -7530,7 +7554,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_unary_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("unary_expr", position);
         match cycle_type {
@@ -7538,7 +7562,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -7555,7 +7579,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -7572,7 +7596,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -7650,7 +7674,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -7696,7 +7720,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7715,28 +7739,42 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["expr"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 1usize
-                                                                => { elements[1usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                1usize => { elements[1usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["op"] = serde_json::json!(("plus"));
-                                                            json_obj["type"] = serde_json::json!(("unary"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "expr".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "op".to_string(),
+                                                                    serde_json::Value::String("plus".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("unary".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -7863,7 +7901,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7876,7 +7914,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7897,7 +7935,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -7943,7 +7981,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7962,28 +8000,42 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["expr"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 1usize
-                                                                => { elements[1usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                1usize => { elements[1usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["op"] = serde_json::json!(("minus"));
-                                                            json_obj["type"] = serde_json::json!(("unary"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "expr".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "op".to_string(),
+                                                                    serde_json::Value::String("minus".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("unary".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -8110,7 +8162,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -8123,7 +8175,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -8144,7 +8196,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -8190,7 +8242,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -8209,28 +8261,42 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["expr"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 1usize
-                                                                => { elements[1usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                1usize => { elements[1usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["op"] = serde_json::json!(("logical_not"));
-                                                            json_obj["type"] = serde_json::json!(("unary"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "expr".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "op".to_string(),
+                                                                    serde_json::Value::String("logical_not".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("unary".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -8357,7 +8423,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -8370,7 +8436,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -8391,7 +8457,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -8437,7 +8503,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -8456,28 +8522,42 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["expr"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 1usize
-                                                                => { elements[1usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                1usize => { elements[1usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["op"] = serde_json::json!(("bit_not"));
-                                                            json_obj["type"] = serde_json::json!(("unary"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "expr".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "op".to_string(),
+                                                                    serde_json::Value::String("bit_not".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("unary".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -8604,7 +8684,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -8617,7 +8697,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -8638,7 +8718,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -8653,7 +8733,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -8812,7 +8892,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -8825,7 +8905,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -8849,7 +8929,7 @@ impl<'input> RtlConstExprParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/rtl_const_expr_parser.rs",
+                                                "generated/rtl_const_expr_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -8913,7 +8993,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -8924,7 +9004,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -8934,7 +9014,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -8956,7 +9036,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -8969,7 +9049,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_primary_expr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("primary_expr", position);
         match cycle_type {
@@ -8977,7 +9057,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -8994,7 +9074,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -9011,7 +9091,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -9089,7 +9169,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -9104,7 +9184,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -9263,7 +9343,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -9276,7 +9356,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -9297,7 +9377,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -9312,7 +9392,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -9471,7 +9551,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -9484,7 +9564,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -9505,7 +9585,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -9567,7 +9647,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -9727,7 +9807,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -9740,7 +9820,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -9764,7 +9844,7 @@ impl<'input> RtlConstExprParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/rtl_const_expr_parser.rs",
+                                                "generated/rtl_const_expr_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -9828,7 +9908,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -9839,7 +9919,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -9849,7 +9929,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -9871,7 +9951,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -9884,7 +9964,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("literal", position);
         match cycle_type {
@@ -9892,7 +9972,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -9909,7 +9989,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -9926,7 +10006,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -10004,7 +10084,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -10019,7 +10099,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -10038,29 +10118,41 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["kind"] = serde_json::json!(("based"));
-                                                            json_obj["text"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["type"] = serde_json::json!(("literal"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "kind".to_string(),
+                                                                    serde_json::Value::String("based".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "text".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("literal".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -10187,7 +10279,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -10200,7 +10292,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -10221,7 +10313,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -10236,7 +10328,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/rtl_const_expr_parser.rs",
+                                                                    "generated/rtl_const_expr_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -10255,29 +10347,41 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["kind"] = serde_json::json!(("decimal"));
-                                                            json_obj["text"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["type"] = serde_json::json!(("literal"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "kind".to_string(),
+                                                                    serde_json::Value::String("decimal".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "text".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("literal".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -10404,7 +10508,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/rtl_const_expr_parser.rs",
+                                                                "generated/rtl_const_expr_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -10417,7 +10521,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/rtl_const_expr_parser.rs",
+                                                            "generated/rtl_const_expr_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -10441,7 +10545,7 @@ impl<'input> RtlConstExprParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/rtl_const_expr_parser.rs",
+                                                "generated/rtl_const_expr_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -10505,7 +10609,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -10516,7 +10620,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -10526,7 +10630,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -10548,7 +10652,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -10561,7 +10665,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_based_integer(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("based_integer", position);
         match cycle_type {
@@ -10569,7 +10673,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -10586,7 +10690,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -10603,7 +10707,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -10719,7 +10823,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -10730,7 +10834,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -10740,7 +10844,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -10762,7 +10866,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -10775,7 +10879,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_decimal_integer(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("decimal_integer", position);
         match cycle_type {
@@ -10783,7 +10887,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -10800,7 +10904,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -10817,7 +10921,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -10929,7 +11033,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -10940,7 +11044,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -10950,7 +11054,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -10972,7 +11076,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -10985,7 +11089,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_identifier(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("identifier", position);
         match cycle_type {
@@ -10993,7 +11097,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11010,7 +11114,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11027,7 +11131,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11143,7 +11247,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11154,7 +11258,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11164,7 +11268,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11186,7 +11290,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -11199,7 +11303,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_trivia(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("trivia", position);
         match cycle_type {
@@ -11207,7 +11311,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11224,7 +11328,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11241,7 +11345,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11323,7 +11427,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11334,7 +11438,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11344,7 +11448,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11366,7 +11470,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -11379,7 +11483,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_question(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("question", position);
         match cycle_type {
@@ -11387,7 +11491,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11404,7 +11508,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11421,7 +11525,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11533,7 +11637,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11544,7 +11648,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11554,7 +11658,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11576,7 +11680,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -11589,7 +11693,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_colon(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("colon", position);
         match cycle_type {
@@ -11597,7 +11701,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11614,7 +11718,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11631,7 +11735,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11743,7 +11847,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11754,7 +11858,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11764,7 +11868,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11786,7 +11890,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -11799,7 +11903,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_logical_or(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("logical_or", position);
         match cycle_type {
@@ -11807,7 +11911,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11824,7 +11928,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11841,7 +11945,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11953,7 +12057,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11964,7 +12068,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11974,7 +12078,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11996,7 +12100,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12009,7 +12113,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_logical_and(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("logical_and", position);
         match cycle_type {
@@ -12017,7 +12121,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12034,7 +12138,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12051,7 +12155,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12163,7 +12267,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12174,7 +12278,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12184,7 +12288,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12206,7 +12310,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12219,7 +12323,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_bit_or(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("bit_or", position);
         match cycle_type {
@@ -12227,7 +12331,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12244,7 +12348,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12261,7 +12365,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12373,7 +12477,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12384,7 +12488,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12394,7 +12498,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12416,7 +12520,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12429,7 +12533,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_bit_xor(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("bit_xor", position);
         match cycle_type {
@@ -12437,7 +12541,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12454,7 +12558,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12471,7 +12575,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12583,7 +12687,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12594,7 +12698,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12604,7 +12708,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12626,7 +12730,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12639,7 +12743,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_bit_and(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("bit_and", position);
         match cycle_type {
@@ -12647,7 +12751,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12664,7 +12768,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12681,7 +12785,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12793,7 +12897,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12804,7 +12908,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12814,7 +12918,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12836,7 +12940,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12849,7 +12953,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_eqeq(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("eqeq", position);
         match cycle_type {
@@ -12857,7 +12961,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12874,7 +12978,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12891,7 +12995,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13003,7 +13107,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13013,7 +13117,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13023,7 +13127,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13045,7 +13149,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13058,7 +13162,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_ne(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("ne", position);
         match cycle_type {
@@ -13066,7 +13170,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13083,7 +13187,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13100,7 +13204,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13209,7 +13313,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13219,7 +13323,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13229,7 +13333,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13251,7 +13355,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13264,7 +13368,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_le(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("le", position);
         match cycle_type {
@@ -13272,7 +13376,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13289,7 +13393,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13306,7 +13410,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13415,7 +13519,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13425,7 +13529,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13435,7 +13539,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13457,7 +13561,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13470,7 +13574,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_lt(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("lt", position);
         match cycle_type {
@@ -13478,7 +13582,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13495,7 +13599,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13512,7 +13616,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13621,7 +13725,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13631,7 +13735,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13641,7 +13745,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13663,7 +13767,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13676,7 +13780,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_ge(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("ge", position);
         match cycle_type {
@@ -13684,7 +13788,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13701,7 +13805,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13718,7 +13822,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13827,7 +13931,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13837,7 +13941,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13847,7 +13951,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13869,7 +13973,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13882,7 +13986,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_gt(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("gt", position);
         match cycle_type {
@@ -13890,7 +13994,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13907,7 +14011,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13924,7 +14028,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14033,7 +14137,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14043,7 +14147,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14053,7 +14157,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14075,7 +14179,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14088,7 +14192,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_shl(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("shl", position);
         match cycle_type {
@@ -14096,7 +14200,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14113,7 +14217,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14130,7 +14234,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14239,7 +14343,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14249,7 +14353,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14259,7 +14363,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14281,7 +14385,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14294,7 +14398,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_shr(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("shr", position);
         match cycle_type {
@@ -14302,7 +14406,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14319,7 +14423,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14336,7 +14440,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14445,7 +14549,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14455,7 +14559,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14465,7 +14569,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14487,7 +14591,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14500,7 +14604,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_plus(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("plus", position);
         match cycle_type {
@@ -14508,7 +14612,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14525,7 +14629,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14542,7 +14646,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14654,7 +14758,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14664,7 +14768,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14674,7 +14778,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14696,7 +14800,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14709,7 +14813,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_minus(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("minus", position);
         match cycle_type {
@@ -14717,7 +14821,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14734,7 +14838,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14751,7 +14855,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14863,7 +14967,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14874,7 +14978,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14884,7 +14988,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14906,7 +15010,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14919,7 +15023,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_star(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("star", position);
         match cycle_type {
@@ -14927,7 +15031,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14944,7 +15048,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14961,7 +15065,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15073,7 +15177,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15083,7 +15187,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15093,7 +15197,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15115,7 +15219,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15128,7 +15232,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_slash(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("slash", position);
         match cycle_type {
@@ -15136,7 +15240,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15153,7 +15257,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15170,7 +15274,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15282,7 +15386,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15293,7 +15397,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15303,7 +15407,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15325,7 +15429,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15338,7 +15442,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_percent(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("percent", position);
         match cycle_type {
@@ -15346,7 +15450,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15363,7 +15467,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15380,7 +15484,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15492,7 +15596,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15503,7 +15607,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15513,7 +15617,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15535,7 +15639,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15548,7 +15652,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_bang(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("bang", position);
         match cycle_type {
@@ -15556,7 +15660,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15573,7 +15677,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15590,7 +15694,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15702,7 +15806,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15712,7 +15816,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15722,7 +15826,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15744,7 +15848,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15757,7 +15861,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_tilde(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("tilde", position);
         match cycle_type {
@@ -15765,7 +15869,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15782,7 +15886,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15799,7 +15903,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15911,7 +16015,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15922,7 +16026,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15932,7 +16036,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15954,7 +16058,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15967,7 +16071,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_lparen(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("lparen", position);
         match cycle_type {
@@ -15975,7 +16079,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15992,7 +16096,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -16009,7 +16113,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -16121,7 +16225,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -16132,7 +16236,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -16142,7 +16246,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -16164,7 +16268,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -16177,7 +16281,7 @@ impl<'input> RtlConstExprParser<'input> {
         result
     }
     pub fn parse_rparen(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/rtl_const_expr_parser.rs";
+        let filename_str = "generated/rtl_const_expr_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("rparen", position);
         match cycle_type {
@@ -16185,7 +16289,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -16202,7 +16306,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -16219,7 +16323,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -16331,7 +16435,7 @@ impl<'input> RtlConstExprParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -16342,7 +16446,7 @@ impl<'input> RtlConstExprParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/rtl_const_expr_parser.rs",
+                                "generated/rtl_const_expr_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -16352,7 +16456,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -16374,7 +16478,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -16498,7 +16602,7 @@ impl<'input> RtlConstExprParser<'input> {
             let marker = if critical_path { "critical" } else { "target" };
             self.logger
                 .log_info(
-                    "../generated/rtl_const_expr_parser.rs",
+                    "generated/rtl_const_expr_parser.rs",
                     0,
                     &format!(
                         "🎯 SC-10 parser instrumentation: rule='{}' branch={:?} weight={} kind={} span={}..{}",
@@ -16531,7 +16635,7 @@ impl<'input> RtlConstExprParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_info(
-                    "../generated/rtl_const_expr_parser.rs",
+                    "generated/rtl_const_expr_parser.rs",
                     0,
                     &format!(
                         "🧭 SC-12 parser partition: rule='{}' group='{}' span={}..{}",
@@ -16561,7 +16665,7 @@ impl<'input> RtlConstExprParser<'input> {
             let mode = if negative { "near-invalid" } else { "invalid-case" };
             self.logger
                 .log_info(
-                    "../generated/rtl_const_expr_parser.rs",
+                    "generated/rtl_const_expr_parser.rs",
                     0,
                     &format!(
                         "⚠️ SC-11 expected-failure path: rule='{}' mode={} start={} failure={} kind={}",
@@ -16586,7 +16690,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🛟 Recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16602,7 +16706,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🛟 Parse-scope recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16618,7 +16722,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🛟 Global recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16697,7 +16801,7 @@ impl<'input> RtlConstExprParser<'input> {
                 let marker = if token_priority == 0 { "panic_until" } else { "sync" };
                 self.logger
                     .log_warning(
-                        "../generated/rtl_const_expr_parser.rs",
+                        "generated/rtl_const_expr_parser.rs",
                         0,
                         &format!(
                             "🛟 Recovery for rule '{}': moved parser from {} to {} using {} token at {}",
@@ -16726,7 +16830,7 @@ impl<'input> RtlConstExprParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_warning(
-                        "../generated/rtl_const_expr_parser.rs",
+                        "generated/rtl_const_expr_parser.rs",
                         0,
                         &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
@@ -17124,6 +17228,13 @@ impl<'input> RtlConstExprParser<'input> {
         match content {
             ParseContent::Terminal(value) => Some((*value).to_string()),
             ParseContent::TransformedTerminal(value) => Some(value.clone()),
+            ParseContent::Json(value) => {
+                match value {
+                    serde_json::Value::String(s) => Some(s.clone()),
+                    serde_json::Value::Null => None,
+                    other => Some(other.to_string()),
+                }
+            }
             ParseContent::Alternative(node) => self.semantic_node_scalar(node),
             ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                 let mut merged = String::new();
@@ -17514,7 +17625,7 @@ impl<'input> RtlConstExprParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "../generated/rtl_const_expr_parser.rs",
+                    "generated/rtl_const_expr_parser.rs",
                     0,
                     &format!(
                         "🔤 Attempting to match terminal '{}' at position {} (end: {})",
@@ -17538,7 +17649,7 @@ impl<'input> RtlConstExprParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_success(
-                        "../generated/rtl_const_expr_parser.rs",
+                        "generated/rtl_const_expr_parser.rs",
                         0,
                         &format!(
                             "✅ Terminal '{}' matched, advanced to position {}",
@@ -17557,7 +17668,7 @@ impl<'input> RtlConstExprParser<'input> {
             };
             self.logger
                 .log_error(
-                    "../generated/rtl_const_expr_parser.rs",
+                    "generated/rtl_const_expr_parser.rs",
                     0,
                     &format!(
                         "❌ Terminal '{}' failed at position {} - found '{}'", expected,
@@ -17618,7 +17729,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "✅ Regex '{}' matched '{}' at position {}", pattern,
@@ -17644,7 +17755,7 @@ impl<'input> RtlConstExprParser<'input> {
             };
             self.logger
                 .log_error(
-                    "../generated/rtl_const_expr_parser.rs",
+                    "generated/rtl_const_expr_parser.rs",
                     0,
                     &format!(
                         "❌ Regex '{}' no match at position {} (next: '{}')", pattern,
@@ -17668,7 +17779,7 @@ impl<'input> RtlConstExprParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "../generated/rtl_const_expr_parser.rs",
+                    "generated/rtl_const_expr_parser.rs",
                     0,
                     &format!("🔄 Starting speculative parse at position {}", saved_pos),
                 );
@@ -17678,7 +17789,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_success(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔄 Speculative parse succeeded, advanced to position {}",
@@ -17694,7 +17805,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "🔙 Speculative parse failed with error '{:?}', backtracked to position {}",
@@ -17723,7 +17834,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_info(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💾 Memo hit for rule {} at position {} - reusing cached result",
@@ -17736,7 +17847,7 @@ impl<'input> RtlConstExprParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/rtl_const_expr_parser.rs",
+                            "generated/rtl_const_expr_parser.rs",
                             0,
                             &format!(
                                 "💾 Memo miss for rule {} at position {} - cached failure",
@@ -17753,7 +17864,7 @@ impl<'input> RtlConstExprParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "../generated/rtl_const_expr_parser.rs",
+                    "generated/rtl_const_expr_parser.rs",
                     0,
                     &format!(
                         "💾 Memo miss for rule {} at position {} - computing fresh result",
@@ -17776,7 +17887,7 @@ impl<'input> RtlConstExprParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_info(
-                        "../generated/rtl_const_expr_parser.rs",
+                        "generated/rtl_const_expr_parser.rs",
                         0,
                         &format!(
                             "💾 Memoized successful result for rule {} at position {}",
@@ -17797,7 +17908,7 @@ impl<'input> RtlConstExprParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_warning(
-                        "../generated/rtl_const_expr_parser.rs",
+                        "generated/rtl_const_expr_parser.rs",
                         0,
                         &format!(
                             "💾 Memoized failed result for rule {} at position {}",

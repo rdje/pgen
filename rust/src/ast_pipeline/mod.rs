@@ -564,9 +564,39 @@ impl std::error::Error for ParseError {}
 pub enum ParseContent<'input> {
     Terminal(&'input str),
     TransformedTerminal(String),
+    /// Typed structured carrier for return-annotation object/array literals and
+    /// property/array access results. Avoids the runtime serialise/parse/serialise
+    /// roundtrip the older `TransformedTerminal(stringified-json)` path used.
+    Json(serde_json::Value),
     Sequence(Vec<ParseNode<'input>>),
     Alternative(Box<ParseNode<'input>>),
     Quantified(Vec<ParseNode<'input>>, &'static str),
+}
+
+impl<'input> ParseContent<'input> {
+    /// Convert any `ParseContent` shape to a `serde_json::Value` without going
+    /// through string-encoded intermediates. Used by return-annotation object/array
+    /// transforms and property/array access at runtime.
+    pub fn to_json_value(&self) -> serde_json::Value {
+        match self {
+            ParseContent::Terminal(s) => serde_json::Value::String((*s).to_string()),
+            ParseContent::TransformedTerminal(s) => {
+                // Best-effort: parse if it already encodes a JSON value, otherwise
+                // wrap the raw string. Existing scalar `@transform` coercion paths
+                // produce TransformedTerminal(numeric-or-bool-text) and rely on
+                // wrap-as-string when JSON parsing fails.
+                serde_json::from_str::<serde_json::Value>(s)
+                    .unwrap_or_else(|_| serde_json::Value::String(s.clone()))
+            }
+            ParseContent::Json(value) => value.clone(),
+            ParseContent::Alternative(node) => node.content.to_json_value(),
+            ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
+                serde_json::Value::Array(
+                    nodes.iter().map(|n| n.content.to_json_value()).collect(),
+                )
+            }
+        }
+    }
 }
 
 /// Parse node

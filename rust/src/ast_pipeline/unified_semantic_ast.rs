@@ -229,6 +229,7 @@ impl UnifiedSemanticAST {
                     }
                 }
             }
+            ParseContent::Json(_) => {}
             ParseContent::Alternative(child) => {
                 if let Some(found) = Self::find_first_rule_node(child, rule_name) {
                     return Some(found);

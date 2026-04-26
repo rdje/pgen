@@ -3253,6 +3253,11 @@ impl AstBasedGenerator {
                 match content {
                     ParseContent::Terminal(value) => Some((*value).to_string()),
                     ParseContent::TransformedTerminal(value) => Some(value.clone()),
+                    ParseContent::Json(value) => match value {
+                        serde_json::Value::String(s) => Some(s.clone()),
+                        serde_json::Value::Null => None,
+                        other => Some(other.to_string()),
+                    },
                     ParseContent::Alternative(node) => self.semantic_node_scalar(node),
                     ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                         let mut merged = String::new();

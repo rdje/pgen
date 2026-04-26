@@ -1015,6 +1015,7 @@ fn content_kind_name(content: &ParseContent<'_>) -> &'static str {
     match content {
         ParseContent::Terminal(_) => "terminal",
         ParseContent::TransformedTerminal(_) => "transformed_terminal",
+        ParseContent::Json(_) => "json",
         ParseContent::Sequence(_) => "sequence",
         ParseContent::Alternative(_) => "alternative",
         ParseContent::Quantified(_, _) => "quantified",

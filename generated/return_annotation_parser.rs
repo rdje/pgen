@@ -781,7 +781,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.deterministic_partition_runtime_mode = mode;
     }
     pub fn parse_return_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("return_annotation", position);
         match cycle_type {
@@ -789,7 +789,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -806,7 +806,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -823,7 +823,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -901,7 +901,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -947,7 +947,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -1091,7 +1091,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -1105,7 +1105,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -1126,7 +1126,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -1141,7 +1141,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -1285,7 +1285,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -1299,7 +1299,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -1320,7 +1320,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -1335,7 +1335,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -1479,7 +1479,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -1493,7 +1493,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -1517,7 +1517,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -1581,7 +1581,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -1592,7 +1592,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -1602,7 +1602,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -1624,7 +1624,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -1637,7 +1637,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_arrow(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("arrow", position);
         match cycle_type {
@@ -1645,7 +1645,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -1662,7 +1662,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -1679,7 +1679,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -1760,7 +1760,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -1771,7 +1771,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -1781,7 +1781,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -1803,7 +1803,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -1816,7 +1816,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("expression", position);
         match cycle_type {
@@ -1824,7 +1824,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -1841,7 +1841,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -1858,7 +1858,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -1936,7 +1936,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -1951,7 +1951,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2095,7 +2095,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2108,7 +2108,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2129,7 +2129,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -2144,7 +2144,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2288,7 +2288,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2301,7 +2301,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2322,7 +2322,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -2337,7 +2337,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2481,7 +2481,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2494,7 +2494,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2515,7 +2515,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -2530,7 +2530,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2674,7 +2674,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2687,7 +2687,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2708,7 +2708,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -2723,7 +2723,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2867,7 +2867,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2880,7 +2880,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2904,7 +2904,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -2968,7 +2968,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -2979,7 +2979,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -2989,7 +2989,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -3011,7 +3011,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -3024,7 +3024,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_primary_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -3034,7 +3034,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -3051,7 +3051,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -3068,7 +3068,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -3146,7 +3146,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3161,7 +3161,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3305,7 +3305,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3319,7 +3319,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3340,7 +3340,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3355,7 +3355,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3499,7 +3499,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3513,7 +3513,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3534,7 +3534,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3549,7 +3549,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3693,7 +3693,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3707,7 +3707,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3728,7 +3728,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3743,7 +3743,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3887,7 +3887,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3901,7 +3901,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3922,7 +3922,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3937,7 +3937,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4081,7 +4081,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4095,7 +4095,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4116,7 +4116,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4131,7 +4131,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4275,7 +4275,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4289,7 +4289,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4310,7 +4310,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4325,7 +4325,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4469,7 +4469,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4483,7 +4483,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4504,7 +4504,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4564,7 +4564,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4724,7 +4724,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4738,7 +4738,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4762,7 +4762,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -4826,7 +4826,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -4837,7 +4837,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -4847,7 +4847,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -4869,7 +4869,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -4882,7 +4882,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_extraction_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -4892,7 +4892,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -4909,7 +4909,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -4926,7 +4926,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -5077,7 +5077,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -5088,7 +5088,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -5098,7 +5098,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -5120,7 +5120,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -5133,7 +5133,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_extraction_target(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("extraction_target", position);
         match cycle_type {
@@ -5141,7 +5141,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -5158,7 +5158,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -5175,7 +5175,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -5253,7 +5253,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -5268,7 +5268,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -5412,7 +5412,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -5426,7 +5426,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -5447,7 +5447,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -5461,7 +5461,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -5605,7 +5605,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -5619,7 +5619,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -5640,7 +5640,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -5654,7 +5654,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -5798,7 +5798,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -5812,7 +5812,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -5836,7 +5836,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -5900,7 +5900,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -5911,7 +5911,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -5921,7 +5921,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -5943,7 +5943,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -5956,7 +5956,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_positive_integer(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("positive_integer", position);
         match cycle_type {
@@ -5964,7 +5964,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -5981,7 +5981,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -5998,7 +5998,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -6094,7 +6094,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -6105,7 +6105,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -6115,7 +6115,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -6137,7 +6137,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -6150,7 +6150,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_spread_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("spread_expression", position);
         match cycle_type {
@@ -6158,7 +6158,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -6175,7 +6175,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -6192,7 +6192,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -6304,7 +6304,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -6315,7 +6315,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -6325,7 +6325,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -6347,7 +6347,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -6360,7 +6360,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_spreadable_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -6370,7 +6370,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -6387,7 +6387,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -6404,7 +6404,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -6482,7 +6482,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6497,7 +6497,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -6641,7 +6641,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -6655,7 +6655,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -6676,7 +6676,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6691,7 +6691,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -6835,7 +6835,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -6849,7 +6849,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -6870,7 +6870,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6885,7 +6885,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7029,7 +7029,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7043,7 +7043,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7064,7 +7064,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -7079,7 +7079,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7223,7 +7223,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7237,7 +7237,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7258,7 +7258,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -7318,7 +7318,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7478,7 +7478,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7492,7 +7492,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7516,7 +7516,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -7580,7 +7580,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -7591,7 +7591,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -7601,7 +7601,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -7623,7 +7623,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -7636,7 +7636,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_spread_suffix(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("spread_suffix", position);
         match cycle_type {
@@ -7644,7 +7644,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -7661,7 +7661,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -7678,7 +7678,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -7759,7 +7759,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -7770,7 +7770,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -7780,7 +7780,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -7802,7 +7802,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -7817,7 +7817,7 @@ impl<'input> ReturnAnnotationParser<'input> {
     pub fn parse_property_access_expression(
         &mut self,
     ) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -7827,7 +7827,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -7844,7 +7844,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -7861,7 +7861,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -8015,7 +8015,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -8061,7 +8061,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -8081,44 +8081,60 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                         let transformed = {
                                                                             let content = raw_content.clone();
                                                                             {
-                                                                                let mut json_obj = serde_json::json!({});
-                                                                                json_obj["base"] = serde_json::json!(
-                                                                                    ({ let __pgen_content = { let __pgen_base = (content)
-                                                                                    .clone(); match __pgen_base {
-                                                                                    ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                                    { elements[0usize].content.clone() }
-                                                                                    ParseContent::Quantified(elements, _) if ! elements
-                                                                                    .is_empty() => { elements[0usize].content.clone() }
-                                                                                    ParseContent::Alternative(node) => node.content.clone(),
-                                                                                    other => other, } }; match __pgen_content {
-                                                                                    ParseContent::Terminal(s) => s.to_string(),
-                                                                                    ParseContent::TransformedTerminal(s) => s,
-                                                                                    ParseContent::Alternative(node) => { match node.content {
-                                                                                    ParseContent::Terminal(s) => s.to_string(),
-                                                                                    ParseContent::TransformedTerminal(s) => s, other =>
-                                                                                    format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                                    } })
-                                                                                );
-                                                                                json_obj["property"] = serde_json::json!(
-                                                                                    ({ let __pgen_content = { let __pgen_base = (content)
-                                                                                    .clone(); match __pgen_base {
-                                                                                    ParseContent::Sequence(elements) if elements.len() > 2usize
-                                                                                    => { elements[2usize].content.clone() }
-                                                                                    ParseContent::Quantified(elements, _) if elements.len() >
-                                                                                    2usize => { elements[2usize].content.clone() } _ =>
-                                                                                    ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                                    match __pgen_content { ParseContent::Terminal(s) => s
-                                                                                    .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                                    ParseContent::Alternative(node) => { match node.content {
-                                                                                    ParseContent::Terminal(s) => s.to_string(),
-                                                                                    ParseContent::TransformedTerminal(s) => s, other =>
-                                                                                    format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                                    } })
-                                                                                );
-                                                                                json_obj["type"] = serde_json::json!(("property_access"));
-                                                                                let json_str = serde_json::to_string(&json_obj)
-                                                                                    .unwrap_or_else(|_| "{}".to_string());
-                                                                                ParseContent::TransformedTerminal(json_str)
+                                                                                let mut __pgen_obj = serde_json::Map::new();
+                                                                                __pgen_obj
+                                                                                    .insert(
+                                                                                        "base".to_string(),
+                                                                                        {
+                                                                                            let __pgen_content = {
+                                                                                                let __pgen_base = (content).clone();
+                                                                                                match __pgen_base {
+                                                                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                        elements[0usize].content.clone()
+                                                                                                    }
+                                                                                                    ParseContent::Quantified(
+                                                                                                        elements,
+                                                                                                        _,
+                                                                                                    ) if !elements.is_empty() => {
+                                                                                                        elements[0usize].content.clone()
+                                                                                                    }
+                                                                                                    ParseContent::Alternative(node) => node.content.clone(),
+                                                                                                    other => other,
+                                                                                                }
+                                                                                            };
+                                                                                            __pgen_content.to_json_value()
+                                                                                        },
+                                                                                    );
+                                                                                __pgen_obj
+                                                                                    .insert(
+                                                                                        "property".to_string(),
+                                                                                        {
+                                                                                            let __pgen_content = {
+                                                                                                let __pgen_base = (content).clone();
+                                                                                                match __pgen_base {
+                                                                                                    ParseContent::Sequence(
+                                                                                                        elements,
+                                                                                                    ) if elements.len() > 2usize => {
+                                                                                                        elements[2usize].content.clone()
+                                                                                                    }
+                                                                                                    ParseContent::Quantified(
+                                                                                                        elements,
+                                                                                                        _,
+                                                                                                    ) if elements.len() > 2usize => {
+                                                                                                        elements[2usize].content.clone()
+                                                                                                    }
+                                                                                                    _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                                                }
+                                                                                            };
+                                                                                            __pgen_content.to_json_value()
+                                                                                        },
+                                                                                    );
+                                                                                __pgen_obj
+                                                                                    .insert(
+                                                                                        "type".to_string(),
+                                                                                        serde_json::Value::String("property_access".to_string()),
+                                                                                    );
+                                                                                ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                                             }
                                                                         };
                                                                         let mut branch_predicate_blocked = false;
@@ -8245,7 +8261,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                             parser
                                                                                 .logger
                                                                                 .log_info(
-                                                                                    "../generated/return_annotation_parser.rs",
+                                                                                    "generated/return_annotation_parser.rs",
                                                                                     0,
                                                                                     &format!(
                                                                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -8259,7 +8275,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
-                                                                                "../generated/return_annotation_parser.rs",
+                                                                                "generated/return_annotation_parser.rs",
                                                                                 0,
                                                                                 &format!(
                                                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -8281,7 +8297,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -8342,7 +8358,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -8487,7 +8503,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                             parser
                                                                                 .logger
                                                                                 .log_info(
-                                                                                    "../generated/return_annotation_parser.rs",
+                                                                                    "generated/return_annotation_parser.rs",
                                                                                     0,
                                                                                     &format!(
                                                                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -8501,7 +8517,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
-                                                                                "../generated/return_annotation_parser.rs",
+                                                                                "generated/return_annotation_parser.rs",
                                                                                 0,
                                                                                 &format!(
                                                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -8526,7 +8542,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -8556,7 +8572,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -8579,7 +8595,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/return_annotation_parser.rs",
+                                                    "generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -8646,7 +8662,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -8657,7 +8673,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -8667,7 +8683,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -8689,7 +8705,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -8702,7 +8718,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_array_access_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -8712,7 +8728,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -8729,7 +8745,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -8746,7 +8762,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -8913,7 +8929,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -8958,7 +8974,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -8977,44 +8993,60 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                         let transformed = {
                                                                             let content = raw_content.clone();
                                                                             {
-                                                                                let mut json_obj = serde_json::json!({});
-                                                                                json_obj["base"] = serde_json::json!(
-                                                                                    ({ let __pgen_content = { let __pgen_base = (content)
-                                                                                    .clone(); match __pgen_base {
-                                                                                    ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                                    { elements[0usize].content.clone() }
-                                                                                    ParseContent::Quantified(elements, _) if ! elements
-                                                                                    .is_empty() => { elements[0usize].content.clone() }
-                                                                                    ParseContent::Alternative(node) => node.content.clone(),
-                                                                                    other => other, } }; match __pgen_content {
-                                                                                    ParseContent::Terminal(s) => s.to_string(),
-                                                                                    ParseContent::TransformedTerminal(s) => s,
-                                                                                    ParseContent::Alternative(node) => { match node.content {
-                                                                                    ParseContent::Terminal(s) => s.to_string(),
-                                                                                    ParseContent::TransformedTerminal(s) => s, other =>
-                                                                                    format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                                    } })
-                                                                                );
-                                                                                json_obj["index"] = serde_json::json!(
-                                                                                    ({ let __pgen_content = { let __pgen_base = (content)
-                                                                                    .clone(); match __pgen_base {
-                                                                                    ParseContent::Sequence(elements) if elements.len() > 2usize
-                                                                                    => { elements[2usize].content.clone() }
-                                                                                    ParseContent::Quantified(elements, _) if elements.len() >
-                                                                                    2usize => { elements[2usize].content.clone() } _ =>
-                                                                                    ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                                    match __pgen_content { ParseContent::Terminal(s) => s
-                                                                                    .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                                    ParseContent::Alternative(node) => { match node.content {
-                                                                                    ParseContent::Terminal(s) => s.to_string(),
-                                                                                    ParseContent::TransformedTerminal(s) => s, other =>
-                                                                                    format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                                    } })
-                                                                                );
-                                                                                json_obj["type"] = serde_json::json!(("array_access"));
-                                                                                let json_str = serde_json::to_string(&json_obj)
-                                                                                    .unwrap_or_else(|_| "{}".to_string());
-                                                                                ParseContent::TransformedTerminal(json_str)
+                                                                                let mut __pgen_obj = serde_json::Map::new();
+                                                                                __pgen_obj
+                                                                                    .insert(
+                                                                                        "base".to_string(),
+                                                                                        {
+                                                                                            let __pgen_content = {
+                                                                                                let __pgen_base = (content).clone();
+                                                                                                match __pgen_base {
+                                                                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                        elements[0usize].content.clone()
+                                                                                                    }
+                                                                                                    ParseContent::Quantified(
+                                                                                                        elements,
+                                                                                                        _,
+                                                                                                    ) if !elements.is_empty() => {
+                                                                                                        elements[0usize].content.clone()
+                                                                                                    }
+                                                                                                    ParseContent::Alternative(node) => node.content.clone(),
+                                                                                                    other => other,
+                                                                                                }
+                                                                                            };
+                                                                                            __pgen_content.to_json_value()
+                                                                                        },
+                                                                                    );
+                                                                                __pgen_obj
+                                                                                    .insert(
+                                                                                        "index".to_string(),
+                                                                                        {
+                                                                                            let __pgen_content = {
+                                                                                                let __pgen_base = (content).clone();
+                                                                                                match __pgen_base {
+                                                                                                    ParseContent::Sequence(
+                                                                                                        elements,
+                                                                                                    ) if elements.len() > 2usize => {
+                                                                                                        elements[2usize].content.clone()
+                                                                                                    }
+                                                                                                    ParseContent::Quantified(
+                                                                                                        elements,
+                                                                                                        _,
+                                                                                                    ) if elements.len() > 2usize => {
+                                                                                                        elements[2usize].content.clone()
+                                                                                                    }
+                                                                                                    _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                                                }
+                                                                                            };
+                                                                                            __pgen_content.to_json_value()
+                                                                                        },
+                                                                                    );
+                                                                                __pgen_obj
+                                                                                    .insert(
+                                                                                        "type".to_string(),
+                                                                                        serde_json::Value::String("array_access".to_string()),
+                                                                                    );
+                                                                                ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                                             }
                                                                         };
                                                                         let mut branch_predicate_blocked = false;
@@ -9141,7 +9173,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                             parser
                                                                                 .logger
                                                                                 .log_info(
-                                                                                    "../generated/return_annotation_parser.rs",
+                                                                                    "generated/return_annotation_parser.rs",
                                                                                     0,
                                                                                     &format!(
                                                                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -9155,7 +9187,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
-                                                                                "../generated/return_annotation_parser.rs",
+                                                                                "generated/return_annotation_parser.rs",
                                                                                 0,
                                                                                 &format!(
                                                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -9176,7 +9208,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -9236,7 +9268,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -9380,7 +9412,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                             parser
                                                                                 .logger
                                                                                 .log_info(
-                                                                                    "../generated/return_annotation_parser.rs",
+                                                                                    "generated/return_annotation_parser.rs",
                                                                                     0,
                                                                                     &format!(
                                                                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -9394,7 +9426,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
-                                                                                "../generated/return_annotation_parser.rs",
+                                                                                "generated/return_annotation_parser.rs",
                                                                                 0,
                                                                                 &format!(
                                                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -9418,7 +9450,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -9448,7 +9480,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -9471,7 +9503,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/return_annotation_parser.rs",
+                                                    "generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -9538,7 +9570,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -9549,7 +9581,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -9559,7 +9591,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -9581,7 +9613,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -9594,7 +9626,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_accessor_base_lr_base(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -9604,7 +9636,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -9621,7 +9653,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -9638,7 +9670,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -9716,7 +9748,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -9731,7 +9763,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -9875,7 +9907,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -9889,7 +9921,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -9910,7 +9942,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -9970,7 +10002,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -10114,7 +10146,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -10128,7 +10160,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -10152,7 +10184,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -10216,7 +10248,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -10227,7 +10259,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -10237,7 +10269,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -10259,7 +10291,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -10272,7 +10304,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_accessor_base(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("accessor_base", position);
         match cycle_type {
@@ -10280,7 +10312,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -10297,7 +10329,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -10314,7 +10346,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -10420,7 +10452,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -10465,7 +10497,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -10609,7 +10641,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                             parser
                                                                                 .logger
                                                                                 .log_info(
-                                                                                    "../generated/return_annotation_parser.rs",
+                                                                                    "generated/return_annotation_parser.rs",
                                                                                     0,
                                                                                     &format!(
                                                                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -10622,7 +10654,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
-                                                                                "../generated/return_annotation_parser.rs",
+                                                                                "generated/return_annotation_parser.rs",
                                                                                 0,
                                                                                 &format!(
                                                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -10643,7 +10675,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -10703,7 +10735,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
-                                                                                        "../generated/return_annotation_parser.rs",
+                                                                                        "generated/return_annotation_parser.rs",
                                                                                         0,
                                                                                         &format!(
                                                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -10847,7 +10879,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                             parser
                                                                                 .logger
                                                                                 .log_info(
-                                                                                    "../generated/return_annotation_parser.rs",
+                                                                                    "generated/return_annotation_parser.rs",
                                                                                     0,
                                                                                     &format!(
                                                                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -10860,7 +10892,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
-                                                                                "../generated/return_annotation_parser.rs",
+                                                                                "generated/return_annotation_parser.rs",
                                                                                 0,
                                                                                 &format!(
                                                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -10884,7 +10916,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -10914,7 +10946,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -10937,7 +10969,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/return_annotation_parser.rs",
+                                                    "generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -11004,7 +11036,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11015,7 +11047,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11025,7 +11057,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11047,7 +11079,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -11060,7 +11092,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_positional_reference(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -11070,7 +11102,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11087,7 +11119,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11104,7 +11136,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11216,7 +11248,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11227,7 +11259,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11237,7 +11269,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11259,7 +11291,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -11272,7 +11304,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_string_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("string_literal", position);
         match cycle_type {
@@ -11280,7 +11312,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11297,7 +11329,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11314,7 +11346,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11392,7 +11424,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -11452,7 +11484,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -11471,27 +11503,37 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["type"] = serde_json::json!(("string"));
-                                                            json_obj["value"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 1usize
-                                                                => { elements[1usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                1usize => { elements[1usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("string".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "value".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -11618,7 +11660,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -11631,7 +11673,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -11652,7 +11694,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -11712,7 +11754,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -11856,7 +11898,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -11869,7 +11911,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -11893,7 +11935,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -11957,7 +11999,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11968,7 +12010,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11978,7 +12020,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12000,7 +12042,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12013,7 +12055,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_string_content_double(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -12023,7 +12065,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12040,7 +12082,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12057,7 +12099,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12138,7 +12180,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12149,7 +12191,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12159,7 +12201,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12181,7 +12223,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12194,7 +12236,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_string_content_single(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -12204,7 +12246,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12221,7 +12263,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12238,7 +12280,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12319,7 +12361,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12330,7 +12372,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12340,7 +12382,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12362,7 +12404,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12375,7 +12417,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_number_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("number_literal", position);
         match cycle_type {
@@ -12383,7 +12425,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12400,7 +12442,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12417,7 +12459,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12495,7 +12537,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -12510,7 +12552,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -12654,7 +12696,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -12667,7 +12709,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -12688,7 +12730,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -12703,7 +12745,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -12847,7 +12889,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -12860,7 +12902,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -12884,7 +12926,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -12948,7 +12990,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12959,7 +13001,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12969,7 +13011,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12991,7 +13033,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13004,7 +13046,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_float(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("float", position);
         match cycle_type {
@@ -13012,7 +13054,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13029,7 +13071,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13046,7 +13088,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13146,7 +13188,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13157,7 +13199,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13167,7 +13209,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13189,7 +13231,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13202,7 +13244,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_integer(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("integer", position);
         match cycle_type {
@@ -13210,7 +13252,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13227,7 +13269,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13244,7 +13286,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13340,7 +13382,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13351,7 +13393,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13361,7 +13403,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13383,7 +13425,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13396,7 +13438,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_boolean_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("boolean_literal", position);
         match cycle_type {
@@ -13404,7 +13446,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13421,7 +13463,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13438,7 +13480,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13516,7 +13558,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -13530,7 +13572,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -13674,7 +13716,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -13687,7 +13729,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -13708,7 +13750,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -13722,7 +13764,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -13866,7 +13908,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -13879,7 +13921,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -13903,7 +13945,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -13967,7 +14009,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13978,7 +14020,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13988,7 +14030,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14010,7 +14052,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14023,7 +14065,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_identifier(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("identifier", position);
         match cycle_type {
@@ -14031,7 +14073,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14048,7 +14090,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14065,7 +14107,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14147,7 +14189,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14158,7 +14200,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14168,7 +14210,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14190,7 +14232,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14203,7 +14245,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_object_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("object_literal", position);
         match cycle_type {
@@ -14211,7 +14253,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14228,7 +14270,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14245,7 +14287,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14379,7 +14421,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14390,7 +14432,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14400,7 +14442,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14422,7 +14464,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14435,7 +14477,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_object_properties(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("object_properties", position);
         match cycle_type {
@@ -14443,7 +14485,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14460,7 +14502,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14477,7 +14519,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14583,7 +14625,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -14606,7 +14648,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/return_annotation_parser.rs",
+                                                    "generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -14673,7 +14715,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14684,7 +14726,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14694,7 +14736,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14716,7 +14758,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14729,7 +14771,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_object_property(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("object_property", position);
         match cycle_type {
@@ -14737,7 +14779,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14754,7 +14796,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14771,7 +14813,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14899,7 +14941,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14910,7 +14952,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14920,7 +14962,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14942,7 +14984,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14955,7 +14997,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_property_key(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("property_key", position);
         match cycle_type {
@@ -14963,7 +15005,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14980,7 +15022,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14997,7 +15039,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15075,7 +15117,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -15090,7 +15132,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -15234,7 +15276,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -15247,7 +15289,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -15268,7 +15310,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -15283,7 +15325,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "../generated/return_annotation_parser.rs",
+                                                                    "generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -15427,7 +15469,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -15440,7 +15482,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "../generated/return_annotation_parser.rs",
+                                                            "generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -15464,7 +15506,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "../generated/return_annotation_parser.rs",
+                                                "generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -15528,7 +15570,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15539,7 +15581,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15549,7 +15591,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15571,7 +15613,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15584,7 +15626,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_array_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_literal", position);
         match cycle_type {
@@ -15592,7 +15634,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15609,7 +15651,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15626,7 +15668,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15760,7 +15802,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15771,7 +15813,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15781,7 +15823,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15803,7 +15845,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15816,7 +15858,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_array_elements(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_elements", position);
         match cycle_type {
@@ -15824,7 +15866,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15841,7 +15883,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15858,7 +15900,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15964,7 +16006,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "../generated/return_annotation_parser.rs",
+                                                                "generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -15987,7 +16029,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "../generated/return_annotation_parser.rs",
+                                                    "generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -16054,7 +16096,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -16065,7 +16107,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -16075,7 +16117,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -16097,7 +16139,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -16110,7 +16152,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_array_element(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_element", position);
         match cycle_type {
@@ -16118,7 +16160,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -16135,7 +16177,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -16152,7 +16194,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -16234,7 +16276,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -16245,7 +16287,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -16255,7 +16297,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -16277,7 +16319,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -16290,7 +16332,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_parenthesized(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "../generated/return_annotation_parser.rs";
+        let filename_str = "generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("parenthesized", position);
         match cycle_type {
@@ -16298,7 +16340,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -16315,7 +16357,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -16332,7 +16374,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -16459,7 +16501,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -16470,7 +16512,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "../generated/return_annotation_parser.rs",
+                                "generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -16480,7 +16522,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -16502,7 +16544,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -16626,7 +16668,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             let marker = if critical_path { "critical" } else { "target" };
             self.logger
                 .log_info(
-                    "../generated/return_annotation_parser.rs",
+                    "generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "🎯 SC-10 parser instrumentation: rule='{}' branch={:?} weight={} kind={} span={}..{}",
@@ -16659,7 +16701,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_info(
-                    "../generated/return_annotation_parser.rs",
+                    "generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "🧭 SC-12 parser partition: rule='{}' group='{}' span={}..{}",
@@ -16689,7 +16731,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             let mode = if negative { "near-invalid" } else { "invalid-case" };
             self.logger
                 .log_info(
-                    "../generated/return_annotation_parser.rs",
+                    "generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "⚠️ SC-11 expected-failure path: rule='{}' mode={} start={} failure={} kind={}",
@@ -16714,7 +16756,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🛟 Recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16730,7 +16772,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🛟 Parse-scope recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16746,7 +16788,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🛟 Global recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16825,7 +16867,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 let marker = if token_priority == 0 { "panic_until" } else { "sync" };
                 self.logger
                     .log_warning(
-                        "../generated/return_annotation_parser.rs",
+                        "generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "🛟 Recovery for rule '{}': moved parser from {} to {} using {} token at {}",
@@ -16854,7 +16896,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_warning(
-                        "../generated/return_annotation_parser.rs",
+                        "generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
@@ -17252,6 +17294,13 @@ impl<'input> ReturnAnnotationParser<'input> {
         match content {
             ParseContent::Terminal(value) => Some((*value).to_string()),
             ParseContent::TransformedTerminal(value) => Some(value.clone()),
+            ParseContent::Json(value) => {
+                match value {
+                    serde_json::Value::String(s) => Some(s.clone()),
+                    serde_json::Value::Null => None,
+                    other => Some(other.to_string()),
+                }
+            }
             ParseContent::Alternative(node) => self.semantic_node_scalar(node),
             ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                 let mut merged = String::new();
@@ -17642,7 +17691,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "../generated/return_annotation_parser.rs",
+                    "generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "🔤 Attempting to match terminal '{}' at position {} (end: {})",
@@ -17666,7 +17715,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_success(
-                        "../generated/return_annotation_parser.rs",
+                        "generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "✅ Terminal '{}' matched, advanced to position {}",
@@ -17685,7 +17734,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             };
             self.logger
                 .log_error(
-                    "../generated/return_annotation_parser.rs",
+                    "generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "❌ Terminal '{}' failed at position {} - found '{}'", expected,
@@ -17746,7 +17795,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Regex '{}' matched '{}' at position {}", pattern,
@@ -17772,7 +17821,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             };
             self.logger
                 .log_error(
-                    "../generated/return_annotation_parser.rs",
+                    "generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "❌ Regex '{}' no match at position {} (next: '{}')", pattern,
@@ -17796,7 +17845,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "../generated/return_annotation_parser.rs",
+                    "generated/return_annotation_parser.rs",
                     0,
                     &format!("🔄 Starting speculative parse at position {}", saved_pos),
                 );
@@ -17806,7 +17855,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_success(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Speculative parse succeeded, advanced to position {}",
@@ -17822,7 +17871,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔙 Speculative parse failed with error '{:?}', backtracked to position {}",
@@ -17851,7 +17900,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_info(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💾 Memo hit for rule {} at position {} - reusing cached result",
@@ -17864,7 +17913,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "../generated/return_annotation_parser.rs",
+                            "generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💾 Memo miss for rule {} at position {} - cached failure",
@@ -17881,7 +17930,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "../generated/return_annotation_parser.rs",
+                    "generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "💾 Memo miss for rule {} at position {} - computing fresh result",
@@ -17904,7 +17953,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_info(
-                        "../generated/return_annotation_parser.rs",
+                        "generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "💾 Memoized successful result for rule {} at position {}",
@@ -17925,7 +17974,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_warning(
-                        "../generated/return_annotation_parser.rs",
+                        "generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "💾 Memoized failed result for rule {} at position {}",

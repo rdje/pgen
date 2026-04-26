@@ -1194,6 +1194,7 @@ impl UnifiedReturnAST {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
+            ParseContent::Json(_) => Self::parse_generated_value_node(input, node, logger),
             ParseContent::Alternative(inner) => {
                 if inner.rule_name == "arrow" {
                     Ok(UnifiedReturnAST::Passthrough)
@@ -1274,6 +1275,10 @@ impl UnifiedReturnAST {
                 }
                 ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => Err(format!(
                     "Unsupported generated return parse node '{}' with terminal payload",
+                    node.rule_name
+                )),
+                ParseContent::Json(_) => Err(format!(
+                    "Unsupported generated return parse node '{}' with json payload",
                     node.rule_name
                 )),
                 ParseContent::Quantified(_, _) => Err(format!(
@@ -1951,7 +1956,9 @@ impl UnifiedReturnAST {
                 }
                 None
             }
-            ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => None,
+            ParseContent::Terminal(_)
+            | ParseContent::TransformedTerminal(_)
+            | ParseContent::Json(_) => None,
         }
     }
 

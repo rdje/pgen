@@ -1,6 +1,21 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-04-22
+Last updated: 2026-04-26
+
+## Recent Architecture Change Note (2026-04-26)
+
+**Typed structured carrier in `ParseContent`.** [rust/src/ast_pipeline/mod.rs](../../rust/src/ast_pipeline/mod.rs) gains a `Json(serde_json::Value)` variant on the `ParseContent<'input>` enum plus a `ParseContent::to_json_value()` helper. Return-annotation transforms in [rust/src/ast_pipeline/ast_return_transform.rs](../../rust/src/ast_pipeline/ast_return_transform.rs) now build typed `serde_json::Value::Object` / `Value::Array` and wrap as `ParseContent::Json(value)`; property and array access operate on the typed value in place via `to_json_value()` and `value.get(...)`. The earlier carrier was `ParseContent::TransformedTerminal(stringified-json)`, which forced object literals to `serde_json::to_string` and forced property access to `from_str` then re-stringify. That stringify/parse/serialise roundtrip is now removed.
+
+Implications for the Rust codebase shape:
+
+- `ParseContent` is now 6 variants instead of 5. All exhaustive matches across the codebase have been extended with `Json(_)` arms; the codegen template that emits `semantic_content_scalar` in [rust/src/ast_pipeline/ast_based_generator.rs](../../rust/src/ast_pipeline/ast_based_generator.rs) handles the new variant.
+- Semantic annotations are unchanged — they always used the typed `UnifiedSemanticValue` / `SemanticRuntimeValue` enums.
+- The opt-in `--inline-annotations` skeleton (M1, commit `4450b93`) and its `parse_full_<entry>_typed` method are unchanged at the seam; only the internal runtime carrier shape changed.
+- Wire format under `serde_json::to_value(&node)` for a `ParseContent::Json(value)` leaf is `{"Json": value}` under the default derive (vs. `{"TransformedTerminal": "<json-string>"}` previously). The M1 typed entry is opt-in and not currently used by any tracked parser, so no current downstream consumer is affected; future M3 (regex typed API) will surface the structured value through `to_json_value()` rather than the raw tagged enum.
+- Open follow-ups exposed during this work, tracked but not closed by the commit:
+  1. The regex grammar declares two object-literal return annotations that the codegen currently drops silently for `generated/regex_parser.rs`.
+  2. EBNF grammars rarely exercise return-annotation constructs today; richer grammar use of return annotations is anticipated and should now compose without re-introducing a stringify roundtrip.
+  3. Downstream contract stabilization (umbrella) — each generated parser needs versioned, documented, regression-locked compatibility contracts for library APIs, CLI behavior, JSON/schema outputs, file formats, error codes, manifests/capability discovery, and any other machine-consumed surface. Separate maintained lane.
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.

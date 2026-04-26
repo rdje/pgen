@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: phase-2-framing-retarget-docs-only)
+Last updated: 2026-04-26 (+0200, task: phase-2-typed-carrier-remove-stringify-roundtrip)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,26 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Phase 2 typed-carrier code change landed. `ParseContent` gains a `Json(serde_json::Value)` variant in [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) plus a `to_json_value()` helper. Return-annotation transforms in [rust/src/ast_pipeline/ast_return_transform.rs](rust/src/ast_pipeline/ast_return_transform.rs) rewritten to use the typed carrier:
+  - `generate_object_transform` -> `ParseContent::Json(serde_json::Value::Object(...))` (no `serde_json::to_string`)
+  - `generate_property_access` -> typed `value.get(prop)` (no `from_str`/`to_string`)
+  - `generate_array_access` -> typed `Json(Value::Array)` arm composes with property access
+  - `generate_value_extraction` -> returns `serde_json::Value` directly
+  - `parse_content_to_string` -> Json arm + Debug fallback replaced with `to_json_value().to_string()`
+- 4 tracked parsers regenerated (`return_annotation_parser.rs`, `semantic_annotation_parser.rs`, `ebnf.rs`, `rtl_const_expr_parser.rs`) — they now carry `ParseContent::Json(serde_json::Value::Object(...))` constructions and zero `serde_json::to_string(&json_obj)` / zero `serde_json::from_str::<serde_json::Value>` residue.
+- 2 tracked parsers regenerated for the `semantic_content_scalar` template change (`regex_parser.rs`, `rtl_frontend_parser.rs`) — same template, same scalar accessor; no transforms emitted in those grammars today.
+- All exhaustive `match content` sites across the codebase now have `Json(_)` arms: `unified_return_ast.rs` (3 sites), `unified_semantic_ast.rs` (1), `semantic_runtime.rs` (1), `ast_based_generator.rs` template (1).
+- Validation:
+  - `cargo test --lib --features generated_parsers`: 471 passed (468 prior + 3 new contract tests).
+  - `annotation_contract_gate`, `return_annotation_support_gate`, `semantic_full_contract_gate`: all pass.
+  - `clippy_on_rust_change`: strict source lint passes.
+- Semantic annotations untouched — `UnifiedSemanticValue` / `SemanticRuntimeValue` were already typed enums.
+- Open follow-ups (NOT addressed by this commit):
+  - Regex grammar's two declared object-literal return annotations are silently dropped at codegen for `generated/regex_parser.rs`. Separate investigation required before turning emission on.
+  - EBNF grammars rarely use return-annotation constructs today; typed carrier is groundwork for grammar work that will expand return-annotation use.
+  - Downstream contract stabilization umbrella: each generated parser needs versioned, documented, regression-locked compatibility contracts for library APIs, CLI behavior, JSON/schema outputs, file formats, error codes, manifests/capability discovery. Separate maintained lane.
+
+## Prior Session Note
 - Phase 2 framing retargeted before any further code lands. Docs-only commit covering [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [CHANGES.md](CHANGES.md), and this file.
 - Earlier framing (Phase 2 = "restore inline annotation application against post-parse transform") was wrong on direct read of the codebase. Return annotations are already applied inline at runtime via `result = #transform;` emitted from [`generate_return_transform`](rust/src/ast_pipeline/ast_based_generator.rs) → [`AstReturnTransformer::generate_transform`](rust/src/ast_pipeline/ast_return_transform.rs). `UnifiedReturnAST::parse_generated_return_annotation` runs at PGEN build time, not at input parse time. Semantic annotations already use a typed structured carrier (`UnifiedSemanticValue` / `SemanticRuntimeValue`) and are out of scope.
 - Actual defect: in the parsers that *do* emit transforms (notably [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs)), object literals serialise their `serde_json::Value` to a `String` and wrap as `ParseContent::TransformedTerminal(String)`; property access deserialises that string back, looks up the field, and re-stringifies; array literals build a synthetic `ParseContent::Sequence(Vec<ParseNode>)` that composes poorly with the string carrier; `parse_content_to_string` falls back to `format!("{:?}", other)` for non-trivial content. The serialise/parse/serialise roundtrip plus the Debug-format fallback is the cost class to remove.

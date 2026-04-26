@@ -1,4 +1,67 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Phase 2 typed-carrier: remove stringify roundtrip in return-annotation transforms
+
+### What this milestone landed
+
+Removed the runtime serialise → parse → serialise roundtrip from the return-annotation transform paths by introducing a typed structured carrier in [`ParseContent`](rust/src/ast_pipeline/mod.rs):
+
+```rust
+pub enum ParseContent<'input> {
+    Terminal(&'input str),
+    TransformedTerminal(String),
+    Json(serde_json::Value),  // new
+    Sequence(Vec<ParseNode<'input>>),
+    Alternative(Box<ParseNode<'input>>),
+    Quantified(Vec<ParseNode<'input>>, &'static str),
+}
+
+impl<'input> ParseContent<'input> {
+    pub fn to_json_value(&self) -> serde_json::Value { /* ... */ }
+}
+```
+
+Producers in [`AstReturnTransformer`](rust/src/ast_pipeline/ast_return_transform.rs) now operate on typed values:
+
+- `generate_object_transform` builds a `serde_json::Map`, populates it with typed values, and wraps as `ParseContent::Json(serde_json::Value::Object(map))`. No `serde_json::to_string`.
+- `generate_property_access` calls `__pgen_base.to_json_value()`, then `value.get(prop).cloned().unwrap_or(Null)`, and wraps as `ParseContent::Json(...)`. No `from_str`, no `to_string`, no `TransformedTerminal(String)`.
+- `generate_array_access` adds a typed `Json(serde_json::Value::Array(...))` arm so it composes with property-access output.
+- `generate_value_extraction` returns a `serde_json::Value` directly so object-field assignment is a single typed insert with no intermediate string.
+- `parse_content_to_string` adds a typed `Json(value)` arm and replaces the `format!("{:?}", other)` Debug fallback with `other.to_json_value().to_string()` so structured shapes serialise as JSON, not as Rust Debug output.
+
+Consumers across the pipeline gain `Json(_)` arms in their existing exhaustive `ParseContent` matches:
+- [unified_semantic_ast.rs](rust/src/ast_pipeline/unified_semantic_ast.rs)
+- [unified_return_ast.rs](rust/src/ast_pipeline/unified_return_ast.rs) (three sites; treat as leaf-ish or recurse where applicable)
+- [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs) (`content_kind_name` returns `"json"`)
+- [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) (`semantic_content_scalar` codegen template handles Value::String/Null/other)
+
+### Why this is the actual fix
+
+Earlier framing called this a "post-parse to inline" port. That was wrong. Return annotations were always inline: the codegen at [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) already emits `result = #transform;` directly into each rule's parse function. The defect was that the inline transforms used a stringified shape carrier:
+
+- object literals: `serde_json::Value::Object(...)` -> `serde_json::to_string(...)` -> `ParseContent::TransformedTerminal(String)`
+- property access: `from_str::<Value>(string)` -> `value.get(prop)` -> `prop.to_string()` -> `ParseContent::TransformedTerminal(String)` (one full roundtrip per access)
+
+Replacing the carrier removes both costs and lets typed shapes compose end-to-end.
+
+### Why semantic annotations are untouched
+
+Semantic annotations already use `UnifiedSemanticValue` and `SemanticRuntimeValue` typed enums covering `String/Identifier/RuleReference/Number/Boolean/Null/Array/Object`. Greps over [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs) show no analogous stringify pattern. Nothing to fix on the semantic side.
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 471 passed (468 prior + 3 new contract tests).
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` — pass.
+- `make -C rust SHELL=/bin/bash return_annotation_support_gate` — pass; return-annotation exhaustiveness, contract, roundtrip, parity, and typed-AST audit all green.
+- `make -C rust SHELL=/bin/bash semantic_full_contract_gate` — pass; comparable-only differential matched=80 mismatched=0.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` — strict source lint pass.
+- Residue checks across `generated/*.rs`: `serde_json::to_string(&json_obj)` -> 0, `serde_json::from_str::<serde_json::Value>` -> 0, `ParseContent::Json(serde_json::Value::Object` present in 4 of 6 generated parsers (the 4 that emit transforms).
+
+### Open follow-ups surfaced during this work
+
+1. **Silent codegen drop on the regex grammar.** [grammars/regex.ebnf](grammars/regex.ebnf) declares two object-literal return annotations (`-> {type: "regex", pattern: $1}` and `-> {type: "piece", atom: $1, quantifier: $2}`) that never reach `generated/regex_parser.rs`. The carrier change does not fix this; a separate investigation into the codegen path that drops the annotations is required before turning emission on.
+2. **EBNF grammars rarely exercise return-annotation constructs today.** Across the tracked grammar set, only a few rules actually carry `->` annotations, and almost no grammar uses property/array access. The typed carrier removes the cost class for grammars that *will* use richer return annotations in the future; near-term blast radius is small until grammar work expands the use of return annotations.
+3. **Downstream contract stabilization (umbrella).** Each generated parser needs a stable, versioned, documented compatibility contract for downstream consumers covering library APIs, CLI behavior, JSON/schema outputs, file formats, error codes, manifests/capability discovery, and any other machine-consumed surface. This is a separate maintained lane (call it "downstream contract stabilization" or "external interface stabilization") and is not addressed by this commit.
+
 ## 2026-04-26 - Phase 2 framing retargeted
 
 ### What this entry corrects

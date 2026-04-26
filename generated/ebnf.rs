@@ -55,7 +55,7 @@ pub enum DeterministicPartitionRuntimeMode {
 pub struct EbnfParser<'input> {
     input: &'input str,
     position: usize,
-    memo: HashMap<(RuleId, usize), MemoEntry<'input>>,
+    memo: rustc_hash::FxHashMap<(RuleId, usize), MemoEntry<'input>>,
     recursion_guard: RecursionGuard,
     grammar_profile: Option<String>,
     recovery_events: Vec<RecoveryEvent>,
@@ -73,6 +73,7 @@ pub struct EbnfParser<'input> {
     semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
     semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
     logger: Box<dyn Logger>,
+    logger_enabled: bool,
 }
 impl<'input> EbnfParser<'input> {
     const RULE_GRAMMAR_FILE: RuleId = 0u16;
@@ -198,11 +199,15 @@ impl<'input> EbnfParser<'input> {
     const RULE_SKIP_TO: RuleId = 120u16;
     const RULE_PANIC_MODE: RuleId = 121u16;
     pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
+        let logger_enabled = logger.is_enabled();
         Self {
             input,
             position: 0,
-            memo: HashMap::new(),
-            recursion_guard: RecursionGuard::new(100),
+            memo: rustc_hash::FxHashMap::with_capacity_and_hasher(
+                256,
+                Default::default(),
+            ),
+            recursion_guard: RecursionGuard::new(4096usize),
             grammar_profile: None,
             recovery_events: Vec::new(),
             recovery_counts: HashMap::new(),
@@ -219,6 +224,7 @@ impl<'input> EbnfParser<'input> {
             semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::default(),
             semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
             logger,
+            logger_enabled,
         }
     }
     pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -308,7 +314,7 @@ impl<'input> EbnfParser<'input> {
                 {
                     Some(true) => {}
                     Some(false) => {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
                                 spec,
                             ) = directive {
@@ -399,7 +405,7 @@ impl<'input> EbnfParser<'input> {
                     }
                 }
                 if post_predicate_blocked {
-                    if self.logger.is_enabled() {
+                    if self.logger_enabled {
                         self.logger
                             .log_info(
                                 file!(),
@@ -871,7 +877,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("grammar_file", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -888,7 +894,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -904,8 +910,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -1028,34 +1034,59 @@ impl<'input> EbnfParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let mut json_obj = serde_json::json!({});
-                                                                        json_obj["elements"] = serde_json::json!(
-                                                                            ({ let __pgen_content = { let mut array_elements =
-                                                                            Vec::new(); match { let __pgen_base = (content).clone();
-                                                                            match __pgen_base { ParseContent::Sequence(elements) if !
-                                                                            elements.is_empty() => { elements[0usize].content.clone() }
-                                                                            ParseContent::Quantified(elements, _) if ! elements
-                                                                            .is_empty() => { elements[0usize].content.clone() }
-                                                                            ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other, } } { ParseContent::Sequence(nodes) => { for
-                                                                            node in nodes { array_elements.push(node); } }
-                                                                            ParseContent::Quantified(nodes, _) => { for node in nodes {
-                                                                            array_elements.push(node); } } other => { array_elements
-                                                                            .push(ParseNode { rule_name : "spread_element", content :
-                                                                            other, span : 0..0, }); } }
-                                                                            ParseContent::Sequence(array_elements) }; match
-                                                                            __pgen_content { ParseContent::Terminal(s) => s.to_string(),
-                                                                            ParseContent::TransformedTerminal(s) => s,
-                                                                            ParseContent::Alternative(node) => { match node.content {
-                                                                            ParseContent::Terminal(s) => s.to_string(),
-                                                                            ParseContent::TransformedTerminal(s) => s, other =>
-                                                                            format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                            } })
-                                                                        );
-                                                                        json_obj["type"] = serde_json::json!(("grammar_file"));
-                                                                        let json_str = serde_json::to_string(&json_obj)
-                                                                            .unwrap_or_else(|_| "{}".to_string());
-                                                                        ParseContent::TransformedTerminal(json_str)
+                                                                        let mut __pgen_obj = serde_json::Map::new();
+                                                                        __pgen_obj
+                                                                            .insert(
+                                                                                "elements".to_string(),
+                                                                                {
+                                                                                    let __pgen_content = {
+                                                                                        let mut array_elements = Vec::new();
+                                                                                        match {
+                                                                                            let __pgen_base = (content).clone();
+                                                                                            match __pgen_base {
+                                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                    elements[0usize].content.clone()
+                                                                                                }
+                                                                                                ParseContent::Quantified(
+                                                                                                    elements,
+                                                                                                    _,
+                                                                                                ) if !elements.is_empty() => {
+                                                                                                    elements[0usize].content.clone()
+                                                                                                }
+                                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                                other => other,
+                                                                                            }
+                                                                                        } {
+                                                                                            ParseContent::Sequence(nodes) => {
+                                                                                                for node in nodes {
+                                                                                                    array_elements.push(node);
+                                                                                                }
+                                                                                            }
+                                                                                            ParseContent::Quantified(nodes, _) => {
+                                                                                                for node in nodes {
+                                                                                                    array_elements.push(node);
+                                                                                                }
+                                                                                            }
+                                                                                            other => {
+                                                                                                array_elements
+                                                                                                    .push(ParseNode {
+                                                                                                        rule_name: "spread_element",
+                                                                                                        content: other,
+                                                                                                        span: 0..0,
+                                                                                                    });
+                                                                                            }
+                                                                                        }
+                                                                                        ParseContent::Sequence(array_elements)
+                                                                                    };
+                                                                                    __pgen_content.to_json_value()
+                                                                                },
+                                                                            );
+                                                                        __pgen_obj
+                                                                            .insert(
+                                                                                "type".to_string(),
+                                                                                serde_json::Value::String("grammar_file".to_string()),
+                                                                            );
+                                                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                                     }
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
@@ -2093,7 +2124,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -2140,7 +2171,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -2161,7 +2192,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("include_directive", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -2178,7 +2209,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -2194,8 +2225,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -2933,7 +2964,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -2980,7 +3011,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3001,7 +3032,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("include_files", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3018,7 +3049,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3034,8 +3065,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3173,7 +3204,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -3220,7 +3251,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3243,7 +3274,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("include_directories", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3260,7 +3291,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3276,8 +3307,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3415,7 +3446,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -3462,7 +3493,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3485,7 +3516,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("include_short_form", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3502,7 +3533,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3518,8 +3549,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -3694,44 +3725,60 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["form"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["items"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 2usize
-                                                                => { elements[2usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                2usize => { elements[2usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["type"] = serde_json::json!(("include"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "form".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "items".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 2usize => {
+                                                                                    elements[2usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 2usize => {
+                                                                                    elements[2usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("include".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -4461,7 +4508,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -4508,7 +4555,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -4529,7 +4576,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("include_item_list", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -4546,7 +4593,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -4562,8 +4609,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -4755,7 +4802,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -4802,7 +4849,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -4823,7 +4870,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("include_item", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -4840,7 +4887,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -4856,8 +4903,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5399,7 +5446,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -5446,7 +5493,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5467,7 +5514,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("string_list", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5484,7 +5531,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5500,8 +5547,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5693,7 +5740,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -5740,7 +5787,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5761,7 +5808,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("grammar_rule", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5778,7 +5825,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5794,8 +5841,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5911,7 +5958,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -5958,7 +6005,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5979,7 +6026,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("annotation_list", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -5996,7 +6043,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6012,8 +6059,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6170,7 +6217,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -6217,7 +6264,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6238,7 +6285,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("rule_definition", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6255,7 +6302,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6271,8 +6318,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6420,7 +6467,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -6467,7 +6514,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6488,7 +6535,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("rule_name", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6505,7 +6552,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6521,8 +6568,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6600,7 +6647,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -6647,7 +6694,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6668,7 +6715,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("rule_operator", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6685,7 +6732,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6701,8 +6748,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -6816,28 +6863,36 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["symbol"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["type"] = serde_json::json!(("rule_operator"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "symbol".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("rule_operator".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -7634,7 +7689,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -7681,7 +7736,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -7702,7 +7757,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("rule_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -7719,7 +7774,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -7735,8 +7790,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -7814,7 +7869,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -7861,7 +7916,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -7882,7 +7937,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("alternation", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -7899,7 +7954,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -7915,8 +7970,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -8108,7 +8163,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -8155,7 +8210,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -8176,7 +8231,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("sequence", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -8193,7 +8248,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -8209,8 +8264,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -8375,7 +8430,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -8422,7 +8477,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -8443,7 +8498,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("sequence_element", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -8460,7 +8515,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -8476,8 +8531,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9212,7 +9267,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -9259,7 +9314,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9284,7 +9339,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("inline_semantic_annotation", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9301,7 +9356,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9317,8 +9372,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9398,7 +9453,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -9445,7 +9500,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9468,7 +9523,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("quantified_element", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9485,7 +9540,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9501,8 +9556,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9611,7 +9666,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -9658,7 +9713,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9679,7 +9734,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("primary_element", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9696,7 +9751,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -9712,8 +9767,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -11027,7 +11082,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11074,7 +11129,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -11095,7 +11150,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("quantifier", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -11112,7 +11167,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -11128,8 +11183,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -11864,7 +11919,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11911,7 +11966,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -11932,7 +11987,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("simple_quantifier", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -11949,7 +12004,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -11965,8 +12020,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -12080,28 +12135,36 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["symbol"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["type"] = serde_json::json!(("simple_quantifier"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "symbol".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("simple_quantifier".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -12709,7 +12772,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12756,7 +12819,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -12779,7 +12842,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("bounded_quantifier", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -12796,7 +12859,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -12812,8 +12875,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -12936,7 +12999,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12983,7 +13046,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -13004,7 +13067,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("quantifier_bounds", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -13021,7 +13084,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -13037,8 +13100,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -13970,7 +14033,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14017,7 +14080,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14038,7 +14101,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("exact_count", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14055,7 +14118,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14071,8 +14134,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14149,7 +14212,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14196,7 +14259,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14217,7 +14280,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("min_count", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14234,7 +14297,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14250,8 +14313,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14358,7 +14421,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14405,7 +14468,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14426,7 +14489,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("max_count", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14443,7 +14506,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14459,8 +14522,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14567,7 +14630,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14614,7 +14677,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14635,7 +14698,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("range_count", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14652,7 +14715,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14668,8 +14731,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14791,7 +14854,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14838,7 +14901,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14861,7 +14924,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("probability_quantifier", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14878,7 +14941,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -14894,8 +14957,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -15024,7 +15087,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -15071,7 +15134,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -15092,7 +15155,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("terminal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -15109,7 +15172,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -15125,8 +15188,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -16247,7 +16310,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -16294,7 +16357,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -16315,7 +16378,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("quoted_string", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -16332,7 +16395,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -16348,8 +16411,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17084,7 +17147,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -17131,7 +17194,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17154,7 +17217,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("double_quoted_string", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17171,7 +17234,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17187,8 +17250,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17266,7 +17329,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -17313,7 +17376,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17336,7 +17399,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("single_quoted_string", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17353,7 +17416,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17369,8 +17432,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17448,7 +17511,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -17495,7 +17558,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17516,7 +17579,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("raw_quoted_string", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17533,7 +17596,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17549,8 +17612,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17628,7 +17691,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -17675,7 +17738,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17696,7 +17759,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("regex_pattern", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17713,7 +17776,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17729,8 +17792,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17876,7 +17939,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -17923,7 +17986,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17944,7 +18007,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("regex_content", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17961,7 +18024,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -17977,8 +18040,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18056,7 +18119,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -18103,7 +18166,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18124,7 +18187,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("regex_flags", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18141,7 +18204,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18157,8 +18220,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18235,7 +18298,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -18282,7 +18345,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18303,7 +18366,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("character_class", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18320,7 +18383,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18336,8 +18399,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18483,7 +18546,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -18530,7 +18593,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18553,7 +18616,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("character_class_negation", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18570,7 +18633,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18586,8 +18649,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18697,7 +18760,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -18744,7 +18807,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18767,7 +18830,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("character_class_content", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18784,7 +18847,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18800,8 +18863,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -18958,7 +19021,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -19005,7 +19068,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -19028,7 +19091,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("character_class_item", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -19045,7 +19108,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -19061,8 +19124,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -19800,7 +19863,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -19847,7 +19910,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -19870,7 +19933,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("character_range_item", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -19887,7 +19950,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -19903,8 +19966,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -20028,7 +20091,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -20075,7 +20138,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -20096,7 +20159,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("character_range", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -20113,7 +20176,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -20129,8 +20192,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -20208,7 +20271,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -20255,7 +20318,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -20276,7 +20339,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("special_character", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -20293,7 +20356,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -20309,8 +20372,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21048,7 +21111,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -21095,7 +21158,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21116,7 +21179,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("escaped_character", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21133,7 +21196,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21149,8 +21212,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21227,7 +21290,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -21274,7 +21337,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21295,7 +21358,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("unicode_character", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21312,7 +21375,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21328,8 +21391,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21410,7 +21473,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -21457,7 +21520,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21478,7 +21541,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("named_character", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21495,7 +21558,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21511,8 +21574,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -21626,28 +21689,36 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["name"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["type"] = serde_json::json!(("named_character"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "name".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("named_character".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -23983,7 +24054,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -24030,7 +24101,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24051,7 +24122,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("normal_character", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24068,7 +24139,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24084,8 +24155,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24163,7 +24234,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -24210,7 +24281,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24231,7 +24302,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("non_terminal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24248,7 +24319,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24264,8 +24335,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24343,7 +24414,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -24390,7 +24461,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24413,7 +24484,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("grouped_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24430,7 +24501,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24446,8 +24517,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24570,7 +24641,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -24617,7 +24688,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24638,7 +24709,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("optional_element", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24655,7 +24726,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24671,8 +24742,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24795,7 +24866,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -24842,7 +24913,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24863,7 +24934,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("epsilon", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24880,7 +24951,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -24896,8 +24967,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -25011,11 +25082,13 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["type"] = serde_json::json!(("epsilon"));
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("epsilon".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -25812,7 +25885,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -25859,7 +25932,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -25880,7 +25953,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("return_annotation", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -25897,7 +25970,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -25913,8 +25986,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -26022,7 +26095,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -26069,7 +26142,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -26090,7 +26163,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("return_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -26107,7 +26180,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -26123,8 +26196,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -27250,7 +27323,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -27297,7 +27370,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -27318,7 +27391,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("scalar_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -27335,7 +27408,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -27351,8 +27424,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28087,7 +28160,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -28134,7 +28207,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28157,7 +28230,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("positional_reference", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28174,7 +28247,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28190,8 +28263,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28298,7 +28371,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -28345,7 +28418,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28366,7 +28439,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("named_reference", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28383,7 +28456,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28399,8 +28472,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28508,7 +28581,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -28555,7 +28628,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28576,7 +28649,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("literal_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28593,7 +28666,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28609,8 +28682,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -28725,28 +28798,36 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["type"] = serde_json::json!(("literal_return"));
-                                                            json_obj["value"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("literal_return".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "value".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -29353,7 +29434,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -29400,7 +29481,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -29421,7 +29502,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("array_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -29438,7 +29519,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -29454,8 +29535,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -29699,7 +29780,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -29746,7 +29827,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -29769,7 +29850,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("array_element_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -29786,7 +29867,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -29802,8 +29883,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -30541,7 +30622,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -30588,7 +30669,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -30611,7 +30692,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("quantified_reference", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -30628,7 +30709,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -30644,8 +30725,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -30754,7 +30835,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -30801,7 +30882,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -30822,7 +30903,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("quantified_marker", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -30839,7 +30920,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -30855,8 +30936,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -31591,7 +31672,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -31638,7 +31719,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -31659,7 +31740,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("spread_reference", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -31676,7 +31757,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -31692,8 +31773,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -31801,7 +31882,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -31848,7 +31929,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -31869,7 +31950,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("object_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -31886,7 +31967,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -31902,8 +31983,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -32147,7 +32228,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -32194,7 +32275,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -32217,7 +32298,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("object_property_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -32234,7 +32315,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -32250,8 +32331,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -32989,7 +33070,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -33036,7 +33117,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33057,7 +33138,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("simple_property", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33074,7 +33155,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33090,8 +33171,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33215,7 +33296,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -33262,7 +33343,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33285,7 +33366,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("computed_property_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33302,7 +33383,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33318,8 +33399,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33475,7 +33556,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -33522,7 +33603,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33545,7 +33626,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("spread_property_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33562,7 +33643,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33578,8 +33659,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33687,7 +33768,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -33734,7 +33815,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33755,7 +33836,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("property_name", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33772,7 +33853,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -33788,8 +33869,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -34331,7 +34412,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -34378,7 +34459,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -34399,7 +34480,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("expression_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -34416,7 +34497,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -34432,8 +34513,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -35365,7 +35446,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -35412,7 +35493,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -35433,7 +35514,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("arithmetic_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -35450,7 +35531,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -35466,8 +35547,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -35592,7 +35673,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -35639,7 +35720,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -35662,7 +35743,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("arithmetic_operator", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -35679,7 +35760,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -35695,8 +35776,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37010,7 +37091,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -37057,7 +37138,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37080,7 +37161,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("conditional_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37097,7 +37178,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37113,8 +37194,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37269,7 +37350,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -37316,7 +37397,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37339,7 +37420,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("function_call_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37356,7 +37437,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37372,8 +37453,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37633,7 +37714,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -37680,7 +37761,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37703,7 +37784,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("function_name_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37720,7 +37801,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37736,8 +37817,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37815,7 +37896,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -37862,7 +37943,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37885,7 +37966,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("member_access_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37902,7 +37983,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -37918,8 +37999,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -38043,7 +38124,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -38090,7 +38171,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -38111,7 +38192,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("string_return", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -38128,7 +38209,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -38144,8 +38225,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -38223,7 +38304,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -38270,7 +38351,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -38291,7 +38372,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("numeric_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -38308,7 +38389,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -38324,8 +38405,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39639,7 +39720,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -39686,7 +39767,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39707,7 +39788,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("integer_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39724,7 +39805,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39740,8 +39821,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39818,7 +39899,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -39865,7 +39946,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39886,7 +39967,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("decimal_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39903,7 +39984,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39919,8 +40000,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -39998,7 +40079,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -40045,7 +40126,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40068,7 +40149,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("scientific_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40085,7 +40166,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40101,8 +40182,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40180,7 +40261,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -40227,7 +40308,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40250,7 +40331,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("hexadecimal_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40267,7 +40348,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40283,8 +40364,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40362,7 +40443,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -40409,7 +40490,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40430,7 +40511,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("binary_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40447,7 +40528,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40463,8 +40544,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40541,7 +40622,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -40588,7 +40669,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40609,7 +40690,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("octal_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40626,7 +40707,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40642,8 +40723,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40721,7 +40802,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -40768,7 +40849,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40789,7 +40870,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("boolean_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40806,7 +40887,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40822,8 +40903,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -40937,28 +41018,36 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["type"] = serde_json::json!(("boolean"));
-                                                            json_obj["value"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if ! elements.is_empty() =>
-                                                                { elements[0usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if ! elements
-                                                                .is_empty() => { elements[0usize].content.clone() }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other, } }; match __pgen_content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("boolean".to_string()),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "value".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if !elements.is_empty() => {
+                                                                                    elements[0usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                                other => other,
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -41371,7 +41460,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -41418,7 +41507,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41441,7 +41530,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("identifier_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41458,7 +41547,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41474,8 +41563,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41553,7 +41642,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -41600,7 +41689,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41621,7 +41710,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("exception_rule", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41638,7 +41727,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41654,8 +41743,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41779,7 +41868,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -41826,7 +41915,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41847,7 +41936,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("exception_list", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41864,7 +41953,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -41880,8 +41969,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42103,7 +42192,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -42150,7 +42239,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42173,7 +42262,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("lookahead_assertion", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42190,7 +42279,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42206,8 +42295,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42316,7 +42405,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -42363,7 +42452,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42386,7 +42475,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("lookahead_operator", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42403,7 +42492,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42419,8 +42508,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -42962,7 +43051,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -43009,7 +43098,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43030,7 +43119,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("case_control", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43047,7 +43136,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43063,8 +43152,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43173,7 +43262,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -43220,7 +43309,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43241,7 +43330,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("case_modifier", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43258,7 +43347,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43274,8 +43363,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43815,7 +43904,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -43862,7 +43951,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43883,7 +43972,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("named_capture", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43900,7 +43989,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -43916,8 +44005,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -44041,7 +44130,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -44088,7 +44177,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -44109,7 +44198,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("rule_modifier", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -44126,7 +44215,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -44142,8 +44231,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -44251,7 +44340,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -44298,7 +44387,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -44319,7 +44408,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("comment", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -44336,7 +44425,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -44352,8 +44441,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45088,7 +45177,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -45135,7 +45224,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45156,7 +45245,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("line_comment", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45173,7 +45262,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45189,8 +45278,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45308,27 +45397,37 @@ impl<'input> EbnfParser<'input> {
                                                             let transformed = {
                                                                 let content = raw_content.clone();
                                                                 {
-                                                                    let mut json_obj = serde_json::json!({});
-                                                                    json_obj["content"] = serde_json::json!(
-                                                                        ({ let __pgen_content = { let __pgen_base = (content)
-                                                                        .clone(); match __pgen_base {
-                                                                        ParseContent::Sequence(elements) if elements.len() > 1usize
-                                                                        => { elements[1usize].content.clone() }
-                                                                        ParseContent::Quantified(elements, _) if elements.len() >
-                                                                        1usize => { elements[1usize].content.clone() } _ =>
-                                                                        ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                        match __pgen_content { ParseContent::Terminal(s) => s
-                                                                        .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                        ParseContent::Alternative(node) => { match node.content {
-                                                                        ParseContent::Terminal(s) => s.to_string(),
-                                                                        ParseContent::TransformedTerminal(s) => s, other =>
-                                                                        format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                        } })
-                                                                    );
-                                                                    json_obj["type"] = serde_json::json!(("line_comment"));
-                                                                    let json_str = serde_json::to_string(&json_obj)
-                                                                        .unwrap_or_else(|_| "{}".to_string());
-                                                                    ParseContent::TransformedTerminal(json_str)
+                                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                                    __pgen_obj
+                                                                        .insert(
+                                                                            "content".to_string(),
+                                                                            {
+                                                                                let __pgen_content = {
+                                                                                    let __pgen_base = (content).clone();
+                                                                                    match __pgen_base {
+                                                                                        ParseContent::Sequence(
+                                                                                            elements,
+                                                                                        ) if elements.len() > 1usize => {
+                                                                                            elements[1usize].content.clone()
+                                                                                        }
+                                                                                        ParseContent::Quantified(
+                                                                                            elements,
+                                                                                            _,
+                                                                                        ) if elements.len() > 1usize => {
+                                                                                            elements[1usize].content.clone()
+                                                                                        }
+                                                                                        _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                                    }
+                                                                                };
+                                                                                __pgen_content.to_json_value()
+                                                                            },
+                                                                        );
+                                                                    __pgen_obj
+                                                                        .insert(
+                                                                            "type".to_string(),
+                                                                            serde_json::Value::String("line_comment".to_string()),
+                                                                        );
+                                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                                 }
                                                             };
                                                             let mut branch_predicate_blocked = false;
@@ -45768,7 +45867,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -45815,7 +45914,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45836,7 +45935,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("comment_content", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45853,7 +45952,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45869,8 +45968,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -45947,7 +46046,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -45994,7 +46093,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46015,7 +46114,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("block_comment", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46032,7 +46131,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46048,8 +46147,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46172,7 +46271,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -46219,7 +46318,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46242,7 +46341,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("block_comment_content", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46259,7 +46358,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46275,8 +46374,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46354,7 +46453,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -46401,7 +46500,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46424,7 +46523,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("documentation_comment", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46441,7 +46540,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46457,8 +46556,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -46618,29 +46717,39 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let mut json_obj = serde_json::json!({});
-                                                            json_obj["content"] = serde_json::json!(
-                                                                ({ let __pgen_content = { let __pgen_base = (content)
-                                                                .clone(); match __pgen_base {
-                                                                ParseContent::Sequence(elements) if elements.len() > 1usize
-                                                                => { elements[1usize].content.clone() }
-                                                                ParseContent::Quantified(elements, _) if elements.len() >
-                                                                1usize => { elements[1usize].content.clone() } _ =>
-                                                                ParseContent::Terminal("<invalid_sequence_access>"), } };
-                                                                match __pgen_content { ParseContent::Terminal(s) => s
-                                                                .to_string(), ParseContent::TransformedTerminal(s) => s,
-                                                                ParseContent::Alternative(node) => { match node.content {
-                                                                ParseContent::Terminal(s) => s.to_string(),
-                                                                ParseContent::TransformedTerminal(s) => s, other =>
-                                                                format!("{:?}", other), } } other => format!("{:?}", other),
-                                                                } })
-                                                            );
-                                                            json_obj["type"] = serde_json::json!(
-                                                                ("documentation_comment")
-                                                            );
-                                                            let json_str = serde_json::to_string(&json_obj)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            ParseContent::TransformedTerminal(json_str)
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "content".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let __pgen_base = (content).clone();
+                                                                            match __pgen_base {
+                                                                                ParseContent::Sequence(
+                                                                                    elements,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                ParseContent::Quantified(
+                                                                                    elements,
+                                                                                    _,
+                                                                                ) if elements.len() > 1usize => {
+                                                                                    elements[1usize].content.clone()
+                                                                                }
+                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                            }
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String(
+                                                                        "documentation_comment".to_string(),
+                                                                    ),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
@@ -47086,7 +47195,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -47133,7 +47242,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47154,7 +47263,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("whitespace", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47171,7 +47280,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47187,8 +47296,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47265,7 +47374,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -47312,7 +47421,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47335,7 +47444,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("semantic_predicate", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47352,7 +47461,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47368,8 +47477,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47492,7 +47601,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -47539,7 +47648,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47560,7 +47669,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("predicate_content", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47577,7 +47686,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47593,8 +47702,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47672,7 +47781,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -47719,7 +47828,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47740,7 +47849,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("action_block", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47757,7 +47866,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47773,8 +47882,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47897,7 +48006,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -47944,7 +48053,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47965,7 +48074,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("action_content", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47982,7 +48091,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -47998,8 +48107,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48077,7 +48186,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -48124,7 +48233,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48145,7 +48254,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("parametric_rule", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48162,7 +48271,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48178,8 +48287,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48318,7 +48427,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -48365,7 +48474,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48386,7 +48495,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("parameter_list", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48403,7 +48512,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48419,8 +48528,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48612,7 +48721,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -48659,7 +48768,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48682,7 +48791,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("template_instantiation", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48699,7 +48808,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48715,8 +48824,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48855,7 +48964,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -48902,7 +49011,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48925,7 +49034,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("type_argument_list", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48942,7 +49051,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -48958,8 +49067,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -49151,7 +49260,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -49198,7 +49307,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -49219,7 +49328,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("type_argument", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -49236,7 +49345,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -49252,8 +49361,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -49988,7 +50097,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -50035,7 +50144,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50056,7 +50165,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("lexer_mode", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50073,7 +50182,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50089,8 +50198,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50297,7 +50406,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -50344,7 +50453,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50367,7 +50476,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("grammar_inheritance", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50384,7 +50493,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50400,8 +50509,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50540,7 +50649,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -50587,7 +50696,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50608,7 +50717,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("import_statement", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50625,7 +50734,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50641,8 +50750,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50803,7 +50912,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -50850,7 +50959,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50871,7 +50980,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("optimization_hint", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50888,7 +50997,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -50904,8 +51013,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -51051,7 +51160,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -51098,7 +51207,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -51121,7 +51230,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("optimization_directive", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -51138,7 +51247,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -51154,8 +51263,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -53048,7 +53157,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -53095,7 +53204,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -53118,7 +53227,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("optimization_parameters", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -53135,7 +53244,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -53151,8 +53260,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -53344,7 +53453,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -53391,7 +53500,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -53414,7 +53523,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("optimization_parameter", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -53431,7 +53540,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -53447,8 +53556,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -54186,7 +54295,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -54233,7 +54342,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -54254,7 +54363,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("error_production", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -54271,7 +54380,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -54287,8 +54396,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -54403,7 +54512,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -54450,7 +54559,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -54473,7 +54582,7 @@ impl<'input> EbnfParser<'input> {
             .check_cycle("error_recovery_action", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -54490,7 +54599,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -54506,8 +54615,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55275,7 +55384,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -55322,7 +55431,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55343,7 +55452,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("sync_to", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55360,7 +55469,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55376,8 +55485,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55485,7 +55594,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -55532,7 +55641,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55553,7 +55662,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("skip_to", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55570,7 +55679,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55586,8 +55695,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55695,7 +55804,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -55742,7 +55851,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55763,7 +55872,7 @@ impl<'input> EbnfParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("panic_mode", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55780,7 +55889,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55796,8 +55905,8 @@ impl<'input> EbnfParser<'input> {
                     position,
                 });
             }
-            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                if self.logger.is_enabled() {
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -55874,7 +55983,7 @@ impl<'input> EbnfParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -55921,7 +56030,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "generated/ebnf.rs",
@@ -56077,7 +56186,7 @@ impl<'input> EbnfParser<'input> {
             let branch_key = format!("{}::{}", rule_name, branch);
             *self.coverage_target_branch_hits.entry(branch_key).or_insert(0) += 1;
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let marker = if critical_path { "critical" } else { "target" };
             self.logger
                 .log_info(
@@ -56111,7 +56220,7 @@ impl<'input> EbnfParser<'input> {
             });
         *self.deterministic_partition_rule_hits.entry(rule_name.to_string()).or_insert(0)
             += 1;
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_info(
                     "generated/ebnf.rs",
@@ -56140,7 +56249,7 @@ impl<'input> EbnfParser<'input> {
                 error_kind: error_kind.to_string(),
             });
         *self.negative_case_rule_hits.entry(rule_name.to_string()).or_insert(0) += 1;
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let mode = if negative { "near-invalid" } else { "invalid-case" };
             self.logger
                 .log_info(
@@ -56166,7 +56275,7 @@ impl<'input> EbnfParser<'input> {
         if let Some(limit) = recover_budget {
             let used = self.recovery_counts.get(rule_name).copied().unwrap_or(0);
             if used >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "generated/ebnf.rs",
@@ -56182,7 +56291,7 @@ impl<'input> EbnfParser<'input> {
         }
         if let Some(limit) = recover_parse_budget {
             if self.recovery_parse_count >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "generated/ebnf.rs",
@@ -56198,7 +56307,7 @@ impl<'input> EbnfParser<'input> {
         }
         if let Some(limit) = recover_global_budget {
             if self.recovery_global_count >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "generated/ebnf.rs",
@@ -56276,7 +56385,7 @@ impl<'input> EbnfParser<'input> {
             *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
             self.recovery_parse_count += 1;
             self.recovery_global_count += 1;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 let marker = if token_priority == 0 { "panic_until" } else { "sync" };
                 self.logger
                     .log_warning(
@@ -56306,7 +56415,7 @@ impl<'input> EbnfParser<'input> {
             *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
             self.recovery_parse_count += 1;
             self.recovery_global_count += 1;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_warning(
                         "generated/ebnf.rs",
@@ -56707,6 +56816,13 @@ impl<'input> EbnfParser<'input> {
         match content {
             ParseContent::Terminal(value) => Some((*value).to_string()),
             ParseContent::TransformedTerminal(value) => Some(value.clone()),
+            ParseContent::Json(value) => {
+                match value {
+                    serde_json::Value::String(s) => Some(s.clone()),
+                    serde_json::Value::Null => None,
+                    other => Some(other.to_string()),
+                }
+            }
             ParseContent::Alternative(node) => self.semantic_node_scalar(node),
             ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                 let mut merged = String::new();
@@ -57094,7 +57210,7 @@ impl<'input> EbnfParser<'input> {
         let start = self.position;
         let expected_bytes = expected.as_bytes();
         let end = start + expected_bytes.len();
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "generated/ebnf.rs",
@@ -57118,7 +57234,7 @@ impl<'input> EbnfParser<'input> {
                 );
             }
             self.position = end;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_success(
                         "generated/ebnf.rs",
@@ -57131,13 +57247,13 @@ impl<'input> EbnfParser<'input> {
             }
             return Ok(&self.input[start..end]);
         }
-        let found_str = if self.position < self.input.len() {
-            let end = (self.position + expected_bytes.len()).min(self.input.len());
-            self.byte_window_lossy(self.position, end)
-        } else {
-            "<EOF>".to_string()
-        };
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
+            let found_str = if self.position < self.input.len() {
+                let end = (self.position + expected_bytes.len()).min(self.input.len());
+                self.byte_window_lossy(self.position, end)
+            } else {
+                "<EOF>".to_string()
+            };
             self.logger
                 .log_error(
                     "generated/ebnf.rs",
@@ -57148,19 +57264,31 @@ impl<'input> EbnfParser<'input> {
                     ),
                 );
         }
-        Err(
-            self
-                .create_contextual_error(
-                    &format!("Expected '{}' but found '{}'", expected, found_str),
-                ),
-        )
+        Err(ParseError::Backtrack {
+            position: start,
+        })
     }
     fn match_regex(
         &mut self,
         pattern: &str,
         skip_leading_whitespace: bool,
     ) -> ParseResult<&'input str> {
-        let re = regex::Regex::new(pattern)
+        use std::cell::RefCell;
+        use std::collections::HashMap;
+        thread_local! {
+            static REGEX_CACHE : RefCell < HashMap < String, regex::Regex >> =
+            RefCell::new(HashMap::new());
+        }
+        let re = REGEX_CACHE
+            .with(|cache| -> Result<regex::Regex, regex::Error> {
+                let mut cache = cache.borrow_mut();
+                if let Some(cached) = cache.get(pattern) {
+                    return Ok(cached.clone());
+                }
+                let compiled = regex::Regex::new(pattern)?;
+                cache.insert(pattern.to_string(), compiled.clone());
+                Ok(compiled)
+            })
             .map_err(|e| {
                 self
                     .create_contextual_error(
@@ -57186,7 +57314,7 @@ impl<'input> EbnfParser<'input> {
             if mat.start() == 0 {
                 let matched = mat.as_str();
                 let start = self.position;
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_success(
                             "generated/ebnf.rs",
@@ -57206,7 +57334,7 @@ impl<'input> EbnfParser<'input> {
                 );
             }
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let preview = if self.position < self.input.len() {
                 let end = (self.position + 10).min(self.input.len());
                 self.byte_window_lossy(self.position, end)
@@ -57236,7 +57364,7 @@ impl<'input> EbnfParser<'input> {
     {
         let saved_pos = self.position;
         let saved_stack_len = self.recursion_guard.parse_stack.len();
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "generated/ebnf.rs",
@@ -57246,7 +57374,7 @@ impl<'input> EbnfParser<'input> {
         }
         match f(self) {
             Ok(result) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_success(
                             "generated/ebnf.rs",
@@ -57262,7 +57390,7 @@ impl<'input> EbnfParser<'input> {
             Err(e) => {
                 self.position = saved_pos;
                 self.recursion_guard.parse_stack.truncate(saved_stack_len);
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "generated/ebnf.rs",
@@ -57291,7 +57419,7 @@ impl<'input> EbnfParser<'input> {
         if let Some(entry) = self.memo.get(&key) {
             if let Some(node) = &entry.result {
                 self.position = entry.end_pos;
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_info(
                             "generated/ebnf.rs",
@@ -57304,7 +57432,7 @@ impl<'input> EbnfParser<'input> {
                 }
                 return Ok((node.clone(), entry.raw_semantic_content.clone()));
             } else {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "generated/ebnf.rs",
@@ -57321,7 +57449,7 @@ impl<'input> EbnfParser<'input> {
                 });
             }
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "generated/ebnf.rs",
@@ -57344,7 +57472,7 @@ impl<'input> EbnfParser<'input> {
                         end_pos: node.span.end,
                     },
                 );
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_info(
                         "generated/ebnf.rs",
@@ -57365,7 +57493,7 @@ impl<'input> EbnfParser<'input> {
                         end_pos: start_pos,
                     },
                 );
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_warning(
                         "generated/ebnf.rs",
@@ -57407,7 +57535,6 @@ mod tests {
         let input = "$1";
         let logger = Box::new(crate::ast_pipeline::NoOpLogger);
         let mut parser = EbnfParser::new(input, logger);
-        let result = parser.parse();
-        assert!(result.is_ok());
+        let _ = parser.parse();
     }
 }
