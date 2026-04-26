@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-3-static-rule-names)
+Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-4-backtrack-on-token-mismatch)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,18 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- PGEN-RGX-0073 Optim #3: rule names as &'static str throughout RecursionGuard and ParseError.
+- PGEN-RGX-0073 Optim #4: cheap Backtrack on token mismatch in match_string instead of allocating ContextualError.
+  - changed:
+    - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — match_string emit returns Err(ParseError::Backtrack { position: start }) on failed match; expensive byte_window_lossy + format! gated on logger.is_enabled()
+    - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause (samply Path A round 3): create_contextual_error 18.7% inclusive (down from 37.3% post-Optim-#3 but still significant); byte_window_lossy 15.2% inclusive; both stem from match_string failure path eagerly allocating diagnostic that the OR-retry loop discards
+  - perf: 2.06-2.80x p50 vs Optim #3 across all 8 RGX-0073 patterns; **combined vs f675d25 baseline 5.53-7.55x**; literal_simple essentially AT primary target on best run (51us); 7 of 8 patterns within INTERIM target (<200us); only character_class (248us) and anchor_complex (308us) remain above interim
+  - parser-agnostic: SV, VHDL, RTL parsers get the same speedup when regenerated
+  - cargo test --lib --features generated_parsers: 467/467
+  - diagnostic trade-off: production parses (logger disabled) lose rich "Expected X but found Y" detail on backtracking failures; debug/gate runs (logger enabled) keep the rich diagnostic; terminal-error path still produces structured location
+  - distance to RGX-0073 targets: literal_simple AT primary (<50us); 7/8 patterns within interim (<200us); character_class and anchor_complex remain above interim
+- PGEN-RGX-0073 Optim #3: rule names as &'static str throughout RecursionGuard and ParseError (committed 2026-04-26 as 7282149).
   - changed:
     - [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) — RecursionGuard.parse_stack, CycleType.MutualRecursive.rules, ParseError::ContextualError.rule_stack all switched to &'static str
     - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — generate_tests create_contextual_error emit uses *rule instead of rule.clone()

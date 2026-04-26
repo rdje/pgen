@@ -17670,13 +17670,13 @@ impl<'input> ReturnAnnotationParser<'input> {
             }
             return Ok(&self.input[start..end]);
         }
-        let found_str = if self.position < self.input.len() {
-            let end = (self.position + expected_bytes.len()).min(self.input.len());
-            self.byte_window_lossy(self.position, end)
-        } else {
-            "<EOF>".to_string()
-        };
         if self.logger.is_enabled() {
+            let found_str = if self.position < self.input.len() {
+                let end = (self.position + expected_bytes.len()).min(self.input.len());
+                self.byte_window_lossy(self.position, end)
+            } else {
+                "<EOF>".to_string()
+            };
             self.logger
                 .log_error(
                     "../generated/return_annotation_parser.rs",
@@ -17687,12 +17687,9 @@ impl<'input> ReturnAnnotationParser<'input> {
                     ),
                 );
         }
-        Err(
-            self
-                .create_contextual_error(
-                    &format!("Expected '{}' but found '{}'", expected, found_str),
-                ),
-        )
+        Err(ParseError::Backtrack {
+            position: start,
+        })
     }
     fn match_regex(
         &mut self,

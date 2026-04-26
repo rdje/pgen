@@ -3646,22 +3646,24 @@ impl AstBasedGenerator {
                     return Ok(&self.input[start..end]);
                 }
 
-                // Enhanced error with context
-                let found_str = if self.position < self.input.len() {
-                    let end = (self.position + expected_bytes.len()).min(self.input.len());
-                    self.byte_window_lossy(self.position, end)
-                } else {
-                    "<EOF>".to_string()
-                };
-
+                // Optim #4: cheap Backtrack on failure. Token-mismatch is the most common
+                // failure mode (every alternation backtrack), and the rich ContextualError
+                // (with byte_window_lossy + format!() + rule_stack collection) is almost
+                // always discarded by the next OR retry. Construct that only when the
+                // logger is enabled (debug builds, gates) — production parses skip the
+                // allocation entirely. Caller's OR retry loop handles ParseError::Backtrack
+                // identically to ContextualError.
                 if self.logger.is_enabled() {
+                    let found_str = if self.position < self.input.len() {
+                        let end = (self.position + expected_bytes.len()).min(self.input.len());
+                        self.byte_window_lossy(self.position, end)
+                    } else {
+                        "<EOF>".to_string()
+                    };
                     self.logger.log_error(#filename, 0, &format!("❌ Terminal '{}' failed at position {} - found '{}'", expected, start, found_str));
                 }
 
-                Err(self.create_contextual_error(&format!(
-                    "Expected '{}' but found '{}'",
-                    expected, found_str
-                )))
+                Err(ParseError::Backtrack { position: start })
             }
 
             fn match_regex(&mut self, pattern: &str, skip_leading_whitespace: bool) -> ParseResult<&'input str> {

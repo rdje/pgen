@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Optim #4: cheap Backtrack on token mismatch in match_string
+### Context
+Path A round 3 samply profile of `target/release/regex_perf_probe` (post-Optim-#3, --unstable-presymbolicate). Total samples 15,498 (was 31,233 pre-Optim-#3 — runtime roughly halved by Optim #2 + #3 cumulatively). New top costs:
+- `_platform_memmove` 5.97% self (was 9.58% — Optim #3 helped here too)
+- `__bzero` 4.28% self (memory zeroing on fresh allocator blocks)
+- `Utf8Chunks::next` 4.20% self (UTF-8 lossy decoding)
+- `_platform_memset` 3.94% self
+- `create_contextual_error` 2.55% self / **18.7% inclusive** (down from 37.3% — Optim #3 win, but still significant)
+- `byte_window_lossy` 1.23% self / **15.2% inclusive**
+- `String::from_utf8_lossy` 2.28% self
+- `alloc::fmt::format::format_inner` 1.83% self
+- `core::fmt::write` 1.76% self
+
+### Root cause
+Even after Optim #3 (rule names as `&'static str`), `match_string` is still expensive on the failure path because it:
+1. Calls `self.byte_window_lossy(self.position, end)` to construct `found_str` (allocates a `String` via UTF-8 lossy decoding).
+2. Calls `format!("Expected '{}' but found '{}'", expected, found_str)` (allocates another `String`).
+3. Calls `create_contextual_error(...)` which:
+   - Collects a fresh `Vec<&'static str>` from `parse_stack` (cheap after Optim #3 but still a Vec allocation).
+   - Calls `self.byte_window_lossy(...)` AGAIN for `input_context` (second lossy decode + String allocation).
+   - Allocates a `ContextualError` variant.
+
+That's two lossy-decoded String allocations + a format!() + a Vec + a ContextualError per backtrack. With ~100s of backtracks per parse on heavily-alternated patterns, this adds up.
+
+### Why the rich error is wasted on backtrack
+Looking at the OR-retry contract in `generate_or` (in `ast_based_generator.rs`): when a branch fails, the error is stored in `last_error` and the next branch is tried. Only if ALL branches fail does `last_error` propagate. And in heavily-alternated parses, the typical case is "first few branches fail, eventually one succeeds" — `last_error` is discarded. The rich error allocations are pure waste in that common case.
+
+### Fix
+- `match_string` failure path now returns `Err(ParseError::Backtrack { position: start })` — a cheap variant that already exists in `ParseError`. No allocation per backtrack.
+- The `byte_window_lossy` + `format!()` + `log_error` block is now gated on `self.logger.is_enabled()`. Production parses (no logger) skip the entire block. Debug/gate runs (logger enabled) keep the rich diagnostic.
+- The terminal-error path (when ALL retries exhaust at `parse_full`) still produces structured info: `parse_full` checks `self.position == self.input.len()` and returns `InvalidSyntax { message, position }` if not. Higher-level callers wrap into `E_PARSE_FAILURE` with structured location.
+
+### Why this is parser-agnostic
+The change is in `ast_based_generator.rs::match_string` emit. Every generated parser inherits when regenerated. SV, VHDL, RTL, return_annotation, semantic_annotation parsers all get the same backtrack-cost reduction.
+
+### Validation — perf
+Two consecutive `regex_perf_probe` runs (Apple M4 Pro, release): see CHANGES.md table. 2.06–2.80× p50 improvement vs Optim #3 across all 8 patterns. **Combined vs original baseline `f675d25`: 5.53–7.55×.** 7 of 8 patterns now within RGX-0073 INTERIM target (<200 µs); literal_simple essentially at primary target (<50 µs) on the best run.
+
+### Validation — tests
+- `cargo test --lib --features generated_parsers` 467/467 passing (unchanged).
+- `regex_parser_integration_contract_failures_are_machine_localizable` still passes — confirms terminal-error path still produces structured location/diagnostic.
+
+### Lessons logged
+- "Construct expensive error eagerly, throw away on retry" is a classic anti-pattern in PEG-style parsers. Always cheap on the hot path, rich on the terminal path. The OR-retry loop is the natural boundary.
+- Logger-gating expensive diagnostic constructs is a clean dual-mode pattern: production silent-and-fast, debug verbose-and-detailed.
+- Profile-driven optimization keeps yielding non-obvious wins. Optim #2 (regex cache, ~1.3×), Optim #3 (static rule names, ~1.9×), Optim #4 (cheap backtrack, ~2.5×) — each candidate was invisible before the previous one landed and shifted the bottleneck.
+
 ## 2026-04-26 - Optim #3: rule names as `&'static str` in RecursionGuard + ParseError
 ### Context
 Path A round 2 samply profile of `target/release/regex_perf_probe` (post-Optim-#2, with `--unstable-presymbolicate` for symbol resolution). Top findings:

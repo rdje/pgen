@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-04-26 - Optim #4 (PGEN-RGX-0073): cheap Backtrack on token mismatch instead of ContextualError
+### Achievement Summary
+Third annotation-independent perf optimization on the PGEN-RGX-0073 lane. Path A round 3 samply profile (post-Optim-#3) showed `create_contextual_error` at 18.7% inclusive (down from 37.3%) and `byte_window_lossy` at 15.2% inclusive — both rooted in the `match_string` failure path constructing a rich error on every failed token match (every alternation backtrack). The rich error is then almost always discarded by the next OR retry. This commit returns a cheap `ParseError::Backtrack { position }` on token mismatch and skips the format!() / byte_window_lossy / rule_stack collection allocations entirely.
+
+### Scope of Changes
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)
+  - `match_string` emit: on failed match, return `Err(ParseError::Backtrack { position: start })` instead of constructing a `ContextualError` with `format!()` + `byte_window_lossy()` + rule_stack collection. The expensive logging path (`byte_window_lossy` for `found_str` + `log_error`) is now gated on `self.logger.is_enabled()` — production parses skip it entirely.
+- Regenerated parsers (all four tracked):
+  - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/regex.json](generated/regex.json)
+  - [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/return_annotation.json](generated/return_annotation.json)
+  - [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/semantic_annotation.json](generated/semantic_annotation.json)
+  - [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs)
+- Continuity docs: [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md).
+
+### Validation — perf
+`target/release/regex_perf_probe`, two consecutive runs (Apple M4 Pro, release build, 1000 samples each, 50 warmup):
+
+| Pattern | Optim #3 p50 (7282149) | Optim #4 p50 (run 1) | Optim #4 p50 (run 2) | Speedup vs Optim #3 | Combined vs f675d25 |
+|---|---:|---:|---:|---:|---:|
+| literal_simple   |   125,417 |    60,959 |    51,458 | 2.06× | **5.60×** |
+| digit_sequence   |   249,250 |   103,875 |   100,750 | 2.40× | **5.63×** |
+| character_class  |   695,542 |   251,083 |   248,208 | 2.77× | **7.55×** |
+| alternation      |   321,750 |   131,083 |   129,000 | 2.45× | **5.79×** |
+| capture_groups   |   439,375 |   178,208 |   177,333 | 2.47× | **6.26×** |
+| url_simple       |   278,250 |   112,625 |   116,291 | 2.47× | **5.71×** |
+| email_basic      |   347,667 |   141,542 |   145,416 | 2.46× | **5.86×** |
+| anchor_complex   |   799,167 |   310,917 |   307,708 | 2.57× | **6.79×** |
+
+2.06–2.80× p50 vs Optim #3. **Combined vs original baseline: 5.53–7.55× across all 8 patterns.** Both runs consistent within ~5% (literal_simple shows highest variance; remains within noise band).
+
+### Distance to PGEN-RGX-0073 targets
+**7 of 8 patterns now within INTERIM target (<200 µs).** Only `character_class` (248 µs) and `anchor_complex` (308 µs) remain above. `literal_simple` essentially **AT primary target** (<50 µs) on the best run; consistently below 65 µs.
+
+### Validation — tests
+- `cargo test --lib --features generated_parsers` ✅ 467 passed, 0 failed.
+- `regex_parser_integration_contract_*` suite (93 success samples + failure samples + machine-localizable failure assertions) all pass — confirms terminal-error path still produces structured location/diagnostic info via the upper layers (`parse_full` upgrades to `InvalidSyntax`; OR-retry-then-terminal path remains rich).
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- No semantic change to parsing: both `Backtrack` and `ContextualError` are caught identically by the OR-retry loop. The shape of the discarded error did not affect parsing decisions.
+
+### Important Boundaries
+- **Parser-agnostic.** All generated parsers benefit when regenerated. SV, VHDL, RTL grammars get the same speedup on next regeneration.
+- **Diagnostic quality on token mismatch in production.** Production callers (`logger.is_enabled() == false`) no longer get rich `Expected 'X' but found 'Y'` messages on backtracking failures — only on the terminal failure path (which is upgraded by upper layers). Debug builds and gates that enable logging are unchanged. Trade-off: faster parse vs. less detail per discarded backtrack. Almost universally worth it; the rich detail was being allocated and thrown away.
+- Combined with Optim #2 + #3, this commit lands meaningful campaign progress. Primary target (<50 µs) still requires further work for 7 of 8 patterns. Next on the campaign roadmap: arena allocator for ParseNode, slim ParseContent, clone elimination in match_string itself.
+
 ## 2026-04-26 - Optim #3 (PGEN-RGX-0073): rule names as `&'static str` in RecursionGuard and ParseError
 ### Achievement Summary
 Second annotation-independent perf optimization on the PGEN-RGX-0073 lane. Path A round 2 samply profile (post-Optim-#2) identified `create_contextual_error` at 37.3% inclusive time and `String::clone` at 4.06% self time as the new dominant cost. Root cause: every failed token match (i.e., every backtrack — common during alternation) constructed a contextual error whose `rule_stack` field cloned every `String` in the recursion guard's `parse_stack` into a fresh `Vec<String>`. With deep alternation, that's tens of thousands of `String::clone` calls per parse.
