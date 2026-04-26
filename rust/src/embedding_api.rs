@@ -1645,37 +1645,43 @@ mod tests {
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     fn collect_rule_spans(node: &serde_json::Value, rule_name: &str, spans: &mut Vec<(u64, u64)>) {
-        match node {
-            serde_json::Value::Array(values) => {
-                for value in values {
-                    collect_rule_spans(value, rule_name, spans);
-                }
-            }
-            serde_json::Value::Object(object) => {
-                if object.get("rule_name").and_then(serde_json::Value::as_str) == Some(rule_name) {
-                    let span = object
-                        .get("span")
-                        .and_then(serde_json::Value::as_object)
-                        .expect("regex AST dump node must have span");
-                    let start = span
-                        .get("start")
-                        .and_then(serde_json::Value::as_u64)
-                        .expect("regex AST dump node span.start must be numeric");
-                    let end = span
-                        .get("end")
-                        .and_then(serde_json::Value::as_u64)
-                        .expect("regex AST dump node span.end must be numeric");
-                    spans.push((start, end));
-                }
-
-                if let Some(content) = object.get("content").and_then(serde_json::Value::as_object)
-                {
-                    for payload in content.values() {
-                        collect_rule_spans(payload, rule_name, spans);
+        let mut work: Vec<&serde_json::Value> = vec![node];
+        while let Some(current) = work.pop() {
+            match current {
+                serde_json::Value::Array(values) => {
+                    for value in values.iter().rev() {
+                        work.push(value);
                     }
                 }
+                serde_json::Value::Object(object) => {
+                    if object.get("rule_name").and_then(serde_json::Value::as_str)
+                        == Some(rule_name)
+                    {
+                        let span = object
+                            .get("span")
+                            .and_then(serde_json::Value::as_object)
+                            .expect("regex AST dump node must have span");
+                        let start = span
+                            .get("start")
+                            .and_then(serde_json::Value::as_u64)
+                            .expect("regex AST dump node span.start must be numeric");
+                        let end = span
+                            .get("end")
+                            .and_then(serde_json::Value::as_u64)
+                            .expect("regex AST dump node span.end must be numeric");
+                        spans.push((start, end));
+                    }
+
+                    if let Some(content) =
+                        object.get("content").and_then(serde_json::Value::as_object)
+                    {
+                        for payload in content.values().rev() {
+                            work.push(payload);
+                        }
+                    }
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 
@@ -2937,8 +2943,20 @@ mod tests {
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    fn run_with_regex_worker_stack<F: FnOnce() + Send + 'static>(f: F) {
+        std::thread::Builder::new()
+            .name("pgen-regex-test-worker".to_string())
+            .stack_size(GENERATED_REGEX_WORKER_STACK_BYTES)
+            .spawn(f)
+            .expect("spawn regex test worker thread")
+            .join()
+            .expect("regex test worker thread panicked");
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]
     fn regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples() {
+        run_with_regex_worker_stack(|| {
         let manifest = regex_parser_integration_contract_manifest();
 
         for sample in &manifest.success_samples {
@@ -2976,6 +2994,7 @@ mod tests {
                 );
             }
         }
+        });
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]

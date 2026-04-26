@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Regex integration test: stack budget mismatch with production
+### Context
+Full library test (`cargo test --lib --features generated_parsers`) at HEAD `f675d25` aborted with `fatal runtime error: stack overflow, aborting` partway through `embedding_api::tests::regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples`. Aborting the process killed every other test in the run.
+
+### Root cause
+The contract manifest `rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json` has stress samples with 50–80 levels of parenthesis nesting:
+- `nested_capturing_groups_50` (101 char input, 50 deep)
+- `deep_nested_backreference_80` (164 char input, 80 deep)
+- `recursive_named_group_interpolation` (450 char input, deeply nested)
+
+Two layered stack pressures:
+1. **Helper `collect_rule_spans`** walks the parsed `serde_json::Value` with mutual recursion through `Array` and `Object` cases. With an 80-deep AST and debug-build frames (~10× release frame size), this exceeds the 2 MB default test thread stack.
+2. **`serde_json::Value` Drop is recursive.** Even with an iterative traversal, the parsed `Value` going out of scope at the end of each loop iteration triggers recursive Drop down the entire 80-deep nesting. The Drop bug is in `serde_json` 1.0.143 (known limitation, not patched here).
+
+The reason production didn't crash: `parse_generated_regex_ast_json` routes the parse through `run_generated_regex_on_dedicated_stack` which spawns a thread with `GENERATED_REGEX_WORKER_STACK_BYTES = 64 MB`. The parse RESULT is moved back to the caller (test thread) where the 80-deep `Value` then drops on a 2 MB stack — boom. Test threads were never aligned with the production stack contract.
+
+### Fix
+- Made `collect_rule_spans` iterative (work-stack of `&Value` references, push children in reverse so `pop()` yields source order). This removes the test helper's recursion as a contributing factor.
+- Wrapped the test body in `run_with_regex_worker_stack(|| { ... })` which spawns a thread with `GENERATED_REGEX_WORKER_STACK_BYTES`. The deep `Value` now drops on the 64 MB stack matching production.
+- The iterative traversal alone wasn't sufficient (Drop still overflows); the wrapper alone would have been sufficient but the iterative traversal is independently a defense-in-depth improvement.
+
+### Validation
+- `cargo test --lib --features generated_parsers regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples` ✅
+- `cargo test --lib --features generated_parsers regex_parser_integration_contract` 5 passed, 0 failed.
+
+### Lessons logged
+- Test thread defaults (2 MB on macOS) often diverge from production thread budgets (8 MB main thread on macOS, 64 MB on the regex worker). Tests should run on the SAME stack budget as production callers, otherwise they hide real-world stack hazards or report false stack hazards.
+- `serde_json::Value` is a recursive type with no iterative Drop. Any code that holds a deeply-nested `Value` on a small-stack thread is at risk. If we publish a public API that returns `serde_json::Value` to caller threads, the API contract should declare the maximum-supported nesting OR the API should return a flatter shape.
+- Iterative tree traversal in tools that touch user-controllable AST shapes is a small, mechanical defense-in-depth.
+
 ## 2026-04-26 - branch_semantic_annotations storage: OR-rule entries preserved even when branches are empty
 ### Context
 `cargo test --lib --features generated_parsers transform_from_raw_ast_preserves_return_and_semantic_annotations` was panicking at `mod.rs:2621` with "rule branch semantic annotations should exist". The test sets up an OR rule (`expr := lhs | rhs`) with a rule-level `priority` semantic annotation and a return_scalar on the second branch, then asserts:

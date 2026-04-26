@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: branch-semantic-annotations-or-rule-preservation)
+Last updated: 2026-04-26 (+0200, task: regex-integration-test-stack-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- AST pipeline: branch_semantic_annotations now preserves OR-rule entries even when all per-branch annotations are empty (commit 2 of 4 in the pre-Optim-#2 cleanup sequence).
+- Embedding API tests: regex integration success-samples test now runs on a 64MB stack matching production (commit 3 of 4 in the pre-Optim-#2 cleanup sequence).
+  - changed:
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs) — collect_rule_spans iterative; new run_with_regex_worker_stack helper; success-samples test wrapped
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause: 80-deep regex AST + serde_json 1.0.143 recursive Drop on the 2MB default test thread stack; production already uses GENERATED_REGEX_WORKER_STACK_BYTES (64MB) for the parse, but Value drop was happening on the test thread
+  - test recovered: regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples (was aborting the entire test runner with stack overflow)
+- AST pipeline: branch_semantic_annotations now preserves OR-rule entries even when all per-branch annotations are empty (committed 2026-04-26 as 3f7b775).
   - changed:
     - [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) (storage condition relaxed to `len() > 1 || any(...)`)
     - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
