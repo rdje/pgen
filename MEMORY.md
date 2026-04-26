@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: regex-integration-test-stack-fix)
+Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-2-regex-cache)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,19 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Embedding API tests: regex integration success-samples test now runs on a 64MB stack matching production (commit 3 of 4 in the pre-Optim-#2 cleanup sequence).
+- PGEN-RGX-0073 Optim #2: thread-local Regex cache in generated match_regex helper (commit 4 of 4; the actual perf optimization).
+  - changed:
+    - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — match_regex emit + softened generate_tests smoke contract
+    - [generated/regex_parser.rs](generated/regex_parser.rs) + .json
+    - [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs) + .json
+    - [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs) + .json
+    - [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs)
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - perf: 22-33% p50 improvement across all 8 RGX-0073 patterns (two consecutive runs); literal_simple 220µs (was 288µs), anchor_complex 1,652µs (was 2,090µs)
+  - cargo test --lib --features generated_parsers: 467/467, first all-green run since the SV grammar refactor of 2026-04-25
+  - parser-agnostic: cache is per-thread HashMap<String, regex::Regex> in the AST pipeline's match_regex emit; every generated parser benefits when regenerated
+  - distance to RGX-0073 targets: still far (target <50µs primary / <200µs interim); Optim #2 is one step, not the resolution
+- Embedding API tests: regex integration success-samples test now runs on a 64MB stack matching production (committed 2026-04-26 as 2311eb1).
   - changed:
     - [rust/src/embedding_api.rs](rust/src/embedding_api.rs) — collect_rule_spans iterative; new run_with_regex_worker_stack helper; success-samples test wrapped
     - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
