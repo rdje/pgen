@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Optim #5: cache logger.is_enabled() at parser construction (no vtable in hot loop)
+### Context
+Path A round 4 samply profile of `target/release/regex_perf_probe` (post-Optim-#4). Total samples 6344 (was 15,498 post-Optim-#3 — the cumulative speedup is now ~5×). New top SELF costs:
+- `siphash::Hasher::write` 6.05% — regex cache HashMap pattern hashing
+- `parse_literal_char closure` 5.67%
+- `regex_automata::Lazy::init_cache` 5.01%
+- `__bzero` 4.49%
+- `_platform_memcmp` 4.15%
+- `BuildHasher::hash_one` 3.89%
+- **`NoOpLogger::is_enabled` 3.81%** ← this commit
+- `match_string` 3.11% (no longer the heavy diagnostic)
+- `Vec::clone` 2.44%
+- `RecursionGuard::check_cycle` 1.88%
+
+### Why is_enabled was 3.81% self
+The parser stores `logger: Box<dyn Logger>`. Each `self.logger.is_enabled()` call is a virtual dispatch:
+1. Load vtable pointer from the box
+2. Load `is_enabled` function pointer from vtable
+3. Indirect call to that pointer
+4. The callee returns `false` for NoOpLogger
+
+The `is_enabled()` is checked 28 times per parse-step in the generated emit (each tracing point gates verbose log_debug/log_success/log_error calls). The branch body is dead in production (NoOpLogger), but the guard itself was not.
+
+### Fix
+- Added `logger_enabled: bool` field to the parser struct.
+- Initialize at `new()`: `let logger_enabled = logger.is_enabled();` ONCE.
+- Replace all 28 emit call sites: `self.logger.is_enabled()` → `self.logger_enabled`.
+
+The compiler now sees `if self.logger_enabled { ... }` where `logger_enabled` is a stack-loadable bool. Branch prediction is perfect (always-false in production), and the body is cleanly skipped.
+
+### Why this is parser-agnostic
+The change is in `ast_based_generator.rs::generate_parser_struct` and `generate_constructor`. Every generated parser inherits when regenerated.
+
+### Validation — perf
+Two consecutive `regex_perf_probe` runs: 1.0–1.03× p50 vs Optim #4. Honest small bounded win — the actual wall-clock impact is much smaller than the 3.81% self time suggested. Theory: samply's self time attribution is fuzzy (vtable dispatch cost spreads across cache misses, indirect call, etc.). Removing the dispatch eliminates the leaf-attribution but cost-of-business spreads into the calling site.
+
+### Lessons logged
+- "Cache the bool" is a classic dyn-trait optimization. Free perf when the trait method's result is known to be stable for the lifetime of the call site.
+- Profile self time can overstate the win available from a leaf-level optimization. The bound on improvement is the leaf's cost; the actual realized improvement after the call site is inlined depends on what the surrounding code does.
+- Worth doing anyway: architecturally cleaner, no perf regression risk, clean dead-code elimination for production.
+
 ## 2026-04-26 - Optim #4: cheap Backtrack on token mismatch in match_string
 ### Context
 Path A round 3 samply profile of `target/release/regex_perf_probe` (post-Optim-#3, --unstable-presymbolicate). Total samples 15,498 (was 31,233 pre-Optim-#3 — runtime roughly halved by Optim #2 + #3 cumulatively). New top costs:

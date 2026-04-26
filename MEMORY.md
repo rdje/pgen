@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-4-backtrack-on-token-mismatch)
+Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-5-cache-logger-enabled)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,16 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- PGEN-RGX-0073 Optim #4: cheap Backtrack on token mismatch in match_string instead of allocating ContextualError.
+- PGEN-RGX-0073 Optim #5: cache logger.is_enabled() at parser construction. Eliminates vtable dispatch in 28 hot-path call sites per parse-step. Small bounded win (1-3% p50) but architecturally clean.
+  - changed:
+    - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — added logger_enabled: bool field; new() initializes from logger.is_enabled(); 28 call sites switched
+    - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause (samply Path A round 4): NoOpLogger::is_enabled 3.81% self time; Box<dyn Logger> means each call is vtable dispatch even though body returns const false
+  - perf: 1.0-1.03x p50 vs Optim #4 (small, but consistent across both runs)
+  - cargo test --lib --features generated_parsers: 467/467
+  - distance to RGX-0073 targets unchanged from Optim #4: 7/8 within INTERIM (<200us); literal_simple at primary
+- PGEN-RGX-0073 Optim #4: cheap Backtrack on token mismatch in match_string (committed 2026-04-26 as 07468bd).
   - changed:
     - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — match_string emit returns Err(ParseError::Backtrack { position: start }) on failed match; expensive byte_window_lossy + format! gated on logger.is_enabled()
     - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated

@@ -73,6 +73,7 @@ pub struct ReturnAnnotationParser<'input> {
     semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
     semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
     logger: Box<dyn Logger>,
+    logger_enabled: bool,
 }
 impl<'input> ReturnAnnotationParser<'input> {
     const RULE_RETURN_ANNOTATION: RuleId = 0u16;
@@ -107,6 +108,7 @@ impl<'input> ReturnAnnotationParser<'input> {
     const RULE_ARRAY_ELEMENT: RuleId = 29u16;
     const RULE_PARENTHESIZED: RuleId = 30u16;
     pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
+        let logger_enabled = logger.is_enabled();
         Self {
             input,
             position: 0,
@@ -128,6 +130,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::default(),
             semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
             logger,
+            logger_enabled,
         }
     }
     pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -217,7 +220,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 {
                     Some(true) => {}
                     Some(false) => {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
                                 spec,
                             ) = directive {
@@ -308,7 +311,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                 }
                 if post_predicate_blocked {
-                    if self.logger.is_enabled() {
+                    if self.logger_enabled {
                         self.logger
                             .log_info(
                                 file!(),
@@ -780,7 +783,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("return_annotation", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -797,7 +800,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -814,7 +817,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -1568,7 +1571,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -1615,7 +1618,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -1636,7 +1639,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("arrow", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -1653,7 +1656,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -1670,7 +1673,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -1747,7 +1750,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -1794,7 +1797,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -1815,7 +1818,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -1832,7 +1835,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -1849,7 +1852,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -2955,7 +2958,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -3002,7 +3005,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -3025,7 +3028,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("primary_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -3042,7 +3045,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -3059,7 +3062,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -4813,7 +4816,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -4860,7 +4863,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -4883,7 +4886,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("extraction_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -4900,7 +4903,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -4917,7 +4920,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -5064,7 +5067,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -5111,7 +5114,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -5132,7 +5135,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("extraction_target", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -5149,7 +5152,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -5166,7 +5169,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -5887,7 +5890,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -5934,7 +5937,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -5955,7 +5958,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("positive_integer", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -5972,7 +5975,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -5989,7 +5992,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -6081,7 +6084,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -6128,7 +6131,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -6149,7 +6152,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("spread_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -6166,7 +6169,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -6183,7 +6186,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -6291,7 +6294,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -6338,7 +6341,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -6361,7 +6364,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("spreadable_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -6378,7 +6381,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -6395,7 +6398,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -7567,7 +7570,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -7614,7 +7617,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -7635,7 +7638,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("spread_suffix", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -7652,7 +7655,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -7669,7 +7672,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -7746,7 +7749,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -7793,7 +7796,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -7818,7 +7821,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("property_access_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -7835,7 +7838,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -7852,7 +7855,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -8633,7 +8636,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -8680,7 +8683,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -8703,7 +8706,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("array_access_expression", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -8720,7 +8723,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -8737,7 +8740,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -9525,7 +9528,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -9572,7 +9575,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -9595,7 +9598,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("accessor_base_lr_base", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -9612,7 +9615,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -9629,7 +9632,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -10203,7 +10206,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -10250,7 +10253,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -10271,7 +10274,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("accessor_base", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -10288,7 +10291,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -10305,7 +10308,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -10991,7 +10994,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11038,7 +11041,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -11061,7 +11064,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("positional_reference", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -11078,7 +11081,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -11095,7 +11098,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -11203,7 +11206,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11250,7 +11253,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -11271,7 +11274,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("string_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -11288,7 +11291,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -11305,7 +11308,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -11944,7 +11947,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11991,7 +11994,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12014,7 +12017,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("string_content_double", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12031,7 +12034,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12048,7 +12051,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12125,7 +12128,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12172,7 +12175,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12195,7 +12198,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             .check_cycle("string_content_single", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12212,7 +12215,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12229,7 +12232,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12306,7 +12309,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12353,7 +12356,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12374,7 +12377,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("number_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12391,7 +12394,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12408,7 +12411,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -12935,7 +12938,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12982,7 +12985,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13003,7 +13006,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("float", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13020,7 +13023,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13037,7 +13040,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13133,7 +13136,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -13180,7 +13183,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13201,7 +13204,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("integer", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13218,7 +13221,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13235,7 +13238,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13327,7 +13330,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -13374,7 +13377,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13395,7 +13398,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("boolean_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13412,7 +13415,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13429,7 +13432,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -13954,7 +13957,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14001,7 +14004,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14022,7 +14025,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("identifier", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14039,7 +14042,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14056,7 +14059,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14134,7 +14137,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14181,7 +14184,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14202,7 +14205,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("object_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14219,7 +14222,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14236,7 +14239,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14366,7 +14369,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14413,7 +14416,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14434,7 +14437,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("object_properties", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14451,7 +14454,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14468,7 +14471,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14660,7 +14663,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14707,7 +14710,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14728,7 +14731,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("object_property", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14745,7 +14748,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14762,7 +14765,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14886,7 +14889,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14933,7 +14936,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14954,7 +14957,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("property_key", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14971,7 +14974,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -14988,7 +14991,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -15515,7 +15518,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -15562,7 +15565,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -15583,7 +15586,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("array_literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -15600,7 +15603,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -15617,7 +15620,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -15747,7 +15750,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -15794,7 +15797,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -15815,7 +15818,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("array_elements", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -15832,7 +15835,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -15849,7 +15852,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16041,7 +16044,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -16088,7 +16091,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16109,7 +16112,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("array_element", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16126,7 +16129,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16143,7 +16146,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16221,7 +16224,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -16268,7 +16271,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16289,7 +16292,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("parenthesized", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16306,7 +16309,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16323,7 +16326,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16446,7 +16449,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -16493,7 +16496,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/return_annotation_parser.rs",
@@ -16616,7 +16619,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             let branch_key = format!("{}::{}", rule_name, branch);
             *self.coverage_target_branch_hits.entry(branch_key).or_insert(0) += 1;
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let marker = if critical_path { "critical" } else { "target" };
             self.logger
                 .log_info(
@@ -16650,7 +16653,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             });
         *self.deterministic_partition_rule_hits.entry(rule_name.to_string()).or_insert(0)
             += 1;
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_info(
                     "../generated/return_annotation_parser.rs",
@@ -16679,7 +16682,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 error_kind: error_kind.to_string(),
             });
         *self.negative_case_rule_hits.entry(rule_name.to_string()).or_insert(0) += 1;
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let mode = if negative { "near-invalid" } else { "invalid-case" };
             self.logger
                 .log_info(
@@ -16705,7 +16708,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if let Some(limit) = recover_budget {
             let used = self.recovery_counts.get(rule_name).copied().unwrap_or(0);
             if used >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/return_annotation_parser.rs",
@@ -16721,7 +16724,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         }
         if let Some(limit) = recover_parse_budget {
             if self.recovery_parse_count >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/return_annotation_parser.rs",
@@ -16737,7 +16740,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         }
         if let Some(limit) = recover_global_budget {
             if self.recovery_global_count >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/return_annotation_parser.rs",
@@ -16815,7 +16818,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
             self.recovery_parse_count += 1;
             self.recovery_global_count += 1;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 let marker = if token_priority == 0 { "panic_until" } else { "sync" };
                 self.logger
                     .log_warning(
@@ -16845,7 +16848,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
             self.recovery_parse_count += 1;
             self.recovery_global_count += 1;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_warning(
                         "../generated/return_annotation_parser.rs",
@@ -17633,7 +17636,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         let start = self.position;
         let expected_bytes = expected.as_bytes();
         let end = start + expected_bytes.len();
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "../generated/return_annotation_parser.rs",
@@ -17657,7 +17660,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 );
             }
             self.position = end;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_success(
                         "../generated/return_annotation_parser.rs",
@@ -17670,7 +17673,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             }
             return Ok(&self.input[start..end]);
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let found_str = if self.position < self.input.len() {
                 let end = (self.position + expected_bytes.len()).min(self.input.len());
                 self.byte_window_lossy(self.position, end)
@@ -17737,7 +17740,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if mat.start() == 0 {
                 let matched = mat.as_str();
                 let start = self.position;
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_success(
                             "../generated/return_annotation_parser.rs",
@@ -17757,7 +17760,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 );
             }
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let preview = if self.position < self.input.len() {
                 let end = (self.position + 10).min(self.input.len());
                 self.byte_window_lossy(self.position, end)
@@ -17787,7 +17790,7 @@ impl<'input> ReturnAnnotationParser<'input> {
     {
         let saved_pos = self.position;
         let saved_stack_len = self.recursion_guard.parse_stack.len();
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "../generated/return_annotation_parser.rs",
@@ -17797,7 +17800,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         }
         match f(self) {
             Ok(result) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_success(
                             "../generated/return_annotation_parser.rs",
@@ -17813,7 +17816,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             Err(e) => {
                 self.position = saved_pos;
                 self.recursion_guard.parse_stack.truncate(saved_stack_len);
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/return_annotation_parser.rs",
@@ -17842,7 +17845,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if let Some(entry) = self.memo.get(&key) {
             if let Some(node) = &entry.result {
                 self.position = entry.end_pos;
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_info(
                             "../generated/return_annotation_parser.rs",
@@ -17855,7 +17858,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 }
                 return Ok((node.clone(), entry.raw_semantic_content.clone()));
             } else {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/return_annotation_parser.rs",
@@ -17872,7 +17875,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 });
             }
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "../generated/return_annotation_parser.rs",
@@ -17895,7 +17898,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         end_pos: node.span.end,
                     },
                 );
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_info(
                         "../generated/return_annotation_parser.rs",
@@ -17916,7 +17919,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                         end_pos: start_pos,
                     },
                 );
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_warning(
                         "../generated/return_annotation_parser.rs",

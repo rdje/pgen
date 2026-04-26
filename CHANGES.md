@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-04-26 - Optim #5 (PGEN-RGX-0073): cache logger.is_enabled() at parser construction
+### Achievement Summary
+Path A round 4 samply profile (post-Optim-#4) showed `NoOpLogger::is_enabled` at 3.81% self time. The parser stores `logger: Box<dyn Logger>` and called `self.logger.is_enabled()` 28 times per parse-step in the hot path — each call a virtual dispatch through the vtable. Logger is never swapped after `new()`, so the bool can be cached.
+
+### Scope of Changes
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)
+  - Parser struct: added `logger_enabled: bool` field.
+  - `new()` constructor: initializes `logger_enabled = logger.is_enabled()` once.
+  - All 28 emitted call sites: `self.logger.is_enabled()` → `self.logger_enabled` (cheap field load, no vtable dispatch, branches dead-code-eliminate when `false`).
+- Regenerated parsers (all four tracked):
+  - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/regex.json](generated/regex.json)
+  - [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/return_annotation.json](generated/return_annotation.json)
+  - [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/semantic_annotation.json](generated/semantic_annotation.json)
+  - [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs)
+- Continuity docs: [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md).
+
+### Validation — perf
+`target/release/regex_perf_probe`, two consecutive runs (Apple M4 Pro, release build, 1000 samples each, 50 warmup):
+
+| Pattern | Optim #4 p50 (07468bd) | Optim #5 p50 (run 1) | Optim #5 p50 (run 2) | Speedup vs Optim #4 | Combined vs f675d25 |
+|---|---:|---:|---:|---:|---:|
+| literal_simple   |   51,458 |   50,250 |   50,083 | 1.02× | 5.74× |
+| digit_sequence   |  100,750 |   99,166 |   99,667 | 1.02× | 5.69× |
+| character_class  |  248,208 |  240,333 |  240,042 | 1.03× | 7.81× |
+| alternation      |  129,000 |  125,042 |  125,292 | 1.03× | 5.96× |
+| capture_groups   |  177,333 |  171,666 |  172,459 | 1.03× | 6.44× |
+| url_simple       |  112,625 |  111,917 |  112,042 | 1.00× | 5.74× |
+| email_basic      |  141,542 |  140,000 |  140,750 | 1.01× | 5.89× |
+| anchor_complex   |  307,708 |  304,250 |  303,375 | 1.01× | 6.89× |
+
+1.0–1.03× p50. **Small but consistent across both runs.** The vtable dispatch was less expensive than the 3.81% self time suggested (samply attributes time to leaf functions; removing the dispatch saves a fraction of that, the rest reabsorbs into the calling code). Honest stance: this is a small bounded win, principle is sound (no vtable dispatch in hot loops), worth landing on its own.
+
+### Validation — tests
+- `cargo test --lib --features generated_parsers` ✅ 467 passed, 0 failed.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- No semantic change. Logger is invoked when `logger_enabled == true` and not invoked when `false` — same behavior as before, just with a cheaper guard.
+
+### Important Boundaries
+- **Parser-agnostic.** All generated parsers benefit when regenerated.
+- **Soundness assumes logger is set once.** The generated parsers don't expose a `set_logger()` method; logger is fixed at `new()`. If a future change adds runtime logger swap, this caching must be revisited.
+- Distance to PGEN-RGX-0073 targets unchanged from Optim #4: 7 of 8 patterns within INTERIM (<200 µs), literal_simple at primary target.
+
 ## 2026-04-26 - Optim #4 (PGEN-RGX-0073): cheap Backtrack on token mismatch instead of ContextualError
 ### Achievement Summary
 Third annotation-independent perf optimization on the PGEN-RGX-0073 lane. Path A round 3 samply profile (post-Optim-#3) showed `create_contextual_error` at 18.7% inclusive (down from 37.3%) and `byte_window_lossy` at 15.2% inclusive — both rooted in the `match_string` failure path constructing a rich error on every failed token match (every alternation backtrack). The rich error is then almost always discarded by the next OR retry. This commit returns a cheap `ParseError::Backtrack { position }` on token mismatch and skips the format!() / byte_window_lossy / rule_stack collection allocations entirely.

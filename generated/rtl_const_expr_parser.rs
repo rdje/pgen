@@ -73,6 +73,7 @@ pub struct RtlConstExprParser<'input> {
     semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
     semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
     logger: Box<dyn Logger>,
+    logger_enabled: bool,
 }
 impl<'input> RtlConstExprParser<'input> {
     const RULE_RTL_CONST_EXPR: RuleId = 0u16;
@@ -119,6 +120,7 @@ impl<'input> RtlConstExprParser<'input> {
     const RULE_LPAREN: RuleId = 41u16;
     const RULE_RPAREN: RuleId = 42u16;
     pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
+        let logger_enabled = logger.is_enabled();
         Self {
             input,
             position: 0,
@@ -140,6 +142,7 @@ impl<'input> RtlConstExprParser<'input> {
             semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::default(),
             semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
             logger,
+            logger_enabled,
         }
     }
     pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -229,7 +232,7 @@ impl<'input> RtlConstExprParser<'input> {
                 {
                     Some(true) => {}
                     Some(false) => {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
                                 spec,
                             ) = directive {
@@ -320,7 +323,7 @@ impl<'input> RtlConstExprParser<'input> {
                     }
                 }
                 if post_predicate_blocked {
-                    if self.logger.is_enabled() {
+                    if self.logger_enabled {
                         self.logger
                             .log_info(
                                 file!(),
@@ -792,7 +795,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("rtl_const_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -809,7 +812,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -826,7 +829,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -904,7 +907,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -951,7 +954,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -972,7 +975,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("conditional_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -989,7 +992,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -1006,7 +1009,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -1682,7 +1685,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -1729,7 +1732,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -1750,7 +1753,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("logical_or_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -1767,7 +1770,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -1784,7 +1787,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -1977,7 +1980,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -2024,7 +2027,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2045,7 +2048,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("logical_and_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2062,7 +2065,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2079,7 +2082,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2272,7 +2275,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -2319,7 +2322,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2340,7 +2343,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("bit_or_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2357,7 +2360,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2374,7 +2377,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2567,7 +2570,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -2614,7 +2617,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2635,7 +2638,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("bit_xor_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2652,7 +2655,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2669,7 +2672,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2862,7 +2865,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -2909,7 +2912,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2930,7 +2933,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("bit_and_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2947,7 +2950,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -2964,7 +2967,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -3157,7 +3160,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -3204,7 +3207,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -3225,7 +3228,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("equality_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -3242,7 +3245,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -3259,7 +3262,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -3901,7 +3904,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -3948,7 +3951,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -3969,7 +3972,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("relational_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -3986,7 +3989,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -4003,7 +4006,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -5031,7 +5034,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -5078,7 +5081,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -5099,7 +5102,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("shift_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -5116,7 +5119,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -5133,7 +5136,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -5775,7 +5778,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -5822,7 +5825,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -5843,7 +5846,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("additive_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -5860,7 +5863,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -5877,7 +5880,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -6519,7 +6522,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -6566,7 +6569,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -6589,7 +6592,7 @@ impl<'input> RtlConstExprParser<'input> {
             .check_cycle("multiplicative_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -6606,7 +6609,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -6623,7 +6626,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -7461,7 +7464,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -7508,7 +7511,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -7529,7 +7532,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("unary_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -7546,7 +7549,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -7563,7 +7566,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -8900,7 +8903,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -8947,7 +8950,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -8968,7 +8971,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("primary_expr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -8985,7 +8988,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -9002,7 +9005,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -9815,7 +9818,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -9862,7 +9865,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -9883,7 +9886,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("literal", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -9900,7 +9903,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -9917,7 +9920,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10492,7 +10495,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -10539,7 +10542,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10560,7 +10563,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("based_integer", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10577,7 +10580,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10594,7 +10597,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10706,7 +10709,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -10753,7 +10756,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10774,7 +10777,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("decimal_integer", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10791,7 +10794,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10808,7 +10811,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10916,7 +10919,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -10963,7 +10966,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -10984,7 +10987,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("identifier", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11001,7 +11004,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11018,7 +11021,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11130,7 +11133,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11177,7 +11180,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11198,7 +11201,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("trivia", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11215,7 +11218,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11232,7 +11235,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11310,7 +11313,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11357,7 +11360,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11378,7 +11381,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("question", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11395,7 +11398,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11412,7 +11415,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11520,7 +11523,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11567,7 +11570,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11588,7 +11591,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("colon", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11605,7 +11608,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11622,7 +11625,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11730,7 +11733,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11777,7 +11780,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11798,7 +11801,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("logical_or", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11815,7 +11818,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11832,7 +11835,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -11940,7 +11943,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -11987,7 +11990,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12008,7 +12011,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("logical_and", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12025,7 +12028,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12042,7 +12045,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12150,7 +12153,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12197,7 +12200,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12218,7 +12221,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("bit_or", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12235,7 +12238,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12252,7 +12255,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12360,7 +12363,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12407,7 +12410,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12428,7 +12431,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("bit_xor", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12445,7 +12448,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12462,7 +12465,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12570,7 +12573,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12617,7 +12620,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12638,7 +12641,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("bit_and", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12655,7 +12658,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12672,7 +12675,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12780,7 +12783,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -12827,7 +12830,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12848,7 +12851,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("eqeq", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12865,7 +12868,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12882,7 +12885,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -12990,7 +12993,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -13036,7 +13039,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13057,7 +13060,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("ne", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13074,7 +13077,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13091,7 +13094,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13196,7 +13199,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -13242,7 +13245,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13263,7 +13266,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("le", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13280,7 +13283,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13297,7 +13300,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13402,7 +13405,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -13448,7 +13451,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13469,7 +13472,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("lt", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13486,7 +13489,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13503,7 +13506,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13608,7 +13611,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -13654,7 +13657,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13675,7 +13678,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("ge", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13692,7 +13695,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13709,7 +13712,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13814,7 +13817,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -13860,7 +13863,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13881,7 +13884,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("gt", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13898,7 +13901,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -13915,7 +13918,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14020,7 +14023,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14066,7 +14069,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14087,7 +14090,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("shl", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14104,7 +14107,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14121,7 +14124,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14226,7 +14229,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14272,7 +14275,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14293,7 +14296,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("shr", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14310,7 +14313,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14327,7 +14330,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14432,7 +14435,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14478,7 +14481,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14499,7 +14502,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("plus", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14516,7 +14519,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14533,7 +14536,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14641,7 +14644,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14687,7 +14690,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14708,7 +14711,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("minus", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14725,7 +14728,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14742,7 +14745,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14850,7 +14853,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -14897,7 +14900,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14918,7 +14921,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("star", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14935,7 +14938,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -14952,7 +14955,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15060,7 +15063,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -15106,7 +15109,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15127,7 +15130,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("slash", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15144,7 +15147,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15161,7 +15164,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15269,7 +15272,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -15316,7 +15319,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15337,7 +15340,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("percent", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15354,7 +15357,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15371,7 +15374,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15479,7 +15482,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -15526,7 +15529,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15547,7 +15550,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("bang", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15564,7 +15567,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15581,7 +15584,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15689,7 +15692,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -15735,7 +15738,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15756,7 +15759,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("tilde", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15773,7 +15776,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15790,7 +15793,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15898,7 +15901,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -15945,7 +15948,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15966,7 +15969,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("lparen", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -15983,7 +15986,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16000,7 +16003,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16108,7 +16111,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -16155,7 +16158,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16176,7 +16179,7 @@ impl<'input> RtlConstExprParser<'input> {
         let cycle_type = self.recursion_guard.check_cycle("rparen", position);
         match cycle_type {
             CycleType::Infinite => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16193,7 +16196,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::LeftRecursive => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16210,7 +16213,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
             CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16318,7 +16321,7 @@ impl<'input> RtlConstExprParser<'input> {
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let consumed = node.span.end - start_pos;
                     if consumed > 0 {
                         let consumed_preview = self
@@ -16365,7 +16368,7 @@ impl<'input> RtlConstExprParser<'input> {
                         &format!("{:?}", e),
                     );
                 }
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_error(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16488,7 +16491,7 @@ impl<'input> RtlConstExprParser<'input> {
             let branch_key = format!("{}::{}", rule_name, branch);
             *self.coverage_target_branch_hits.entry(branch_key).or_insert(0) += 1;
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let marker = if critical_path { "critical" } else { "target" };
             self.logger
                 .log_info(
@@ -16522,7 +16525,7 @@ impl<'input> RtlConstExprParser<'input> {
             });
         *self.deterministic_partition_rule_hits.entry(rule_name.to_string()).or_insert(0)
             += 1;
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_info(
                     "../generated/rtl_const_expr_parser.rs",
@@ -16551,7 +16554,7 @@ impl<'input> RtlConstExprParser<'input> {
                 error_kind: error_kind.to_string(),
             });
         *self.negative_case_rule_hits.entry(rule_name.to_string()).or_insert(0) += 1;
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let mode = if negative { "near-invalid" } else { "invalid-case" };
             self.logger
                 .log_info(
@@ -16577,7 +16580,7 @@ impl<'input> RtlConstExprParser<'input> {
         if let Some(limit) = recover_budget {
             let used = self.recovery_counts.get(rule_name).copied().unwrap_or(0);
             if used >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16593,7 +16596,7 @@ impl<'input> RtlConstExprParser<'input> {
         }
         if let Some(limit) = recover_parse_budget {
             if self.recovery_parse_count >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16609,7 +16612,7 @@ impl<'input> RtlConstExprParser<'input> {
         }
         if let Some(limit) = recover_global_budget {
             if self.recovery_global_count >= limit {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/rtl_const_expr_parser.rs",
@@ -16687,7 +16690,7 @@ impl<'input> RtlConstExprParser<'input> {
             *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
             self.recovery_parse_count += 1;
             self.recovery_global_count += 1;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 let marker = if token_priority == 0 { "panic_until" } else { "sync" };
                 self.logger
                     .log_warning(
@@ -16717,7 +16720,7 @@ impl<'input> RtlConstExprParser<'input> {
             *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
             self.recovery_parse_count += 1;
             self.recovery_global_count += 1;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_warning(
                         "../generated/rtl_const_expr_parser.rs",
@@ -17505,7 +17508,7 @@ impl<'input> RtlConstExprParser<'input> {
         let start = self.position;
         let expected_bytes = expected.as_bytes();
         let end = start + expected_bytes.len();
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "../generated/rtl_const_expr_parser.rs",
@@ -17529,7 +17532,7 @@ impl<'input> RtlConstExprParser<'input> {
                 );
             }
             self.position = end;
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_success(
                         "../generated/rtl_const_expr_parser.rs",
@@ -17542,7 +17545,7 @@ impl<'input> RtlConstExprParser<'input> {
             }
             return Ok(&self.input[start..end]);
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let found_str = if self.position < self.input.len() {
                 let end = (self.position + expected_bytes.len()).min(self.input.len());
                 self.byte_window_lossy(self.position, end)
@@ -17609,7 +17612,7 @@ impl<'input> RtlConstExprParser<'input> {
             if mat.start() == 0 {
                 let matched = mat.as_str();
                 let start = self.position;
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_success(
                             "../generated/rtl_const_expr_parser.rs",
@@ -17629,7 +17632,7 @@ impl<'input> RtlConstExprParser<'input> {
                 );
             }
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             let preview = if self.position < self.input.len() {
                 let end = (self.position + 10).min(self.input.len());
                 self.byte_window_lossy(self.position, end)
@@ -17659,7 +17662,7 @@ impl<'input> RtlConstExprParser<'input> {
     {
         let saved_pos = self.position;
         let saved_stack_len = self.recursion_guard.parse_stack.len();
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "../generated/rtl_const_expr_parser.rs",
@@ -17669,7 +17672,7 @@ impl<'input> RtlConstExprParser<'input> {
         }
         match f(self) {
             Ok(result) => {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_success(
                             "../generated/rtl_const_expr_parser.rs",
@@ -17685,7 +17688,7 @@ impl<'input> RtlConstExprParser<'input> {
             Err(e) => {
                 self.position = saved_pos;
                 self.recursion_guard.parse_stack.truncate(saved_stack_len);
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/rtl_const_expr_parser.rs",
@@ -17714,7 +17717,7 @@ impl<'input> RtlConstExprParser<'input> {
         if let Some(entry) = self.memo.get(&key) {
             if let Some(node) = &entry.result {
                 self.position = entry.end_pos;
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_info(
                             "../generated/rtl_const_expr_parser.rs",
@@ -17727,7 +17730,7 @@ impl<'input> RtlConstExprParser<'input> {
                 }
                 return Ok((node.clone(), entry.raw_semantic_content.clone()));
             } else {
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger
                         .log_warning(
                             "../generated/rtl_const_expr_parser.rs",
@@ -17744,7 +17747,7 @@ impl<'input> RtlConstExprParser<'input> {
                 });
             }
         }
-        if self.logger.is_enabled() {
+        if self.logger_enabled {
             self.logger
                 .log_debug(
                     "../generated/rtl_const_expr_parser.rs",
@@ -17767,7 +17770,7 @@ impl<'input> RtlConstExprParser<'input> {
                         end_pos: node.span.end,
                     },
                 );
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_info(
                         "../generated/rtl_const_expr_parser.rs",
@@ -17788,7 +17791,7 @@ impl<'input> RtlConstExprParser<'input> {
                         end_pos: start_pos,
                     },
                 );
-            if self.logger.is_enabled() {
+            if self.logger_enabled {
                 self.logger
                     .log_warning(
                         "../generated/rtl_const_expr_parser.rs",

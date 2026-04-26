@@ -321,6 +321,10 @@ impl AstBasedGenerator {
                 semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
                 semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
                 logger: Box<dyn Logger>,
+                // Optim #5: cache logger.is_enabled() at construction so the parser hot
+                // path skips the per-call vtable dispatch through Box<dyn Logger>. Logger
+                // is set once at new() and not swapped at runtime, so the cache is sound.
+                logger_enabled: bool,
             }
         }
     }
@@ -536,6 +540,7 @@ impl AstBasedGenerator {
 
         Ok(quote! {
             pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
+                let logger_enabled = logger.is_enabled();
                 Self {
                     input,
                     position: 0,
@@ -557,6 +562,7 @@ impl AstBasedGenerator {
                     semantic_runtime_annotations: #compiled_semantic_runtime_annotations,
                     semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
                     logger,
+                    logger_enabled,
                 }
             }
         })
@@ -663,7 +669,7 @@ impl AstBasedGenerator {
                         {
                             Some(true) => {}
                             Some(false) => {
-                                if self.logger.is_enabled() {
+                                if self.logger_enabled {
                                     if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec) =
                                         directive
                                     {
@@ -749,7 +755,7 @@ impl AstBasedGenerator {
                             }
                         }
                         if post_predicate_blocked {
-                            if self.logger.is_enabled() {
+                            if self.logger_enabled {
                                 self.logger.log_info(
                                     file!(),
                                     line!(),
@@ -1278,7 +1284,7 @@ impl AstBasedGenerator {
 
                 match cycle_type {
                     CycleType::Infinite => {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_error(#filename, 0, &format!("💥 Infinite recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
@@ -1287,7 +1293,7 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::LeftRecursive => {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_error(#filename, 0, &format!("🔄 Left recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
@@ -1296,7 +1302,7 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::MutualRecursive { depth, ref rules } if depth >= #recursion_guard_max_depth => {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_error(#filename, 0, &format!("🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})", #rule_name, position, depth));
                         }
                         return Err(ParseError::RecursionDepthExceeded {
@@ -1364,7 +1370,7 @@ impl AstBasedGenerator {
 
                 match &result {
                     Ok(node) => {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             let consumed = node.span.end - start_pos;
                             if consumed > 0 {
                                 let consumed_preview = self.byte_window_lossy(start_pos, node.span.end);
@@ -1385,7 +1391,7 @@ impl AstBasedGenerator {
                                 &format!("{:?}", e),
                             );
                         }
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_error(#filename, 0, &format!("❌ Exiting rule '{}' with error: {:?} - backtracked to {}", #rule_name, e, self.position));
                         }
                     }
@@ -2552,7 +2558,7 @@ impl AstBasedGenerator {
                     *self.coverage_target_branch_hits.entry(branch_key).or_insert(0) += 1;
                 }
 
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let marker = if critical_path {
                         "critical"
                     } else {
@@ -2592,7 +2598,7 @@ impl AstBasedGenerator {
                     .entry(rule_name.to_string())
                     .or_insert(0) += 1;
 
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger.log_info(#filename, 0, &format!(
                         "🧭 SC-12 parser partition: rule='{}' group='{}' span={}..{}",
                         rule_name,
@@ -2622,7 +2628,7 @@ impl AstBasedGenerator {
                     .entry(rule_name.to_string())
                     .or_insert(0) += 1;
 
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let mode = if negative {
                         "near-invalid"
                     } else {
@@ -2651,7 +2657,7 @@ impl AstBasedGenerator {
                 if let Some(limit) = recover_budget {
                     let used = self.recovery_counts.get(rule_name).copied().unwrap_or(0);
                     if used >= limit {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_warning(#filename, 0, &format!(
                                 "🛟 Recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
@@ -2664,7 +2670,7 @@ impl AstBasedGenerator {
                 }
                 if let Some(limit) = recover_parse_budget {
                     if self.recovery_parse_count >= limit {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_warning(#filename, 0, &format!(
                                 "🛟 Parse-scope recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
@@ -2677,7 +2683,7 @@ impl AstBasedGenerator {
                 }
                 if let Some(limit) = recover_global_budget {
                     if self.recovery_global_count >= limit {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_warning(#filename, 0, &format!(
                                 "🛟 Global recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
@@ -2756,7 +2762,7 @@ impl AstBasedGenerator {
                     self.recovery_parse_count += 1;
                     self.recovery_global_count += 1;
 
-                    if self.logger.is_enabled() {
+                    if self.logger_enabled {
                         let marker = if token_priority == 0 {
                             "panic_until"
                         } else {
@@ -2789,7 +2795,7 @@ impl AstBasedGenerator {
                     *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
                     self.recovery_parse_count += 1;
                     self.recovery_global_count += 1;
-                    if self.logger.is_enabled() {
+                    if self.logger_enabled {
                         self.logger.log_warning(#filename, 0, &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
                             rule_name,
@@ -3626,7 +3632,7 @@ impl AstBasedGenerator {
                 let expected_bytes = expected.as_bytes();
                 let end = start + expected_bytes.len();
 
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger.log_debug(#filename, 0, &format!("🔤 Attempting to match terminal '{}' at position {} (end: {})", expected, start, end));
                 }
 
@@ -3639,7 +3645,7 @@ impl AstBasedGenerator {
                     }
                     self.position = end;
 
-                    if self.logger.is_enabled() {
+                    if self.logger_enabled {
                         self.logger.log_success(#filename, 0, &format!("✅ Terminal '{}' matched, advanced to position {}", expected, end));
                     }
 
@@ -3653,7 +3659,7 @@ impl AstBasedGenerator {
                 // logger is enabled (debug builds, gates) — production parses skip the
                 // allocation entirely. Caller's OR retry loop handles ParseError::Backtrack
                 // identically to ContextualError.
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let found_str = if self.position < self.input.len() {
                         let end = (self.position + expected_bytes.len()).min(self.input.len());
                         self.byte_window_lossy(self.position, end)
@@ -3710,7 +3716,7 @@ impl AstBasedGenerator {
                         let matched = mat.as_str();
                         let start = self.position;
 
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_success(#filename, 0, &format!("✅ Regex '{}' matched '{}' at position {}", pattern, matched, start));
                         }
 
@@ -3722,7 +3728,7 @@ impl AstBasedGenerator {
                     }
                 }
 
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     let preview = if self.position < self.input.len() {
                         let end = (self.position + 10).min(self.input.len());
                         self.byte_window_lossy(self.position, end)
@@ -3745,13 +3751,13 @@ impl AstBasedGenerator {
                 let saved_pos = self.position;
                 let saved_stack_len = self.recursion_guard.parse_stack.len();
 
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger.log_debug(#filename, 0, &format!("🔄 Starting speculative parse at position {}", saved_pos));
                 }
 
                 match f(self) {
                     Ok(result) => {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_success(#filename, 0, &format!("🔄 Speculative parse succeeded, advanced to position {}", self.position));
                         }
                         Some(result)
@@ -3761,7 +3767,7 @@ impl AstBasedGenerator {
                         self.position = saved_pos;
                         self.recursion_guard.parse_stack.truncate(saved_stack_len);
 
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_warning(#filename, 0, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {}", e, saved_pos));
                         }
 
@@ -3784,13 +3790,13 @@ impl AstBasedGenerator {
                     if let Some(node) = &entry.result {
                         self.position = entry.end_pos;
 
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_info(#filename, 0, &format!("💾 Memo hit for rule {} at position {} - reusing cached result", rule_id, self.position));
                         }
 
                         return Ok((node.clone(), entry.raw_semantic_content.clone()));
                     } else {
-                        if self.logger.is_enabled() {
+                        if self.logger_enabled {
                             self.logger.log_warning(#filename, 0, &format!("💾 Memo miss for rule {} at position {} - cached failure", rule_id, self.position));
                         }
                         self.position = entry.end_pos;
@@ -3800,7 +3806,7 @@ impl AstBasedGenerator {
                     }
                 }
 
-                if self.logger.is_enabled() {
+                if self.logger_enabled {
                     self.logger.log_debug(#filename, 0, &format!("💾 Memo miss for rule {} at position {} - computing fresh result", rule_id, self.position));
                 }
 
@@ -3816,7 +3822,7 @@ impl AstBasedGenerator {
                             end_pos: node.span.end,
                         },
                     );
-                    if self.logger.is_enabled() {
+                    if self.logger_enabled {
                         self.logger.log_info(#filename, 0, &format!("💾 Memoized successful result for rule {} at position {}", rule_id, self.position));
                     }
                 } else {
@@ -3828,7 +3834,7 @@ impl AstBasedGenerator {
                             end_pos: start_pos,
                         },
                     );
-                    if self.logger.is_enabled() {
+                    if self.logger_enabled {
                         self.logger.log_warning(#filename, 0, &format!("💾 Memoized failed result for rule {} at position {}", rule_id, self.position));
                     }
                 }
