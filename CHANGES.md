@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-04-26 - Optim #3 (PGEN-RGX-0073): rule names as `&'static str` in RecursionGuard and ParseError
+### Achievement Summary
+Second annotation-independent perf optimization on the PGEN-RGX-0073 lane. Path A round 2 samply profile (post-Optim-#2) identified `create_contextual_error` at 37.3% inclusive time and `String::clone` at 4.06% self time as the new dominant cost. Root cause: every failed token match (i.e., every backtrack — common during alternation) constructed a contextual error whose `rule_stack` field cloned every `String` in the recursion guard's `parse_stack` into a fresh `Vec<String>`. With deep alternation, that's tens of thousands of `String::clone` calls per parse.
+
+The rule names are always string literals at the call sites (`recursion_guard.enter("regex", position)` etc.). They should never have been `String`. This commit converts them to `&'static str` throughout.
+
+### Scope of Changes
+- [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs)
+  - `RecursionGuard::parse_stack`: `Vec<(String, usize)>` → `Vec<(&'static str, usize)>`.
+  - `RecursionGuard::enter` signature: `&str` → `&'static str` (string literals satisfy this implicitly).
+  - `RecursionGuard::check_cycle` signature: `&str` → `&'static str`.
+  - `CycleType::MutualRecursive::rules`: `Vec<String>` → `Vec<&'static str>`.
+  - `ParseError::ContextualError::rule_stack`: `Vec<String>` → `Vec<&'static str>`.
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)
+  - `generate_tests` `create_contextual_error` emit: `rule.clone()` → `*rule`. Each rule name is now a pointer copy (`&'static str` is `Copy`), no allocation per entry.
+- Regenerated parsers (all four tracked):
+  - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/regex.json](generated/regex.json)
+  - [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/return_annotation.json](generated/return_annotation.json)
+  - [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/semantic_annotation.json](generated/semantic_annotation.json)
+  - [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs)
+- [generated/ebnf.rs](generated/ebnf.rs), [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs) — patched in-place to match the new types (these were not regenerated this round; only their `create_contextual_error` `rule_stack` collector was updated to `Vec<&'static str>` with `*rule`).
+- Continuity docs: [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md).
+
+### Validation — perf
+`target/release/regex_perf_probe`, two consecutive runs (Apple M4 Pro, release build, 1000 samples each, 50 warmup):
+
+| Pattern | Optim #2 p50 (12c76eb) | Optim #3 p50 (run 1) | Optim #3 p50 (run 2) | Speedup vs Optim #2 | Combined vs f675d25 |
+|---|---:|---:|---:|---:|---:|
+| literal_simple   |   220,000 |   125,417 |   126,916 | 1.75× | 2.30× |
+| digit_sequence   |   446,000 |   249,250 |   249,375 | 1.79× | 2.28× |
+| character_class  | 1,429,000 |   695,542 |   694,708 | 2.05× | 2.69× |
+| alternation      |   561,500 |   321,750 |   327,333 | 1.74× | 2.32× |
+| capture_groups   |   912,896 |   439,375 |   443,042 | 2.08× | 2.53× |
+| url_simple       |   486,300 |   278,250 |   286,125 | 1.75× | 2.31× |
+| email_basic      |   632,604 |   347,667 |   353,458 | 1.82× | 2.39× |
+| anchor_complex   | 1,652,813 |   799,167 |   805,417 | 2.07× | 2.62× |
+
+1.74–2.08× p50 vs Optim #2; 2.28–2.69× combined vs original baseline `f675d25`. Both runs consistent within ~2%.
+
+### Validation — tests
+- `cargo test --lib --features generated_parsers` ✅ 467 passed, 0 failed.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- ParseError API change is backward-incompatible at the type level — `rule_stack` field is now `Vec<&'static str>` instead of `Vec<String>`. The Display impl for ContextualError still works (iter()/format unchanged). No downstream consumers in the repo destructure the `Vec<String>` shape.
+
+### Important Boundaries
+- **Parser-agnostic.** All generated parsers benefit when regenerated. Rule names being `&'static str` is sound because they're always emitted as string literals in the generator output.
+- **API compat.** `ParseError::ContextualError::rule_stack` field type changed. External callers who pattern-match on this would need to adapt. The `Display` impl is unchanged.
+- Distance to PGEN-RGX-0073 targets: targets are <50 µs primary (8–50× speedup) and <200 µs acceptable interim (2–12× speedup). Current p50 ranges 125 µs (literal_simple) to 800 µs (anchor_complex). literal_simple, digit_sequence, url_simple are now within INTERIM target (<200 µs); the rest are not yet. Combined Optim #2 + #3 land 2.3–2.7× — meaningful campaign progress, still not resolution.
+
 ## 2026-04-26 - Optim #2 (PGEN-RGX-0073): cache compiled regex per pattern + generated-parser smoke-test softening
 ### Achievement Summary
 First annotation-independent perf optimization on the PGEN-RGX-0073 lane lands. The generated `match_regex` helper was calling `regex::Regex::new(pattern)` on every invocation — a Thompson NFA compile per call, dominating the regex parser's hot path according to samply (Path A profile, see DEVELOPMENT_NOTES.md). The same compile happens on every parse for every literal regex pattern in the EBNF — across all generated parsers. Adding a thread-local `HashMap<String, regex::Regex>` cache makes each pattern compile-once, clone-thereafter (the underlying `regex::Regex` is `Arc`-shared internally, so clone is cheap).

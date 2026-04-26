@@ -503,7 +503,7 @@ pub enum ParseError {
     ContextualError {
         message: String,
         position: usize,
-        rule_stack: Vec<String>,
+        rule_stack: Vec<&'static str>,
         input_context: String,
     },
 }
@@ -594,13 +594,13 @@ pub enum CycleType {
     None,
     Infinite,
     LeftRecursive,
-    MutualRecursive { depth: usize, rules: Vec<String> },
+    MutualRecursive { depth: usize, rules: Vec<&'static str> },
 }
 
 /// Recursion guard
 #[derive(Debug, Clone)]
 pub struct RecursionGuard {
-    pub parse_stack: Vec<(String, usize)>,
+    pub parse_stack: Vec<(&'static str, usize)>,
     pub max_depth: usize,
     pub cycle_cache: HashMap<(String, usize), CycleType>,
 }
@@ -614,17 +614,17 @@ impl RecursionGuard {
         }
     }
 
-    pub fn check_cycle(&mut self, rule_name: &str, position: usize) -> CycleType {
+    pub fn check_cycle(&mut self, rule_name: &'static str, position: usize) -> CycleType {
         for (r, p) in self.parse_stack.iter() {
-            if r == rule_name && *p == position {
+            if *r == rule_name && *p == position {
                 return CycleType::Infinite;
             }
-            if r == rule_name && *p > position {
+            if *r == rule_name && *p > position {
                 return CycleType::LeftRecursive;
             }
         }
         if self.parse_stack.len() >= self.max_depth {
-            let rules: Vec<String> = self.parse_stack.iter().map(|(r, _)| r.clone()).collect();
+            let rules: Vec<&'static str> = self.parse_stack.iter().map(|(r, _)| *r).collect();
             return CycleType::MutualRecursive {
                 depth: self.parse_stack.len(),
                 rules,
@@ -633,8 +633,8 @@ impl RecursionGuard {
         CycleType::None
     }
 
-    pub fn enter(&mut self, rule_name: &str, position: usize) {
-        self.parse_stack.push((rule_name.to_string(), position));
+    pub fn enter(&mut self, rule_name: &'static str, position: usize) {
+        self.parse_stack.push((rule_name, position));
     }
 
     pub fn exit(&mut self) {

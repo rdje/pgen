@@ -17807,11 +17807,11 @@ impl<'input> RtlConstExprParser<'input> {
     }
     fn create_contextual_error(&self, message: &str) -> ParseError {
         let position = self.position;
-        let rule_stack: Vec<String> = self
+        let rule_stack: Vec<&'static str> = self
             .recursion_guard
             .parse_stack
             .iter()
-            .map(|(rule, _)| rule.clone())
+            .map(|(rule, _)| *rule)
             .collect();
         let start = position.saturating_sub(20);
         let end = (position + 20).min(self.input.len());

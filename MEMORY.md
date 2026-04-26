@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-2-regex-cache)
+Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-optim-3-static-rule-names)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,19 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- PGEN-RGX-0073 Optim #2: thread-local Regex cache in generated match_regex helper (commit 4 of 4; the actual perf optimization).
+- PGEN-RGX-0073 Optim #3: rule names as &'static str throughout RecursionGuard and ParseError.
+  - changed:
+    - [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) — RecursionGuard.parse_stack, CycleType.MutualRecursive.rules, ParseError::ContextualError.rule_stack all switched to &'static str
+    - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — generate_tests create_contextual_error emit uses *rule instead of rule.clone()
+    - [generated/regex_parser.rs](generated/regex_parser.rs), [generated/return_annotation_parser.rs](generated/return_annotation_parser.rs), [generated/semantic_annotation_parser.rs](generated/semantic_annotation_parser.rs), [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated
+    - [generated/ebnf.rs](generated/ebnf.rs), [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs) — patched in-place to match new type (not regenerated this round)
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause (samply Path A round 2): create_contextual_error 37.3% inclusive; rule_stack Vec<String> clone allocated N Strings per backtrack
+  - perf: 1.74-2.08x p50 improvement vs Optim #2 across all 8 RGX-0073 patterns; combined vs f675d25 baseline 2.28-2.69x; literal_simple 220us -> 125us, anchor_complex 1653us -> 799us
+  - parser-agnostic: SV, VHDL, RTL parsers get the same speedup when regenerated
+  - cargo test --lib --features generated_parsers: 467/467
+  - distance to RGX-0073 targets: literal_simple/digit_sequence/url_simple now within INTERIM (<200us); rest not yet; primary target (<50us) remains far for all patterns; Optim #3 is meaningful campaign progress, not resolution
+- PGEN-RGX-0073 Optim #2: thread-local Regex cache in generated match_regex helper (committed 2026-04-26 as 12c76eb).
   - changed:
     - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — match_regex emit + softened generate_tests smoke contract
     - [generated/regex_parser.rs](generated/regex_parser.rs) + .json

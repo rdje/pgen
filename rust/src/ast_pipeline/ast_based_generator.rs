@@ -3837,9 +3837,9 @@ impl AstBasedGenerator {
             fn create_contextual_error(&self, message: &str) -> ParseError {
                 let position = self.position;
 
-                // Gather rule stack
-                let rule_stack: Vec<String> = self.recursion_guard.parse_stack.iter()
-                    .map(|(rule, _)| rule.clone())
+                // Gather rule stack (rule names are &'static str — pointer copy, no allocation per entry)
+                let rule_stack: Vec<&'static str> = self.recursion_guard.parse_stack.iter()
+                    .map(|(rule, _)| *rule)
                     .collect();
 
                 // Get input context around the error position

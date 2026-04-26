@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Optim #3: rule names as `&'static str` in RecursionGuard + ParseError
+### Context
+Path A round 2 samply profile of `target/release/regex_perf_probe` (post-Optim-#2, with `--unstable-presymbolicate` for symbol resolution). Top findings:
+- `create_contextual_error` 37.3% inclusive time (every backtrack constructs one)
+- `String::clone` 4.06% self time
+- `_platform_memmove` 9.58% self time (mostly from Vec/String allocations and copies)
+- `__rdl_alloc` 3.40% self time
+- `libsystem_malloc.dylib` unsymbolicated entries cumulatively ~25% (heap allocator internals)
+
+The smoking gun in `create_contextual_error`:
+```rust
+let rule_stack: Vec<String> = self.recursion_guard.parse_stack.iter()
+    .map(|(rule, _)| rule.clone())
+    .collect();
+```
+Every failed token match in `match_string` (one per backtrack — extremely common in heavily-alternated patterns) called this. Each call allocates a Vec + N String clones. With deep alternation, that's tens of thousands of `String::clone` per parse.
+
+### Why rule names should never have been `String`
+At every call site, the generated parsers pass string literals: `recursion_guard.enter("regex", position)`, `enter("pattern", position)`, etc. These are `&'static str` by language construction — guaranteed to live forever, no allocation needed. The `String` typing was unjustified overhead.
+
+### Fix
+- `RecursionGuard::parse_stack`: `Vec<(String, usize)>` → `Vec<(&'static str, usize)>`. Push site is `parse_stack.push((rule_name, position))` instead of `(rule_name.to_string(), position)`.
+- `RecursionGuard::enter` and `check_cycle` signatures: `&str` → `&'static str`. String literal call sites satisfy this.
+- `CycleType::MutualRecursive::rules`: `Vec<String>` → `Vec<&'static str>`. Generated parsers only pattern-match on `depth`; `rules` is bound by reference but unused — type change is safe.
+- `ParseError::ContextualError::rule_stack`: `Vec<String>` → `Vec<&'static str>`. Display impl iterates and formats — works unchanged.
+- `ast_based_generator::generate_tests` `create_contextual_error` emit: `rule.clone()` → `*rule`. Each rule is now a `Copy` ptr, no allocation.
+
+### Why this is parser-agnostic
+The change is in `rust/src/ast_pipeline/mod.rs` (RecursionGuard, ParseError types) and the parser-emit template in `ast_based_generator.rs`. Every generated parser inherits when regenerated. Same speedup will land on SV, VHDL, RTL grammars when those parsers are next regenerated.
+
+### Validation — perf
+Two consecutive runs of `target/release/regex_perf_probe` (Apple M4 Pro, release): see CHANGES.md table. 1.74–2.08× p50 improvement vs Optim #2 across all 8 patterns. Combined vs original baseline `f675d25`: 2.28–2.69×.
+
+### Validation — tests
+- `cargo test --lib --features generated_parsers` 467/467 passing (same as post-Optim-#2).
+
+### Lessons logged
+- "It's only a String" is an easy code-review nit to wave off. In hot paths, `String` vs `&'static str` is the difference between "free" and "allocate a Vec entry per backtrack". When emitting code that captures rule names from a generator, default to `&'static str` and only reach for `String` when ownership is actually needed.
+- Profile-driven optimization keeps producing surprises. Optim #1 (already-done — ParseNode rule_name is `&'static str`) and Optim #3 (this commit — RecursionGuard.parse_stack is `&'static str`) are the same conceptual fix in two different places. Worth checking `String` fields in the parser runtime systematically — there may be more.
+
 ## 2026-04-26 - Optim #2: thread-local Regex cache in generated match_regex helper
 ### Context
 Path A samply profile of the regex parser at HEAD `f675d25` (DEVELOPMENT_NOTES.md 2026-04-25 entry) found `regex::Regex::new(pattern)` calls dominating the parser's hot path. The generator emits this call inside the `match_regex` helper, which is invoked once per literal regex pattern reference per parse. With ~100s of pattern sites in the regex grammar alone, every parse re-compiled the same Thompson NFA hundreds of times. Roughly 20–30% of total parse time, per the profile.
