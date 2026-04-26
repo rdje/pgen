@@ -1043,6 +1043,18 @@ return_annotation_support_gate:
 	@$(MAKE) -C $(RUST_DIR) return_annotation_exhaustiveness_gate
 	@echo "✅ Return annotation support gate passed."
 
+.PHONY: ast_shape_contract_gate
+ast_shape_contract_gate:
+	@echo "🧬 Running per-parser-family AST-shape contract gate..."
+	cd $(RUST_DIR) && cargo test --features generated_parsers --lib ast_shape_contract --quiet
+	@echo "✅ AST-shape contract gate passed."
+
+.PHONY: regex_ast_shape_contract_gate
+regex_ast_shape_contract_gate:
+	@echo "🧬 Running regex AST-shape contract gate..."
+	cd $(RUST_DIR) && cargo test --features generated_parsers --lib ast_shape_contract::tests::regex_ast_shape_contract_holds_against_running_generated_parser -- --nocapture
+	@echo "✅ Regex AST-shape contract gate passed."
+
 .PHONY: return_annotation_exhaustiveness_gate
 return_annotation_exhaustiveness_gate:
 	@echo "🧮 Running return annotation exhaustiveness gate..."

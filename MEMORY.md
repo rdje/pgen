@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: codegen-fix-return-annotations-non-or-roots)
+Last updated: 2026-04-26 (+0200, task: per-parser-family-ast-shape-contract-gate-regex-first)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,21 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Per-parser-family AST-shape contract gate landed with regex as the first concrete instance. Closes the systemic gap that let the regex codegen drop go silently undetected.
+- Infrastructure: [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs) — grammar-agnostic runner with `AstShapeContractManifest` schema, stable `ContentKind` labels, and `ContractReport` drift accounting. [rust/test_data/ast_shape_contract/regex_v1.json](rust/test_data/ast_shape_contract/regex_v1.json) — first per-family manifest with 4 samples for the `regex` rule.
+- Make targets: `ast_shape_contract_gate` (every family's contract test) and `regex_ast_shape_contract_gate` (regex-only with `--nocapture`).
+- Drift surfaced: all 4 regex samples in `drift_status: annotation_dropped_at_codegen_pre_regeneration` because tracked `generated/regex_parser.rs` has not yet been regenerated through the codegen fix from commit `6ad4ffd`. Drift is REPORTED, not blocked — gate passes while documenting open work, so per-family regeneration can proceed when RGX coordination lands.
+- Regression-lock works in both directions: regenerating the parser without updating the manifest fails the gate; codegen-template changes that alter runtime shape unexpectedly also fail.
+- Validation: `cargo test --lib --features generated_parsers` 473 passed (472 prior + 1 new). `ast_shape_contract_gate` and `regex_ast_shape_contract_gate` pass. Strict source clippy passes.
+- **Open follow-ups** (in priority order):
+  1. Add manifests + per-family unit tests for the other annotation-emitting grammars: `return_annotation`, `semantic_annotation`, `ebnf`, `rtl_const_expr`, `rtl_frontend`. Each follows the same pattern: ~20-line test + a per-grammar manifest file.
+  2. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` audit so drift is visible at workflow-parity time.
+  3. Wire `ast_shape_contract_gate` into `sota_exit_gate` so aggregate policy proof includes the AST-shape contract surface.
+  4. Per-family regeneration commits (regex needs RGX coordination first; the others are lower blast-radius). Each closes drift by updating its manifest in lockstep with the parser regen.
+  5. `pgen_trace` instrumentation coverage audit across Rust AST pipeline + generated parsers.
+  6. Downstream contract stabilization umbrella (versioned, documented, regression-locked compatibility contracts per generated parser).
+
+## Prior Session Note
 - Codegen fix landed for the regex-grammar drop and the broader silent-drop class. Before the fix, `generate_rule_method` only applied return-annotation transforms via `generate_or_logic`. Rules whose top-level AST node was Sequence / Atom / Quantified / Lookahead silently dropped their declared return annotation at codegen — annotations made it into `branch_return_annotations` with non-empty `parsed_ast`, but the codegen template never consumed them for non-Or roots. Fix at [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) emits a `let result = <transform>;` shadow rebind right after `#parse_logic;` for non-Or roots that have an annotation on branch 0; Or path is unchanged so per-branch transforms in `generate_or_logic` aren't double-applied.
 - New regression test `return_annotation_on_non_or_root_rule_emits_transform_at_codegen` pins the fix at the codegen level.
 - Validation: `cargo test --lib --features generated_parsers` 472 passed; `annotation_contract_gate`, `return_annotation_support_gate` pass; clippy strict source lint pass.

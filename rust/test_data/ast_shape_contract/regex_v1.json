@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "grammar": "regex",
+  "purpose": "Per-parser-family AST-shape contract: assert the runtime AST that the generated regex parser actually produces, and surface drift between the grammar's declared return annotations and what the running parser emits. A failing assertion here means either (a) the running parser changed shape (regenerate intended? update the manifest in the same commit) or (b) a previously documented drift was fixed (flip drift_status to `aligned` and update current_content_kind).",
+  "doctrine": "The 'declared_annotation' field is the source of truth from grammars/regex.ebnf. The 'expected_content_kind' field is the shape we expect once the parser correctly applies that annotation. The 'current_content_kind' field is what the tracked generated/regex_parser.rs emits today. When current != expected, drift_status names the open work needed to align them.",
+  "samples": [
+    {
+      "name": "regex_simple_alternation",
+      "input": "a|b",
+      "rule_under_test": "regex",
+      "declared_annotation": "{type: \"regex\", pattern: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "pattern"],
+      "expected_json_object_string_values": {"type": "regex"},
+      "current_content_kind": "quantified",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family regex regeneration follow-up requires RGX coordination before tracked generated/regex_parser.rs is regenerated; regex_parser_integration_contract 1.1.31 will need a version bump and required_rule_names refresh when the typed-Json carrier reaches the public API."
+    },
+    {
+      "name": "regex_literal",
+      "input": "abc",
+      "rule_under_test": "regex",
+      "declared_annotation": "{type: \"regex\", pattern: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "pattern"],
+      "expected_json_object_string_values": {"type": "regex"},
+      "current_content_kind": "quantified",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
+    },
+    {
+      "name": "regex_word_boundary",
+      "input": "\\bword\\b",
+      "rule_under_test": "regex",
+      "declared_annotation": "{type: \"regex\", pattern: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "pattern"],
+      "expected_json_object_string_values": {"type": "regex"},
+      "current_content_kind": "quantified",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
+    },
+    {
+      "name": "regex_empty",
+      "input": "",
+      "rule_under_test": "regex",
+      "declared_annotation": "{type: \"regex\", pattern: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": ["type", "pattern"],
+      "expected_json_object_string_values": {"type": "regex"},
+      "current_content_kind": "quantified",
+      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
+    }
+  ]
+}

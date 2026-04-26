@@ -4,6 +4,7 @@
 //! including semantic annotation parsing and high-performance parser generation.
 
 pub mod ast_pipeline;
+pub mod ast_shape_contract;
 #[cfg(feature = "ebnf_dual_run")]
 pub mod ebnf_frontend;
 pub mod embedding_api;

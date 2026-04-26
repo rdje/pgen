@@ -1,4 +1,83 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Per-parser-family AST-shape contract gate
+
+### What this milestone landed
+
+A grammar-agnostic AST-shape contract runner ([rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs)) plus the first concrete per-family manifest ([rust/test_data/ast_shape_contract/regex_v1.json](rust/test_data/ast_shape_contract/regex_v1.json)) and the first per-family unit test (regex). Two make targets — `ast_shape_contract_gate` (runs every family's test) and `regex_ast_shape_contract_gate` (regex-only, with `--nocapture` so drift detail is visible).
+
+### What problem it closes
+
+The systemic gap surfaced when the regex codegen drop investigation showed that the regex grammar declared object-literal return annotations on `regex` (Quantified root) and `piece` (Sequence root) that never reached `generated/regex_parser.rs`. The drift was invisible until somebody read the generated source by hand. The user's framing was: *"contracts/gates/regressions need to make sure the AST shapes returned by the return-annotation constructs used in their EBNF are effectively working and can be seen and checked when the generated parsers are running. We would have caught the lack of handling of those return annotations in the running parsers sooner if those shape checks were in place."*
+
+### Manifest schema
+
+Per-grammar manifest at `rust/test_data/ast_shape_contract/<grammar>_v<n>.json`:
+
+```json
+{
+  "version": 1,
+  "grammar": "regex",
+  "purpose": "...",
+  "doctrine": "...",
+  "samples": [
+    {
+      "name": "<sample_name>",
+      "input": "<input string>",
+      "rule_under_test": "<rule_name>",
+      "declared_annotation": "<source-of-truth annotation text from the EBNF>",
+      "expected_content_kind": "json_object | terminal | sequence | ...",
+      "expected_json_object_keys_present": ["..."],
+      "expected_json_object_string_values": {"key": "value"},
+      "current_content_kind": "quantified | json_object | ...",
+      "drift_status": "aligned | annotation_dropped_at_codegen_pre_regeneration | ...",
+      "drift_tracked_in": "<follow-up reference>"
+    }
+  ]
+}
+```
+
+`expected_content_kind` is what the parser SHOULD produce given its declared annotation. `current_content_kind` is what the tracked generated parser actually produces today. They disagree when the parser has drifted; `drift_status` names the open work.
+
+### Runner contract
+
+[`run_manifest`](rust/src/ast_shape_contract.rs) takes the parsed manifest plus a per-parser callback that returns the top-level `ParseNode` for a sample input. The runner classifies the parser's output via [`ContentKind::classify`](rust/src/ast_shape_contract.rs), then enforces:
+
+1. **Regression-lock**: for every sample, observed content kind must equal `current_content_kind`. If a parser is regenerated without updating the manifest in the same commit, this fails. If a codegen template change shifts runtime shape unexpectedly, this fails.
+2. **Aligned consistency**: when `current_content_kind == expected_content_kind`, `drift_status` must be `"aligned"`, and structural assertions (`expected_json_object_keys_present`, `expected_json_object_string_values`) must hold against the actual runtime value.
+3. **Drift accounting**: the runner returns a `ContractReport` with per-status counts so every gate run logs how many samples are still in drift and which `drift_status` labels they carry. Drift is documented, not blocked — the gate's job is to surface, not gatekeep landing.
+
+### Why drift is reported, not blocked
+
+The regex parser today has 4 samples in drift because the tracked `generated/regex_parser.rs` has not been regenerated through the codegen fix that landed in commit `6ad4ffd`. Regenerating regex requires RGX coordination and an integration-contract version bump (current `1.1.31`). Blocking on drift would either force a premature uncoordinated regen or block all unrelated commits. Reporting drift instead means: drift is visible at every gate run; the closure path is explicit; a future regen commit updates the manifest in the same change.
+
+### Manifest workflow when drift is fixed
+
+When per-family regeneration lands:
+1. Regenerate `generated/<grammar>_parser.rs`.
+2. Run the contract gate. It fails because observed (now `json_object`) != manifest's `current_content_kind` (still `quantified`).
+3. In the same commit, update each affected sample: `current_content_kind` → `json_object`, `drift_status` → `aligned`. The runner re-verifies and the structural assertions kick in (object keys present, string values match).
+4. Re-run the gate. Now passes.
+
+The act of editing the manifest IS the explicit acknowledgement that AST shape changed.
+
+### Why the runner stays grammar-agnostic
+
+The runner is generic. Each per-family unit test supplies a closure that knows how to invoke its grammar's generated parser and return the top-level `ParseNode`. The shared `run_manifest`/`ContractReport` machinery handles classification, assertions, and drift accounting. Adding a new family is a manifest plus a ~20-line per-family test that wires the appropriate `<Family>Parser::new(...).parse_full_<entry>()` into the shared runner.
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 473 passed (472 prior + 1 new regex contract test).
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` — pass; reports `samples=4 aligned=0 drift=4 regression_lock_failures=0 aligned_assertion_failures=0`.
+- `make -C rust SHELL=/bin/bash regex_ast_shape_contract_gate` — pass; per-sample drift visible in the log.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` — strict source lint pass.
+
+### Tracked follow-ups (per-family expansion + integration)
+
+1. **Add manifests for the other annotation-emitting grammars**: `return_annotation`, `semantic_annotation`, `ebnf`, `rtl_const_expr`, `rtl_frontend`. Each adds one manifest file and one per-family unit test. Drift is expected to be common in the first wave because the codegen fix from commit `6ad4ffd` has activated transforms that the tracked generated parsers have not yet been regenerated to emit.
+2. **Wire the gate into `ci_workflow_local_gate`** so the audit reports drift per family without requiring a separate manual run.
+3. **Wire the gate into `sota_exit_gate`** so aggregate policy proof includes the AST-shape contract surface.
+4. **Per-family regeneration commits** then close the drift one grammar at a time, each commit updating the manifest in lockstep with the regen.
+
 ## 2026-04-26 - Codegen fix: return-annotation transforms now apply for non-Or rule roots
 
 ### What this milestone landed
