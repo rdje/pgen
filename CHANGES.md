@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-04-26 - AST pipeline: preserve branch_semantic_annotations entry for OR rules even when branches carry no per-branch annotation
+### Achievement Summary
+Fixed a pre-existing test regression in `rust/src/ast_pipeline/mod.rs::transform_from_raw_ast`. Commit `ee58246c` (2026-03-21, "Preserve branch semantic annotations") landed both a storage guard and a test that contradict each other: the guard refused to store `branch_semantic_annotations[rule]` unless at least one branch had a non-empty annotation, but the test expected `[empty, empty]` to be stored for an OR rule with two branches and a rule-level (not branch-level) semantic annotation. The guard pruning empty entries pre-empted the test contract.
+
+### Scope of Changes
+- [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs)
+  - `transform_from_raw_ast`: relaxed the storage condition for `branch_semantic_annotations` to also store when the rule has multiple OR branches (`len() > 1`), even if all per-branch annotation Vecs are empty. The original guard (`any(|e| !e.is_empty())`) is preserved as a fallback for non-OR cases. This preserves the contract that mid-sequence-only annotations on a single-sequence rule do NOT create a `branch_semantic_annotations` entry (verified by `transform_from_raw_ast_preserves_mid_sequence_semantic_annotations`).
+- Continuity docs: [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md).
+
+### Tests recovered
+- `ast_pipeline::tests::transform_from_raw_ast_preserves_return_and_semantic_annotations` — was panicking at `mod.rs:2621` "rule branch semantic annotations should exist"; now passes.
+- `ast_pipeline::tests::transform_from_raw_ast_preserves_mid_sequence_semantic_annotations` — still passes; mid-sequence-only path still does not create a branch_semantic_annotations entry (the rule has only one sequence branch, so `len() > 1` is false and the secondary `any(...)` condition is also false because mid-sequence annotations live in a different field).
+- `ast_pipeline::tests::transform_from_raw_ast_preserves_branch_semantic_annotations` — unchanged, still passes.
+
+### Validation
+- `cargo test --lib --features generated_parsers transform_from_raw_ast` 8 passed, 0 failed.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- Downstream consumers in `stimuli_generator.rs` (5318, 5341, 5456) read `branch_semantic_annotations.get(rule)?` and iterate per-branch entries — they tolerate empty-Vec entries gracefully.
+
+### Important Boundaries
+- AST-pipeline-internal change. Affects how the pipeline reports OR-rule branch semantic annotations to its consumers. No grammar changes. No parser regeneration needed.
+
 ## 2026-04-26 - Stimuli generator: restore recovery fallback and probability semantics under missing-rule pruning
 ### Achievement Summary
 Fixed two pre-existing test regressions in `rust/src/ast_pipeline/stimuli_generator.rs::generate_or` introduced by commit `6e0c2801` ("SV stimuli: align profile-pruned replay debt", 2026-04-22). That commit added a missing-rule-references filter that pruned OR branches whose alternatives reference rules absent from the active grammar profile, but the filter did not respect (a) the existing `recovery_stimulus_fallback` path or (b) explicit per-branch probability annotations. Both gaps caused legitimate stimuli generation contracts to break.

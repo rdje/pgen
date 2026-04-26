@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: stimuli-generator-recovery-and-probability-fix)
+Last updated: 2026-04-26 (+0200, task: branch-semantic-annotations-or-rule-preservation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Stimuli generator: missing-rule filter now respects recovery_stimulus_fallback and explicit branch probabilities.
+- AST pipeline: branch_semantic_annotations now preserves OR-rule entries even when all per-branch annotations are empty (commit 2 of 4 in the pre-Optim-#2 cleanup sequence).
+  - changed:
+    - [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) (storage condition relaxed to `len() > 1 || any(...)`)
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - root cause: ee58246c (2026-03-21) shipped storage guard and test that contradicted each other; guard pruned empty entries while test expected them
+  - tests recovered: transform_from_raw_ast_preserves_return_and_semantic_annotations
+  - tests still green: transform_from_raw_ast_preserves_mid_sequence_semantic_annotations (single-branch rule still excluded)
+- Stimuli generator: missing-rule filter now respects recovery_stimulus_fallback and explicit branch probabilities (committed 2026-04-26 as d0a4f40).
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) (filter + early-exit refinement in generate_or)
     - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)

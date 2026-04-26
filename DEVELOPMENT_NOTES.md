@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - branch_semantic_annotations storage: OR-rule entries preserved even when branches are empty
+### Context
+`cargo test --lib --features generated_parsers transform_from_raw_ast_preserves_return_and_semantic_annotations` was panicking at `mod.rs:2621` with "rule branch semantic annotations should exist". The test sets up an OR rule (`expr := lhs | rhs`) with a rule-level `priority` semantic annotation and a return_scalar on the second branch, then asserts:
+
+```rust
+let branch_semantic_annotations = annotations
+    .branch_semantic_annotations
+    .get("expr")
+    .expect("rule branch semantic annotations should exist");
+assert_eq!(branch_semantic_annotations.len(), 2);
+assert!(branch_semantic_annotations[0].is_empty());
+assert!(branch_semantic_annotations[1].is_empty());
+```
+
+### Root cause
+Commit `ee58246c` (2026-03-21, "Preserve branch semantic annotations") added the test AND the storage guard in the same patch. Guard:
+
+```rust
+if parsed_rule.branch_semantic_annotations.iter().any(|e| !e.is_empty()) {
+    annotations.branch_semantic_annotations.entry(rule_name).or_default().extend(...);
+}
+```
+
+The guard prunes the entry when every per-branch annotation Vec is empty. But the test expects the entry to exist with two empty Vecs (so a consumer can verify "this OR rule has 2 branches, neither carries a branch-level semantic annotation"). Guard and test were incompatible from day one — the test failed on its own commit.
+
+### Why the existing guard wasn't simply wrong
+A neighboring test `transform_from_raw_ast_preserves_mid_sequence_semantic_annotations` ALSO verifies a `is_none()` outcome: a single-sequence rule with only mid-sequence annotations should NOT get a `branch_semantic_annotations` entry. So the right contract is more nuanced than "always store" or "never store empty":
+
+- OR rule with multiple branches → store entry, even if every branch is empty (so consumers see the branch count).
+- Single-sequence rule (no `|`) → don't store an entry (the rule has only one logical "branch").
+
+### Fix
+- Relaxed the storage condition to `len() > 1 || any(|e| !e.is_empty())`. The `len() > 1` catches OR rules with all-empty branches (the previously-failing contract). The `any(...)` catches single-sequence rules that happen to carry a branch-level annotation (still stored). The mid-sequence-only test stays green because its single-branch sequence has `len() == 1` and no annotations on the branch.
+
+### Validation
+- `cargo test --lib --features generated_parsers transform_from_raw_ast` 8 passed, 0 failed.
+- Downstream consumers (`stimuli_generator.rs:5318/5341/5456`) iterate per-branch entries with empty-Vec tolerance — no behavior change for them.
+
+### Lessons logged
+- Storage guards in the AST pipeline that conflate "no data" with "structural absence" lose a useful distinction. For OR rules, the branch count itself is data; the entry's existence carries it.
+- A failing test in the same commit as the code that breaks it suggests test-code-and-impl drift during commit prep. Easier to spot when CI runs `cargo test --lib` on every change.
+
 ## 2026-04-26 - Stimuli generator missing-rule filter: recovery + probability gaps
 ### Context
 Full library test run (`cargo test --lib --features generated_parsers`) at HEAD `f675d25` reported 5 failing unit tests (plus 1 stack-overflow that aborted the runner). Two of those five failures lived in `stimuli_generator::tests` and shared a common root cause in `generate_or`.

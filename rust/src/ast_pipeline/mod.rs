@@ -911,10 +911,11 @@ impl RustASTPipeline {
                                     .or_default()
                                     .extend(parsed_rule.branch_return_annotations.clone());
                             }
-                            if parsed_rule
-                                .branch_semantic_annotations
-                                .iter()
-                                .any(|entry| !entry.is_empty())
+                            if parsed_rule.branch_semantic_annotations.len() > 1
+                                || parsed_rule
+                                    .branch_semantic_annotations
+                                    .iter()
+                                    .any(|entry| !entry.is_empty())
                             {
                                 annotations
                                     .branch_semantic_annotations
