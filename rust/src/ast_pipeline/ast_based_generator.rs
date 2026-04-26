@@ -41,6 +41,13 @@ pub struct AstBasedGenerator {
     pub annotations: Option<Annotations>,
     pub branch_return_annotations: HashMap<String, Vec<Option<BranchAnnotation>>>,
     pub enable_debug: bool,
+    /// Phase 2 M1 toggle. When true, the generator emits `parse_full_<entry>_typed`
+    /// returning `ParseResult<serde_json::Value>` alongside the existing
+    /// `parse_full_<entry>` returning `ParseResult<ParseNode>`. The M1 typed method is
+    /// a skeleton wrapper around the legacy method + `serde_json::to_value`; M2
+    /// replaces the body with truly inline shape-emit logic per the rule's return
+    /// annotation. Default false: generator emit is unchanged from prior behavior.
+    pub inline_annotations: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -84,6 +91,7 @@ impl AstBasedGenerator {
             annotations: None,
             branch_return_annotations: HashMap::new(),
             enable_debug: true,
+            inline_annotations: false,
         }
     }
 
@@ -211,12 +219,20 @@ impl AstBasedGenerator {
         eprintln!("        File: {}:{}", file!(), line!());
         eprintln!();
 
+        // Phase 2 M1: parallel typed parser impl, only emitted when --inline-annotations is set.
+        let typed_parser_impl = if self.inline_annotations {
+            self.generate_typed_parser_impl_skeleton(&parser_name, &entry_rule)
+        } else {
+            TokenStream::new()
+        };
+
         // Combine everything
         let result = quote! {
             #imports
             #types
             #parser_struct
             #parser_impl
+            #typed_parser_impl
             #tests
         };
 
@@ -575,6 +591,43 @@ impl AstBasedGenerator {
                 }
             }
         })
+    }
+
+    /// Phase 2 M1 emit. Produces a parallel `impl` block carrying
+    /// `parse_full_<entry>_typed` returning `ParseResult<serde_json::Value>`. The M1 body
+    /// is a skeleton wrapper around the legacy `parse_full_<entry>` plus
+    /// `serde_json::to_value(&node)`, which is functionally equivalent to "parse + AST
+    /// dump as JSON". M2 will replace the body with truly inline shape-emit logic that
+    /// honors the rule's return annotation. M1 establishes the architectural pattern and
+    /// the public API surface; it does NOT yet produce shaped output per annotations.
+    fn generate_typed_parser_impl_skeleton(
+        &self,
+        parser_name: &Ident,
+        entry_rule: &str,
+    ) -> TokenStream {
+        let parse_full_method = format_ident!("parse_full_{}", entry_rule);
+        let parse_full_typed_method = format_ident!("parse_full_{}_typed", entry_rule);
+
+        quote! {
+            impl<'input> #parser_name<'input> {
+                /// Phase 2 M1 skeleton: parses via the legacy ParseNode path, then
+                /// converts the tree to `serde_json::Value` via Serialize. Functionally
+                /// equivalent to "parse + AST-dump-as-JSON" for now. M2 will replace
+                /// this body with truly inline shape-emit logic that honors the rule's
+                /// return annotation, eliminating the post-parse transform.
+                pub fn #parse_full_typed_method(
+                    &mut self,
+                ) -> ParseResult<serde_json::Value> {
+                    let node = self.#parse_full_method()?;
+                    serde_json::to_value(&node).map_err(|err| {
+                        self.create_contextual_error(&format!(
+                            "Phase 2 M1 typed serialization failed: {}",
+                            err
+                        ))
+                    })
+                }
+            }
+        }
     }
 
     fn generate_parse_method(&self, entry_rule: &str) -> TokenStream {
@@ -4917,6 +4970,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         }
     }
@@ -4945,6 +4999,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         }
     }
@@ -4991,6 +5046,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         }
     }
@@ -5086,6 +5142,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         }
     }
@@ -5147,6 +5204,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         }
     }
@@ -5322,6 +5380,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -5355,6 +5414,64 @@ mod semantic_usage_tests {
             rendered.contains("[A-Za-z_][A-Za-z0-9_]*"),
             "token_class steering should replace grammar regex with token-class matcher, got: {}",
             rendered
+        );
+    }
+
+    #[test]
+    fn phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set() {
+        // Phase 2 M1 contract: when AstBasedGenerator.inline_annotations is true, the
+        // emitted parser carries `parse_full_<entry>_typed` returning
+        // `ParseResult<serde_json::Value>` alongside the existing
+        // `parse_full_<entry>` returning `ParseResult<ParseNode>`. Default-off behavior
+        // is byte-unchanged: no typed method appears.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "package_declaration".to_string(),
+            token("quoted_string", "pkg"),
+        );
+        let rule_order = vec!["package_declaration".to_string()];
+
+        // Flag off: legacy emit only.
+        let mut generator_off = AstBasedGenerator::new("usage_test".to_string());
+        generator_off.enable_debug = false;
+        let rendered_off = generator_off
+            .generate_parser(&grammar_tree, &rule_order, "phase_2_m1.rs")
+            .expect("flag-off parser generation should succeed");
+        assert!(
+            !rendered_off.contains("parse_full_package_declaration_typed"),
+            "flag-off emit must not include typed method, got: {}",
+            rendered_off
+        );
+
+        // Flag on: legacy emit + parallel typed impl block.
+        let mut generator_on = AstBasedGenerator::new("usage_test".to_string());
+        generator_on.enable_debug = false;
+        generator_on.inline_annotations = true;
+        let rendered_on = generator_on
+            .generate_parser(&grammar_tree, &rule_order, "phase_2_m1.rs")
+            .expect("flag-on parser generation should succeed");
+        assert!(
+            rendered_on.contains("pub fn parse_full_package_declaration_typed"),
+            "flag-on emit must include typed entry method, got: {}",
+            rendered_on
+        );
+        assert!(
+            rendered_on.contains("ParseResult<serde_json::Value>")
+                || rendered_on.contains("ParseResult < serde_json :: Value >"),
+            "typed method must return ParseResult<serde_json::Value>, got: {}",
+            rendered_on
+        );
+        // The legacy method is preserved unchanged.
+        assert!(
+            rendered_on.contains("pub fn parse_full_package_declaration"),
+            "flag-on emit must preserve legacy parse_full method, got: {}",
+            rendered_on
+        );
+        // The typed method body delegates to the legacy method (M1 skeleton).
+        assert!(
+            rendered_on.contains("self.parse_full_package_declaration()"),
+            "M1 typed body must wrap the legacy parse_full call, got: {}",
+            rendered_on
         );
     }
 
@@ -5730,6 +5847,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -5758,6 +5876,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -5783,6 +5902,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -5843,6 +5963,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -5913,6 +6034,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -5967,6 +6089,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -5990,6 +6113,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6014,6 +6138,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6053,6 +6178,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6106,6 +6232,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6122,6 +6249,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6182,6 +6310,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6220,6 +6349,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6272,6 +6402,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6288,6 +6419,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6343,6 +6475,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6378,6 +6511,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6424,6 +6558,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6440,6 +6575,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6510,6 +6646,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6544,6 +6681,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6609,6 +6747,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6641,6 +6780,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6681,6 +6821,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6718,6 +6859,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6755,6 +6897,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6808,6 +6951,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6852,6 +6996,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6900,6 +7045,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6942,6 +7088,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -6990,6 +7137,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -7030,6 +7178,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 
@@ -7061,6 +7210,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
+            inline_annotations: false,
             enable_debug: false,
         };
 

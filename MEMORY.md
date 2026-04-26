@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-phase-2-plan-logged)
+Last updated: 2026-04-26 (+0200, task: pgen-rgx-0073-phase-2-m1-parallel-emit-infra)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,17 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- PGEN-RGX-0073 Phase 2 plan logged. The annotation-independent micro-optim lane reached diminishing returns at Optim #7 (cumulative 5.6-8.8x p50 vs original baseline). Optim #8 (Rc-share) was scoped and abandoned (~5% ceiling vs invasive API change). Pivot to Phase 2 (return + semantic annotations applied inline during parse, not post-parse) — task #30 logged since 2026-04-25, now formally captured in tracked docs with M0-M8 milestone breakdown.
+- PGEN-RGX-0073 Phase 2 M1: parallel emit infrastructure landed. `--inline-annotations` CLI flag on ast_pipeline (default off). When set, generator emits `parse_full_<entry>_typed` returning `ParseResult<serde_json::Value>` alongside legacy `parse_full_<entry>`. M1 typed body is a skeleton wrapper around legacy + serde_json::to_value (functionally equivalent to "parse + AST-dump-as-JSON"). M2 will replace body with truly inline shape-emit logic per the rule's return annotation.
+  - changed:
+    - [rust/src/main.rs](rust/src/main.rs) — added --inline-annotations CLI flag; plumbed through generate_parser_ast_based call site
+    - [rust/src/ast_pipeline/ast_generator_direct.rs](rust/src/ast_pipeline/ast_generator_direct.rs) — generate_parser_ast_based signature gains inline_annotations: bool; internal AstGenerator::generate_parser entry forwards false (CLI flag is the only way in)
+    - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — AstBasedGenerator gains pub inline_annotations: bool field (default false); generate_parser_tokens conditionally emits typed impl block via new generate_typed_parser_impl_skeleton method; 41 test/dummy init sites updated; new contract test phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set pins the M1 contract
+    - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - tests: 468/468 (467 prior + 1 new M1 contract test). All existing tests unchanged.
+  - tracked /generated/*.rs files: NOT regenerated with the flag at this commit. They remain on default emit. M3 will explicitly migrate the regex parser to inline path when the M2 shape-emit logic is in place.
+  - decisions confirmed at M1: output type serde_json::Value works fine; entry-only typed method scope is enough for M1 (per-rule typed methods come in M2 for inline composition).
+  - next milestone (M2): port UnifiedReturnAST::generate_code logic into the parser-emit template. Differential validation against post-parse oracle on return_annotation test corpus + semantic corpus. PropertyAccess and ArrayAccess have // TODO placeholders today; need to be implemented if exercised by the corpus.
+- PGEN-RGX-0073 Phase 2 plan logged (committed 2026-04-26 as 610e7ae).
   - changed (docs only):
     - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md) — new "Phase 2: Inline Annotation Application" section
     - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [CHANGES.md](CHANGES.md), [MEMORY.md](MEMORY.md) — tracker note + engineering rationale + changelog + this session note

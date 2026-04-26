@@ -42,20 +42,32 @@ impl AstGeneratorIntegration {
             &transformed_ast.rule_order,
             transformed_ast.metadata.annotations.as_ref(),
             &format!("{}_parser.rs", transformed_ast.grammar_name),
+            // Phase 2 M1: this internal generator entry path keeps the legacy emit
+            // shape; --inline-annotations is only routed through the CLI binary path.
+            false,
         )
     }
 }
 
-/// Direct function to generate parser using AST-based approach
+/// Direct function to generate parser using AST-based approach.
+///
+/// `inline_annotations` is the Phase 2 M1 toggle. When false (default), the
+/// generator emits the existing parser shape unchanged. When true, the generator
+/// additionally emits `parse_full_<entry>_typed` returning
+/// `ParseResult<serde_json::Value>`. M1's typed method is a skeleton wrapper
+/// (parse + `serde_json::to_value`); M2 replaces the body with truly inline
+/// shape-emit logic per the rule's return annotation.
 pub fn generate_parser_ast_based(
     grammar_name: &str,
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
     annotations: Option<&Annotations>,
     filename: &str,
+    inline_annotations: bool,
 ) -> Result<String> {
     let parser_name = snake_to_pascal(grammar_name);
     let mut generator = AstBasedGenerator::new(parser_name);
+    generator.inline_annotations = inline_annotations;
 
     // Transfer annotations if provided
     if let Some(annotations) = annotations {

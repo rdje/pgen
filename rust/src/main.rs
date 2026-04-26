@@ -87,6 +87,14 @@ struct Args {
     /// Generate high-performance Rust parser instead of JSON output
     #[arg(long)]
     generate_parser: bool,
+    /// (Phase 2 M1, off by default) When generating a parser, also emit
+    /// `parse_full_<entry>_typed` returning `ParseResult<serde_json::Value>` alongside
+    /// the existing `parse_full_<entry>` returning `ParseResult<ParseNode>`. M1 emits a
+    /// skeleton wrapper that parses then serializes the tree; M2 replaces the body with
+    /// truly inline shape-emit logic per the rule's return annotation. Default behavior
+    /// (without this flag) is unchanged.
+    #[arg(long)]
+    inline_annotations: bool,
     /// Generate random grammar-valid stimuli from AST JSON
     #[arg(long, conflicts_with = "generate_parser")]
     generate_stimuli: bool,
@@ -886,6 +894,7 @@ fn main() -> Result<()> {
             &grammar.rule_order,
             grammar.annotations.as_ref(),
             output_rust.as_str(),
+            args.inline_annotations,
         )?;
         std::fs::write(&output_rust, parser_code)?;
 

@@ -1,4 +1,53 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-26 - Phase 2 M1: parallel emit infrastructure
+### What this milestone landed
+- `--inline-annotations` CLI flag on `ast_pipeline` (default off). When passed during `--generate-parser`, the generator emits a parallel `impl` block carrying `parse_full_<entry>_typed(&mut self) -> ParseResult<serde_json::Value>` alongside the existing `parse_full_<entry>(&mut self) -> ParseResult<ParseNode>` method. The M1 typed body is a skeleton wrapper:
+
+```rust
+pub fn parse_full_<entry>_typed(&mut self) -> ParseResult<serde_json::Value> {
+    let node = self.parse_full_<entry>()?;
+    serde_json::to_value(&node).map_err(|err| {
+        self.create_contextual_error(&format!(
+            "Phase 2 M1 typed serialization failed: {}", err
+        ))
+    })
+}
+```
+
+### Why this design is safe
+- **Additive only.** Default-off path emits zero typed methods. Tracked `generated/*.rs` files are regenerated without the flag at this commit, preserving byte-for-byte parser shape against pre-M1 builds.
+- **Opt-in via CLI binary path only.** The internal `AstGenerator::generate_parser` entry deliberately forwards `false` to `generate_parser_ast_based` — the flag is reachable only via the explicit `ast_pipeline --generate-parser --inline-annotations` invocation.
+- **Skeleton body delegates to legacy.** The M1 typed method's body calls the legacy `parse_full_<entry>` method and then `serde_json::to_value(&node)`. This is functionally equivalent to "parse + AST-dump-as-JSON" — no new parser logic, no new shape semantics. M2 is when the body is replaced.
+
+### Why M1 is just a skeleton
+The architectural pattern — flag, parallel emit, output type `serde_json::Value`, contract test — needs to land before any shape-emit logic ports. The shape-emit port (where `UnifiedReturnAST::generate_code` logic moves into the parser-emit template) is M2's responsibility. M2 will:
+- For positional refs (`$1`): emit code that captures the sub-parse Value at that position and uses it as the result.
+- For object literals (`-> {type: "binary", ...}`): emit code that builds a `serde_json::Map` directly.
+- For arrays/spreads: emit code that builds a `Vec<Value>` with spread expansion.
+- For passthrough (no annotation): return whatever the single sub-parse produced.
+
+Doing M2's work in M1 would be reckless: it bundles two distinct contracts (the architectural pattern AND the shape-emit semantics) into one commit. Per the "extremely careful and very professional" directive, M1's contract is "the toggle works and the architectural seam is in place"; M2's contract is "the shape-emit logic is correct against the post-parse oracle".
+
+### Validation
+- `cargo test --lib --features generated_parsers` 468/468 passing (467 prior + 1 new M1 contract test `phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set`).
+- The new contract test uses textual rendering: builds an `AstBasedGenerator`, runs `generate_parser` with `inline_annotations: false` and `inline_annotations: true`, and asserts on the output strings. Faster than compiling generated code; verifies the toggle at the codegen level.
+- Differential textual diff between flag-off and flag-on regex parser output: 16 added lines in flag-on, 0 removed, 0 modified (excluding filename-label strings tied to the output path). The structural difference is exactly the `impl<'input> RegexParser<'input> { pub fn parse_full_regex_typed(...) ... }` block.
+
+### Decision log
+- Output type: `serde_json::Value` (decided at M0). Confirmed appropriate at M1 — no API ergonomics issue surfaced.
+- Scope: entry-point method only (`parse_full_<entry>_typed`). Per-rule typed methods (`parse_<rule>_typed`) come in M2 when sub-rule typed methods are needed for inline composition. M1 doesn't need them because the wrapper body calls the legacy ParseNode path which already covers all rules.
+- Internal entry path defaults to `false`: keeps the test-suite parser-emit shape stable for the existing 467 tests; the flag is reachable only via explicit CLI invocation.
+
+### Risks logged for next milestone
+- **M2 codegen complexity**. Porting `UnifiedReturnAST::generate_code` logic into the parser-emit template touches many sub-cases (PropertyAccess and ArrayAccess have `// TODO` placeholders today; need to be implemented in M2 if they're exercised by the corpus).
+- **M2 differential validation**. The post-parse transform is the truth oracle. M2 must produce byte-identical output on the `return_annotation` test corpus (10+ tests in `unified_return_ast.rs`) plus any semantic corpus. Mismatches indicate the inline emit is wrong, not the oracle.
+
+### What is NOT in this commit
+- No grammar changes.
+- No `generated/*.rs` regeneration changes.
+- No public-API changes at the existing `parse_full_<entry>` methods.
+- No M2 shape-emit logic. The typed body is intentionally a skeleton.
+
 ## 2026-04-26 - Phase 2 plan: inline annotation application (return + semantic during parse, not post-parse)
 ### Why this matters
 PGEN's design intent has always been that return annotations (`-> $1`, `-> {type: "binary", left: $1, op: $2, right: $3}`, etc.) and semantic annotations (`@priority: [9, 1]`, `@sample: "module m;"`, etc.) apply **inline during parse** — the generated `parse_X` methods directly emit shaped output as they parse. The current implementation has drifted to a two-phase architecture:

@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-04-26 - Phase 2 M1: parallel emit infrastructure (`--inline-annotations` flag)
+### Achievement Summary
+First code milestone of Phase 2. Adds `--inline-annotations` to the `ast_pipeline` CLI (off by default). When set, the parser generator emits a parallel `impl<'input> ParserName<'input>` block carrying `pub fn parse_full_<entry>_typed(&mut self) -> ParseResult<serde_json::Value>` alongside the existing `parse_full_<entry>` method. The M1 typed method body is a skeleton wrapper around the legacy method plus `serde_json::to_value(&node)` — functionally equivalent to "parse + AST-dump-as-JSON". M2 will replace the body with truly inline shape-emit logic that honors the rule's return annotation.
+
+### Scope of Changes
+- [rust/src/main.rs](rust/src/main.rs): added `--inline-annotations` CLI flag (off by default), passed through to the generator entry path.
+- [rust/src/ast_pipeline/ast_generator_direct.rs](rust/src/ast_pipeline/ast_generator_direct.rs): `generate_parser_ast_based` signature gains `inline_annotations: bool` parameter; the legacy `AstGenerator::generate_parser` internal entry forwards `false` (CLI flag is the only way to enable it for now).
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+  - `AstBasedGenerator` struct gains `pub inline_annotations: bool` field, defaulting to `false` in `new()`.
+  - `generate_parser_tokens` conditionally emits the typed impl block via the new `generate_typed_parser_impl_skeleton` method.
+  - 41 test/dummy initialization sites for `AstBasedGenerator` updated to include `inline_annotations: false`.
+  - New test `phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set` pins the M1 contract: flag-off emit excludes the typed method; flag-on emit includes it returning `ParseResult<serde_json::Value>`, preserves the legacy method, and the M1 body delegates to the legacy parse path.
+- Continuity docs: [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), [MEMORY.md](MEMORY.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md).
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 468 passed, 0 failed (467 prior + 1 new M1 contract test).
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- Differential test: `target/debug/ast_pipeline grammars/regex.ebnf --generate-parser ... [--inline-annotations]` produces output that differs ONLY in the addition of one impl block (16 added lines, structurally `impl<'input> RegexParser<'input> { pub fn parse_full_regex_typed(...) ... }`). Default-emit path produces zero typed methods.
+- Tracked `generated/regex_parser.rs` and `generated/regex.json` are unchanged at this commit (regenerated without `--inline-annotations` to match the default-off contract).
+
+### Important Boundaries
+- **Behavior unchanged at default**. Existing parser callers see no change. Tracked `generated/*.rs` files are produced without the flag.
+- **Opt-in only**. The flag only activates via the `ast_pipeline` CLI binary path. The internal `AstGenerator::generate_parser` entry forwards `false` deliberately.
+- **M1 typed body is a wrapper**. Calling `parse_full_<entry>_typed` with the flag on produces the SAME shape as `serde_json::to_value(&parse_full_<entry>())` — an unshaped JSON tree. M2 replaces this body with truly inline shape-emit logic per the rule's return annotation.
+- **No public-API change at the existing entries**. `parse_full_<entry>` signature and behavior are byte-unchanged.
+- **No grammar changes, no tracked-parser regeneration**. Regenerating with `--inline-annotations` on a tracked grammar would add a typed method to that parser file; M3 will explicitly migrate `regex` when the typed body has real inline shape-emit logic.
+
 ## 2026-04-26 - Phase 2 plan logged: inline annotation application
 ### Achievement Summary
 PGEN-RGX-0073 annotation-independent perf campaign reached its checkpoint: 6 commits delivered cumulative `5.6×–8.8×` p50 across the 8 RGX patterns, but the bug remains In Progress. Further wins on the micro-optim lane are at diminishing returns. Phase 2 (return + semantic annotations applied inline during parse, not post-parse) is the next architectural class of wins. Phase 2 was originally surfaced and tracked as a critical follow-up during the campaign (`task #30`); this commit logs the Phase 2 plan in tracked docs so it survives session boundaries.
