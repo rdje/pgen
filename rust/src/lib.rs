@@ -5,6 +5,7 @@
 
 pub mod ast_pipeline;
 pub mod ast_shape_contract;
+pub mod auto_return_annotation_shape_gate;
 #[cfg(feature = "ebnf_dual_run")]
 pub mod ebnf_frontend;
 pub mod embedding_api;
