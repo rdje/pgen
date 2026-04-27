@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-27 (+0200, task: declared-annotation-inventory-pipeline-emit-and-gate-enforcement)
+Last updated: 2026-04-27 (+0200, task: codegen-fix-defensive-block-wrap-and-syn-parse-localizer)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,24 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Fixed the `Failed to parse generated TokenStream: expected '='` error that surfaced when regenerating `generated/semantic_annotation_parser.rs` after the codegen-fix from `6ad4ffd`. The error was the downstream amplifier of an upstream EBNF-frontend bug.
+- **Two real bugs in chain**:
+  1. EBNF frontend's `split_rule_expression_and_return_annotation` over-grabs inline annotation text. For `object_property := (...) -> {type: "property", ...} | computed_property | ...`, the frontend returns everything after `->` as the annotation, including the next `|` branches. The annotation parser correctly rejects this as malformed, returning `parsed_ast: None`.
+  2. Codegen-fix's `let result = #transform;` doesn't wrap `#transform` in a block. When `parsed_ast: None`, `generate_return_transform` emits multi-statement tokens (warning let-bindings + `result.clone()` expression), and `let result = let _warning = ...;` is a syn-parse error.
+- This commit fixes bug #2 (defensive, codegen-side). Bug #1 is logged as a separate follow-up because it requires the frontend to also support emitting branch-level inline annotations at the correct branch index — currently it only emits rule-level annotations at end-of-rule.
+- Codegen change: in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs), `let result = { #transform };` (rule-method post_parse_transform) and `result = { #transform };` (single-branch generate_or_logic). Multi-branch generate_or_logic already block-wrapped via `let transformed = { ... }`.
+- Diagnostic localizer added to the syn-parse error path: 20-step binary search finds the largest prefix that parses, error message reports approximate failure byte + 200-char context window. Saves grep through multi-MB tokens dumps.
+- New regression test: `unparseable_annotation_falls_back_to_block_wrapped_warning_emit` — synthesizes a rule with an unparseable annotation, asserts codegen succeeds AND the rendered output contains the warning marker AND the block-wrap pattern.
+- Validation: `cargo test --lib --features generated_parsers` 478 passed (477 prior + 1 new); `ast_pipeline generated/semantic_annotation.json --generate-parser --bootstrap-mode ...` now succeeds and emits 108-entry inventory artifact; clippy strict source lint pass.
+- **No tracked parsers regenerated.** semantic_annotation regen now technically works but the per-family regen wave still needs coordination (manifest update, contract version bumps, downstream impact analysis). The codegen capability is unblocked.
+- **Open follow-ups** (in order):
+  1. EBNF frontend inline-annotation extractor fix (the upstream bug). Requires `split_rule_expression_and_return_annotation` to detect end-of-payload + emit branch-level annotations at correct branch indices.
+  2. Per-family parser regen wave (now unblocked for semantic_annotation). Each family commits its regen + manifest update in lockstep.
+  3. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+  4. Hook SV/VHDL gates to track their inventory artifacts.
+  5. Add ebnf manifest sample.
+
+## Prior Session Note
 - Declared-annotation inventory check landed (Option B from the design discussion). The AST pipeline now auto-emits `<grammar>_return_annotations.json` as a side-effect of `--generate-parser`; the contract gate reads the artifact directly and regression-locks the manifest's tracked annotation list against it.
 - Pipeline change: [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) gains `EmittedReturnAnnotationEntry`, `EmittedReturnAnnotationInventory`, `normalize_return_annotation_text`, `default_return_annotation_inventory_path`. [rust/src/main.rs](rust/src/main.rs) gains `--emit-return-annotations-json` and `--no-emit-return-annotations`; default auto-emits next to the parser output.
 - Gate change: [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs) reads the pipeline-emitted artifact via `read_pipeline_inventory_artifact` + the optional raw_ast crosscheck via `extract_declared_annotations_from_json`. Both extractors sort by `(rule, branch_index)` so output is byte-comparable.

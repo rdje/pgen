@@ -130,11 +130,20 @@ impl AstBasedGenerator {
             Ok(file) => file,
             Err(err) => {
                 let dump_path = format!("{filename}.tokens_dump.rs");
-                let _ = std::fs::write(&dump_path, parser_tokens.to_string());
+                let rendered = parser_tokens.to_string();
+                let _ = std::fs::write(&dump_path, &rendered);
+                // Try to localize the failure by binary-searching token chunks
+                // for syn-parse acceptance. The largest accepted prefix's
+                // boundary is a strong hint at where the broken token sits.
+                let approx_byte = locate_syn_parse_boundary(&rendered);
+                let context_window =
+                    render_token_context(&rendered, approx_byte, 200);
                 return Err(anyhow::anyhow!(
-                    "Failed to parse generated TokenStream: {} (dumped raw tokens to {})",
+                    "Failed to parse generated TokenStream: {} (dumped raw tokens to {})\n  approximate failure byte: {}\n  context: {}",
                     err,
-                    dump_path
+                    dump_path,
+                    approx_byte,
+                    context_window
                 ));
             }
         };
@@ -1319,6 +1328,14 @@ impl AstBasedGenerator {
         // `let result = ...` binding that the transform expression reads, and
         // downstream code (relational guards, coverage events, etc.) sees the
         // shadowed `result`.
+        //
+        // The transform expression is wrapped in `{ ... }` so callers can
+        // emit either a single expression OR a sequence of statements ending
+        // in an expression. `generate_return_transform`'s parsed-ast-failed
+        // fallback returns the latter shape (warning let-bindings followed
+        // by `result.clone()`), which is only valid in an expression-block
+        // context. Without the block, `let result = let _warning = ...;` is
+        // a syn-parse error ("expected `=`").
         let post_parse_transform_tokens: TokenStream = match ast_node {
             ASTNode::Or { .. } => quote! {},
             _ => {
@@ -1334,7 +1351,7 @@ impl AstBasedGenerator {
                         &["result".to_string()],
                     )?;
                     quote! {
-                        let result = #transform;
+                        let result = { #transform };
                     }
                 } else {
                     quote! {}
@@ -1689,8 +1706,13 @@ impl AstBasedGenerator {
                             semantic_raw_content = Some(result.clone());
                         }
 
-                        // Apply transformation (reassign result)
-                        result = #transform;
+                        // Apply transformation (reassign result). The block
+                        // wrapper lets `#transform` be either a single
+                        // expression OR a statement-list ending in an
+                        // expression — `generate_return_transform`'s
+                        // parsed-ast-failed fallback emits the latter shape
+                        // and would be a syn-parse error otherwise.
+                        result = { #transform };
                         semantic_selected_branch_index = Some(1usize);
                     })
                 }
@@ -4947,6 +4969,69 @@ impl AstBasedGenerator {
     }
 }
 
+/// Try to localize a syn-parse failure by binary-search: find the largest
+/// prefix of `rendered` that still parses as a `syn::File`. The byte at the
+/// boundary points near where the broken token sits.
+fn locate_syn_parse_boundary(rendered: &str) -> usize {
+    use std::str::FromStr;
+    let total = rendered.len();
+    if total == 0 {
+        return 0;
+    }
+    let mut lo = 0usize;
+    let mut hi = total;
+    let mut last_good = 0usize;
+    // Coarse 20-step bisect to keep the diagnostic cheap; precision is
+    // approximate by design.
+    for _ in 0..20 {
+        if hi - lo < 64 {
+            break;
+        }
+        let mid = lo + (hi - lo) / 2;
+        let safe_mid = (mid..=mid + 8.min(total - mid))
+            .find(|i| rendered.is_char_boundary(*i))
+            .unwrap_or(mid.min(total));
+        let prefix = &rendered[..safe_mid];
+        let parsed = proc_macro2::TokenStream::from_str(prefix)
+            .ok()
+            .and_then(|ts| syn::parse2::<syn::File>(ts).ok());
+        if parsed.is_some() {
+            last_good = safe_mid;
+            lo = safe_mid;
+        } else {
+            hi = safe_mid;
+        }
+    }
+    last_good
+}
+
+/// Render a window of the rendered TokenStream around the given byte offset
+/// for inclusion in error messages. Surfaces the broken token shape inline
+/// so the operator does not need to grep the dumped file by hand.
+fn render_token_context(rendered: &str, byte: usize, window: usize) -> String {
+    if rendered.is_empty() {
+        return String::from("<empty>");
+    }
+    let lo = byte.saturating_sub(window);
+    let hi = (byte + window).min(rendered.len());
+    let lo = (lo..=lo + 8.min(window))
+        .find(|i| rendered.is_char_boundary(*i))
+        .unwrap_or(0);
+    let hi = (hi..=hi.saturating_add(8))
+        .find(|i| *i <= rendered.len() && rendered.is_char_boundary(*i))
+        .unwrap_or(rendered.len());
+    let snippet: String = rendered[lo..hi]
+        .chars()
+        .map(|ch| if ch == '\n' { ' ' } else { ch })
+        .collect();
+    format!(
+        "...{}<<HERE@{}>>{}...",
+        &snippet[..byte.saturating_sub(lo).min(snippet.len())],
+        byte,
+        &snippet[byte.saturating_sub(lo).min(snippet.len())..]
+    )
+}
+
 fn generate_tests(parser_name: &Ident) -> TokenStream {
     quote! {
         #[cfg(test)]
@@ -5539,6 +5624,77 @@ mod semantic_usage_tests {
                 .take(30)
                 .collect::<Vec<_>>()
                 .join("\n")
+        );
+    }
+
+    /// Regression test for the semantic_annotation regen syn-parse error.
+    /// `generate_return_transform` returns multi-statement tokens (warning
+    /// let-bindings + final `result.clone()` expression) when annotation
+    /// parsing fails (`parsed_ast: None`). The codegen-fix from commit
+    /// `6ad4ffd` (apply rule-level transform for non-Or roots) and the
+    /// single-branch path in `generate_or_logic` both wrap `#transform` with
+    /// `let result = #transform;` / `result = #transform;`. Without an
+    /// explicit block wrapper around `#transform`, the multi-statement form
+    /// produces invalid syntax (`let result = let _warning = ...;` is a syn
+    /// parse error: "expected `=`"). The fix is to emit `let result = {
+    /// #transform };` so multi-statement transforms remain valid in either
+    /// expression context.
+    #[test]
+    fn unparseable_annotation_falls_back_to_block_wrapped_warning_emit() {
+        // Build a synthetic non-Or rule with an annotation whose text WILL
+        // fail bootstrap parsing (random unparseable garbage), so
+        // `generate_return_transform`'s parsed-ast-failed fallback fires
+        // and emits its multi-statement warning shape.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("r".to_string(), token("quoted_string", "v"));
+        let rule_order = vec!["r".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "r".to_string(),
+            vec![Some(BranchAnnotation {
+                annotation_type: "return_object".to_string(),
+                // Intentionally unparseable: bare pipe + bare identifier
+                // mimicking the EBNF-frontend-over-grab failure mode.
+                annotation_content: "this is | not parseable !".to_string(),
+                parsed_ast: None,
+            })],
+        );
+
+        let mut converted_branches: HashMap<String, Vec<Option<BranchAnnotation>>> = HashMap::new();
+        for (rule, branches) in annotations.branch_return_annotations.iter() {
+            converted_branches.insert(rule.clone(), branches.clone());
+        }
+
+        let mut generator = AstBasedGenerator::new("unparseable_anno_test".to_string());
+        generator.enable_debug = false;
+        generator.annotations = Some(annotations);
+        generator.branch_return_annotations = converted_branches;
+
+        // The codegen must produce syntactically valid Rust even when the
+        // annotation fell through to the warning fallback. If the rule-method
+        // emit forgets the block wrapper, syn will reject the output and
+        // generate_parser will return an error.
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "unparseable_anno_test.rs")
+            .expect("parser generation must succeed even with unparseable annotation");
+
+        // The rendered output must contain the warning text in a block form
+        // (the multi-statement fallback wrapped by the defensive block).
+        assert!(
+            rendered.contains("WARNING")
+                || rendered.contains("warning")
+                || rendered.contains("_pgen_unparsed_return_annotation_warning"),
+            "rendered must carry the failed-parse warning marker; got first 800 chars: {}",
+            &rendered.chars().take(800).collect::<String>()
+        );
+        // Block wrapping presence: after `let result =` for the rule-method
+        // post_parse_transform_tokens, the next non-whitespace token must be
+        // `{` (open brace) — that's the wrapper that makes the multi-statement
+        // transform a valid expression. Search anywhere in the rendered file.
+        assert!(
+            rendered.contains("let result = {") || rendered.contains("result = {"),
+            "rendered must wrap #transform in a block (let result = {{ ... }})"
         );
     }
 

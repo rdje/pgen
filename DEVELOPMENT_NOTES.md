@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-27 - Codegen-fix defensive block-wrap + diagnostic localizer for syn-parse failures
+
+### What this milestone landed
+
+Fixes the `Failed to parse generated TokenStream: expected '='` error that surfaced when regenerating `generated/semantic_annotation_parser.rs` through the pipeline after the codegen-fix from `6ad4ffd` activated.
+
+### Investigation thread
+
+The user's pointed question — "did the annotation parsing really fail?" — turned out to be exactly the right diagnostic frame. Tracing:
+
+1. Added file-based diagnostic logging to [`generate_return_transform`](rust/src/ast_pipeline/ast_based_generator.rs) recording every invocation's `(rule, parsed_ast.is_some, content)` tuple.
+2. Ran semantic_annotation regen with the trace active: 111 invocations total, exactly **1** with `parsed_ast.is_some=false`. The failing one:
+
+   ```
+   rule=object_property parsed_ast.is_some=false
+   content="{type: \"property\", key: $1, value: $5} |\n    computed_property |\n    shorthand_property |\n    spread_property"
+   ```
+
+3. The `content` field is the actual annotation text PLUS the next three `|` branches of the rule. The annotation parser correctly rejected this as malformed.
+4. Looking at the grammar source [grammars/semantic_annotation.ebnf:216-220](grammars/semantic_annotation.ebnf):
+
+   ```
+   object_property := 
+       (property_key /\s*/ ":" /\s*/ annotation_value) -> {type: "property", key: $1, value: $5} |
+       computed_property |
+       shorthand_property |
+       spread_property
+   ```
+
+   The annotation `-> {type: "property", ...}` is **inline branch-level**, attached only to the first `|` branch. The EBNF frontend's `split_rule_expression_and_return_annotation` in [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs) finds the first top-level `->` and returns everything after it as the annotation, with no end-of-payload detection. This is the upstream root cause — the frontend over-grabbed.
+
+5. Why this only surfaced now: the codegen-fix from `6ad4ffd` started emitting `let result = #transform;` in `generate_rule_method`. When `#transform` is the parsed-ast-failed fallback (multi-statement: `let _warning = ...; let _ = ...; result.clone()`), the result is `let result = let _warning = ...;` which is a syn parse error.
+
+   Before `6ad4ffd`, transforms only ran inside `generate_or_logic` for Or-root rules. `object_property` is Or-root, so the bug was latent there too — but the multi-branch case in `generate_or_logic` already block-wrapped `#transform` (line 1850 onwards), so the multi-branch path didn't trigger the syn-parse error. Only the single-branch case at line 1710 had the bug, and only single-branch Or rules with annotation-parse-failure would hit it. That combination is rare. With the codegen fix activating non-Or rules, the latent bug surfaces.
+
+### Two real bugs in chain
+
+1. **EBNF frontend over-grabs** inline annotation text after `->` until end-of-rule-body. Should stop at end-of-balanced-payload + first top-level `|`.
+2. **Codegen-fix's `#transform` wrap** assumes single-expression form. Must wrap in `{ ... }` to accept multi-statement form.
+
+This commit fixes #2 (defensive). #1 is logged as a separate follow-up because it requires the frontend to also support emitting branch-level inline annotations at the right branch index, which is broader work.
+
+### Why the defensive fix is independently correct
+
+`generate_return_transform`'s contract is "produce a TokenStream representing the transform expression". The fallback shape (multi-statement) is a valid expression IFF wrapped in a block. Callers should always wrap; that's the safe convention regardless of whether `parsed_ast` is `Some` or `None`. The block costs nothing at runtime (Rust optimizes expression-blocks identically to inline expressions in this context).
+
+### Diagnostic localizer
+
+When syn rejects the rendered TokenStream, the error path now runs a 20-step binary search to find the largest prefix that parses as a `syn::File`, returning the boundary byte offset. The error message includes that offset plus a 200-char context window. Saves a manual grep through the multi-MB tokens dump file.
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 478 passed (477 prior + 1 new regression test `unparseable_annotation_falls_back_to_block_wrapped_warning_emit`).
+- `ast_pipeline generated/semantic_annotation.json --generate-parser --bootstrap-mode ...` — succeeds; emits `semantic_annotation_parser.rs` plus inventory artifact (108 entries).
+- `clippy_on_rust_change` — strict source lint pass.
+
+### Tracked follow-ups (closely connected)
+
+1. **EBNF frontend inline-annotation extractor**: fix `split_rule_expression_and_return_annotation` to detect end-of-payload after `->`. Requires also placing branch-level annotations at the correct branch index in the token stream, which currently only emits rule-level annotations at end-of-rule. The semantic_annotation parser will continue to drop the `object_property` annotation at codegen until this is fixed (because even with the over-grab fixed, the rule-level placement would put it on the LAST branch, not the first).
+2. **Per-family semantic_annotation parser regen**: now unblocked. Can be picked up alongside the typed-Json carrier rollout, with manifest inventory tracked from the regen.
+3. Other ongoing follow-ups (CI workflow audit wiring, sota_exit_gate wiring, regex regen with RGX coordination, etc.) unchanged.
+
 ## 2026-04-27 - Declared-annotation inventory: pipeline-emitted artifact + contract gate enforcement
 
 ### What this milestone landed

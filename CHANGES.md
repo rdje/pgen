@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-27 - Codegen-fix defensive block-wrap + diagnostic localizer for syn-parse failures
+### Achievement Summary
+Fixes the `Failed to parse generated TokenStream: expected '='` failure that surfaced when `ast_pipeline --generate-parser` was run against `generated/semantic_annotation.json`. Two real bugs in chain:
+
+1. **EBNF frontend over-grabs inline annotation text**. `split_rule_expression_and_return_annotation` in [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs) finds the first top-level `->` and returns everything after it as the annotation, with no end-of-payload detection. For rules with inline branch-level annotations followed by a `|` continuation on the next line — e.g. `object_property := (...) -> {type: "property", ...} | computed_property | shorthand_property | spread_property` — the annotation field gets the closing `}` plus all subsequent `|` branches. The annotation parser then correctly rejects this as not-a-valid-annotation, returning `parsed_ast: None`.
+
+2. **Codegen-fix from `6ad4ffd` doesn't wrap multi-statement `#transform` in a block**. When `parsed_ast: None`, [`generate_return_transform`](rust/src/ast_pipeline/ast_based_generator.rs) emits a fallback shape consisting of two `let` bindings (warning marker) followed by a final `result.clone()` expression. The codegen-fix's emit `let result = #transform;` then expands to `let result = let _warning = ...; let _ = ...; result.clone();` — invalid Rust syntax (a `let` statement cannot follow `=`). syn rejects the output with `expected '='`.
+
+This commit fixes #2 (the downstream amplifier). The defensive block-wrap is the right fix for the codegen path independently — `#transform` should be valid in either single-expression or multi-statement form. The upstream EBNF-frontend over-grab (#1) is logged as a separate tracked follow-up.
+
+### Diagnostic localizer
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs): adds `locate_syn_parse_boundary` and `render_token_context` helpers used by the syn-parse error path. When syn rejects the codegen output, the error message now reports an approximate failure byte plus a 200-char context window around it, dumped inline. Saves a manual grep through the multi-MB tokens dump.
+
+### Codegen fix
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs): two emit sites now wrap `#transform` in `{ ... }`:
+  - `generate_rule_method`'s `post_parse_transform_tokens` (codegen fix from `6ad4ffd`): `let result = { #transform };` instead of `let result = #transform;`.
+  - `generate_or_logic`'s single-branch case (latent for any prior rule that hit `parsed_ast: None`): `result = { #transform };` instead of `result = #transform;`.
+  - The multi-branch case in `generate_or_logic` was already block-wrapped via `let transformed = { let content = raw_content.clone(); #transform };` — no fix needed there.
+- New regression test `unparseable_annotation_falls_back_to_block_wrapped_warning_emit`: builds a synthetic rule with an unparseable annotation (mimicking the EBNF frontend over-grab failure mode), asserts `generate_parser` succeeds AND the rendered output contains the warning marker AND the block-wrap pattern (`let result = {` or `result = {`).
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 478 passed (477 prior + 1 new regression test).
+- `ast_pipeline generated/semantic_annotation.json --generate-parser --bootstrap-mode ...` ✅ now generates `semantic_annotation_parser.rs` cleanly. Inventory artifact emitted with 108 entries.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
+### Important Boundaries
+- **No tracked parsers regenerated in this commit.** The fix is a codegen capability that becomes safe to apply at the next per-family regen wave. The semantic_annotation parser stays at its `92806d5`-era shape until coordinated regeneration.
+- **EBNF frontend over-grab is not fixed in this commit.** That's a separate, larger piece of work because it requires the frontend to (a) detect end-of-annotation-payload after `->`, and (b) emit branch-level inline annotations at the correct branch index in the token stream. The rule-level emit currently places annotations at the END of all rule content, which would put inline-on-first-branch annotations on the LAST branch — a separate semantic mismatch. Tracked as a follow-up.
+- **Defensive fix is correct independent of the upstream bug.** Even if the EBNF frontend never over-grabbed, the codegen-fix's `#transform` wrapping should accept both single-expression and multi-statement shapes. The block wrap costs nothing at runtime (Rust expression-block compiles to the same code as inline expressions in this context) and adds tolerance for `generate_return_transform` evolution.
+
 ## 2026-04-27 - Declared-annotation inventory: pipeline-emitted artifact + contract gate enforcement
 ### Achievement Summary
 Closes the second half of the systemic gap. The AST-shape contract gate now also enforces the *declared* annotations side: every grammar that ships with a tracked inventory artifact must keep its manifest's tracked annotation list byte-identical to what the AST pipeline actually passes to `Return_annotationParser`. Adding, removing, or editing a return annotation in the grammar without an explicit manifest update fails the gate with a precise diff naming the (rule, branch_index, annotation_type, normalized_text) that drifted.
