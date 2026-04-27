@@ -1,4 +1,82 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-27 - Per-family regen: rtl_const_expr (proof of the auto-update flow)
+
+### What this milestone landed
+
+First per-family regeneration commit using the auto-update flow. Confirms end-to-end:
+
+```
+grammar (.ebnf) → fixed EBNF frontend extracts annotations correctly
+  → ast_pipeline --generate-parser regenerates the parser AND auto-emits the inventory artifact
+  → contract gate fails on `current_content_kind` change (Alternative → JsonObject)
+  → manifest updated in lockstep with the regen
+  → contract gate now passes; gate reports `samples=2 aligned=2 drift=0` for this family
+```
+
+`rtl_const_expr` chosen as the first family because:
+- Phase S, in-progress — no shipped public consumer locked to the old AST shape.
+- Small declared-annotation set (2 in manifest, 14 in grammar after frontend fix) — easy to reason about.
+- The sibling `rtl_const_expr/` crate is a handwritten baseline, not a tracked pgen build dependency, so its tests aren't part of the default cargo run.
+
+### Annotation count: 0 → 14
+
+The old EBNF frontend extracted 0 annotations from `grammars/rtl_const_expr.ebnf` (the over-grab + rule-level placement made even the ones it found unhelpful). The new frontend correctly extracts 14:
+
+| Rule | Branches with annotations |
+|---|---|
+| `rtl_const_expr` | 1 (entry rule) |
+| `conditional_expr` | 2 (ternary + passthrough) |
+| `identifier` | 1 |
+| `literal` | 2 (based + decimal) |
+| `primary_expr` | 3 (passthrough on each branch) |
+| `unary_expr` | 5 (4 unary ops + passthrough) |
+
+### Runtime AST shape change
+
+`parse_full_rtl_const_expr` previously returned a `ParseNode { content: ParseContent::Alternative(<conditional_expr subtree>), ... }` (no transform applied because non-Or root + codegen-fix predates this). Now returns `ParseNode { content: ParseContent::Json(serde_json::Value::Object { "type": "rtl_const_expr", "expr": <typed value of $1> }), ... }`.
+
+Same shift for any other non-Or rule with an annotation: `conditional_expr` (when ternary branch matches), `unary_expr`, `literal`, `identifier`, `primary_expr`.
+
+### Manifest update workflow (the doctrine)
+
+Steps the per-family regen workflow now follows:
+
+1. Run `ast_pipeline grammars/<grammar>.ebnf --generate-parser ... -o generated/<grammar>_parser.rs`. Pipeline auto-emits `generated/<grammar>_return_annotations.json` alongside.
+2. Run `cargo test --lib --features generated_parsers ast_shape_contract`. The grammar's contract test will fail with a precise diff (which sample's `current_content_kind` flipped, what it flipped to).
+3. Update the manifest in lockstep:
+   - Each affected sample: flip `current_content_kind` to the new observed kind, set `drift_status` to `aligned`, optionally clear `drift_tracked_in`.
+   - Embed/refresh the `declared_annotation_inventory` section using the new artifact.
+4. Re-run the gate. Now passes.
+5. Run the full test suite + clippy + applicable maintained gates to confirm no collateral damage.
+6. Commit all changed files together: parser regen, inventory artifact, manifest update, continuity-doc updates.
+
+This is what step 6 of the user's stated end-to-end requirement looks like in practice: regen and manifest update are committed together, and the contract gate enforces the coupling.
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 478 passed.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` — 5 active family tests pass; rtl_const_expr `samples=2 aligned=2 drift=0`.
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` — pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` — strict source lint pass.
+
+### Tracked follow-ups (per-family regen wave continues)
+
+1. `rtl_frontend` — needs the contract probe in [rust/src/bin/rtl_frontend_generated_contract_probe.rs](rust/src/bin/rtl_frontend_generated_contract_probe.rs) updated to traverse the typed-Json shape (the `rule_name`-based walk it currently uses won't find descendants under the new entry-rule wrapping).
+2. `return_annotation` — internal-use parser; should be the next-easiest after rtl_const_expr because the existing `parse_generated_return_annotation` walker already handles `Json(_)` arms (work landed in commit `92806d5`).
+3. `semantic_annotation` — same as #2; walker already handles `Json(_)`.
+4. `ebnf` — has a separate `ebnf_generated_parser` module; check consumer impact.
+5. `regex` — HIGH blast radius; needs RGX integration-contract version bump.
+6. SV / SV-preprocessor / VHDL — cfg-gated; calibration when parsers become available.
+
+### Why this commit is small
+
+Per-family regen is a one-grammar-at-a-time discipline. Each commit:
+- Touches exactly one grammar's parser + inventory artifact + manifest.
+- Validates that no other family's tests break.
+- Keeps blast radius reviewable.
+
+The pattern lets future per-family regens land in mechanical, low-risk commits.
+
 ## 2026-04-27 - EBNF frontend: inline return-annotation extractor + correct branch-level placement
 
 ### What this milestone landed

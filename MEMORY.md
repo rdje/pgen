@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-27 (+0200, task: ebnf-frontend-inline-return-annotation-extractor-fix)
+Last updated: 2026-04-27 (+0200, task: per-family-regen-rtl-const-expr-first)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,23 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- First per-family parser regeneration committed: `rtl_const_expr`. Used the auto-update flow built up in the previous commits.
+- Regenerated [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) via the fixed EBNF frontend; auto-emitted [generated/rtl_const_expr_return_annotations.json](generated/rtl_const_expr_return_annotations.json) (14 entries — was 0 reaching codegen before because the over-grabbed annotations were misclassified).
+- Manifest [rust/test_data/ast_shape_contract/rtl_const_expr_v1.json](rust/test_data/ast_shape_contract/rtl_const_expr_v1.json) updated in lockstep: 2 runtime-shape samples flipped from `Alternative`/`drift_status: annotation_dropped_at_codegen_pre_regeneration` to `JsonObject`/`drift_status: aligned`; new `declared_annotation_inventory` section embeds all 14 declared annotations across 6 rules (`rtl_const_expr`, `conditional_expr`, `identifier`, `literal`, `primary_expr`, `unary_expr`).
+- Contract gate now reports `rtl_const_expr: samples=2 aligned=2 drift=0`.
+- Public-API change: `parse_full_rtl_const_expr` now returns `ParseNode { content: ParseContent::Json(Value::Object { "type": "rtl_const_expr", "expr": <typed> }), ... }` instead of `ParseContent::Alternative(<subtree>)`. Phase S in-progress, no shipped public consumer locked to the old shape.
+- **The end-to-end auto-update flow is now proven** on a real grammar: grammar → frontend → pipeline regen → inventory artifact → contract gate enforcement → manifest update in lockstep. The user's stated requirement is functional.
+- Validation: `cargo test --lib --features generated_parsers` 478 passed; `ast_shape_contract_gate` 5 family tests pass; `annotation_contract_gate` pass; clippy strict source lint pass. Zero collateral damage to other families.
+- **Open follow-ups** (priority order):
+  1. `return_annotation` family regen (next-easiest because `parse_generated_return_annotation` walker already handles `Json(_)` arms from commit `92806d5`).
+  2. `semantic_annotation` family regen (same — walker already handles `Json(_)`).
+  3. `rtl_frontend` family regen — needs the contract probe in [rust/src/bin/rtl_frontend_generated_contract_probe.rs](rust/src/bin/rtl_frontend_generated_contract_probe.rs) updated to traverse the typed-Json shape first.
+  4. `ebnf` family regen — needs `ebnf_generated_parser` module consumer impact check.
+  5. `regex` family regen — HIGH blast radius, needs RGX integration-contract version bump.
+  6. SV / SV-preprocessor / VHDL — cfg-gated calibration on first parser availability.
+  7. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+
+## Prior Session Note
 - Fixed the upstream EBNF frontend over-grab that caused the previous commit's defensive fix to be needed. `tokenize_rule_expression` in [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs) now recognizes top-level `->` and emits `[return_*, payload]` tokens inline at the source position via the new `extract_inline_return_annotation_payload` helper (delimiter-aware, bounded by next top-level `|` or end-of-input).
 - This fixes three sub-bugs at once: the over-grab (annotation text bleeding into following branches), the misclassification (`return_scalar` vs `return_object` because over-grabbed text didn't end with `}`), and the silent drop of subsequent branches from the token stream.
 - Per-branch attribution now works correctly. `extract_rule_annotations` increments `branch_idx` on top-level `|`, so an annotation token emitted before any `|` lands at branch[0] (correct for inline-on-first-branch). Annotation between branches lands at the right intermediate index (didn't work at all before).

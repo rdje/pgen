@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "grammar": "rtl_const_expr",
+  "annotation_count": 14,
+  "annotations": [
+    {
+      "rule": "conditional_expr",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"ternary\", condition: $1, then_expr: $3, else_expr: $5}",
+      "normalized_text": "{type: \"ternary\", condition: $1, then_expr: $3, else_expr: $5}"
+    },
+    {
+      "rule": "conditional_expr",
+      "branch_index": 1,
+      "annotation_type": "return_scalar",
+      "raw_text": "$1",
+      "normalized_text": "$1"
+    },
+    {
+      "rule": "identifier",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"identifier\", text: $1}",
+      "normalized_text": "{type: \"identifier\", text: $1}"
+    },
+    {
+      "rule": "literal",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"literal\", kind: \"based\", text: $1}",
+      "normalized_text": "{type: \"literal\", kind: \"based\", text: $1}"
+    },
+    {
+      "rule": "literal",
+      "branch_index": 1,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"literal\", kind: \"decimal\", text: $1}",
+      "normalized_text": "{type: \"literal\", kind: \"decimal\", text: $1}"
+    },
+    {
+      "rule": "primary_expr",
+      "branch_index": 0,
+      "annotation_type": "return_scalar",
+      "raw_text": "$1",
+      "normalized_text": "$1"
+    },
+    {
+      "rule": "primary_expr",
+      "branch_index": 1,
+      "annotation_type": "return_scalar",
+      "raw_text": "$1",
+      "normalized_text": "$1"
+    },
+    {
+      "rule": "primary_expr",
+      "branch_index": 2,
+      "annotation_type": "return_scalar",
+      "raw_text": "$2",
+      "normalized_text": "$2"
+    },
+    {
+      "rule": "rtl_const_expr",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"rtl_const_expr\", expr: $1}",
+      "normalized_text": "{type: \"rtl_const_expr\", expr: $1}"
+    },
+    {
+      "rule": "unary_expr",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"unary\", op: \"plus\", expr: $2}",
+      "normalized_text": "{type: \"unary\", op: \"plus\", expr: $2}"
+    },
+    {
+      "rule": "unary_expr",
+      "branch_index": 1,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"unary\", op: \"minus\", expr: $2}",
+      "normalized_text": "{type: \"unary\", op: \"minus\", expr: $2}"
+    },
+    {
+      "rule": "unary_expr",
+      "branch_index": 2,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"unary\", op: \"logical_not\", expr: $2}",
+      "normalized_text": "{type: \"unary\", op: \"logical_not\", expr: $2}"
+    },
+    {
+      "rule": "unary_expr",
+      "branch_index": 3,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"unary\", op: \"bit_not\", expr: $2}",
+      "normalized_text": "{type: \"unary\", op: \"bit_not\", expr: $2}"
+    },
+    {
+      "rule": "unary_expr",
+      "branch_index": 4,
+      "annotation_type": "return_scalar",
+      "raw_text": "$1",
+      "normalized_text": "$1"
+    }
+  ]
+}

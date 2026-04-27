@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-27 - Per-family regen: rtl_const_expr — first family closes drift via the auto-update flow
+### Achievement Summary
+First per-family parser regeneration commit using the auto-update flow built up across the previous commits. Regenerates `generated/rtl_const_expr_parser.rs` through the fixed EBNF frontend; the pipeline auto-emits a 14-entry inventory artifact at `generated/rtl_const_expr_return_annotations.json`; the manifest at `rust/test_data/ast_shape_contract/rtl_const_expr_v1.json` is updated in lockstep — 2 runtime-shape samples flip from drift (`Alternative`) to aligned (`JsonObject`), and the new declared-annotation inventory section embeds all 14 declared annotations across 5 rules (`conditional_expr`, `identifier`, `literal`, `primary_expr`, `rtl_const_expr`, `unary_expr`).
+
+This is the first proof that the end-to-end coupling works as the user specified: the pipeline extracts annotations correctly during parser generation, auto-emits the inventory artifact, and the contract gate enforces alignment between manifest and grammar with precise diffs on drift.
+
+### What changed in the regenerated artifacts
+- **Annotation count**: 0 → 14. The old EBNF frontend's over-grab + rule-level placement meant only the entry rule's annotation was reaching codegen (and that one was being dropped by the pre-`6ad4ffd`-fix codegen for non-Or roots). The new frontend correctly extracts inline branch-level annotations on `conditional_expr` (2), `identifier` (1), `literal` (2), `primary_expr` (3), `rtl_const_expr` (1), and `unary_expr` (5).
+- **Runtime AST shape on entry**: `Alternative` → `JsonObject` for `parse_full_rtl_const_expr`. Inputs `"42"` and `"a + b"` now return `ParseContent::Json(serde_json::Value::Object { "type": "rtl_const_expr", "expr": <typed value of $1> })` instead of `ParseContent::Alternative(<conditional_expr ParseNode>)`.
+- **Other rules' runtime shapes**: also flipped for any non-Or-root rule with an annotation — `conditional_expr` (when it matches the ternary branch), `unary_expr`, `identifier`, `literal`, `primary_expr`. Their AST shapes are now typed object literals.
+
+### Scope of Changes
+- [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs): regenerated.
+- [generated/rtl_const_expr_return_annotations.json](generated/rtl_const_expr_return_annotations.json): new tracked inventory artifact (14 entries).
+- [rust/test_data/ast_shape_contract/rtl_const_expr_v1.json](rust/test_data/ast_shape_contract/rtl_const_expr_v1.json): manifest updated in lockstep — 2 samples flip from `current_content_kind: alternative, drift_status: annotation_dropped_at_codegen_pre_regeneration` to `current_content_kind: json_object, drift_status: aligned`; new `declared_annotation_inventory` section with 14 tracked entries.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 478 passed.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ 5 active family tests pass; `rtl_const_expr` reports `samples=2 aligned=2 drift=0`.
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅ pass; annotation stimuli quality + normative contract both green.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Zero collateral damage — no other family's tests broke.
+
+### Drift snapshot across all 8 covered families now
+- `regex`: 4 samples, drift class `annotation_dropped_at_codegen_pre_regeneration`.
+- `return_annotation`: 3 samples, 2 aligned, 1 in `rule_level_annotation_not_applied_for_multibranch_or_root`.
+- `semantic_annotation`: 2 samples, drift class `annotation_dropped_at_codegen_pre_regeneration`.
+- `rtl_const_expr`: 2 samples, **2 aligned, 0 drift** — closed in this commit.
+- `rtl_frontend`: 1 sample, drift class `annotation_dropped_at_codegen_pre_regeneration`.
+- `systemverilog`, `systemverilog_preprocessor`, `vhdl`: cfg-gated samples; awaiting first calibration when their parsers become available.
+
+### Important Boundaries
+- **Public-API change for `parse_full_rtl_const_expr` and other non-Or rules**. Their runtime AST shape is now typed-Json. Phase S is in-progress per the live tracker; no shipped consumer is locked to the old shape (the sibling `rtl_const_expr/` crate is the bootstrap baseline, not a tracked dependency of the pgen build). Per-family regen for higher-blast-radius families (regex, rtl_frontend with its contract probe, semantic_annotation, return_annotation, ebnf) needs separate coordination — each one will follow the same `regen + manifest update in lockstep` pattern.
+- **What unblocks each remaining family**: regex needs RGX integration-contract version bump and consumer-side migration; rtl_frontend needs its `rtl_frontend_generated_contract_probe` walker updated to traverse the typed-Json shape; semantic_annotation/return_annotation/ebnf need their internal walkers (`extract_rule_annotations` already handles both shapes; specific consumers may not).
+
 ## 2026-04-27 - EBNF frontend: inline return-annotation extractor + correct branch-level placement
 ### Achievement Summary
 Fixes the upstream bug behind the semantic_annotation regen failure. The EBNF frontend's `split_rule_expression_and_return_annotation` used to find the first top-level `->` and return everything after it as the annotation, with no end-of-payload detection AND placing the result at end-of-rule. For grammars with inline branch-level annotations followed by `|` continuations — e.g. `object_property := (...) -> {type: "property", ...} | computed_property | shorthand_property | spread_property` — this:

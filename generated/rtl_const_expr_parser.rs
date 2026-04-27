@@ -870,6 +870,40 @@ impl<'input> RtlConstExprParser<'input> {
                                 let result = ParseContent::Alternative(
                                     Box::new(parser.parse_conditional_expr()?),
                                 );
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "expr".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                            other => other,
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("rtl_const_expr".to_string()),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -11200,6 +11234,40 @@ impl<'input> RtlConstExprParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "text".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                            other => other,
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("identifier".to_string()),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
