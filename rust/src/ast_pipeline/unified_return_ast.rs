@@ -88,6 +88,232 @@ enum AccessPostfix {
 }
 
 impl UnifiedReturnAST {
+    /// Convert a transform-applied AST (`ParseContent::Json(value)`) into a
+    /// `UnifiedReturnAST` directly, without walking sub-rule ParseNodes. The
+    /// generated parser's inline return-annotation transforms produce typed
+    /// values whose shape is dictated by the grammar's annotation; this
+    /// reader maps each typed shape to the corresponding `UnifiedReturnAST`
+    /// variant. The `type` discriminator field is the grammar-author-chosen
+    /// label declared in the annotation (e.g. `{type: "extraction", ...}`,
+    /// `{type: "object", ...}`); only the labels meaningful to the
+    /// `return_annotation` grammar are recognized here.
+    fn parse_typed_return_value(value: &serde_json::Value) -> Result<UnifiedReturnAST, String> {
+        match value {
+            serde_json::Value::Object(map) => {
+                if let Some(type_field) = map.get("type").and_then(|v| v.as_str()) {
+                    match type_field {
+                        "extraction" => {
+                            let base = Self::parse_typed_return_value(
+                                map.get("base").ok_or_else(|| {
+                                    "typed extraction missing 'base' field".to_string()
+                                })?,
+                            )?;
+                            let target = Self::parse_typed_extraction_target(
+                                map.get("target").ok_or_else(|| {
+                                    "typed extraction missing 'target' field".to_string()
+                                })?,
+                            )?;
+                            Ok(UnifiedReturnAST::QuantifiedExtraction {
+                                base: Box::new(base),
+                                target,
+                            })
+                        }
+                        "spread" => {
+                            let base = Self::parse_typed_return_value(
+                                map.get("base").ok_or_else(|| {
+                                    "typed spread missing 'base' field".to_string()
+                                })?,
+                            )?;
+                            Ok(UnifiedReturnAST::Spread { base: Box::new(base) })
+                        }
+                        "object" => {
+                            let properties = map
+                                .get("properties")
+                                .and_then(|v| v.as_array())
+                                .ok_or_else(|| {
+                                    "typed object missing 'properties' array".to_string()
+                                })?;
+                            let mut props: HashMap<String, Box<UnifiedReturnAST>> =
+                                HashMap::new();
+                            for prop_value in properties {
+                                let prop_map = prop_value.as_object().ok_or_else(|| {
+                                    format!("object_property entry must be an object, got {}", prop_value)
+                                })?;
+                                let key = prop_map
+                                    .get("key")
+                                    .and_then(|v| v.as_str())
+                                    .ok_or_else(|| {
+                                        "object_property missing 'key' field".to_string()
+                                    })?
+                                    .to_string();
+                                let val = Self::parse_typed_return_value(
+                                    prop_map.get("value").ok_or_else(|| {
+                                        "object_property missing 'value' field".to_string()
+                                    })?,
+                                )?;
+                                props.insert(key, Box::new(val));
+                            }
+                            Ok(UnifiedReturnAST::Object { properties: props })
+                        }
+                        "array" => {
+                            let elements = map
+                                .get("elements")
+                                .and_then(|v| v.as_array())
+                                .ok_or_else(|| {
+                                    "typed array missing 'elements' array".to_string()
+                                })?;
+                            let mut elems = Vec::new();
+                            for elem in elements {
+                                elems.push(Self::parse_typed_return_value(elem)?);
+                            }
+                            Ok(UnifiedReturnAST::Array { elements: elems })
+                        }
+                        "array_access" => {
+                            let base = Self::parse_typed_return_value(
+                                map.get("base").ok_or_else(|| {
+                                    "typed array_access missing 'base' field".to_string()
+                                })?,
+                            )?;
+                            let index = Self::parse_typed_return_value(
+                                map.get("index").ok_or_else(|| {
+                                    "typed array_access missing 'index' field".to_string()
+                                })?,
+                            )?;
+                            Ok(UnifiedReturnAST::ArrayAccess {
+                                base: Box::new(base),
+                                index: Box::new(index),
+                            })
+                        }
+                        "property_access" => {
+                            let base = Self::parse_typed_return_value(
+                                map.get("base").ok_or_else(|| {
+                                    "typed property_access missing 'base' field".to_string()
+                                })?,
+                            )?;
+                            let property = map
+                                .get("property")
+                                .and_then(|v| v.as_str())
+                                .ok_or_else(|| {
+                                    "typed property_access missing 'property' field".to_string()
+                                })?
+                                .to_string();
+                            Ok(UnifiedReturnAST::PropertyAccess {
+                                base: Box::new(base),
+                                property,
+                            })
+                        }
+                        "positional" => {
+                            let raw_index = map
+                                .get("index")
+                                .ok_or_else(|| "typed positional missing 'index' field".to_string())?;
+                            let index = match raw_index {
+                                serde_json::Value::Number(n) => n
+                                    .as_i64()
+                                    .ok_or_else(|| {
+                                        format!(
+                                            "typed positional 'index' must fit in i64, got {}",
+                                            n
+                                        )
+                                    })?
+                                    .max(0) as usize,
+                                serde_json::Value::String(s) => {
+                                    let trimmed = s.trim().trim_start_matches('+');
+                                    trimmed.parse::<usize>().map_err(|err| {
+                                        format!(
+                                            "typed positional 'index' string parse failed: '{}' ({})",
+                                            s, err
+                                        )
+                                    })?
+                                }
+                                other => {
+                                    return Err(format!(
+                                        "typed positional 'index' must be number or string, got {}",
+                                        other
+                                    ));
+                                }
+                            };
+                            Ok(UnifiedReturnAST::PositionalRef { index })
+                        }
+                        "string" => {
+                            let raw_value = map.get("value").ok_or_else(|| {
+                                "typed string missing 'value' field".to_string()
+                            })?;
+                            let value_text = match raw_value {
+                                serde_json::Value::String(s) => s.clone(),
+                                other => other.to_string(),
+                            };
+                            Ok(UnifiedReturnAST::StringLiteral { value: value_text })
+                        }
+                        other => Err(format!(
+                            "typed return value: unrecognized 'type' label '{}' (value={})",
+                            other, value
+                        )),
+                    }
+                } else if map.contains_key("key") && map.contains_key("value") {
+                    Err(format!(
+                        "typed return value: bare object_property shape encountered outside object/properties context (value={})",
+                        value
+                    ))
+                } else {
+                    Err(format!(
+                        "typed return value: object missing 'type' field (value={})",
+                        value
+                    ))
+                }
+            }
+            serde_json::Value::String(s) => {
+                Ok(UnifiedReturnAST::StringLiteral { value: s.clone() })
+            }
+            serde_json::Value::Number(n) => {
+                let f = n.as_f64().unwrap_or(0.0);
+                Ok(UnifiedReturnAST::NumberLiteral { value: f })
+            }
+            serde_json::Value::Bool(b) => Ok(UnifiedReturnAST::BooleanLiteral { value: *b }),
+            serde_json::Value::Null => Ok(UnifiedReturnAST::Passthrough),
+            serde_json::Value::Array(arr) => {
+                let mut elems = Vec::new();
+                for elem in arr {
+                    elems.push(Self::parse_typed_return_value(elem)?);
+                }
+                Ok(UnifiedReturnAST::Array { elements: elems })
+            }
+        }
+    }
+
+    /// Parse the `target` field of a typed extraction value into the typed
+    /// `ExtractionTarget` enum used by `UnifiedReturnAST::QuantifiedExtraction`.
+    /// Accepts numeric indices, the strings `"first"` / `"last"`, and stringified
+    /// numerics (defensive against grammars that wrap captures as strings).
+    fn parse_typed_extraction_target(
+        value: &serde_json::Value,
+    ) -> Result<ExtractionTarget, String> {
+        match value {
+            serde_json::Value::Number(n) => {
+                let idx = n.as_u64().ok_or_else(|| {
+                    format!("typed extraction 'target' index must be u64, got {}", n)
+                })? as usize;
+                Ok(ExtractionTarget::Index(idx))
+            }
+            serde_json::Value::String(s) => match s.trim() {
+                "first" => Ok(ExtractionTarget::First),
+                "last" => Ok(ExtractionTarget::Last),
+                other => other
+                    .parse::<usize>()
+                    .map(ExtractionTarget::Index)
+                    .map_err(|err| {
+                        format!(
+                            "typed extraction 'target' string parse failed: '{}' ({})",
+                            s, err
+                        )
+                    }),
+            },
+            other => Err(format!(
+                "typed extraction 'target' must be number or string, got {}",
+                other
+            )),
+        }
+    }
+
     /// Build typed return AST from a generated-parser parse tree.
     /// This is used by non-bootstrap paths after full grammar validation succeeds.
     pub fn parse_generated_return_annotation<'input>(
@@ -95,6 +321,13 @@ impl UnifiedReturnAST {
         parse_tree: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
+        // Fast path for transform-applied AST: the parser's inline return
+        // annotation has already produced a typed `Json(Value::Object{...})`
+        // (or similar typed shape) at the top level. Read the typed value
+        // directly instead of walking sub-rule ParseNodes.
+        if let ParseContent::Json(ref value) = parse_tree.content {
+            return Self::parse_typed_return_value(value);
+        }
         let root = if parse_tree.rule_name == "return_annotation" {
             parse_tree
         } else if let Some(node) = Self::find_first_rule_node(parse_tree, "return_annotation") {
@@ -1222,6 +1455,15 @@ impl UnifiedReturnAST {
         node: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
+        // Fast path: if the parser applied an inline return-annotation
+        // transform, the rule's content is `Json(value)` and the typed value
+        // already encodes the shape declared by the annotation. Read the
+        // typed value directly instead of dispatching to a per-rule walker
+        // that would expect the no-transform `Sequence(...)`/`Alternative(...)`
+        // shape.
+        if let ParseContent::Json(ref value) = node.content {
+            return Self::parse_typed_return_value(value);
+        }
         match node.rule_name {
             "return_annotation" => {
                 Self::parse_generated_return_annotation_node(input, node, logger)

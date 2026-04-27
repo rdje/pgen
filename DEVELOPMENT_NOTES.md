@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-27 - Walker handles both no-transform and transform-applied ASTs
+
+### What this milestone landed
+
+The user-stated requirement — *"amend the walker to handle both no-transform AST and transformed AST (via return annotations)"* — implemented in a small, focused commit. Plus a related codegen fix surfaced during the investigation.
+
+### The walker fix
+
+[`UnifiedReturnAST::parse_generated_return_annotation`](rust/src/ast_pipeline/unified_return_ast.rs) and its dispatcher `parse_generated_value_node` now branch on the rule's runtime content:
+
+- **Transform-applied AST** (`ParseContent::Json(Value::Object{...})` or any other typed `Value`): read the typed value directly via the new `parse_typed_return_value` helper. The typed shape was declared by the grammar's annotation; the helper maps each `{type: "..."}` discriminator to the corresponding `UnifiedReturnAST` variant.
+- **No-transform AST** (the existing `Sequence`/`Alternative`/`Quantified`/`Terminal` shape): fall through to the existing tree-walk logic.
+
+Both cases now coexist. The walker is forward-compatible with the codegen-fix from `6ad4ffd` and with any future per-family regen.
+
+### The codegen fix surfaced during investigation
+
+`generate_quantified_extraction` had a latent bug exposed by trying to regenerate `return_annotation_parser.rs`: it required `captured_vars.len() >= base.index` even when called from the codegen-fix's shadow-rebind path which always passes `captured_vars = ["result"]` (length 1). Any annotation referencing `$2+` for a non-Or rule with a `QuantifiedExtraction` (the `[$1, $2::2*]` shape used by `array_elements` and `object_properties`) hit the `ParseContent::Terminal("<invalid_extraction_base>")` fallback at runtime.
+
+Fix mirrors `generate_value_extraction`'s positional-ref handling: when `captured_vars.len() == 1`, treat the single capture as the rule's whole result and index into its `Sequence`/`Quantified` content for the requested element. Multi-capture path unchanged.
+
+### Why `return_annotation` regen still does not land in this commit
+
+Trying to regenerate `return_annotation_parser.rs` after both fixes landed surfaced a third, deeper codegen issue specific to that grammar's rules:
+
+> Annotation `{type: "property_access", base: $1, property: $3}` on rule `property_access_expression := accessor_base /\s*/ "." /\s*/ property_access_segment`. The annotation expects `$3` to be `property_access_segment`, but `sequence_elements[2]` is the `"."` quoted-string terminal — `regex_literal` and `quoted_string` elements occupy positions in the captured-vars list and shift the `$N` indices.
+
+The existing walker handles this via per-rule custom logic (`parse_generated_property_access_expression_node` walks specific element indices, ignoring the regex/terminal slots). The codegen-fix's inline transform uses `$N` directly into `sequence_elements`, which produces wrong results.
+
+This is a **separate, distinct problem** from the walker work. It's about the codegen's `$N` indexing convention disagreeing with the grammar author's intended `$N` semantics when regex/terminal elements are interleaved in a rule body. Fixing it requires either:
+- Changing the codegen to skip regex/terminal slots when computing `$N`, OR
+- Changing the grammar's annotations to use the actual `sequence_elements` indices (e.g. `$5` instead of `$3`), OR
+- Adding a bootstrap-time annotation rewriter that translates author-friendly `$N` to codegen-friendly indices.
+
+Logged as a follow-up. Does not block other families' regen — only `return_annotation` (and probably `semantic_annotation`, which has similar regex-interleaved rules) need this resolution.
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 478 passed.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` — 5 active family tests pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` — strict source lint pass.
+
+### Tracked follow-ups
+
+1. **`$N` indexing convention for codegen vs author**: the issue described above blocks `return_annotation` and `semantic_annotation` regen. Pick one of the three fix strategies and apply.
+2. **`rtl_frontend` regen** still needs the contract probe walker updated to traverse typed-Json shapes (separate from the `$N` issue, since `rtl_frontend.ebnf` doesn't have regex-interleaved annotated rules).
+3. **`ebnf` regen** — needs `ebnf_generated_parser` consumer impact check.
+4. **`regex` regen** — HIGH blast radius, requires RGX integration-contract version bump.
+5. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+
 ## 2026-04-27 - Per-family regen: rtl_const_expr (proof of the auto-update flow)
 
 ### What this milestone landed

@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-04-27 - Walker: typed-Json reader path + generate_quantified_extraction single-capture support
+### Achievement Summary
+Two surgical codegen-side fixes that prepare the `return_annotation` family (and any other walker-dependent family) for regen. Both are no-tracked-parsers-regenerated commits — purely producer-side improvements, validated by the existing 478 tests.
+
+### Walker fix: typed-Json reader path in `unified_return_ast.rs`
+Added a typed-Json fast-path to [`UnifiedReturnAST::parse_generated_return_annotation`](rust/src/ast_pipeline/unified_return_ast.rs) and to its dispatcher `parse_generated_value_node`. When a generated parser applied an inline return-annotation transform, the rule's runtime content is `ParseContent::Json(Value::Object{...})` (or another typed value) — the new fast path reads that typed value directly via `parse_typed_return_value` and builds the corresponding `UnifiedReturnAST` from the `type` discriminator field. The existing tree-walk logic (for no-transform ASTs) stays as the fallback.
+
+This is the doctrinal answer to "the walker now handles both no-transform AST and transformed AST (via return annotations)."
+
+`parse_typed_return_value` recognizes the typed shapes declared in `grammars/return_annotation.ebnf`:
+- `{type: "extraction", base, target, spread}` → `QuantifiedExtraction`
+- `{type: "spread", base}` → `Spread`
+- `{type: "object", properties: [{key, value}, ...]}` → `Object`
+- `{type: "array", elements: [...]}` → `Array`
+- `{type: "array_access", base, index}` → `ArrayAccess`
+- `{type: "property_access", base, property}` → `PropertyAccess`
+- `{type: "positional", index}` → `PositionalRef`
+- `{type: "string", value}` → `StringLiteral`
+- Plain JSON strings/numbers/bools/nulls/arrays → corresponding scalar/array variants.
+- Helper `parse_typed_extraction_target` accepts numeric indices and `"first"`/`"last"`.
+
+### Codegen fix: `generate_quantified_extraction` single-capture support in `ast_return_transform.rs`
+[`generate_quantified_extraction`](rust/src/ast_pipeline/ast_return_transform.rs) used to require `captured_vars.len() >= base.index`, falling back to `ParseContent::Terminal("<invalid_extraction_base>")` otherwise. The codegen-fix from `6ad4ffd` calls the transformer with `captured_vars = ["result"]` (the shadow-rebind convention used in `generate_rule_method`'s post_parse_transform path), so any annotation referencing `$2+` for a non-Or rule with a `QuantifiedExtraction` (e.g. `[$1, $2::2*]` on `array_elements` / `object_properties`) hits the fallback at runtime.
+
+Fix mirrors `generate_value_extraction`'s positional-ref handling: when `captured_vars.len() == 1`, treat the single capture as the rule's whole result and index into its `Sequence`/`Quantified` content for the requested element. Multi-capture path unchanged.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 478 passed.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ 5 active family tests pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
+### Important Boundaries
+- **No tracked parsers regenerated.** Both fixes are producer-side; consumers see no change until per-family regens land. The walker fix is forward-compatible: existing parsers (which produce no-transform ASTs) still walk through the existing tree path; future regens (which produce typed-Json ASTs) hit the typed fast path.
+- **`return_annotation` regen surfaced a third codegen bug**: when the rule body has `regex_literal`/`quoted_string` elements interspersed (e.g. `accessor_base /\s*/ "." /\s*/ property_access_segment`), the annotation's `$N` reference indexing convention diverges from `sequence_elements[N-1]`. The annotation `property: $3` expects the `property_access_segment` value but `sequence_elements[2]` is the `"."` quoted_string. This is a SEPARATE codegen issue — the existing walker handles it correctly via per-rule custom logic, but the inline transform doesn't. Tracked as a follow-up.
+- **`return_annotation` regen remains deferred** until that codegen bug is addressed.
+
 ## 2026-04-27 - Per-family regen: rtl_const_expr — first family closes drift via the auto-update flow
 ### Achievement Summary
 First per-family parser regeneration commit using the auto-update flow built up across the previous commits. Regenerates `generated/rtl_const_expr_parser.rs` through the fixed EBNF frontend; the pipeline auto-emits a 14-entry inventory artifact at `generated/rtl_const_expr_return_annotations.json`; the manifest at `rust/test_data/ast_shape_contract/rtl_const_expr_v1.json` is updated in lockstep — 2 runtime-shape samples flip from drift (`Alternative`) to aligned (`JsonObject`), and the new declared-annotation inventory section embeds all 14 declared annotations across 5 rules (`conditional_expr`, `identifier`, `literal`, `primary_expr`, `rtl_const_expr`, `unary_expr`).

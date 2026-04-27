@@ -416,11 +416,63 @@ impl AstReturnTransformer {
         target: &ExtractionTarget,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
+        // The base expression must resolve to a `ParseContent` whose Quantified
+        // / Sequence elements we extract from. Two captured-vars conventions
+        // are in play:
+        //   * Multi-capture: `captured_vars` is the rule's per-element list
+        //     (`["sequence_elements[0]", "sequence_elements[1]", ...]`).
+        //     `$N` resolves to `captured_vars[N-1]` directly.
+        //   * Single-capture: `captured_vars == ["result"]` is the shadow-
+        //     rebind convention used by `generate_rule_method`'s post_parse
+        //     transform path. `$N` must index into the single capture's
+        //     Sequence/Quantified content the same way `generate_value_extraction`
+        //     does.
+        // Without the single-capture branch, any non-Or rule whose annotation
+        // contains a `$N::M*` form for `N >= 2` falls through to the
+        // `<invalid_extraction_base>` runtime fallback because
+        // `captured_vars.len() == 1 < N`.
         let base_expr = match base {
-            UnifiedReturnAST::PositionalRef { index }
-                if *index > 0 && *index <= captured_vars.len() =>
-            {
-                Self::parse_capture_expr(&captured_vars[index - 1])
+            UnifiedReturnAST::PositionalRef { index } if *index > 0 => {
+                if captured_vars.len() == 1 {
+                    let single = Self::parse_capture_expr(&captured_vars[0]);
+                    let element_index = *index - 1;
+                    if element_index == 0 {
+                        quote! {
+                            {
+                                let __pgen_base = (#single).clone();
+                                match __pgen_base {
+                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                        elements[0usize].content.clone()
+                                    }
+                                    ParseContent::Quantified(elements, _) if !elements.is_empty() => {
+                                        elements[0usize].content.clone()
+                                    }
+                                    ParseContent::Alternative(node) => node.content.clone(),
+                                    other => other,
+                                }
+                            }
+                        }
+                    } else {
+                        quote! {
+                            {
+                                let __pgen_base = (#single).clone();
+                                match __pgen_base {
+                                    ParseContent::Sequence(elements) if elements.len() > #element_index => {
+                                        elements[#element_index].content.clone()
+                                    }
+                                    ParseContent::Quantified(elements, _) if elements.len() > #element_index => {
+                                        elements[#element_index].content.clone()
+                                    }
+                                    _ => ParseContent::Terminal("<invalid_extraction_base>"),
+                                }
+                            }
+                        }
+                    }
+                } else if *index <= captured_vars.len() {
+                    Self::parse_capture_expr(&captured_vars[*index - 1])
+                } else {
+                    return Ok(quote! { ParseContent::Terminal("<invalid_extraction_base>") });
+                }
             }
             _ => return Ok(quote! { ParseContent::Terminal("<invalid_extraction_base>") }),
         };
