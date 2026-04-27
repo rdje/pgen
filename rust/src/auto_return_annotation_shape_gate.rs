@@ -274,6 +274,178 @@ pub fn read_inventory_artifact(
         .map_err(|err| format!("parse inventory {}: {}", path.display(), err))
 }
 
+/// Per-run report from the inventory-wide auto-gate.
+///
+/// The inventory-wide gate walks the parse tree and verifies every typed
+/// object whose `type` discriminator matches a declared annotation in the
+/// inventory. This catches inner-rule annotations whose typed AST lives
+/// nested inside the entry rule's output (e.g. `regex`'s `piece` rule
+/// produces `{type: "piece", atom: ..., quantifier: ...}` deep inside
+/// the entry rule's `pattern` field).
+#[derive(Debug, Clone, Default)]
+pub struct InventoryWideAutoGateReport {
+    pub grammar: String,
+    pub samples_checked: usize,
+    pub failures: Vec<String>,
+    /// Discriminators that have at least one declared `Object` annotation
+    /// in the inventory. These are the only annotations the inventory-wide
+    /// gate can locate post-parse (it relies on the `type: "X"` literal
+    /// to pin a runtime object back to its declaring rule).
+    pub discriminators_declared: BTreeSet<String>,
+    /// Discriminators encountered (and verified) during sample runs.
+    pub discriminators_seen: BTreeSet<String>,
+    /// Inventory entries whose annotation is `Passthrough`/`Array`/
+    /// `StringLiteral`/`Unknown`. These can't be tied to a discriminator,
+    /// so the gate does not enforce them today; they're tracked here as
+    /// `<rule>/<branch_index>` so the test surface stays honest about
+    /// what's covered vs. skipped.
+    pub annotations_skipped_no_discriminator: BTreeSet<String>,
+}
+
+impl InventoryWideAutoGateReport {
+    /// Discriminators that are declared in the inventory but never appeared
+    /// in any sample's parse output. These rules are under-exercised by
+    /// the test's samples — add a sample that triggers them to close the
+    /// coverage gap.
+    pub fn discriminators_not_covered(&self) -> BTreeSet<String> {
+        self.discriminators_declared
+            .difference(&self.discriminators_seen)
+            .cloned()
+            .collect()
+    }
+}
+
+/// Inventory-wide gate. For each declared annotation in the inventory
+/// whose shape is an `Object` with a string-literal `type:` key, build a
+/// shape descriptor. For each sample input, parse it, then walk the
+/// resulting JSON tree and:
+///   - For every JSON object encountered with a `type: "X"` field where
+///     `X` is a declared discriminator: verify the object matches the
+///     descriptor. Failures get recorded with the sample input + reason.
+///   - Track which discriminators were seen across all samples; the
+///     report exposes uncovered ones so the test surface stays honest.
+///
+/// `parser_invoke` returns the runtime typed-JSON value
+/// (`ParseContent::to_json_value()` of the parse result).
+pub fn run_inventory_wide_auto_gate(
+    inventory: &EmittedReturnAnnotationInventory,
+    samples: &[String],
+    mut parser_invoke: impl FnMut(&str) -> Result<serde_json::Value, String>,
+) -> InventoryWideAutoGateReport {
+    let mut report = InventoryWideAutoGateReport {
+        grammar: inventory.grammar.clone(),
+        ..Default::default()
+    };
+
+    // Build the discriminator → descriptor map. Only Object annotations
+    // with a string-literal `type:` key are addressable post-parse —
+    // they're how the gate ties a runtime JSON object back to the rule
+    // that emitted it.
+    let mut discriminator_to_descriptor: std::collections::HashMap<
+        String,
+        AnnotationShapeDescriptor,
+    > = std::collections::HashMap::new();
+    for entry in &inventory.annotations {
+        let descriptor = AnnotationShapeDescriptor::from_inventory_entry(entry);
+        match &descriptor.kind {
+            ShapeKind::Object {
+                required_string_values,
+                ..
+            } => {
+                let type_literal = required_string_values
+                    .iter()
+                    .find(|(k, _)| k == "type")
+                    .map(|(_, v)| v.clone());
+                match type_literal {
+                    Some(t) => {
+                        report.discriminators_declared.insert(t.clone());
+                        discriminator_to_descriptor.insert(t, descriptor);
+                    }
+                    None => {
+                        // Object literal without a `type:` key — can't be
+                        // located in the runtime JSON without a
+                        // discriminator. Skip but log.
+                        report.annotations_skipped_no_discriminator.insert(format!(
+                            "{}/{}",
+                            descriptor.rule, descriptor.branch_index
+                        ));
+                    }
+                }
+            }
+            _ => {
+                report.annotations_skipped_no_discriminator.insert(format!(
+                    "{}/{}",
+                    descriptor.rule, descriptor.branch_index
+                ));
+            }
+        }
+    }
+
+    for sample in samples {
+        report.samples_checked += 1;
+        match parser_invoke(sample) {
+            Ok(value) => {
+                walk_and_verify_against_discriminator_map(
+                    &value,
+                    &discriminator_to_descriptor,
+                    sample,
+                    &mut report.failures,
+                    &mut report.discriminators_seen,
+                );
+            }
+            Err(parse_error) => {
+                report
+                    .failures
+                    .push(format!("input {:?}: parse failed: {}", sample, parse_error));
+            }
+        }
+    }
+
+    report
+}
+
+fn walk_and_verify_against_discriminator_map(
+    value: &serde_json::Value,
+    discriminator_to_descriptor: &std::collections::HashMap<String, AnnotationShapeDescriptor>,
+    sample_input: &str,
+    failures: &mut Vec<String>,
+    seen: &mut BTreeSet<String>,
+) {
+    match value {
+        serde_json::Value::Object(map) => {
+            if let Some(t) = map.get("type").and_then(|v| v.as_str()) {
+                if let Some(descriptor) = discriminator_to_descriptor.get(t) {
+                    seen.insert(t.to_string());
+                    if let Err(reason) = verify_typed_value(descriptor, value) {
+                        failures.push(format!("input {:?}: {}", sample_input, reason));
+                    }
+                }
+            }
+            for nested in map.values() {
+                walk_and_verify_against_discriminator_map(
+                    nested,
+                    discriminator_to_descriptor,
+                    sample_input,
+                    failures,
+                    seen,
+                );
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for nested in items {
+                walk_and_verify_against_discriminator_map(
+                    nested,
+                    discriminator_to_descriptor,
+                    sample_input,
+                    failures,
+                    seen,
+                );
+            }
+        }
+        _ => {}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -445,5 +617,160 @@ mod tests {
         });
         assert!(report.entry_skipped_no_enforceable_shape);
         assert_eq!(report.samples_checked, 0);
+    }
+
+    #[test]
+    fn inventory_wide_gate_verifies_nested_inner_rule_discriminator() {
+        // Two declared annotations: `outer` (entry) and `inner` (nested).
+        // The simulated parser output puts the inner rule's typed object
+        // deep inside the outer's `payload` array. The gate must walk
+        // there to verify the inner shape.
+        let inv = EmittedReturnAnnotationInventory {
+            version: 1,
+            grammar: "demo".to_string(),
+            annotation_count: 2,
+            annotations: vec![
+                EmittedReturnAnnotationEntry {
+                    rule: "outer".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_object".to_string(),
+                    raw_text: r#"{type: "outer", payload: $1}"#.to_string(),
+                    normalized_text: r#"{type: "outer", payload: $1}"#.to_string(),
+                },
+                EmittedReturnAnnotationEntry {
+                    rule: "inner".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_object".to_string(),
+                    raw_text: r#"{type: "inner", value: $2}"#.to_string(),
+                    normalized_text: r#"{type: "inner", value: $2}"#.to_string(),
+                },
+            ],
+        };
+        let report = run_inventory_wide_auto_gate(&inv, &["sample".to_string()], |_| {
+            Ok(json!({
+                "type": "outer",
+                "payload": [
+                    {"type": "inner", "value": 42},
+                    {"type": "inner", "value": 7},
+                ],
+            }))
+        });
+        assert!(report.failures.is_empty(), "expected clean run; got {:?}", report.failures);
+        assert!(report.discriminators_seen.contains("outer"));
+        assert!(report.discriminators_seen.contains("inner"));
+        assert!(report.discriminators_not_covered().is_empty());
+    }
+
+    #[test]
+    fn inventory_wide_gate_fails_when_nested_inner_rule_shape_disagrees() {
+        let inv = EmittedReturnAnnotationInventory {
+            version: 1,
+            grammar: "demo".to_string(),
+            annotation_count: 2,
+            annotations: vec![
+                EmittedReturnAnnotationEntry {
+                    rule: "outer".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_object".to_string(),
+                    raw_text: r#"{type: "outer", payload: $1}"#.to_string(),
+                    normalized_text: r#"{type: "outer", payload: $1}"#.to_string(),
+                },
+                EmittedReturnAnnotationEntry {
+                    rule: "inner".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_object".to_string(),
+                    raw_text: r#"{type: "inner", value: $2}"#.to_string(),
+                    normalized_text: r#"{type: "inner", value: $2}"#.to_string(),
+                },
+            ],
+        };
+        // Simulated parser produces an inner object missing the `value` key.
+        let report = run_inventory_wide_auto_gate(&inv, &["sample".to_string()], |_| {
+            Ok(json!({
+                "type": "outer",
+                "payload": [{"type": "inner"}],
+            }))
+        });
+        assert_eq!(
+            report.failures.len(),
+            1,
+            "expected one nested-shape failure; got {:?}",
+            report.failures
+        );
+        assert!(report.failures[0].contains("declared key 'value' missing"));
+    }
+
+    #[test]
+    fn inventory_wide_gate_reports_uncovered_discriminators() {
+        let inv = EmittedReturnAnnotationInventory {
+            version: 1,
+            grammar: "demo".to_string(),
+            annotation_count: 2,
+            annotations: vec![
+                EmittedReturnAnnotationEntry {
+                    rule: "outer".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_object".to_string(),
+                    raw_text: r#"{type: "outer", payload: $1}"#.to_string(),
+                    normalized_text: r#"{type: "outer", payload: $1}"#.to_string(),
+                },
+                EmittedReturnAnnotationEntry {
+                    rule: "rare_branch".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_object".to_string(),
+                    raw_text: r#"{type: "rare", value: $1}"#.to_string(),
+                    normalized_text: r#"{type: "rare", value: $1}"#.to_string(),
+                },
+            ],
+        };
+        // No `rare` discriminator in the parsed output — coverage gap.
+        let report = run_inventory_wide_auto_gate(&inv, &["sample".to_string()], |_| {
+            Ok(json!({"type": "outer", "payload": []}))
+        });
+        assert!(report.failures.is_empty());
+        assert!(report.discriminators_seen.contains("outer"));
+        assert!(!report.discriminators_seen.contains("rare"));
+        assert_eq!(
+            report.discriminators_not_covered(),
+            ["rare"].iter().map(|s| s.to_string()).collect()
+        );
+    }
+
+    #[test]
+    fn inventory_wide_gate_records_passthrough_and_array_skips() {
+        let inv = EmittedReturnAnnotationInventory {
+            version: 1,
+            grammar: "demo".to_string(),
+            annotation_count: 3,
+            annotations: vec![
+                EmittedReturnAnnotationEntry {
+                    rule: "outer".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_object".to_string(),
+                    raw_text: r#"{type: "outer", payload: $1}"#.to_string(),
+                    normalized_text: r#"{type: "outer", payload: $1}"#.to_string(),
+                },
+                EmittedReturnAnnotationEntry {
+                    rule: "passthru".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_scalar".to_string(),
+                    raw_text: "$1".to_string(),
+                    normalized_text: "$1".to_string(),
+                },
+                EmittedReturnAnnotationEntry {
+                    rule: "list_rule".to_string(),
+                    branch_index: 0,
+                    annotation_type: "return_array".to_string(),
+                    raw_text: "[$1, $2]".to_string(),
+                    normalized_text: "[$1, $2]".to_string(),
+                },
+            ],
+        };
+        let report = run_inventory_wide_auto_gate(&inv, &["sample".to_string()], |_| {
+            Ok(json!({"type": "outer", "payload": []}))
+        });
+        assert!(report.failures.is_empty());
+        assert!(report.annotations_skipped_no_discriminator.contains("passthru/0"));
+        assert!(report.annotations_skipped_no_discriminator.contains("list_rule/0"));
     }
 }

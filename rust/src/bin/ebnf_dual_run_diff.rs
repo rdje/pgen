@@ -72,6 +72,7 @@ fn parse_content_kind(content: &ParseContent<'_>) -> &'static str {
         ParseContent::Sequence(_) => "sequence",
         ParseContent::Alternative(_) => "alternative",
         ParseContent::Quantified(_, _) => "quantified",
+        ParseContent::Json(_) => "json_object",
     }
 }
 
