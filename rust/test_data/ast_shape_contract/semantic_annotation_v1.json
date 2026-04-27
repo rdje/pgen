@@ -12,8 +12,8 @@
       "expected_content_kind": "json_object",
       "expected_json_object_keys_present": ["type", "name", "value"],
       "expected_json_object_string_values": {"type": "semantic_annotation"},
-      "current_content_kind": "sequence",
-      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
       "drift_tracked_in": "PGEN: per-family semantic_annotation regeneration follow-up; tracked parser predates the codegen fix from commit 6ad4ffd."
     },
     {
@@ -24,8 +24,8 @@
       "expected_content_kind": "json_object",
       "expected_json_object_keys_present": ["type", "name", "value"],
       "expected_json_object_string_values": {"type": "semantic_annotation"},
-      "current_content_kind": "sequence",
-      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
       "drift_tracked_in": "PGEN: per-family semantic_annotation regeneration follow-up"
     }
   ]

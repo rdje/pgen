@@ -17,8 +17,8 @@
       "expected_json_object_string_values": {
         "type": "regex"
       },
-      "current_content_kind": "quantified",
-      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
       "drift_tracked_in": "PGEN: per-family regex regeneration follow-up requires RGX coordination before tracked generated/regex_parser.rs is regenerated; regex_parser_integration_contract 1.1.31 will need a version bump and required_rule_names refresh when the typed-Json carrier reaches the public API."
     },
     {
@@ -34,8 +34,8 @@
       "expected_json_object_string_values": {
         "type": "regex"
       },
-      "current_content_kind": "quantified",
-      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
       "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
     },
     {
@@ -51,8 +51,8 @@
       "expected_json_object_string_values": {
         "type": "regex"
       },
-      "current_content_kind": "quantified",
-      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
       "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
     },
     {
@@ -68,8 +68,8 @@
       "expected_json_object_string_values": {
         "type": "regex"
       },
-      "current_content_kind": "quantified",
-      "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
       "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
     }
   ],

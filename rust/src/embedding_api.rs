@@ -1512,6 +1512,14 @@ fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnos
                 &owned_input,
                 crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
             );
+            // AST-inspection path: skip the codegen-fix transform so inner
+            // ParseNodes' rule_name fields stay visible. Without this flag
+            // every annotated rule's children get flattened by
+            // `ParseContent::to_json_value()` into a JSON array of inner
+            // contents, dropping all `rule_name` wrappers — which the
+            // embedding API's `regex_rule_spans` and the contract gate's
+            // classification tests walk for.
+            parser.set_skip_post_parse_transforms(true);
             let parsed = parser
                 .parse_full_regex()
                 .map_err(|err| generated_parse_failure_diagnostic("regex", &owned_input, err))?;
@@ -1775,6 +1783,14 @@ mod tests {
                 quantified[1]
                     .as_str()
                     .expect("quantified payload second element must be a quantifier string");
+            }
+            "Json" => {
+                // Strategy 3a / codegen-fix path: when a rule applies its
+                // declared return annotation, its ParseContent becomes
+                // `Json(value)` carrying the typed shape directly. The
+                // payload is a free-form `serde_json::Value` (not a
+                // ParseNode subtree), so structural recursion stops here.
+                let _ = payload;
             }
             other => panic!("unexpected regex AST dump content variant {}", other),
         }

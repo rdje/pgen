@@ -80,6 +80,13 @@ fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
 fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser =
         Return_annotationParser::new(sample, runtime_logger_box("generated.return_annotation"));
+    // AST-inspection adapter: skip the codegen-fix's post-parse transform so
+    // every rule's content is the raw structural ParseContent (Sequence /
+    // Alternative / Quantified) with all child ParseNodes' rule_name fields
+    // intact. Without this flag, the entry rule's typed-Json wraps the parse
+    // tree and `to_json_value()` flattens inner ParseNodes — erasing every
+    // nested rule_name. AST-inspection consumers walk for those rule_names.
+    parser.set_skip_post_parse_transforms(true);
     let parsed = parser
         .parse_full_return_annotation()
         .map_err(|err| err.to_string())?;
@@ -104,6 +111,7 @@ fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
 fn parse_with_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser =
         Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
+    parser.set_skip_post_parse_transforms(true);
     let parsed = parser
         .parse_full_semantic_annotation()
         .map_err(|err| err.to_string())?;
@@ -228,6 +236,7 @@ fn parse_with_regex_detail(sample: &str) -> Result<(), String> {
 fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
     run_generated_regex_on_dedicated_stack(sample, |owned_sample| {
         let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        parser.set_skip_post_parse_transforms(true);
         let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
         validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)?;
         parse_node_to_json(&parsed)
@@ -255,6 +264,7 @@ fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
 fn parse_with_rtl_const_expr_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser =
         RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+    parser.set_skip_post_parse_transforms(true);
     let parsed = parser
         .parse_full_rtl_const_expr()
         .map_err(|err| err.to_string())?;
@@ -279,6 +289,7 @@ fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
 #[cfg(has_generated_rtl_frontend_parser)]
 fn parse_with_rtl_frontend_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    parser.set_skip_post_parse_transforms(true);
     let parsed = parser
         .parse_full_rtl_frontend_file()
         .map_err(|err| err.to_string())?;

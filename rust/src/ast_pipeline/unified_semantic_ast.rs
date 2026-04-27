@@ -110,6 +110,126 @@ impl UnifiedSemanticAST {
             parse_tree
         };
 
+        // Fast path: when the codegen-fix from 6ad4ffd applies the entry
+        // rule's `{type: "semantic_annotation", name: $3, value: $6}`
+        // annotation, the rule's content carries the typed Json directly
+        // and the underlying `annotation_name` / `annotation_value`
+        // ParseNode children are no longer reachable via tree walking.
+        //
+        // The typed `name` field is the annotation_name terminal (a clean
+        // string), but `value` is whatever annotation_value's runtime
+        // ParseContent serialised to via `to_json_value()` — for multi-
+        // element values like `[9, 1]` this is a JSON array of per-token
+        // strings which would re-stringify back to `[\"[\",\"9\",...]`,
+        // not the original `[9, 1]` text. So recover the original value
+        // text by slicing the input across root.span and parsing past the
+        // `@<name>:` prefix. The semantic_annotation grammar guarantees
+        // the `@<name>:` prefix shape, so a single `:` split is robust.
+        if let ParseContent::Json(ref value) = root.content {
+            let map = value.as_object().ok_or_else(|| {
+                format!(
+                    "semantic_annotation typed Json must be an Object; got {}",
+                    value
+                )
+            })?;
+            let name_raw_value = map
+                .get("name")
+                .ok_or_else(|| "semantic_annotation typed Json missing 'name' field".to_string())?;
+            // annotation_name produces either:
+            //   - a bare string (predefined_annotation flowed through Alternative
+            //     terminal -> JSON string), or
+            //   - a typed object `{type: "custom_annotation", name: "..."}`
+            //     (custom_annotation's own return annotation applied).
+            // Both encode the same logical "annotation name", so collapse to
+            // a single string.
+            let name_raw_owned: String = match name_raw_value {
+                serde_json::Value::String(s) => s.clone(),
+                serde_json::Value::Object(obj) => {
+                    let inner = obj
+                        .get("name")
+                        .and_then(|v| v.as_str())
+                        .ok_or_else(|| {
+                            format!(
+                                "semantic_annotation typed Json 'name' object missing inner 'name' string; got {}",
+                                name_raw_value
+                            )
+                        })?;
+                    inner.to_string()
+                }
+                serde_json::Value::Array(arr) => {
+                    let mut acc = String::new();
+                    for elem in arr {
+                        match elem {
+                            serde_json::Value::String(s) => acc.push_str(s),
+                            other => {
+                                return Err(format!(
+                                    "semantic_annotation typed Json 'name' array contains non-string element {} (full name={})",
+                                    other, name_raw_value
+                                ));
+                            }
+                        }
+                    }
+                    acc
+                }
+                other => {
+                    return Err(format!(
+                        "semantic_annotation typed Json 'name' must be string, object, or array of strings; got {}",
+                        other
+                    ));
+                }
+            };
+            let name_raw = name_raw_owned.as_str();
+            let name_text = name_raw.trim().to_ascii_lowercase();
+
+            let span_text = Self::slice_span(input, &root.span).ok_or_else(|| {
+                format!(
+                    "semantic_annotation root span {}..{} out of bounds for input len {}",
+                    root.span.start,
+                    root.span.end,
+                    input.len()
+                )
+            })?;
+            // Strip leading `@<name>` prefix and the first `:` separator,
+            // then trim whitespace. Any `:` later in the payload (e.g.
+            // `Foo::Bar`) stays in the recovered value because we split
+            // only on the FIRST occurrence.
+            let after_at = span_text.trim_start().trim_start_matches('@');
+            let after_at = after_at.trim_start();
+            let after_name = after_at
+                .strip_prefix(name_raw.trim())
+                .or_else(|| after_at.strip_prefix(&name_text))
+                .ok_or_else(|| {
+                    format!(
+                        "semantic_annotation span text '{}' does not start with name '{}'",
+                        span_text, name_raw
+                    )
+                })?;
+            let after_colon = after_name
+                .trim_start()
+                .strip_prefix(':')
+                .ok_or_else(|| {
+                    format!(
+                        "semantic_annotation span text '{}' missing ':' after name '{}'",
+                        span_text, name_raw
+                    )
+                })?;
+            let value_text = after_colon.trim().to_string();
+
+            if logger.is_enabled() {
+                logger.log_debug(
+                    "unified_semantic_ast.rs",
+                    line!(),
+                    &format!(
+                        "Generated semantic typed-Json conversion: name='{}' value='{}'",
+                        name_text, value_text
+                    ),
+                );
+            }
+
+            let ast = Self::from_named_payload(&name_text, &value_text);
+            return Ok((name_text, ast));
+        }
+
         let name_node = Self::find_first_rule_node(root, "annotation_name")
             .ok_or_else(|| "Generated semantic parse tree missing annotation_name".to_string())?;
         let value_node = Self::find_first_rule_node(root, "annotation_value")
