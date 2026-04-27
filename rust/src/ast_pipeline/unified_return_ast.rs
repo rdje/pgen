@@ -194,7 +194,10 @@ impl UnifiedReturnAST {
                                 .get("property")
                                 .and_then(|v| v.as_str())
                                 .ok_or_else(|| {
-                                    "typed property_access missing 'property' field".to_string()
+                                    format!(
+                                        "typed property_access missing 'property' field; full value={}",
+                                        value
+                                    )
                                 })?
                                 .to_string();
                             Ok(UnifiedReturnAST::PropertyAccess {
@@ -206,19 +209,16 @@ impl UnifiedReturnAST {
                             let raw_index = map
                                 .get("index")
                                 .ok_or_else(|| "typed positional missing 'index' field".to_string())?;
-                            let index = match raw_index {
-                                serde_json::Value::Number(n) => n
-                                    .as_i64()
-                                    .ok_or_else(|| {
-                                        format!(
-                                            "typed positional 'index' must fit in i64, got {}",
-                                            n
-                                        )
-                                    })?
-                                    .max(0) as usize,
+                            let signed: i64 = match raw_index {
+                                serde_json::Value::Number(n) => n.as_i64().ok_or_else(|| {
+                                    format!(
+                                        "typed positional 'index' must fit in i64, got {}",
+                                        n
+                                    )
+                                })?,
                                 serde_json::Value::String(s) => {
                                     let trimmed = s.trim().trim_start_matches('+');
-                                    trimmed.parse::<usize>().map_err(|err| {
+                                    trimmed.parse::<i64>().map_err(|err| {
                                         format!(
                                             "typed positional 'index' string parse failed: '{}' ({})",
                                             s, err
@@ -232,7 +232,16 @@ impl UnifiedReturnAST {
                                     ));
                                 }
                             };
-                            Ok(UnifiedReturnAST::PositionalRef { index })
+                            // Reject negative indices (matches bootstrap_parser semantics).
+                            if signed < 0 {
+                                return Err(format!(
+                                    "typed positional 'index' must be non-negative, got {}",
+                                    signed
+                                ));
+                            }
+                            Ok(UnifiedReturnAST::PositionalRef {
+                                index: signed as usize,
+                            })
                         }
                         "string" => {
                             let raw_value = map.get("value").ok_or_else(|| {
@@ -282,30 +291,39 @@ impl UnifiedReturnAST {
 
     /// Parse the `target` field of a typed extraction value into the typed
     /// `ExtractionTarget` enum used by `UnifiedReturnAST::QuantifiedExtraction`.
-    /// Accepts numeric indices, the strings `"first"` / `"last"`, and stringified
-    /// numerics (defensive against grammars that wrap captures as strings).
+    /// Accepts numeric indices (1-based per the grammar's user-facing
+    /// convention; converted to the 0-based index the bootstrap parser
+    /// emits), the strings `"first"` / `"last"`, and stringified numerics
+    /// (defensive against grammars that wrap captures as strings).
     fn parse_typed_extraction_target(
         value: &serde_json::Value,
     ) -> Result<ExtractionTarget, String> {
+        let convert_one_based = |user_idx: usize| -> Result<ExtractionTarget, String> {
+            if user_idx == 0 {
+                Err("typed extraction 'target' index must be 1-based and > 0".to_string())
+            } else {
+                Ok(ExtractionTarget::Index(user_idx - 1))
+            }
+        };
         match value {
             serde_json::Value::Number(n) => {
-                let idx = n.as_u64().ok_or_else(|| {
+                let user_idx = n.as_u64().ok_or_else(|| {
                     format!("typed extraction 'target' index must be u64, got {}", n)
                 })? as usize;
-                Ok(ExtractionTarget::Index(idx))
+                convert_one_based(user_idx)
             }
             serde_json::Value::String(s) => match s.trim() {
                 "first" => Ok(ExtractionTarget::First),
                 "last" => Ok(ExtractionTarget::Last),
-                other => other
-                    .parse::<usize>()
-                    .map(ExtractionTarget::Index)
-                    .map_err(|err| {
+                other => {
+                    let user_idx = other.parse::<usize>().map_err(|err| {
                         format!(
                             "typed extraction 'target' string parse failed: '{}' ({})",
                             s, err
                         )
-                    }),
+                    })?;
+                    convert_one_based(user_idx)
+                }
             },
             other => Err(format!(
                 "typed extraction 'target' must be number or string, got {}",

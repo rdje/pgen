@@ -8,6 +8,17 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Walker hardening (follow-on to `4c7a903`): rejected negative positional indices, fixed extraction-target 1-based-to-0-based conversion (matching bootstrap semantics), improved property_access mismatch diagnostic. All in `parse_typed_return_value` and `parse_typed_extraction_target`.
+- New tracked follow-up surfaced: **LR-elimination interaction with inline transforms**. After all walker + codegen fixes, retrying `return_annotation` regen produces a `property_access` typed value with `property: [["[", 0, "]"]]` (array carrying parsed `[0]` syntax) instead of `property: "A"`. Rule body `accessor_base '.' identifier` (3 elements) gets restructured by `--eliminate-left-recursion`, and `$3` no longer points at the original `identifier`. Not a walker bug — it's annotation `$N` references staying frozen at pre-rewrite positions while LR-elim shifts elements. Three possible fixes (annotation rewriting, pre-rewrite capture, LR-aware codegen) — logged.
+- 478 tests pass. `ast_shape_contract_gate` 5 active family tests pass. clippy strict source lint pass.
+- **Open follow-ups** (priority order):
+  1. LR-elimination interaction fix (blocks return_annotation and any other left-recursive grammar regen).
+  2. `rtl_frontend` regen — needs contract probe walker update first (no LR-elim impact).
+  3. `ebnf` regen.
+  4. `regex` regen — HIGH blast radius, RGX coordination.
+  5. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+
+## Prior Session Note
 - Implemented the user-stated requirement: walker now handles both no-transform AST (existing tree-walk) AND transform-applied AST (`ParseContent::Json(Value::Object{...})` typed shapes). Implementation in [rust/src/ast_pipeline/unified_return_ast.rs](rust/src/ast_pipeline/unified_return_ast.rs) — added `parse_typed_return_value` helper that maps `{type: "..."}` discriminators to `UnifiedReturnAST` variants, plus typed-fast-path branches at the top of `parse_generated_return_annotation` and `parse_generated_value_node`.
 - Also fixed a latent codegen bug in [rust/src/ast_pipeline/ast_return_transform.rs](rust/src/ast_pipeline/ast_return_transform.rs): `generate_quantified_extraction` now handles the `captured_vars.len() == 1` case by indexing into the single capture's Sequence/Quantified content (mirrors `generate_value_extraction`'s logic). Without this, the codegen-fix from `6ad4ffd` would produce `<invalid_extraction_base>` runtime fallbacks for non-Or rules with `$2+` QuantifiedExtraction annotations (e.g. `[$1, $2::2*]` on `array_elements`).
 - **Third codegen issue surfaced and tracked, NOT FIXED in this commit**: the `$N` indexing convention. Grammar author writes `{type: "property_access", base: $1, property: $3}` for rule `accessor_base /\s*/ "." /\s*/ property_access_segment` expecting `$3` to be `property_access_segment` — but `sequence_elements[2]` is the `"."` quoted-string. `regex_literal` and `quoted_string` elements occupy slots and shift the user's intended `$N`. Existing walker handled this via per-rule custom logic; the codegen-fix's inline transform doesn't. Fix strategies: (a) codegen skips regex/terminal slots in `$N`, (b) grammar uses actual indices, (c) bootstrap rewrites annotations. Pick one — blocks `return_annotation` and `semantic_annotation` regen.

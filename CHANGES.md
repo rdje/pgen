@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-04-27 - Walker hardening: negative-index reject, extraction-target 1-based conversion, LR-elim interaction logged
+### Achievement Summary
+Three small follow-on fixes to the walker landed in commit `4c7a903`, plus tracking of a deeper interaction surfaced when retrying `return_annotation` regen with all current fixes applied.
+
+### Walker fixes
+- **Reject negative positional indices** in `parse_typed_return_value`'s `"positional"` branch. Bootstrap parser rejects `$-N`; the typed-Json reader now matches that semantic instead of silently coercing to `0` via `.max(0)`.
+- **Extraction target 1-based → 0-based conversion** in `parse_typed_extraction_target`. Bootstrap converts user-input `$2::2` (user-friendly 1-based) to `ExtractionTarget::Index(1)` (0-based). The typed reader now does the same. `0` indices are rejected with an explicit error.
+- **Improved diagnostic** for `property_access` walker mismatches: when the typed value's `property` field is missing or non-string, the error now includes the full JSON for triage.
+
+### Tracked follow-up: LR-elimination interaction with inline transforms
+Retrying `return_annotation` regen surfaced this: for input `-> $+0.A[0]`, the parser produces a `property_access` typed value with `property: [["[", 0, "]"]]` (an array carrying the parsed `[0]` syntax) instead of `property: "A"`. The rule body is `accessor_base '.' identifier` (3 elements), but after `--eliminate-left-recursion` rewrite, the rule is restructured and `$3` no longer points at the original `identifier`. This is **not a walker bug** — it's the LR-elimination pass changing element positions while the annotation's `$N` references stay frozen at their pre-rewrite values.
+
+Three possible fixes:
+1. **Annotation rewriting**: when LR-elim restructures a rule, also rewrite its annotation's `$N` references to match the new positions.
+2. **Pre-rewrite annotation capture**: extract annotations against the pre-rewrite element layout, then transform them to the post-rewrite layout when emitting transforms.
+3. **LR-elim awareness in codegen**: have the inline transform emit code that walks back to the pre-rewrite element positions.
+
+Logged in continuity docs. Blocks `return_annotation` regen specifically (and any other left-recursive grammar with annotations referring to elements affected by LR-elim).
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 478 passed.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ 5 active family tests pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
+### Important Boundaries
+- **No tracked parsers regenerated.** Walker fixes are forward-compatible additions, no observable change at the existing tracked parser surface.
+- **`return_annotation` regen still deferred** — now blocked on the LR-elim interaction rather than walker correctness. Each fix uncovers the next layer; the walker now correctly handles all typed-Json shapes its inputs would carry, but the parser's emitted typed values for left-recursive rules don't yet match the grammar author's intent.
+
 ## 2026-04-27 - Walker: typed-Json reader path + generate_quantified_extraction single-capture support
 ### Achievement Summary
 Two surgical codegen-side fixes that prepare the `return_annotation` family (and any other walker-dependent family) for regen. Both are no-tracked-parsers-regenerated commits — purely producer-side improvements, validated by the existing 478 tests.
