@@ -1048,8 +1048,7 @@ impl<'input> EbnfParser<'input> {
                                                                                     let __pgen_content = {
                                                                                         let mut array_elements = Vec::new();
                                                                                         match {
-                                                                                            let __pgen_base = (content).clone();
-                                                                                            match __pgen_base {
+                                                                                            match &content {
                                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                     elements[0usize].content.clone()
                                                                                                 }
@@ -1060,7 +1059,7 @@ impl<'input> EbnfParser<'input> {
                                                                                                     elements[0usize].content.clone()
                                                                                                 }
                                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                                other => other,
+                                                                                                other => other.clone(),
                                                                                             }
                                                                                         } {
                                                                                             ParseContent::Sequence(nodes) => {
@@ -1286,8 +1285,7 @@ impl<'input> EbnfParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -1298,7 +1296,7 @@ impl<'input> EbnfParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -1493,8 +1491,7 @@ impl<'input> EbnfParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -1505,7 +1502,7 @@ impl<'input> EbnfParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -1700,8 +1697,7 @@ impl<'input> EbnfParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -1712,7 +1708,7 @@ impl<'input> EbnfParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -1907,8 +1903,7 @@ impl<'input> EbnfParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -1919,7 +1914,7 @@ impl<'input> EbnfParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -2155,8 +2150,7 @@ impl<'input> EbnfParser<'input> {
                                                     let __pgen_content = {
                                                         let mut array_elements = Vec::new();
                                                         match {
-                                                            let __pgen_base = (result).clone();
-                                                            match __pgen_base {
+                                                            match &result {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2167,7 +2161,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         } {
                                                             ParseContent::Sequence(nodes) => {
@@ -2459,8 +2453,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2471,7 +2464,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2667,8 +2660,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2679,7 +2671,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2875,8 +2867,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2887,7 +2878,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -3317,8 +3308,7 @@ impl<'input> EbnfParser<'input> {
                                                 "files".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -3594,8 +3584,7 @@ impl<'input> EbnfParser<'input> {
                                                 "directories".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -3946,8 +3935,7 @@ impl<'input> EbnfParser<'input> {
                                                                     "form".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -3958,7 +3946,7 @@ impl<'input> EbnfParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -3969,8 +3957,7 @@ impl<'input> EbnfParser<'input> {
                                                                     "items".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 2usize => {
@@ -4981,8 +4968,7 @@ impl<'input> EbnfParser<'input> {
                                             .push(ParseNode {
                                                 rule_name: "element_0",
                                                 content: {
-                                                    let __pgen_base = (result).clone();
-                                                    match __pgen_base {
+                                                    match &result {
                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                             elements[0usize].content.clone()
                                                         }
@@ -4993,14 +4979,13 @@ impl<'input> EbnfParser<'input> {
                                                             elements[0usize].content.clone()
                                                         }
                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                        other => other,
+                                                        other => other.clone(),
                                                     }
                                                 },
                                                 span: 0..0,
                                             });
                                         match {
-                                            let __pgen_base = (result).clone();
-                                            match __pgen_base {
+                                            match &result {
                                                 ParseContent::Sequence(
                                                     elements,
                                                 ) if elements.len() > 1usize => {
@@ -5294,8 +5279,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -5306,7 +5290,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -5501,8 +5485,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -5513,7 +5496,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -5995,8 +5978,7 @@ impl<'input> EbnfParser<'input> {
                                             .push(ParseNode {
                                                 rule_name: "element_0",
                                                 content: {
-                                                    let __pgen_base = (result).clone();
-                                                    match __pgen_base {
+                                                    match &result {
                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                             elements[0usize].content.clone()
                                                         }
@@ -6007,14 +5989,13 @@ impl<'input> EbnfParser<'input> {
                                                             elements[0usize].content.clone()
                                                         }
                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                        other => other,
+                                                        other => other.clone(),
                                                     }
                                                 },
                                                 span: 0..0,
                                             });
                                         match {
-                                            let __pgen_base = (result).clone();
-                                            match __pgen_base {
+                                            match &result {
                                                 ParseContent::Sequence(
                                                     elements,
                                                 ) if elements.len() > 1usize => {
@@ -6277,8 +6258,7 @@ impl<'input> EbnfParser<'input> {
                                                 "annotations".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -6289,7 +6269,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -6300,8 +6280,7 @@ impl<'input> EbnfParser<'input> {
                                                 "rule".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -6588,8 +6567,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Quantified(results, "+");
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -6600,7 +6578,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -6862,8 +6840,7 @@ impl<'input> EbnfParser<'input> {
                                                 "expression".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -6886,8 +6863,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -6898,7 +6874,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -6909,8 +6885,7 @@ impl<'input> EbnfParser<'input> {
                                                 "operator".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -6933,8 +6908,7 @@ impl<'input> EbnfParser<'input> {
                                                 "return_annotation".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 3usize => {
@@ -7148,8 +7122,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -7160,7 +7133,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -7436,8 +7409,7 @@ impl<'input> EbnfParser<'input> {
                                                                     "symbol".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -7448,7 +7420,7 @@ impl<'input> EbnfParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -7652,8 +7624,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -7664,7 +7635,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -7858,8 +7829,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -7870,7 +7840,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -8064,8 +8034,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -8076,7 +8045,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -8439,8 +8408,7 @@ impl<'input> EbnfParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -8451,7 +8419,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -8762,8 +8730,7 @@ impl<'input> EbnfParser<'input> {
                                                             .push(ParseNode {
                                                                 rule_name: "element_0",
                                                                 content: {
-                                                                    let __pgen_base = (result).clone();
-                                                                    match __pgen_base {
+                                                                    match &result {
                                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                             elements[0usize].content.clone()
                                                                         }
@@ -8774,14 +8741,13 @@ impl<'input> EbnfParser<'input> {
                                                                             elements[0usize].content.clone()
                                                                         }
                                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                                        other => other,
+                                                                        other => other.clone(),
                                                                     }
                                                                 },
                                                                 span: 0..0,
                                                             });
                                                         match {
-                                                            let __pgen_base = (result).clone();
-                                                            match __pgen_base {
+                                                            match &result {
                                                                 ParseContent::Sequence(
                                                                     elements,
                                                                 ) if elements.len() > 1usize => {
@@ -9105,8 +9071,7 @@ impl<'input> EbnfParser<'input> {
                                                     let __pgen_content = {
                                                         let mut array_elements = Vec::new();
                                                         match {
-                                                            let __pgen_base = (result).clone();
-                                                            match __pgen_base {
+                                                            match &result {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9117,7 +9082,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         } {
                                                             ParseContent::Sequence(nodes) => {
@@ -9409,8 +9374,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9421,7 +9385,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9616,8 +9580,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9628,7 +9591,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9823,8 +9786,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9835,7 +9797,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -10204,8 +10166,7 @@ impl<'input> EbnfParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -10216,7 +10177,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -10441,8 +10402,7 @@ impl<'input> EbnfParser<'input> {
                                                 "element".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -10453,7 +10413,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -10464,8 +10424,7 @@ impl<'input> EbnfParser<'input> {
                                                 "quantifier".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -10748,8 +10707,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -10760,7 +10718,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -10955,8 +10913,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -10967,7 +10924,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -11162,8 +11119,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -11174,7 +11130,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -11369,8 +11325,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -11381,7 +11336,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -11576,8 +11531,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -11588,7 +11542,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -11783,8 +11737,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -11795,7 +11748,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -12233,8 +12186,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -12245,7 +12197,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -12440,8 +12392,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -12452,7 +12403,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -12647,8 +12598,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -12659,7 +12609,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13102,8 +13052,7 @@ impl<'input> EbnfParser<'input> {
                                                                     "symbol".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -13114,7 +13063,7 @@ impl<'input> EbnfParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -13319,8 +13268,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13331,7 +13279,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13526,8 +13474,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13538,7 +13485,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13955,8 +13902,7 @@ impl<'input> EbnfParser<'input> {
                                                 "bounds".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -14239,8 +14185,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -14251,7 +14196,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -14447,8 +14392,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -14459,7 +14403,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -14655,8 +14599,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -14667,7 +14610,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -14863,8 +14806,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -14875,7 +14817,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -15244,8 +15186,7 @@ impl<'input> EbnfParser<'input> {
                                                 "count".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -15256,7 +15197,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -15487,8 +15428,7 @@ impl<'input> EbnfParser<'input> {
                                                 "count".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -15499,7 +15439,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -15730,8 +15670,7 @@ impl<'input> EbnfParser<'input> {
                                                 "count".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -15989,8 +15928,7 @@ impl<'input> EbnfParser<'input> {
                                                 "max".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -16013,8 +15951,7 @@ impl<'input> EbnfParser<'input> {
                                                 "min".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -16025,7 +15962,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -16280,8 +16217,7 @@ impl<'input> EbnfParser<'input> {
                                                 "percentage".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -16564,8 +16500,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -16576,7 +16511,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -16771,8 +16706,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -16783,7 +16717,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -16978,8 +16912,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -16990,7 +16923,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -17185,8 +17118,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -17197,7 +17129,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -17392,8 +17324,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -17404,7 +17335,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -17842,8 +17773,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -17854,7 +17784,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -18049,8 +17979,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -18061,7 +17990,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -18256,8 +18185,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -18268,7 +18196,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -18649,8 +18577,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -18661,7 +18588,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -18870,8 +18797,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -18882,7 +18808,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -19084,8 +19010,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -19096,7 +19021,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -19361,8 +19286,7 @@ impl<'input> EbnfParser<'input> {
                                                 "flags".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -19385,8 +19309,7 @@ impl<'input> EbnfParser<'input> {
                                                 "pattern".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -19594,8 +19517,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -19606,7 +19528,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -19791,8 +19713,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -19803,7 +19724,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -20063,8 +19984,7 @@ impl<'input> EbnfParser<'input> {
                                                 "content".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -20087,8 +20007,7 @@ impl<'input> EbnfParser<'input> {
                                                 "negated".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -20561,8 +20480,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Quantified(results, "+");
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -20573,7 +20491,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -20836,8 +20754,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -20848,7 +20765,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -21044,8 +20961,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -21056,7 +20972,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -21252,8 +21168,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -21264,7 +21179,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -21682,8 +21597,7 @@ impl<'input> EbnfParser<'input> {
                                                 "end".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -21706,8 +21620,7 @@ impl<'input> EbnfParser<'input> {
                                                 "start".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -21718,7 +21631,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -21920,8 +21833,7 @@ impl<'input> EbnfParser<'input> {
                                                 "end".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -21944,8 +21856,7 @@ impl<'input> EbnfParser<'input> {
                                                 "start".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -21956,7 +21867,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -22227,8 +22138,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -22239,7 +22149,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -22435,8 +22345,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -22447,7 +22356,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -22643,8 +22552,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -22655,7 +22563,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -23024,8 +22932,7 @@ impl<'input> EbnfParser<'input> {
                                                 "character".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -23036,7 +22943,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -23241,8 +23148,7 @@ impl<'input> EbnfParser<'input> {
                                                 "codepoint".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -23253,7 +23159,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -23529,8 +23435,7 @@ impl<'input> EbnfParser<'input> {
                                                                     "name".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -23541,7 +23446,7 @@ impl<'input> EbnfParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -23745,8 +23650,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -23757,7 +23661,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -23951,8 +23855,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -23963,7 +23866,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -24157,8 +24060,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -24169,7 +24071,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -24363,8 +24265,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -24375,7 +24276,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -24569,8 +24470,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -24581,7 +24481,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -24775,8 +24675,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -24787,7 +24686,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -24981,8 +24880,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -24993,7 +24891,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -25187,8 +25085,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -25199,7 +25096,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -25393,8 +25290,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -25405,7 +25301,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -25600,8 +25496,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -25612,7 +25507,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -25807,8 +25702,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -25819,7 +25713,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -26194,8 +26088,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -26206,7 +26099,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -26403,8 +26296,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -26415,7 +26307,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -26664,8 +26556,7 @@ impl<'input> EbnfParser<'input> {
                                                 "expression".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -26924,8 +26815,7 @@ impl<'input> EbnfParser<'input> {
                                                 "expression".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -27406,8 +27296,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -27418,7 +27307,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -27612,8 +27501,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -27624,7 +27512,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -27818,8 +27706,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -27830,7 +27717,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -28229,8 +28116,7 @@ impl<'input> EbnfParser<'input> {
                                                 "expression".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -28513,8 +28399,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -28525,7 +28410,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -28721,8 +28606,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -28733,7 +28617,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -28929,8 +28813,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -28941,7 +28824,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -29137,8 +29020,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -29149,7 +29031,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -29345,8 +29227,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -29357,7 +29238,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -29796,8 +29677,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -29808,7 +29688,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -30003,8 +29883,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -30015,7 +29894,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -30210,8 +30089,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -30222,7 +30100,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -30622,8 +30500,7 @@ impl<'input> EbnfParser<'input> {
                                                 "index".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -30869,8 +30746,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -31164,8 +31040,7 @@ impl<'input> EbnfParser<'input> {
                                                                     "value".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -31176,7 +31051,7 @@ impl<'input> EbnfParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -31376,8 +31251,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -31388,7 +31262,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -31583,8 +31457,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -31595,7 +31468,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -32135,8 +32008,7 @@ impl<'input> EbnfParser<'input> {
                                                             .push(ParseNode {
                                                                 rule_name: "element_0",
                                                                 content: {
-                                                                    let __pgen_base = (result).clone();
-                                                                    match __pgen_base {
+                                                                    match &result {
                                                                         ParseContent::Sequence(
                                                                             elements,
                                                                         ) if elements.len() > 1usize => {
@@ -32154,8 +32026,7 @@ impl<'input> EbnfParser<'input> {
                                                                 span: 0..0,
                                                             });
                                                         match {
-                                                            let __pgen_base = (result).clone();
-                                                            match __pgen_base {
+                                                            match &result {
                                                                 ParseContent::Sequence(
                                                                     elements,
                                                                 ) if elements.len() > 2usize => {
@@ -32461,8 +32332,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -32473,7 +32343,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -32669,8 +32539,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -32681,7 +32550,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -32877,8 +32746,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -32889,7 +32757,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -33292,8 +33160,7 @@ impl<'input> EbnfParser<'input> {
                                                 "quantifier".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -33316,8 +33183,7 @@ impl<'input> EbnfParser<'input> {
                                                 "reference".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -33328,7 +33194,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -33600,8 +33466,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -33612,7 +33477,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -33807,8 +33672,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -33819,7 +33683,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -34014,8 +33878,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -34026,7 +33889,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -34426,8 +34289,7 @@ impl<'input> EbnfParser<'input> {
                                                 "reference".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -34812,8 +34674,7 @@ impl<'input> EbnfParser<'input> {
                                                             .push(ParseNode {
                                                                 rule_name: "element_0",
                                                                 content: {
-                                                                    let __pgen_base = (result).clone();
-                                                                    match __pgen_base {
+                                                                    match &result {
                                                                         ParseContent::Sequence(
                                                                             elements,
                                                                         ) if elements.len() > 1usize => {
@@ -34831,8 +34692,7 @@ impl<'input> EbnfParser<'input> {
                                                                 span: 0..0,
                                                             });
                                                         match {
-                                                            let __pgen_base = (result).clone();
-                                                            match __pgen_base {
+                                                            match &result {
                                                                 ParseContent::Sequence(
                                                                     elements,
                                                                 ) if elements.len() > 2usize => {
@@ -35138,8 +34998,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -35150,7 +35009,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -35346,8 +35205,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -35358,7 +35216,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -35554,8 +35412,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -35566,7 +35423,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -35982,8 +35839,7 @@ impl<'input> EbnfParser<'input> {
                                                 "key".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -35994,7 +35850,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -36010,8 +35866,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -36300,8 +36155,7 @@ impl<'input> EbnfParser<'input> {
                                                 "key".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -36329,8 +36183,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 4usize => {
@@ -36571,8 +36424,7 @@ impl<'input> EbnfParser<'input> {
                                                 "expression".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -36855,8 +36707,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -36867,7 +36718,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -37062,8 +36913,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -37074,7 +36924,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -37512,8 +37362,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -37524,7 +37373,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -37720,8 +37569,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -37732,7 +37580,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -37928,8 +37776,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -37940,7 +37787,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -38136,8 +37983,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -38148,7 +37994,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -38565,8 +38411,7 @@ impl<'input> EbnfParser<'input> {
                                                 "left".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -38577,7 +38422,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -38588,8 +38433,7 @@ impl<'input> EbnfParser<'input> {
                                                 "operator".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -38612,8 +38456,7 @@ impl<'input> EbnfParser<'input> {
                                                 "right".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -38899,8 +38742,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -38911,7 +38753,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -39106,8 +38948,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -39118,7 +38959,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -39313,8 +39154,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -39325,7 +39165,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -39520,8 +39360,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -39532,7 +39371,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -39727,8 +39566,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -39739,7 +39577,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -39934,8 +39772,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -39946,7 +39783,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -40395,8 +40232,7 @@ impl<'input> EbnfParser<'input> {
                                                 "condition".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -40407,7 +40243,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -40418,8 +40254,7 @@ impl<'input> EbnfParser<'input> {
                                                 "false_value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 4usize => {
@@ -40442,8 +40277,7 @@ impl<'input> EbnfParser<'input> {
                                                 "true_value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -40848,8 +40682,7 @@ impl<'input> EbnfParser<'input> {
                                                             .push(ParseNode {
                                                                 rule_name: "element_0",
                                                                 content: {
-                                                                    let __pgen_base = (result).clone();
-                                                                    match __pgen_base {
+                                                                    match &result {
                                                                         ParseContent::Sequence(
                                                                             elements,
                                                                         ) if elements.len() > 2usize => {
@@ -40867,8 +40700,7 @@ impl<'input> EbnfParser<'input> {
                                                                 span: 0..0,
                                                             });
                                                         match {
-                                                            let __pgen_base = (result).clone();
-                                                            match __pgen_base {
+                                                            match &result {
                                                                 ParseContent::Sequence(
                                                                     elements,
                                                                 ) if elements.len() > 3usize => {
@@ -40912,8 +40744,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -40924,7 +40755,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -41122,8 +40953,7 @@ impl<'input> EbnfParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -41134,7 +40964,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -41374,8 +41204,7 @@ impl<'input> EbnfParser<'input> {
                                                 "object".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -41386,7 +41215,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -41397,8 +41226,7 @@ impl<'input> EbnfParser<'input> {
                                                 "property".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -41617,8 +41445,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -41629,7 +41456,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -41895,8 +41722,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -41907,7 +41733,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -42102,8 +41928,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -42114,7 +41939,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -42309,8 +42134,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -42321,7 +42145,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -42516,8 +42340,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -42528,7 +42351,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -42723,8 +42546,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -42735,7 +42557,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -42930,8 +42752,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -42942,7 +42763,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -43315,8 +43136,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -43327,7 +43147,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -43529,8 +43349,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -43541,7 +43360,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -43745,8 +43564,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -43757,7 +43575,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -43961,8 +43779,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -43973,7 +43790,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -44174,8 +43991,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -44186,7 +44002,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -44388,8 +44204,7 @@ impl<'input> EbnfParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -44400,7 +44215,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -44676,8 +44491,7 @@ impl<'input> EbnfParser<'input> {
                                                                     "value".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -44688,7 +44502,7 @@ impl<'input> EbnfParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -44887,8 +44701,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -44899,7 +44712,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -45270,8 +45083,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -45282,7 +45094,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -45530,8 +45342,7 @@ impl<'input> EbnfParser<'input> {
                                                 "exceptions".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -45554,8 +45365,7 @@ impl<'input> EbnfParser<'input> {
                                                 "expression".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -45566,7 +45376,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -45911,8 +45721,7 @@ impl<'input> EbnfParser<'input> {
                                             .push(ParseNode {
                                                 rule_name: "element_0",
                                                 content: {
-                                                    let __pgen_base = (result).clone();
-                                                    match __pgen_base {
+                                                    match &result {
                                                         ParseContent::Sequence(
                                                             elements,
                                                         ) if elements.len() > 1usize => {
@@ -45930,8 +45739,7 @@ impl<'input> EbnfParser<'input> {
                                                 span: 0..0,
                                             });
                                         match {
-                                            let __pgen_base = (result).clone();
-                                            match __pgen_base {
+                                            match &result {
                                                 ParseContent::Sequence(
                                                     elements,
                                                 ) if elements.len() > 2usize => {
@@ -46189,8 +45997,7 @@ impl<'input> EbnfParser<'input> {
                                                 "expression".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -46213,8 +46020,7 @@ impl<'input> EbnfParser<'input> {
                                                 "operator".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -46225,7 +46031,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -46497,8 +46303,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -46509,7 +46314,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -46704,8 +46509,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -46716,7 +46520,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -47117,8 +46921,7 @@ impl<'input> EbnfParser<'input> {
                                                 "modifier".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -47129,7 +46932,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -47140,8 +46943,7 @@ impl<'input> EbnfParser<'input> {
                                                 "string".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -47423,8 +47225,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -47435,7 +47236,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -47629,8 +47430,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -47641,7 +47441,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -48056,8 +47856,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -48068,7 +47867,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -48079,8 +47878,7 @@ impl<'input> EbnfParser<'input> {
                                                 "pattern".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -48324,8 +48122,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -48608,8 +48405,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -48620,7 +48416,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -48815,8 +48611,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -48827,7 +48622,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -49022,8 +48817,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -49034,7 +48828,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -49481,8 +49275,7 @@ impl<'input> EbnfParser<'input> {
                                                                             "content".to_string(),
                                                                             {
                                                                                 let __pgen_content = {
-                                                                                    let __pgen_base = (content).clone();
-                                                                                    match __pgen_base {
+                                                                                    match &content {
                                                                                         ParseContent::Sequence(
                                                                                             elements,
                                                                                         ) if elements.len() > 1usize => {
@@ -49698,8 +49491,7 @@ impl<'input> EbnfParser<'input> {
                                                             let transformed = {
                                                                 let content = raw_content.clone();
                                                                 {
-                                                                    let __pgen_base = (content).clone();
-                                                                    match __pgen_base {
+                                                                    match &content {
                                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                             elements[0usize].content.clone()
                                                                         }
@@ -49710,7 +49502,7 @@ impl<'input> EbnfParser<'input> {
                                                                             elements[0usize].content.clone()
                                                                         }
                                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                                        other => other,
+                                                                        other => other.clone(),
                                                                     }
                                                                 }
                                                             };
@@ -49926,8 +49718,7 @@ impl<'input> EbnfParser<'input> {
                                                 "content".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -50134,8 +49925,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -50146,7 +49936,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -50383,8 +50173,7 @@ impl<'input> EbnfParser<'input> {
                                                 "content".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -50594,8 +50383,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -50606,7 +50394,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -50920,8 +50708,7 @@ impl<'input> EbnfParser<'input> {
                                                                     "content".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 1usize => {
@@ -51537,8 +51324,7 @@ impl<'input> EbnfParser<'input> {
                                                 "content".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -51549,7 +51335,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -51798,8 +51584,7 @@ impl<'input> EbnfParser<'input> {
                                                 "condition".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -52007,8 +51792,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -52019,7 +51803,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -52256,8 +52040,7 @@ impl<'input> EbnfParser<'input> {
                                                 "code".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -52465,8 +52248,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -52477,7 +52259,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -52730,8 +52512,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -52742,7 +52523,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -52753,8 +52534,7 @@ impl<'input> EbnfParser<'input> {
                                                 "parameters".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -53081,8 +52861,7 @@ impl<'input> EbnfParser<'input> {
                                             .push(ParseNode {
                                                 rule_name: "element_0",
                                                 content: {
-                                                    let __pgen_base = (result).clone();
-                                                    match __pgen_base {
+                                                    match &result {
                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                             elements[0usize].content.clone()
                                                         }
@@ -53093,14 +52872,13 @@ impl<'input> EbnfParser<'input> {
                                                             elements[0usize].content.clone()
                                                         }
                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                        other => other,
+                                                        other => other.clone(),
                                                     }
                                                 },
                                                 span: 0..0,
                                             });
                                         match {
-                                            let __pgen_base = (result).clone();
-                                            match __pgen_base {
+                                            match &result {
                                                 ParseContent::Sequence(
                                                     elements,
                                                 ) if elements.len() > 1usize => {
@@ -53388,8 +53166,7 @@ impl<'input> EbnfParser<'input> {
                                                 "arguments".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -53412,8 +53189,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -53424,7 +53200,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -53743,8 +53519,7 @@ impl<'input> EbnfParser<'input> {
                                             .push(ParseNode {
                                                 rule_name: "element_0",
                                                 content: {
-                                                    let __pgen_base = (result).clone();
-                                                    match __pgen_base {
+                                                    match &result {
                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                             elements[0usize].content.clone()
                                                         }
@@ -53755,14 +53530,13 @@ impl<'input> EbnfParser<'input> {
                                                             elements[0usize].content.clone()
                                                         }
                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                        other => other,
+                                                        other => other.clone(),
                                                     }
                                                 },
                                                 span: 0..0,
                                             });
                                         match {
-                                            let __pgen_base = (result).clone();
-                                            match __pgen_base {
+                                            match &result {
                                                 ParseContent::Sequence(
                                                     elements,
                                                 ) if elements.len() > 1usize => {
@@ -54056,8 +53830,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -54068,7 +53841,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -54263,8 +54036,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -54275,7 +54047,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -54470,8 +54242,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -54482,7 +54253,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -54980,8 +54751,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -55004,8 +54774,7 @@ impl<'input> EbnfParser<'input> {
                                                 "rules".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 3usize => {
@@ -55282,8 +55051,7 @@ impl<'input> EbnfParser<'input> {
                                                 "name".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -55306,8 +55074,7 @@ impl<'input> EbnfParser<'input> {
                                                 "parent".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 3usize => {
@@ -55604,8 +55371,7 @@ impl<'input> EbnfParser<'input> {
                                                 "alias".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 3usize => {
@@ -55628,8 +55394,7 @@ impl<'input> EbnfParser<'input> {
                                                 "path".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -55911,8 +55676,7 @@ impl<'input> EbnfParser<'input> {
                                                 "directive".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -55923,7 +55687,7 @@ impl<'input> EbnfParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -55934,8 +55698,7 @@ impl<'input> EbnfParser<'input> {
                                                 "parameters".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -56219,8 +55982,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -56231,7 +55993,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -56426,8 +56188,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -56438,7 +56199,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -56633,8 +56394,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -56645,7 +56405,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -56840,8 +56600,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -56852,7 +56611,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -57047,8 +56806,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -57059,7 +56817,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -57254,8 +57012,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -57266,7 +57023,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -57461,8 +57218,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -57473,7 +57229,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -57668,8 +57424,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -57680,7 +57435,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -57875,8 +57630,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -57887,7 +57641,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -58372,8 +58126,7 @@ impl<'input> EbnfParser<'input> {
                                             .push(ParseNode {
                                                 rule_name: "element_0",
                                                 content: {
-                                                    let __pgen_base = (result).clone();
-                                                    match __pgen_base {
+                                                    match &result {
                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                             elements[0usize].content.clone()
                                                         }
@@ -58384,14 +58137,13 @@ impl<'input> EbnfParser<'input> {
                                                             elements[0usize].content.clone()
                                                         }
                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                        other => other,
+                                                        other => other.clone(),
                                                     }
                                                 },
                                                 span: 0..0,
                                             });
                                         match {
-                                            let __pgen_base = (result).clone();
-                                            match __pgen_base {
+                                            match &result {
                                                 ParseContent::Sequence(
                                                     elements,
                                                 ) if elements.len() > 1usize => {
@@ -58687,8 +58439,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -58699,7 +58450,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -58895,8 +58646,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -58907,7 +58657,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -59103,8 +58853,7 @@ impl<'input> EbnfParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -59115,7 +58864,7 @@ impl<'input> EbnfParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -59522,8 +59271,7 @@ impl<'input> EbnfParser<'input> {
                                                 "action".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -59827,8 +59575,7 @@ impl<'input> EbnfParser<'input> {
                                                             let transformed = {
                                                                 let content = raw_content.clone();
                                                                 {
-                                                                    let __pgen_base = (content).clone();
-                                                                    match __pgen_base {
+                                                                    match &content {
                                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                             elements[0usize].content.clone()
                                                                         }
@@ -59839,7 +59586,7 @@ impl<'input> EbnfParser<'input> {
                                                                             elements[0usize].content.clone()
                                                                         }
                                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                                        other => other,
+                                                                        other => other.clone(),
                                                                     }
                                                                 }
                                                             };
@@ -60035,8 +59782,7 @@ impl<'input> EbnfParser<'input> {
                                                             let transformed = {
                                                                 let content = raw_content.clone();
                                                                 {
-                                                                    let __pgen_base = (content).clone();
-                                                                    match __pgen_base {
+                                                                    match &content {
                                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                             elements[0usize].content.clone()
                                                                         }
@@ -60047,7 +59793,7 @@ impl<'input> EbnfParser<'input> {
                                                                             elements[0usize].content.clone()
                                                                         }
                                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                                        other => other,
+                                                                        other => other.clone(),
                                                                     }
                                                                 }
                                                             };
@@ -60243,8 +59989,7 @@ impl<'input> EbnfParser<'input> {
                                                             let transformed = {
                                                                 let content = raw_content.clone();
                                                                 {
-                                                                    let __pgen_base = (content).clone();
-                                                                    match __pgen_base {
+                                                                    match &content {
                                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                             elements[0usize].content.clone()
                                                                         }
@@ -60255,7 +60000,7 @@ impl<'input> EbnfParser<'input> {
                                                                             elements[0usize].content.clone()
                                                                         }
                                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                                        other => other,
+                                                                        other => other.clone(),
                                                                     }
                                                                 }
                                                             };
@@ -60450,8 +60195,7 @@ impl<'input> EbnfParser<'input> {
                                 let result = ParseContent::Sequence(sequence_elements);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -60462,7 +60206,7 @@ impl<'input> EbnfParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -60684,8 +60428,7 @@ impl<'input> EbnfParser<'input> {
                                                 "target".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -60929,8 +60672,7 @@ impl<'input> EbnfParser<'input> {
                                                 "target".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {

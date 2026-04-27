@@ -884,8 +884,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 "expr".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -896,7 +895,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -1252,8 +1251,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "condition".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -1264,7 +1262,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -1275,8 +1273,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "else_expr".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 4usize => {
@@ -1299,8 +1296,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "then_expr".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 2usize => {
@@ -1517,8 +1513,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1529,7 +1524,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -3474,8 +3469,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -3486,7 +3480,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -3681,8 +3675,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -3693,7 +3686,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -4246,8 +4239,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -4258,7 +4250,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -4453,8 +4445,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -4465,7 +4456,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -4660,8 +4651,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -4672,7 +4662,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -4867,8 +4857,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -4879,7 +4868,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -5432,8 +5421,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -5444,7 +5432,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -5639,8 +5627,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -5651,7 +5638,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -6204,8 +6191,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -6216,7 +6202,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -6411,8 +6397,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -6423,7 +6408,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -6978,8 +6963,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -6990,7 +6974,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -7186,8 +7170,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -7198,7 +7181,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -7394,8 +7377,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
                                                                                     {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -7406,7 +7388,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     }
                                                                                 };
@@ -7965,8 +7947,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "expr".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 1usize => {
@@ -8225,8 +8206,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "expr".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 1usize => {
@@ -8485,8 +8465,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "expr".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 1usize => {
@@ -8745,8 +8724,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "expr".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 1usize => {
@@ -8968,8 +8946,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -8980,7 +8957,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9418,8 +9395,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9430,7 +9406,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9625,8 +9601,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9637,7 +9612,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9879,8 +9854,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(
                                                                     elements,
                                                                 ) if elements.len() > 1usize => {
@@ -10341,8 +10315,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "text".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -10353,7 +10326,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -10569,8 +10542,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                     "text".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -10581,7 +10553,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -11418,8 +11390,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 "text".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -11430,7 +11401,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -11626,8 +11597,7 @@ impl<'input> RtlConstExprParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -11638,7 +11608,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };

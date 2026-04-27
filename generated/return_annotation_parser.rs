@@ -1166,8 +1166,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1178,7 +1177,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -1374,8 +1373,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1386,7 +1384,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -1749,8 +1747,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -1761,7 +1758,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -2022,8 +2019,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2034,7 +2030,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2229,8 +2225,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2241,7 +2236,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2436,8 +2431,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2448,7 +2442,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2643,8 +2637,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2655,7 +2648,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2850,8 +2843,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2862,7 +2854,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -3302,8 +3294,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -3314,7 +3305,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -3510,8 +3501,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -3522,7 +3512,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -3718,8 +3708,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -3730,7 +3719,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -3926,8 +3915,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -3938,7 +3926,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -4134,8 +4122,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -4146,7 +4133,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -4342,8 +4329,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -4354,7 +4340,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -4550,8 +4536,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -4562,7 +4547,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -4803,8 +4788,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(
                                                                     elements,
                                                                 ) if elements.len() > 1usize => {
@@ -5257,8 +5241,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "base".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -5269,7 +5252,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -5280,8 +5263,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "spread".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 3usize => {
@@ -5304,8 +5286,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "target".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -5588,8 +5569,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -5600,7 +5580,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -5795,8 +5775,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -5807,7 +5786,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -6002,8 +5981,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -6014,7 +5992,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -6392,8 +6370,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -6404,7 +6381,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -6626,8 +6603,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "base".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -6638,7 +6614,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -6911,8 +6887,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -6923,7 +6898,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -7119,8 +7094,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -7131,7 +7105,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -7327,8 +7301,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -7339,7 +7312,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -7535,8 +7508,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -7547,7 +7519,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -7788,8 +7760,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(
                                                                     elements,
                                                                 ) if elements.len() > 1usize => {
@@ -8478,8 +8449,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 "base".to_string(),
                                                                 {
                                                                     let __pgen_content = {
-                                                                        let __pgen_base = (result).clone();
-                                                                        match __pgen_base {
+                                                                        match &result {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -8490,7 +8460,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     };
                                                                     __pgen_content.to_json_value()
@@ -8501,8 +8471,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 "property".to_string(),
                                                                 {
                                                                     let __pgen_content = {
-                                                                        let __pgen_base = (result).clone();
-                                                                        match __pgen_base {
+                                                                        match &result {
                                                                             ParseContent::Sequence(
                                                                                 elements,
                                                                             ) if elements.len() > 2usize => {
@@ -8535,8 +8504,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "suffixes".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 3usize => {
@@ -8563,7 +8531,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -8896,8 +8864,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 "base".to_string(),
                                                                 {
                                                                     let __pgen_content = {
-                                                                        let __pgen_base = (result).clone();
-                                                                        match __pgen_base {
+                                                                        match &result {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -8908,7 +8875,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     };
                                                                     __pgen_content.to_json_value()
@@ -8919,8 +8886,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 "index".to_string(),
                                                                 {
                                                                     let __pgen_content = {
-                                                                        let __pgen_base = (result).clone();
-                                                                        match __pgen_base {
+                                                                        match &result {
                                                                             ParseContent::Sequence(
                                                                                 elements,
                                                                             ) if elements.len() > 2usize => {
@@ -8953,8 +8919,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "suffixes".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 4usize => {
@@ -8981,7 +8946,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -9247,8 +9212,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9259,7 +9223,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9500,8 +9464,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(
                                                                     elements,
                                                                 ) if elements.len() > 1usize => {
@@ -10000,8 +9963,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 .push(ParseNode {
                                                                                     rule_name: "element_0",
                                                                                     content: {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -10012,7 +9974,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     },
                                                                                     span: 0..0,
@@ -10021,8 +9983,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 .push(ParseNode {
                                                                                     rule_name: "element_1",
                                                                                     content: {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(
                                                                                                 elements,
                                                                                             ) if elements.len() > 1usize => {
@@ -10305,8 +10266,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 .push(ParseNode {
                                                                                     rule_name: "element_0",
                                                                                     content: {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
@@ -10317,7 +10277,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                                 elements[0usize].content.clone()
                                                                                             }
                                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                                            other => other,
+                                                                                            other => other.clone(),
                                                                                         }
                                                                                     },
                                                                                     span: 0..0,
@@ -10326,8 +10286,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 .push(ParseNode {
                                                                                     rule_name: "element_1",
                                                                                     content: {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(
                                                                                                 elements,
                                                                                             ) if elements.len() > 1usize => {
@@ -10348,8 +10307,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                                 .push(ParseNode {
                                                                                     rule_name: "element_2",
                                                                                     content: {
-                                                                                        let __pgen_base = (content).clone();
-                                                                                        match __pgen_base {
+                                                                                        match &content {
                                                                                             ParseContent::Sequence(
                                                                                                 elements,
                                                                                             ) if elements.len() > 2usize => {
@@ -10829,8 +10787,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "initial".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -10841,7 +10798,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -10852,8 +10809,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "suffixes".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -10880,7 +10836,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -11107,8 +11063,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "index".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -11447,8 +11402,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     "value".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 1usize => {
@@ -12066,8 +12020,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -12078,7 +12031,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -12265,8 +12218,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -12277,7 +12229,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -12538,8 +12490,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -12550,7 +12501,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -12745,8 +12696,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -12757,7 +12707,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13138,8 +13088,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -13150,7 +13099,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -13350,8 +13299,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -13362,7 +13310,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -13622,8 +13570,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13634,7 +13581,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13828,8 +13775,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13840,7 +13786,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -14203,8 +14149,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -14215,7 +14160,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -14459,8 +14404,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "properties".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -14787,8 +14731,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .push(ParseNode {
                                                 rule_name: "element_0",
                                                 content: {
-                                                    let __pgen_base = (result).clone();
-                                                    match __pgen_base {
+                                                    match &result {
                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                             elements[0usize].content.clone()
                                                         }
@@ -14799,15 +14742,14 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             elements[0usize].content.clone()
                                                         }
                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                        other => other,
+                                                        other => other.clone(),
                                                     }
                                                 },
                                                 span: 0..0,
                                             });
                                         match {
-                                            let __pgen_base = ({
-                                                let __pgen_base = (result).clone();
-                                                match __pgen_base {
+                                            match &{
+                                                match &result {
                                                     ParseContent::Sequence(
                                                         elements,
                                                     ) if elements.len() > 1usize => {
@@ -14821,9 +14763,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     }
                                                     _ => ParseContent::Terminal("<invalid_extraction_base>"),
                                                 }
-                                            })
-                                                .clone();
-                                            match __pgen_base {
+                                            } {
                                                 ParseContent::Quantified(elements, _) => {
                                                     let extracted: Vec<ParseNode> = elements
                                                         .iter()
@@ -15099,8 +15039,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "key".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -15111,7 +15050,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -15122,8 +15061,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -15401,8 +15339,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -15413,7 +15350,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -15608,8 +15545,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -15620,7 +15556,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -16041,8 +15977,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 "elements".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 1usize => {
@@ -16369,8 +16304,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .push(ParseNode {
                                                 rule_name: "element_0",
                                                 content: {
-                                                    let __pgen_base = (result).clone();
-                                                    match __pgen_base {
+                                                    match &result {
                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                             elements[0usize].content.clone()
                                                         }
@@ -16381,15 +16315,14 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             elements[0usize].content.clone()
                                                         }
                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                        other => other,
+                                                        other => other.clone(),
                                                     }
                                                 },
                                                 span: 0..0,
                                             });
                                         match {
-                                            let __pgen_base = ({
-                                                let __pgen_base = (result).clone();
-                                                match __pgen_base {
+                                            match &{
+                                                match &result {
                                                     ParseContent::Sequence(
                                                         elements,
                                                     ) if elements.len() > 1usize => {
@@ -16403,9 +16336,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     }
                                                     _ => ParseContent::Terminal("<invalid_extraction_base>"),
                                                 }
-                                            })
-                                                .clone();
-                                            match __pgen_base {
+                                            } {
                                                 ParseContent::Quantified(elements, _) => {
                                                     let extracted: Vec<ParseNode> = elements
                                                         .iter()
@@ -16629,8 +16560,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -16641,7 +16571,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -16872,8 +16802,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::Sequence(sequence_elements);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(
                                                 elements,
                                             ) if elements.len() > 1usize => {

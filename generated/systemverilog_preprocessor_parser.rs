@@ -974,8 +974,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 "items".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -986,7 +985,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -1259,8 +1258,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1271,7 +1269,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -1466,8 +1464,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1478,7 +1475,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -1673,8 +1670,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1685,7 +1681,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -1880,8 +1876,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1892,7 +1887,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2087,8 +2082,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2099,7 +2093,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2294,8 +2288,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2306,7 +2299,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2501,8 +2494,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2513,7 +2505,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2708,8 +2700,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2720,7 +2711,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -2915,8 +2906,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -2927,7 +2917,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -3122,8 +3112,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -3134,7 +3123,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -5354,8 +5343,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -5366,7 +5354,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -5561,8 +5549,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -5573,7 +5560,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -6011,8 +5998,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -6023,7 +6009,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -6218,8 +6204,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -6230,7 +6215,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -7186,8 +7171,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             let transformed = {
                                                                 let content = raw_content.clone();
                                                                 {
-                                                                    let __pgen_base = (content).clone();
-                                                                    match __pgen_base {
+                                                                    match &content {
                                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                             elements[0usize].content.clone()
                                                                         }
@@ -7198,7 +7182,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                             elements[0usize].content.clone()
                                                                         }
                                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                                        other => other,
+                                                                        other => other.clone(),
                                                                     }
                                                                 }
                                                             };
@@ -7393,8 +7377,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             let transformed = {
                                                                 let content = raw_content.clone();
                                                                 {
-                                                                    let __pgen_base = (content).clone();
-                                                                    match __pgen_base {
+                                                                    match &content {
                                                                         ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                             elements[0usize].content.clone()
                                                                         }
@@ -7405,7 +7388,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                             elements[0usize].content.clone()
                                                                         }
                                                                         ParseContent::Alternative(node) => node.content.clone(),
-                                                                        other => other,
+                                                                        other => other.clone(),
                                                                     }
                                                                 }
                                                             };
@@ -8822,8 +8805,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Quantified(results, "+");
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -8834,7 +8816,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -9095,8 +9077,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9107,7 +9088,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9302,8 +9283,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9314,7 +9294,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9509,8 +9489,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9521,7 +9500,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9716,8 +9695,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9728,7 +9706,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -9923,8 +9901,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -9935,7 +9912,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -10130,8 +10107,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -10142,7 +10118,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -10337,8 +10313,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -10349,7 +10324,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -10544,8 +10519,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -10556,7 +10530,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -10751,8 +10725,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -10763,7 +10736,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -10958,8 +10931,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -10970,7 +10942,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -11165,8 +11137,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -11177,7 +11148,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -11372,8 +11343,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -11384,7 +11354,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -12615,8 +12585,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Quantified(results, "+");
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -12627,7 +12596,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -12890,8 +12859,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -12902,7 +12870,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13098,8 +13066,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13110,7 +13077,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13306,8 +13273,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13318,7 +13284,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13514,8 +13480,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13526,7 +13491,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13722,8 +13687,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13734,7 +13698,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -13930,8 +13894,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -13942,7 +13905,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -14138,8 +14101,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -14150,7 +14112,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -14346,8 +14308,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -14358,7 +14319,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -15014,8 +14975,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Quantified(results, "+");
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -15026,7 +14986,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -15289,8 +15249,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -15301,7 +15260,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -15497,8 +15456,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -15509,7 +15467,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -15705,8 +15663,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -15717,7 +15674,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -15913,8 +15870,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -15925,7 +15881,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -16121,8 +16077,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -16133,7 +16088,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -16329,8 +16284,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -16341,7 +16295,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -16537,8 +16491,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -16549,7 +16502,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -16745,8 +16698,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -16757,7 +16709,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -16953,8 +16905,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -16965,7 +16916,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -17540,8 +17491,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -17552,7 +17502,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -18378,8 +18328,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -18390,7 +18339,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -19219,8 +19168,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 );
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -19231,7 +19179,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -20765,8 +20713,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -20777,7 +20724,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -20972,8 +20919,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -20984,7 +20930,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -21212,8 +21158,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Quantified(results, "*");
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -21224,7 +21169,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -21493,8 +21438,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -21505,7 +21449,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -21700,8 +21644,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -21712,7 +21655,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -21907,8 +21850,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
                                                                     {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -21919,7 +21861,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     }
                                                                 };
@@ -22147,8 +22089,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Quantified(results, "*");
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -22159,7 +22100,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -22344,8 +22285,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -22356,7 +22296,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -22542,8 +22482,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -22554,7 +22493,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -22740,8 +22679,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -22752,7 +22690,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };

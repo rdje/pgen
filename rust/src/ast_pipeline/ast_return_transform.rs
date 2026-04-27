@@ -104,11 +104,22 @@ impl AstReturnTransformer {
         if captured_vars.len() == 1 {
             let base_expr = Self::parse_capture_expr(&captured_vars[0]);
             let element_index = index - 1;
+            // PGEN-RGX-0073 Optim #12: match by reference instead of
+            // cloning the whole content first. The previous shape did
+            // `let __pgen_base = (base).clone(); match __pgen_base { ... }`
+            // — a deep clone of the entire ParseContent (Sequence's
+            // Vec<ParseNode>, etc.) only to drop most of it after picking
+            // out one child via `elements[N].content.clone()`. Matching
+            // on `&base` skips the outer clone entirely; only the picked
+            // child's content gets the inner clone. For Sequence/
+            // Quantified-shaped results in deep grammars, this halves
+            // the clone work per `$N` extraction. Samply post-Optim-#11
+            // showed Vec::clone + ParseNode::clone summing to ~4.4% of
+            // self-time on the regex parser.
             if element_index == 0 {
                 return Ok(quote! {
                     {
-                        let __pgen_base = (#base_expr).clone();
-                        match __pgen_base {
+                        match &#base_expr {
                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                 elements[0usize].content.clone()
                             }
@@ -116,15 +127,14 @@ impl AstReturnTransformer {
                                 elements[0usize].content.clone()
                             }
                             ParseContent::Alternative(node) => node.content.clone(),
-                            other => other,
+                            other => other.clone(),
                         }
                     }
                 });
             }
             return Ok(quote! {
                 {
-                    let __pgen_base = (#base_expr).clone();
-                    match __pgen_base {
+                    match &#base_expr {
                         ParseContent::Sequence(elements) if elements.len() > #element_index => {
                             elements[#element_index].content.clone()
                         }
@@ -259,11 +269,13 @@ impl AstReturnTransformer {
                 if captured_vars.len() == 1 {
                     let base_expr = Self::parse_capture_expr(&captured_vars[0]);
                     let element_index = index - 1;
+                    // Optim #12: same outer-clone-elimination as in
+                    // `generate_positional_ref` above, but for the
+                    // value-extraction path used inside object literals.
                     if element_index == 0 {
                         return Ok(Self::parse_content_to_json_value(quote! {
                             {
-                                let __pgen_base = (#base_expr).clone();
-                                match __pgen_base {
+                                match &#base_expr {
                                     ParseContent::Sequence(elements) if !elements.is_empty() => {
                                         elements[0usize].content.clone()
                                     }
@@ -271,15 +283,14 @@ impl AstReturnTransformer {
                                         elements[0usize].content.clone()
                                     }
                                     ParseContent::Alternative(node) => node.content.clone(),
-                                    other => other,
+                                    other => other.clone(),
                                 }
                             }
                         }));
                     }
                     return Ok(Self::parse_content_to_json_value(quote! {
                         {
-                            let __pgen_base = (#base_expr).clone();
-                            match __pgen_base {
+                            match &#base_expr {
                                 ParseContent::Sequence(elements) if elements.len() > #element_index => {
                                     elements[#element_index].content.clone()
                                 }
@@ -436,11 +447,12 @@ impl AstReturnTransformer {
                 if captured_vars.len() == 1 {
                     let single = Self::parse_capture_expr(&captured_vars[0]);
                     let element_index = *index - 1;
+                    // Optim #12: same outer-clone-elimination as in
+                    // `generate_positional_ref` and `generate_value_extraction`.
                     if element_index == 0 {
                         quote! {
                             {
-                                let __pgen_base = (#single).clone();
-                                match __pgen_base {
+                                match &#single {
                                     ParseContent::Sequence(elements) if !elements.is_empty() => {
                                         elements[0usize].content.clone()
                                     }
@@ -448,15 +460,14 @@ impl AstReturnTransformer {
                                         elements[0usize].content.clone()
                                     }
                                     ParseContent::Alternative(node) => node.content.clone(),
-                                    other => other,
+                                    other => other.clone(),
                                 }
                             }
                         }
                     } else {
                         quote! {
                             {
-                                let __pgen_base = (#single).clone();
-                                match __pgen_base {
+                                match &#single {
                                     ParseContent::Sequence(elements) if elements.len() > #element_index => {
                                         elements[#element_index].content.clone()
                                     }
@@ -483,8 +494,8 @@ impl AstReturnTransformer {
             ExtractionTarget::Last => {
                 return Ok(quote! {
                     {
-                        let __pgen_base = (#base_expr).clone();
-                        match __pgen_base {
+                        // Optim #12: match by reference; only clone the last element's content.
+                        match &#base_expr {
                             ParseContent::Quantified(elements, _) if !elements.is_empty() => {
                                 elements.last().unwrap().content.clone()
                             }
@@ -497,8 +508,10 @@ impl AstReturnTransformer {
 
         Ok(quote! {
             {
-                let __pgen_base = (#base_expr).clone();
-                match __pgen_base {
+                // Optim #12: match by reference; the inner clone of each
+                // extracted ParseNode is unavoidable but the outer
+                // ParseContent::clone() is not.
+                match &#base_expr {
                     ParseContent::Quantified(elements, _) => {
                         let extracted: Vec<ParseNode> = elements
                             .iter()

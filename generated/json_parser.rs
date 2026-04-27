@@ -855,8 +855,7 @@ impl<'input> JsonParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -867,7 +866,7 @@ impl<'input> JsonParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -1132,8 +1131,7 @@ impl<'input> JsonParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1144,7 +1142,7 @@ impl<'input> JsonParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -1339,8 +1337,7 @@ impl<'input> JsonParser<'input> {
                                                     let transformed = {
                                                         let content = raw_content.clone();
                                                         {
-                                                            let __pgen_base = (content).clone();
-                                                            match __pgen_base {
+                                                            match &content {
                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                     elements[0usize].content.clone()
                                                                 }
@@ -1351,7 +1348,7 @@ impl<'input> JsonParser<'input> {
                                                                     elements[0usize].content.clone()
                                                                 }
                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other,
+                                                                other => other.clone(),
                                                             }
                                                         }
                                                     };
@@ -1557,8 +1554,7 @@ impl<'input> JsonParser<'input> {
                                                                     "value".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -1569,7 +1565,7 @@ impl<'input> JsonParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -1780,8 +1776,7 @@ impl<'input> JsonParser<'input> {
                                                                     "value".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                     elements[0usize].content.clone()
                                                                                 }
@@ -1792,7 +1787,7 @@ impl<'input> JsonParser<'input> {
                                                                                     elements[0usize].content.clone()
                                                                                 }
                                                                                 ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other,
+                                                                                other => other.clone(),
                                                                             }
                                                                         };
                                                                         __pgen_content.to_json_value()
@@ -3102,8 +3097,7 @@ impl<'input> JsonParser<'input> {
                                                                     "members".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 1usize => {
@@ -3614,8 +3608,7 @@ impl<'input> JsonParser<'input> {
                                                                 .push(ParseNode {
                                                                     rule_name: "element_0",
                                                                     content: {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -3626,14 +3619,13 @@ impl<'input> JsonParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     },
                                                                     span: 0..0,
                                                                 });
                                                             match {
-                                                                let __pgen_base = (content).clone();
-                                                                match __pgen_base {
+                                                                match &content {
                                                                     ParseContent::Sequence(
                                                                         elements,
                                                                     ) if elements.len() > 2usize => {
@@ -3866,8 +3858,7 @@ impl<'input> JsonParser<'input> {
                                                                 .push(ParseNode {
                                                                     rule_name: "element_0",
                                                                     content: {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -3878,7 +3869,7 @@ impl<'input> JsonParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     },
                                                                     span: 0..0,
@@ -4297,8 +4288,7 @@ impl<'input> JsonParser<'input> {
                                                 "key".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                 elements[0usize].content.clone()
                                                             }
@@ -4309,7 +4299,7 @@ impl<'input> JsonParser<'input> {
                                                                 elements[0usize].content.clone()
                                                             }
                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other,
+                                                            other => other.clone(),
                                                         }
                                                     };
                                                     __pgen_content.to_json_value()
@@ -4325,8 +4315,7 @@ impl<'input> JsonParser<'input> {
                                                 "value".to_string(),
                                                 {
                                                     let __pgen_content = {
-                                                        let __pgen_base = (result).clone();
-                                                        match __pgen_base {
+                                                        match &result {
                                                             ParseContent::Sequence(
                                                                 elements,
                                                             ) if elements.len() > 2usize => {
@@ -4865,8 +4854,7 @@ impl<'input> JsonParser<'input> {
                                                                     "elements".to_string(),
                                                                     {
                                                                         let __pgen_content = {
-                                                                            let __pgen_base = (content).clone();
-                                                                            match __pgen_base {
+                                                                            match &content {
                                                                                 ParseContent::Sequence(
                                                                                     elements,
                                                                                 ) if elements.len() > 1usize => {
@@ -5377,8 +5365,7 @@ impl<'input> JsonParser<'input> {
                                                                 .push(ParseNode {
                                                                     rule_name: "element_0",
                                                                     content: {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -5389,14 +5376,13 @@ impl<'input> JsonParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     },
                                                                     span: 0..0,
                                                                 });
                                                             match {
-                                                                let __pgen_base = (content).clone();
-                                                                match __pgen_base {
+                                                                match &content {
                                                                     ParseContent::Sequence(
                                                                         elements,
                                                                     ) if elements.len() > 2usize => {
@@ -5629,8 +5615,7 @@ impl<'input> JsonParser<'input> {
                                                                 .push(ParseNode {
                                                                     rule_name: "element_0",
                                                                     content: {
-                                                                        let __pgen_base = (content).clone();
-                                                                        match __pgen_base {
+                                                                        match &content {
                                                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                                                 elements[0usize].content.clone()
                                                                             }
@@ -5641,7 +5626,7 @@ impl<'input> JsonParser<'input> {
                                                                                 elements[0usize].content.clone()
                                                                             }
                                                                             ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other,
+                                                                            other => other.clone(),
                                                                         }
                                                                     },
                                                                     span: 0..0,
@@ -6008,8 +5993,7 @@ impl<'input> JsonParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -6020,7 +6004,7 @@ impl<'input> JsonParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
@@ -6206,8 +6190,7 @@ impl<'input> JsonParser<'input> {
                                 let result = ParseContent::Terminal(matched_str);
                                 let result = {
                                     {
-                                        let __pgen_base = (result).clone();
-                                        match __pgen_base {
+                                        match &result {
                                             ParseContent::Sequence(elements) if !elements.is_empty() => {
                                                 elements[0usize].content.clone()
                                             }
@@ -6218,7 +6201,7 @@ impl<'input> JsonParser<'input> {
                                                 elements[0usize].content.clone()
                                             }
                                             ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other,
+                                            other => other.clone(),
                                         }
                                     }
                                 };
