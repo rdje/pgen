@@ -924,7 +924,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -946,7 +946,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -1215,7 +1215,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1230,7 +1230,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_define()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1387,8 +1387,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1402,7 +1401,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1423,7 +1422,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1438,7 +1437,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_undef()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1595,8 +1594,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1610,7 +1608,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1631,7 +1629,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1646,7 +1644,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_include()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1803,8 +1801,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1818,7 +1815,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1839,7 +1836,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1854,7 +1851,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_timescale()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2011,8 +2008,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2026,7 +2022,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2047,7 +2043,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2062,7 +2058,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_default_nettype()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2219,8 +2215,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2234,7 +2229,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2255,7 +2250,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2270,7 +2265,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_celldefine()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2427,8 +2422,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2442,7 +2436,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2463,7 +2457,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2478,7 +2472,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_endcelldefine()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2635,8 +2629,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2650,7 +2643,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2671,7 +2664,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2686,7 +2679,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_conditional()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2843,8 +2836,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2858,7 +2850,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2879,7 +2871,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2894,7 +2886,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_non_directive_line()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3051,8 +3043,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3066,7 +3057,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3087,7 +3078,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3102,7 +3093,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pp_blank_line()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3259,8 +3250,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3274,7 +3264,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3298,7 +3288,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -5320,7 +5310,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5335,7 +5325,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5492,8 +5482,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5507,7 +5496,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5528,7 +5517,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5543,7 +5532,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_angle_path()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5700,8 +5689,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5715,7 +5703,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5739,7 +5727,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -5979,7 +5967,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5994,7 +5982,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_identifier()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -6151,8 +6139,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -6166,7 +6153,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -6187,7 +6174,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -6202,7 +6189,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_kw_none()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -6359,8 +6346,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -6374,7 +6360,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -6398,7 +6384,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -6847,7 +6833,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -6869,7 +6855,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -7156,7 +7142,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         if let Some(content) = parser
                                                             .try_parse(|p| {
                                                                 let parser = p;
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -7171,7 +7157,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let result = ParseContent::Alternative(
                                                                     Box::new(parser.parse_kw_ifdef()?),
                                                                 );
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -7328,8 +7314,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     best_raw_content = Some(raw_content.clone());
                                                                 }
                                                                 best_content = Some(transformed);
-                                                            } else if branch_predicate_blocked
-                                                                && parser.logger.is_enabled()
+                                                            } else if branch_predicate_blocked && parser.logger_enabled
                                                             {
                                                                 parser
                                                                     .logger
@@ -7343,7 +7328,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                         ),
                                                                     );
                                                             }
-                                                        } else if parser.logger.is_enabled() {
+                                                        } else if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7364,7 +7349,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         if let Some(content) = parser
                                                             .try_parse(|p| {
                                                                 let parser = p;
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -7379,7 +7364,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let result = ParseContent::Alternative(
                                                                     Box::new(parser.parse_kw_ifndef()?),
                                                                 );
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -7536,8 +7521,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     best_raw_content = Some(raw_content.clone());
                                                                 }
                                                                 best_content = Some(transformed);
-                                                            } else if branch_predicate_blocked
-                                                                && parser.logger.is_enabled()
+                                                            } else if branch_predicate_blocked && parser.logger_enabled
                                                             {
                                                                 parser
                                                                     .logger
@@ -7551,7 +7535,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                         ),
                                                                     );
                                                             }
-                                                        } else if parser.logger.is_enabled() {
+                                                        } else if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7575,7 +7559,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         } else if let Some(content) = best_content {
                                             parser.position = best_end;
                                             semantic_selected_branch_index = Some(best_branch);
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_info(
@@ -7684,7 +7668,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -7706,7 +7690,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -7980,7 +7964,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -8002,7 +7986,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -8283,7 +8267,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -8305,7 +8289,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -8762,7 +8746,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         });
                                 }
                                 if parser.position == start_position {
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_warning(
@@ -8794,7 +8778,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -8816,7 +8800,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -9067,7 +9051,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9082,7 +9066,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_token_paste()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9239,8 +9223,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9254,7 +9237,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9275,7 +9258,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9290,7 +9273,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_stringize()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9447,8 +9430,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9462,7 +9444,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9483,7 +9465,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9498,7 +9480,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9655,8 +9637,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9670,7 +9651,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9691,7 +9672,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9706,7 +9687,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_condition_text()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9863,8 +9844,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9878,7 +9858,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9899,7 +9879,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9914,7 +9894,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_lparen()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10071,8 +10051,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10086,7 +10065,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10107,7 +10086,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10122,7 +10101,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_rparen()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10279,8 +10258,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10294,7 +10272,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10315,7 +10293,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10330,7 +10308,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_comma()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10487,8 +10465,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10502,7 +10479,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10523,7 +10500,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10538,7 +10515,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_question()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10695,8 +10672,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10710,7 +10686,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10731,7 +10707,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10746,7 +10722,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_colon()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10903,8 +10879,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10918,7 +10893,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10939,7 +10914,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10954,7 +10929,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_logical_or()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11111,8 +11086,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11126,7 +11100,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11147,7 +11121,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11162,7 +11136,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_logical_and()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11319,8 +11293,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11334,7 +11307,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11355,7 +11328,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11370,7 +11343,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_bang()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11527,8 +11500,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11542,7 +11514,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11566,7 +11538,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -12062,7 +12034,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -12084,7 +12056,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -12567,7 +12539,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         });
                                 }
                                 if parser.position == start_position {
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_warning(
@@ -12599,7 +12571,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -12621,7 +12593,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -12874,7 +12846,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12889,7 +12861,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_token_paste()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13046,8 +13018,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13062,7 +13033,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13083,7 +13054,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13098,7 +13069,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_stringize()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13255,8 +13226,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13271,7 +13241,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13292,7 +13262,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13307,7 +13277,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13464,8 +13434,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13480,7 +13449,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13501,7 +13470,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13516,7 +13485,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_default_text()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13673,8 +13642,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13689,7 +13657,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13710,7 +13678,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13725,7 +13693,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_lparen()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13882,8 +13850,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13898,7 +13865,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13919,7 +13886,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13934,7 +13901,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_rparen()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14091,8 +14058,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -14107,7 +14073,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -14128,7 +14094,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14143,7 +14109,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_question()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14300,8 +14266,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -14316,7 +14281,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -14337,7 +14302,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14352,7 +14317,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_colon()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14509,8 +14474,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -14525,7 +14489,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -14549,7 +14513,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -14974,7 +14938,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         });
                                 }
                                 if parser.position == start_position {
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_warning(
@@ -15006,7 +14970,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -15028,7 +14992,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -15281,7 +15245,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15296,7 +15260,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_token_paste()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15453,8 +15417,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -15469,7 +15432,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -15490,7 +15453,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15505,7 +15468,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_stringize()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15662,8 +15625,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -15678,7 +15640,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -15699,7 +15661,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15714,7 +15676,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15871,8 +15833,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -15887,7 +15848,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -15908,7 +15869,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15923,7 +15884,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_macro_body_text()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16080,8 +16041,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -16096,7 +16056,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -16117,7 +16077,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16132,7 +16092,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_lparen()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16289,8 +16249,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -16305,7 +16264,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -16326,7 +16285,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16341,7 +16300,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_rparen()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16498,8 +16457,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -16514,7 +16472,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -16535,7 +16493,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16550,7 +16508,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_comma()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16707,8 +16665,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -16723,7 +16680,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -16744,7 +16701,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16759,7 +16716,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_question()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16916,8 +16873,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -16932,7 +16888,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -16953,7 +16909,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16968,7 +16924,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_colon()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -17125,8 +17081,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -17141,7 +17096,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -17165,7 +17120,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -20766,7 +20721,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -20781,7 +20736,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_space_or_tab()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -20938,8 +20893,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -20953,7 +20907,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -20974,7 +20928,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -20989,7 +20943,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_block_comment()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -21146,8 +21100,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -21161,7 +21114,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -21185,7 +21138,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             } else if let Some(content) = best_content {
                                                 parser.position = best_end;
                                                 semantic_selected_branch_index = Some(best_branch);
-                                                if parser.logger.is_enabled() {
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -21215,7 +21168,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -21237,7 +21190,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -21496,7 +21449,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -21511,7 +21464,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_space_or_tab()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -21668,8 +21621,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -21683,7 +21635,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -21704,7 +21656,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -21719,7 +21671,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_line_comment()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -21876,8 +21828,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -21891,7 +21842,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -21912,7 +21863,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -21927,7 +21878,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_block_comment()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -22084,8 +22035,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -22099,7 +22049,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -22123,7 +22073,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                             } else if let Some(content) = best_content {
                                                 parser.position = best_end;
                                                 semantic_selected_branch_index = Some(best_branch);
-                                                if parser.logger.is_enabled() {
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -22153,7 +22103,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -22175,7 +22125,7 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger

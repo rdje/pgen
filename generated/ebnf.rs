@@ -996,7 +996,7 @@ impl<'input> EbnfParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1011,7 +1011,7 @@ impl<'input> EbnfParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_include_directive()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1207,8 +1207,7 @@ impl<'input> EbnfParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -1222,7 +1221,7 @@ impl<'input> EbnfParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -1243,7 +1242,7 @@ impl<'input> EbnfParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1258,7 +1257,7 @@ impl<'input> EbnfParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_semantic_annotation()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1415,8 +1414,7 @@ impl<'input> EbnfParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -1430,7 +1428,7 @@ impl<'input> EbnfParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -1451,7 +1449,7 @@ impl<'input> EbnfParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1466,7 +1464,7 @@ impl<'input> EbnfParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_grammar_rule()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1623,8 +1621,7 @@ impl<'input> EbnfParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -1638,7 +1635,7 @@ impl<'input> EbnfParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -1659,7 +1656,7 @@ impl<'input> EbnfParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1674,7 +1671,7 @@ impl<'input> EbnfParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_comment()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1831,8 +1828,7 @@ impl<'input> EbnfParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -1846,7 +1842,7 @@ impl<'input> EbnfParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -1867,7 +1863,7 @@ impl<'input> EbnfParser<'input> {
                                                             if let Some(content) = parser
                                                                 .try_parse(|p| {
                                                                     let parser = p;
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -1882,7 +1878,7 @@ impl<'input> EbnfParser<'input> {
                                                                     let result = ParseContent::Alternative(
                                                                         Box::new(parser.parse_whitespace()?),
                                                                     );
-                                                                    if parser.logger.is_enabled() {
+                                                                    if parser.logger_enabled {
                                                                         parser
                                                                             .logger
                                                                             .log_info(
@@ -2039,8 +2035,7 @@ impl<'input> EbnfParser<'input> {
                                                                         best_raw_content = Some(raw_content.clone());
                                                                     }
                                                                     best_content = Some(transformed);
-                                                                } else if branch_predicate_blocked
-                                                                    && parser.logger.is_enabled()
+                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                 {
                                                                     parser
                                                                         .logger
@@ -2054,7 +2049,7 @@ impl<'input> EbnfParser<'input> {
                                                                             ),
                                                                         );
                                                                 }
-                                                            } else if parser.logger.is_enabled() {
+                                                            } else if parser.logger_enabled {
                                                                 parser
                                                                     .logger
                                                                     .log_info(
@@ -2078,7 +2073,7 @@ impl<'input> EbnfParser<'input> {
                                             } else if let Some(content) = best_content {
                                                 parser.position = best_end;
                                                 semantic_selected_branch_index = Some(best_branch);
-                                                if parser.logger.is_enabled() {
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2108,7 +2103,7 @@ impl<'input> EbnfParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -2130,7 +2125,7 @@ impl<'input> EbnfParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -2420,7 +2415,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2435,7 +2430,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_include_files()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2592,8 +2587,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2608,7 +2602,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2629,7 +2623,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2644,7 +2638,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_include_directories()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2801,8 +2795,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2817,7 +2810,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2838,7 +2831,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2853,7 +2846,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_include_short_form()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3010,8 +3003,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3026,7 +3018,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3050,7 +3042,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -3844,7 +3836,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3919,7 +3911,7 @@ impl<'input> EbnfParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4116,8 +4108,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4132,7 +4123,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4153,7 +4144,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4228,7 +4219,7 @@ impl<'input> EbnfParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4370,8 +4361,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4386,7 +4376,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4407,7 +4397,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4482,7 +4472,7 @@ impl<'input> EbnfParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4624,8 +4614,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4640,7 +4629,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4664,7 +4653,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -4932,7 +4921,7 @@ impl<'input> EbnfParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -4954,7 +4943,7 @@ impl<'input> EbnfParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -5261,7 +5250,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5276,7 +5265,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5433,8 +5422,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5448,7 +5436,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5469,7 +5457,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5484,7 +5472,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_rule_name()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5641,8 +5629,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5656,7 +5643,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5680,7 +5667,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -5948,7 +5935,7 @@ impl<'input> EbnfParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -5970,7 +5957,7 @@ impl<'input> EbnfParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -6525,7 +6512,7 @@ impl<'input> EbnfParser<'input> {
                                         });
                                 }
                                 if parser.position == start_position {
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_warning(
@@ -6557,7 +6544,7 @@ impl<'input> EbnfParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -6579,7 +6566,7 @@ impl<'input> EbnfParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -7400,7 +7387,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7414,7 +7401,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string(":=")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7587,8 +7574,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -7602,7 +7588,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -7623,7 +7609,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7637,7 +7623,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("::=")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7794,8 +7780,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -7809,7 +7794,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -7830,7 +7815,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7844,7 +7829,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("=")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8001,8 +7986,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -8016,7 +8000,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -8037,7 +8021,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8051,7 +8035,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string(":-")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8208,8 +8192,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -8223,7 +8206,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -8247,7 +8230,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -8713,7 +8696,7 @@ impl<'input> EbnfParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -8735,7 +8718,7 @@ impl<'input> EbnfParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -9035,7 +9018,7 @@ impl<'input> EbnfParser<'input> {
                                         });
                                 }
                                 if parser.position == start_position {
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_warning(
@@ -9070,7 +9053,7 @@ impl<'input> EbnfParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -9092,7 +9075,7 @@ impl<'input> EbnfParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -9382,7 +9365,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9397,7 +9380,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_inline_semantic_annotation()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9554,8 +9537,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9569,7 +9551,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9590,7 +9572,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9605,7 +9587,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quantified_element()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9762,8 +9744,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9777,7 +9758,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9798,7 +9779,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9813,7 +9794,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_primary_element()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9970,8 +9951,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9985,7 +9965,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10009,7 +9989,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -10724,7 +10704,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10739,7 +10719,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_terminal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10896,8 +10876,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10911,7 +10890,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10932,7 +10911,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10947,7 +10926,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_non_terminal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11104,8 +11083,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11119,7 +11097,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11140,7 +11118,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11155,7 +11133,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_grouped_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11312,8 +11290,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11327,7 +11304,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11348,7 +11325,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11363,7 +11340,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_optional_element()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11520,8 +11497,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11535,7 +11511,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11556,7 +11532,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11571,7 +11547,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_lookahead_assertion()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11728,8 +11704,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11743,7 +11718,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11764,7 +11739,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11779,7 +11754,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_epsilon()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11936,8 +11911,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11951,7 +11925,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11975,7 +11949,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -12215,7 +12189,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12230,7 +12204,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_simple_quantifier()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12387,8 +12361,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -12402,7 +12375,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -12423,7 +12396,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12438,7 +12411,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_bounded_quantifier()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12595,8 +12568,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -12610,7 +12582,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -12631,7 +12603,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12646,7 +12618,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_probability_quantifier()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12803,8 +12775,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -12818,7 +12789,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -12842,7 +12813,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -13082,7 +13053,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13096,7 +13067,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("?")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13269,8 +13240,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13285,7 +13255,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13306,7 +13276,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13320,7 +13290,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("*")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13477,8 +13447,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13493,7 +13462,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13514,7 +13483,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13528,7 +13497,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("+")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13685,8 +13654,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13701,7 +13669,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13725,7 +13693,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -14227,7 +14195,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14242,7 +14210,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_exact_count()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14399,8 +14367,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -14415,7 +14382,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -14436,7 +14403,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14451,7 +14418,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_min_count()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14608,8 +14575,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -14624,7 +14590,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -14645,7 +14611,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14660,7 +14626,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_max_count()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14817,8 +14783,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -14833,7 +14798,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -14854,7 +14819,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -14869,7 +14834,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_range_count()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15026,8 +14991,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -15042,7 +15006,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -15066,7 +15030,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -16556,7 +16520,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16571,7 +16535,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16728,8 +16692,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -16743,7 +16706,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -16764,7 +16727,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16779,7 +16742,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_regex_pattern()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16936,8 +16899,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -16951,7 +16913,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -16972,7 +16934,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -16987,7 +16949,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_character_class()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -17144,8 +17106,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -17159,7 +17120,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -17180,7 +17141,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -17195,7 +17156,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_character_range()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -17352,8 +17313,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -17367,7 +17327,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -17388,7 +17348,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -17403,7 +17363,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_special_character()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -17560,8 +17520,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -17575,7 +17534,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -17599,7 +17558,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -17839,7 +17798,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -17854,7 +17813,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_double_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -18011,8 +17970,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -18026,7 +17984,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -18047,7 +18005,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -18062,7 +18020,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_single_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -18219,8 +18177,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -18234,7 +18191,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -18255,7 +18212,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -18270,7 +18227,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_raw_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -18427,8 +18384,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -18442,7 +18398,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -18466,7 +18422,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -20529,7 +20485,7 @@ impl<'input> EbnfParser<'input> {
                                         });
                                 }
                                 if parser.position == start_position {
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_warning(
@@ -20561,7 +20517,7 @@ impl<'input> EbnfParser<'input> {
                                     {
                                         let current_position = parser.position;
                                         if current_position == last_position {
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_warning(
@@ -20583,7 +20539,7 @@ impl<'input> EbnfParser<'input> {
                                     }
                                 }
                                 if iteration_count >= MAX_ITERATIONS
-                                    && parser.logger.is_enabled()
+                                    && parser.logger_enabled
                                 {
                                     parser
                                         .logger
@@ -20836,7 +20792,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -20851,7 +20807,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_character_range_item()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -21008,8 +20964,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -21024,7 +20979,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -21045,7 +21000,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -21060,7 +21015,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_escaped_character()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -21217,8 +21172,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -21233,7 +21187,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -21254,7 +21208,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -21269,7 +21223,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_normal_character()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -21426,8 +21380,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -21442,7 +21395,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -21466,7 +21419,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -22230,7 +22183,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -22245,7 +22198,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_escaped_character()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -22402,8 +22355,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -22418,7 +22370,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -22439,7 +22391,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -22454,7 +22406,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_unicode_character()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -22611,8 +22563,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -22627,7 +22578,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -22648,7 +22599,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -22663,7 +22614,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_named_character()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -22820,8 +22771,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -22836,7 +22786,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -22860,7 +22810,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -23530,7 +23480,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -23544,7 +23494,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\n")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -23717,8 +23667,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -23732,7 +23681,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -23753,7 +23702,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -23767,7 +23716,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\t")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -23924,8 +23873,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -23939,7 +23887,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -23960,7 +23908,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -23974,7 +23922,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\r")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24131,8 +24079,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -24146,7 +24093,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -24167,7 +24114,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24181,7 +24128,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\s")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24338,8 +24285,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -24353,7 +24299,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -24374,7 +24320,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24388,7 +24334,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\d")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24545,8 +24491,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -24560,7 +24505,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -24581,7 +24526,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24595,7 +24540,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\w")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24752,8 +24697,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -24767,7 +24711,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -24788,7 +24732,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24802,7 +24746,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\N")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -24959,8 +24903,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -24974,7 +24917,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -24995,7 +24938,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25009,7 +24952,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\T")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25166,8 +25109,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -25181,7 +25123,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -25202,7 +25144,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25216,7 +25158,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\R")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25373,8 +25315,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -25388,7 +25329,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -25409,7 +25350,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25423,7 +25364,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\S")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25580,8 +25521,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -25596,7 +25536,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -25617,7 +25557,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25631,7 +25571,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\D")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25788,8 +25728,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -25804,7 +25743,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -25825,7 +25764,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25839,7 +25778,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("\\W")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -25996,8 +25935,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -26012,7 +25950,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -26036,7 +25974,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -27226,7 +27164,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -27240,7 +27178,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("ε")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -27390,8 +27328,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -27405,7 +27342,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -27426,7 +27363,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -27440,7 +27377,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("epsilon")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -27597,8 +27534,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -27612,7 +27548,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -27633,7 +27569,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -27647,7 +27583,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("empty")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -27804,8 +27740,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -27819,7 +27754,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -27840,7 +27775,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -27854,7 +27789,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("λ")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -28011,8 +27946,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -28026,7 +27960,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -28050,7 +27984,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -28535,7 +28469,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -28550,7 +28484,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_scalar_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -28707,8 +28641,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -28723,7 +28656,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -28744,7 +28677,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -28759,7 +28692,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_array_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -28916,8 +28849,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -28932,7 +28864,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -28953,7 +28885,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -28968,7 +28900,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_object_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -29125,8 +29057,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -29141,7 +29072,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -29162,7 +29093,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -29177,7 +29108,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_expression_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -29334,8 +29265,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -29350,7 +29280,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -29371,7 +29301,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -29386,7 +29316,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_string_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -29543,8 +29473,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -29559,7 +29488,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -29583,7 +29512,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -29823,7 +29752,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -29838,7 +29767,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_positional_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -29995,8 +29924,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -30010,7 +29938,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -30031,7 +29959,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -30046,7 +29974,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_named_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -30203,8 +30131,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -30218,7 +30145,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -30239,7 +30166,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -30254,7 +30181,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_literal_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -30411,8 +30338,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -30426,7 +30352,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -30450,7 +30376,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -31183,7 +31109,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -31198,7 +31124,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -31371,8 +31297,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -31386,7 +31311,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -31407,7 +31332,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -31422,7 +31347,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_numeric_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -31579,8 +31504,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -31594,7 +31518,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -31615,7 +31539,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -31630,7 +31554,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_boolean_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -31787,8 +31711,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -31802,7 +31725,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -31826,7 +31749,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -32115,7 +32038,7 @@ impl<'input> EbnfParser<'input> {
                                                         {
                                                             let current_position = parser.position;
                                                             if current_position == last_position {
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_warning(
@@ -32137,7 +32060,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     }
                                                     if iteration_count >= MAX_ITERATIONS
-                                                        && parser.logger.is_enabled()
+                                                        && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -32494,7 +32417,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -32509,7 +32432,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quantified_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -32666,8 +32589,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -32682,7 +32604,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -32703,7 +32625,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -32718,7 +32640,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_scalar_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -32875,8 +32797,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -32891,7 +32812,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -32912,7 +32833,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -32927,7 +32848,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_spread_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -33084,8 +33005,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -33100,7 +33020,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -33124,7 +33044,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -33637,7 +33557,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -33651,7 +33571,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("*")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -33808,8 +33728,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -33824,7 +33743,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -33845,7 +33764,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -33859,7 +33778,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("+")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -34016,8 +33935,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -34032,7 +33950,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -34053,7 +33971,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -34067,7 +33985,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("?")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -34224,8 +34142,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -34240,7 +34157,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -34264,7 +34181,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -34798,7 +34715,7 @@ impl<'input> EbnfParser<'input> {
                                                         {
                                                             let current_position = parser.position;
                                                             if current_position == last_position {
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_warning(
@@ -34820,7 +34737,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     }
                                                     if iteration_count >= MAX_ITERATIONS
-                                                        && parser.logger.is_enabled()
+                                                        && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -35177,7 +35094,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -35192,7 +35109,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_simple_property()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -35349,8 +35266,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -35365,7 +35281,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -35386,7 +35302,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -35401,7 +35317,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_computed_property_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -35558,8 +35474,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -35574,7 +35489,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -35595,7 +35510,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -35610,7 +35525,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_spread_property_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -35767,8 +35682,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -35783,7 +35697,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -35807,7 +35721,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -36897,7 +36811,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -36912,7 +36826,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_identifier_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -37069,8 +36983,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -37084,7 +36997,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -37105,7 +37018,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -37120,7 +37033,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -37277,8 +37190,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -37292,7 +37204,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -37316,7 +37228,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -37556,7 +37468,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -37571,7 +37483,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_arithmetic_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -37728,8 +37640,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -37744,7 +37655,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -37765,7 +37676,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -37780,7 +37691,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_conditional_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -37937,8 +37848,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -37953,7 +37863,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -37974,7 +37884,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -37989,7 +37899,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_function_call_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -38146,8 +38056,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -38162,7 +38071,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -38183,7 +38092,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -38198,7 +38107,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_member_access_return()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -38355,8 +38264,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -38371,7 +38279,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -38395,7 +38303,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -38948,7 +38856,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -38962,7 +38870,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("+")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39119,8 +39027,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -39135,7 +39042,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -39156,7 +39063,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39170,7 +39077,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("-")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39327,8 +39234,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -39343,7 +39249,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -39364,7 +39270,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39378,7 +39284,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("*")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39535,8 +39441,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -39551,7 +39456,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -39572,7 +39477,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39586,7 +39491,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("/")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39743,8 +39648,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -39759,7 +39663,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -39780,7 +39684,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39794,7 +39698,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("%")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -39951,8 +39855,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -39967,7 +39870,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -39988,7 +39891,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -40002,7 +39905,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("**")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -40159,8 +40062,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -40175,7 +40077,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -40199,7 +40101,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -40849,7 +40751,7 @@ impl<'input> EbnfParser<'input> {
                                                         {
                                                             let current_position = parser.position;
                                                             if current_position == last_position {
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_warning(
@@ -40871,7 +40773,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     }
                                                     if iteration_count >= MAX_ITERATIONS
-                                                        && parser.logger.is_enabled()
+                                                        && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -41949,7 +41851,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -41964,7 +41866,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_integer_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42121,8 +42023,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -42136,7 +42037,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -42157,7 +42058,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42172,7 +42073,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_decimal_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42329,8 +42230,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -42344,7 +42244,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -42365,7 +42265,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42380,7 +42280,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_scientific_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42537,8 +42437,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -42552,7 +42451,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -42573,7 +42472,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42588,7 +42487,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_hexadecimal_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42745,8 +42644,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -42760,7 +42658,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -42781,7 +42679,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42796,7 +42694,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_binary_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -42953,8 +42851,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -42968,7 +42865,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -42989,7 +42886,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -43004,7 +42901,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_octal_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -43161,8 +43058,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -43176,7 +43072,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -43200,7 +43096,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -44726,7 +44622,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -44740,7 +44636,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("true")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -44913,8 +44809,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -44928,7 +44823,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -44949,7 +44844,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -44963,7 +44858,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("false")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -45120,8 +45015,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -45135,7 +45029,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -45159,7 +45053,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -45942,7 +45836,7 @@ impl<'input> EbnfParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -45964,7 +45858,7 @@ impl<'input> EbnfParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -46560,7 +46454,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -46574,7 +46468,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("&")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -46731,8 +46625,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -46747,7 +46640,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -46768,7 +46661,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -46782,7 +46675,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("!")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -46939,8 +46832,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -46955,7 +46847,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -46979,7 +46871,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -47488,7 +47380,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -47502,7 +47394,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("~")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -47659,8 +47551,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -47674,7 +47565,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -47695,7 +47586,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -47709,7 +47600,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("~i")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -47866,8 +47757,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -47881,7 +47771,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -47905,7 +47795,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -48674,7 +48564,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -48689,7 +48579,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_line_comment()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -48846,8 +48736,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -48861,7 +48750,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -48882,7 +48771,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -48897,7 +48786,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_block_comment()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -49054,8 +48943,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -49069,7 +48957,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -49090,7 +48978,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -49105,7 +48993,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_documentation_comment()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -49262,8 +49150,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -49277,7 +49164,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -49301,7 +49188,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -49545,7 +49432,7 @@ impl<'input> EbnfParser<'input> {
                                                         if let Some(content) = parser
                                                             .try_parse(|p| {
                                                                 let parser = p;
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -49559,7 +49446,7 @@ impl<'input> EbnfParser<'input> {
                                                                 }
                                                                 let matched_str = parser.match_string("#")?;
                                                                 let result = ParseContent::Terminal(matched_str);
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -49733,8 +49620,7 @@ impl<'input> EbnfParser<'input> {
                                                                     best_raw_content = Some(raw_content.clone());
                                                                 }
                                                                 best_content = Some(transformed);
-                                                            } else if branch_predicate_blocked
-                                                                && parser.logger.is_enabled()
+                                                            } else if branch_predicate_blocked && parser.logger_enabled
                                                             {
                                                                 parser
                                                                     .logger
@@ -49748,7 +49634,7 @@ impl<'input> EbnfParser<'input> {
                                                                         ),
                                                                     );
                                                             }
-                                                        } else if parser.logger.is_enabled() {
+                                                        } else if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -49769,7 +49655,7 @@ impl<'input> EbnfParser<'input> {
                                                         if let Some(content) = parser
                                                             .try_parse(|p| {
                                                                 let parser = p;
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -49783,7 +49669,7 @@ impl<'input> EbnfParser<'input> {
                                                                 }
                                                                 let matched_str = parser.match_string("//")?;
                                                                 let result = ParseContent::Terminal(matched_str);
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -49940,8 +49826,7 @@ impl<'input> EbnfParser<'input> {
                                                                     best_raw_content = Some(raw_content.clone());
                                                                 }
                                                                 best_content = Some(transformed);
-                                                            } else if branch_predicate_blocked
-                                                                && parser.logger.is_enabled()
+                                                            } else if branch_predicate_blocked && parser.logger_enabled
                                                             {
                                                                 parser
                                                                     .logger
@@ -49955,7 +49840,7 @@ impl<'input> EbnfParser<'input> {
                                                                         ),
                                                                     );
                                                             }
-                                                        } else if parser.logger.is_enabled() {
+                                                        } else if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -49979,7 +49864,7 @@ impl<'input> EbnfParser<'input> {
                                         } else if let Some(content) = best_content {
                                             parser.position = best_end;
                                             semantic_selected_branch_index = Some(best_branch);
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_info(
@@ -50940,7 +50825,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -51000,7 +50885,7 @@ impl<'input> EbnfParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -51176,8 +51061,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -51192,7 +51076,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -51213,7 +51097,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -51258,7 +51142,7 @@ impl<'input> EbnfParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -51400,8 +51284,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -51416,7 +51299,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -51440,7 +51323,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -53138,7 +53021,7 @@ impl<'input> EbnfParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -53160,7 +53043,7 @@ impl<'input> EbnfParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -53800,7 +53683,7 @@ impl<'input> EbnfParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -53822,7 +53705,7 @@ impl<'input> EbnfParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -54129,7 +54012,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -54144,7 +54027,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_rule_name()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -54301,8 +54184,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -54316,7 +54198,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -54337,7 +54219,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -54352,7 +54234,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -54509,8 +54391,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -54524,7 +54405,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -54545,7 +54426,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -54560,7 +54441,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_numeric_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -54717,8 +54598,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -54732,7 +54612,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -54756,7 +54636,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -55024,7 +54904,7 @@ impl<'input> EbnfParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -55046,7 +54926,7 @@ impl<'input> EbnfParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -56296,7 +56176,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -56310,7 +56190,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("memoize")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -56467,8 +56347,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -56483,7 +56362,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -56504,7 +56383,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -56518,7 +56397,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("inline")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -56675,8 +56554,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -56691,7 +56569,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -56712,7 +56590,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -56726,7 +56604,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("fragment")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -56883,8 +56761,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -56899,7 +56776,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -56920,7 +56797,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -56934,7 +56811,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("skip")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57091,8 +56968,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -57107,7 +56983,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -57128,7 +57004,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57142,7 +57018,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("channel")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57299,8 +57175,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -57315,7 +57190,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -57336,7 +57211,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57350,7 +57225,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("pushMode")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57507,8 +57382,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -57523,7 +57397,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -57544,7 +57418,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57558,7 +57432,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("popMode")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57715,8 +57589,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -57731,7 +57604,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -57752,7 +57625,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57766,7 +57639,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("more")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57923,8 +57796,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -57939,7 +57811,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -57960,7 +57832,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -57974,7 +57846,7 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("type")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -58131,8 +58003,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -58147,7 +58018,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -58171,7 +58042,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -58441,7 +58312,7 @@ impl<'input> EbnfParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -58463,7 +58334,7 @@ impl<'input> EbnfParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -58772,7 +58643,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -58787,7 +58658,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_identifier_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -58944,8 +58815,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -58960,7 +58830,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -58981,7 +58851,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -58996,7 +58866,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_quoted_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -59153,8 +59023,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -59169,7 +59038,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -59190,7 +59059,7 @@ impl<'input> EbnfParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -59205,7 +59074,7 @@ impl<'input> EbnfParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_numeric_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -59362,8 +59231,7 @@ impl<'input> EbnfParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -59378,7 +59246,7 @@ impl<'input> EbnfParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -59402,7 +59270,7 @@ impl<'input> EbnfParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -59915,7 +59783,7 @@ impl<'input> EbnfParser<'input> {
                                                         if let Some(content) = parser
                                                             .try_parse(|p| {
                                                                 let parser = p;
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -59930,7 +59798,7 @@ impl<'input> EbnfParser<'input> {
                                                                 let result = ParseContent::Alternative(
                                                                     Box::new(parser.parse_sync_to()?),
                                                                 );
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -60087,8 +59955,7 @@ impl<'input> EbnfParser<'input> {
                                                                     best_raw_content = Some(raw_content.clone());
                                                                 }
                                                                 best_content = Some(transformed);
-                                                            } else if branch_predicate_blocked
-                                                                && parser.logger.is_enabled()
+                                                            } else if branch_predicate_blocked && parser.logger_enabled
                                                             {
                                                                 parser
                                                                     .logger
@@ -60103,7 +59970,7 @@ impl<'input> EbnfParser<'input> {
                                                                         ),
                                                                     );
                                                             }
-                                                        } else if parser.logger.is_enabled() {
+                                                        } else if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -60124,7 +59991,7 @@ impl<'input> EbnfParser<'input> {
                                                         if let Some(content) = parser
                                                             .try_parse(|p| {
                                                                 let parser = p;
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -60139,7 +60006,7 @@ impl<'input> EbnfParser<'input> {
                                                                 let result = ParseContent::Alternative(
                                                                     Box::new(parser.parse_skip_to()?),
                                                                 );
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -60296,8 +60163,7 @@ impl<'input> EbnfParser<'input> {
                                                                     best_raw_content = Some(raw_content.clone());
                                                                 }
                                                                 best_content = Some(transformed);
-                                                            } else if branch_predicate_blocked
-                                                                && parser.logger.is_enabled()
+                                                            } else if branch_predicate_blocked && parser.logger_enabled
                                                             {
                                                                 parser
                                                                     .logger
@@ -60312,7 +60178,7 @@ impl<'input> EbnfParser<'input> {
                                                                         ),
                                                                     );
                                                             }
-                                                        } else if parser.logger.is_enabled() {
+                                                        } else if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -60333,7 +60199,7 @@ impl<'input> EbnfParser<'input> {
                                                         if let Some(content) = parser
                                                             .try_parse(|p| {
                                                                 let parser = p;
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -60348,7 +60214,7 @@ impl<'input> EbnfParser<'input> {
                                                                 let result = ParseContent::Alternative(
                                                                     Box::new(parser.parse_panic_mode()?),
                                                                 );
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -60505,8 +60371,7 @@ impl<'input> EbnfParser<'input> {
                                                                     best_raw_content = Some(raw_content.clone());
                                                                 }
                                                                 best_content = Some(transformed);
-                                                            } else if branch_predicate_blocked
-                                                                && parser.logger.is_enabled()
+                                                            } else if branch_predicate_blocked && parser.logger_enabled
                                                             {
                                                                 parser
                                                                     .logger
@@ -60521,7 +60386,7 @@ impl<'input> EbnfParser<'input> {
                                                                         ),
                                                                     );
                                                             }
-                                                        } else if parser.logger.is_enabled() {
+                                                        } else if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -60545,7 +60410,7 @@ impl<'input> EbnfParser<'input> {
                                         } else if let Some(content) = best_content {
                                             parser.position = best_end;
                                             semantic_selected_branch_index = Some(best_branch);
-                                            if parser.logger.is_enabled() {
+                                            if parser.logger_enabled {
                                                 parser
                                                     .logger
                                                     .log_info(

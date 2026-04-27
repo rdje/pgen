@@ -1123,7 +1123,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1217,7 +1217,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1438,8 +1438,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1453,7 +1452,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1474,7 +1473,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1489,7 +1488,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_logical_or_expr()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1646,8 +1645,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1661,7 +1659,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1685,7 +1683,7 @@ impl<'input> RtlConstExprParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -1954,7 +1952,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -1976,7 +1974,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -2249,7 +2247,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -2271,7 +2269,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -2544,7 +2542,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -2566,7 +2564,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -2839,7 +2837,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -2861,7 +2859,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -3134,7 +3132,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -3156,7 +3154,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -3432,7 +3430,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -3447,7 +3445,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_eqeq()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -3604,8 +3602,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -3619,7 +3616,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -3640,7 +3637,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -3655,7 +3652,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_ne()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -3812,8 +3809,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -3827,7 +3823,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -3851,7 +3847,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             } else if let Some(content) = best_content {
                                                                 parser.position = best_end;
                                                                 semantic_selected_branch_index = Some(best_branch);
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -3908,7 +3904,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -3930,7 +3926,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -4206,7 +4202,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -4221,7 +4217,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_le()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -4378,8 +4374,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -4393,7 +4388,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -4414,7 +4409,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -4429,7 +4424,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_lt()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -4586,8 +4581,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -4601,7 +4595,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -4622,7 +4616,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -4637,7 +4631,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_ge()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -4794,8 +4788,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -4809,7 +4802,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -4830,7 +4823,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -4845,7 +4838,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_gt()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -5002,8 +4995,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -5017,7 +5009,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -5041,7 +5033,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             } else if let Some(content) = best_content {
                                                                 parser.position = best_end;
                                                                 semantic_selected_branch_index = Some(best_branch);
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -5098,7 +5090,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -5120,7 +5112,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -5396,7 +5388,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -5411,7 +5403,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_shl()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -5568,8 +5560,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -5583,7 +5574,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -5604,7 +5595,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -5619,7 +5610,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_shr()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -5776,8 +5767,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -5791,7 +5781,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -5815,7 +5805,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             } else if let Some(content) = best_content {
                                                                 parser.position = best_end;
                                                                 semantic_selected_branch_index = Some(best_branch);
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -5872,7 +5862,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -5894,7 +5884,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -6170,7 +6160,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -6185,7 +6175,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_plus()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -6342,8 +6332,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -6357,7 +6346,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -6378,7 +6367,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -6393,7 +6382,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_minus()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -6550,8 +6539,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -6565,7 +6553,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -6589,7 +6577,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             } else if let Some(content) = best_content {
                                                                 parser.position = best_end;
                                                                 semantic_selected_branch_index = Some(best_branch);
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -6646,7 +6634,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -6668,7 +6656,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -6946,7 +6934,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -6961,7 +6949,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_star()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -7118,8 +7106,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -7134,7 +7121,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -7155,7 +7142,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -7170,7 +7157,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_slash()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -7327,8 +7314,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -7343,7 +7329,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -7364,7 +7350,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                             if let Some(content) = parser
                                                                                 .try_parse(|p| {
                                                                                     let parser = p;
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -7379,7 +7365,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                     let result = ParseContent::Alternative(
                                                                                         Box::new(parser.parse_percent()?),
                                                                                     );
-                                                                                    if parser.logger.is_enabled() {
+                                                                                    if parser.logger_enabled {
                                                                                         parser
                                                                                             .logger
                                                                                             .log_info(
@@ -7536,8 +7522,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                         best_raw_content = Some(raw_content.clone());
                                                                                     }
                                                                                     best_content = Some(transformed);
-                                                                                } else if branch_predicate_blocked
-                                                                                    && parser.logger.is_enabled()
+                                                                                } else if branch_predicate_blocked && parser.logger_enabled
                                                                                 {
                                                                                     parser
                                                                                         .logger
@@ -7552,7 +7537,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                             ),
                                                                                         );
                                                                                 }
-                                                                            } else if parser.logger.is_enabled() {
+                                                                            } else if parser.logger_enabled {
                                                                                 parser
                                                                                     .logger
                                                                                     .log_info(
@@ -7576,7 +7561,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             } else if let Some(content) = best_content {
                                                                 parser.position = best_end;
                                                                 semantic_selected_branch_index = Some(best_branch);
-                                                                if parser.logger.is_enabled() {
+                                                                if parser.logger_enabled {
                                                                     parser
                                                                         .logger
                                                                         .log_info(
@@ -7633,7 +7618,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -7655,7 +7640,7 @@ impl<'input> RtlConstExprParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -7899,7 +7884,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7945,7 +7930,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8124,8 +8109,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -8139,7 +8123,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -8160,7 +8144,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8206,7 +8190,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8385,8 +8369,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -8400,7 +8383,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -8421,7 +8404,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8467,7 +8450,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8646,8 +8629,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -8661,7 +8643,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -8682,7 +8664,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8728,7 +8710,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8907,8 +8889,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -8922,7 +8903,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -8943,7 +8924,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -8958,7 +8939,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_primary_expr()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9115,8 +9096,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9130,7 +9110,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9154,7 +9134,7 @@ impl<'input> RtlConstExprParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -9394,7 +9374,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9409,7 +9389,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9566,8 +9546,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9581,7 +9560,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9602,7 +9581,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9617,7 +9596,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_identifier()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9774,8 +9753,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9789,7 +9767,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9810,7 +9788,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9872,7 +9850,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10030,8 +10008,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10045,7 +10022,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10069,7 +10046,7 @@ impl<'input> RtlConstExprParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -10309,7 +10286,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10324,7 +10301,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_based_integer()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10502,8 +10479,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10517,7 +10493,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10538,7 +10514,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10553,7 +10529,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_decimal_integer()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10731,8 +10707,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10746,7 +10721,7 @@ impl<'input> RtlConstExprParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10770,7 +10745,7 @@ impl<'input> RtlConstExprParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(

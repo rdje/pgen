@@ -1618,7 +1618,7 @@ impl AstBasedGenerator {
                         position: lookahead_start,
                     });
                 }
-                if parser.logger.is_enabled() {
+                if parser.logger_enabled {
                     parser.logger.log_debug(#filename, 0, &format!(
                         "👀 Rule '{}' satisfied {} at position {}",
                         #rule_name,
@@ -1642,7 +1642,7 @@ impl AstBasedGenerator {
                         position: lookahead_start,
                     });
                 }
-                if parser.logger.is_enabled() {
+                if parser.logger_enabled {
                     parser.logger.log_debug(#filename, 0, &format!(
                         "🚫 Rule '{}' satisfied {} at position {}",
                         #rule_name,
@@ -1782,7 +1782,7 @@ impl AstBasedGenerator {
                         #recover_parse_budget,
                         #recover_global_budget,
                     ) {
-                        if parser.logger.is_enabled() {
+                        if parser.logger_enabled {
                             parser.logger.log_warning(#filename, 0, &format!(
                                 "🛟 Rule '{}' recovered from branch failure using sync=[{}] panic_until=[{}] budget(rule={}, parse={}, global={})",
                                 #rule_name,
@@ -1848,11 +1848,11 @@ impl AstBasedGenerator {
                             parser.position = parse_start;
                             if let Some(content) = parser.try_parse(|p| {
                                 let parser = p;
-                                if parser.logger.is_enabled() {
+                                if parser.logger_enabled {
                                     parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                                 }
                                 #branch_logic;
-                                if parser.logger.is_enabled() {
+                                if parser.logger_enabled {
                                     parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
                                 }
                                 Ok(result)
@@ -1984,7 +1984,7 @@ impl AstBasedGenerator {
                                         best_raw_content = Some(raw_content.clone());
                                     }
                                     best_content = Some(transformed);
-                                } else if branch_predicate_blocked && parser.logger.is_enabled() {
+                                } else if branch_predicate_blocked && parser.logger_enabled {
                                     parser.logger.log_info(#filename, 0, &format!(
                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
                                         #branch_num,
@@ -1996,7 +1996,7 @@ impl AstBasedGenerator {
                                         candidate_end
                                     ));
                                 }
-                            } else if parser.logger.is_enabled() {
+                            } else if parser.logger_enabled {
                                 parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                             }
                         }
@@ -2048,7 +2048,7 @@ impl AstBasedGenerator {
                 } else if let Some(content) = best_content {
                     parser.position = best_end;
                     semantic_selected_branch_index = Some(best_branch);
-                    if parser.logger.is_enabled() {
+                    if parser.logger_enabled {
                         parser.logger.log_info(#filename, 0, &format!(
                             "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
                             #rule_name,
@@ -2263,7 +2263,7 @@ impl AstBasedGenerator {
                                                         let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                         #constraint_guards
                                                         let transformed = matched_str.parse::<#target_type>().unwrap_or(#default_expr);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser.logger.log_debug(
                                                                 file!(),
                                                                 line!(),
@@ -2298,7 +2298,7 @@ impl AstBasedGenerator {
                                             return Ok(quote! {
                                                 let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                 #constraint_guards
-                                                if parser.logger.is_enabled() {
+                                                if parser.logger_enabled {
                                                     parser.logger.log_debug(
                                                         file!(),
                                                         line!(),
@@ -2424,7 +2424,7 @@ impl AstBasedGenerator {
 
                         // Critical: Check for zero-length match
                         if current_position == last_position {
-                            if parser.logger.is_enabled() {
+                            if parser.logger_enabled {
                                 parser.logger.log_warning(#filename, 0, &format!("⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}", current_position));
                             }
                             break;
@@ -2438,7 +2438,7 @@ impl AstBasedGenerator {
                     }
                 }
 
-                if iteration_count >= MAX_ITERATIONS && parser.logger.is_enabled() {
+                if iteration_count >= MAX_ITERATIONS && parser.logger_enabled {
                     parser.logger.log_warning(#filename, 0, &format!("⚠️ MAX ITERATIONS ({}) reached in quantifier", MAX_ITERATIONS));
                 }
 
@@ -2462,7 +2462,7 @@ impl AstBasedGenerator {
 
                 // Check if first match consumed any input
                 if parser.position == start_position {
-                    if parser.logger.is_enabled() {
+                    if parser.logger_enabled {
                         parser.logger.log_warning(#filename, 0, &format!("⚠️ ZERO-LENGTH FIRST MATCH in + quantifier at position {}", start_position));
                     }
                 }
@@ -2487,7 +2487,7 @@ impl AstBasedGenerator {
 
                         // Check for zero-length match
                         if current_position == last_position {
-                            if parser.logger.is_enabled() {
+                            if parser.logger_enabled {
                                 parser.logger.log_warning(#filename, 0, &format!("⚠️ ZERO-LENGTH MATCH in + quantifier: Breaking at position {}", current_position));
                             }
                             break;
@@ -2501,7 +2501,7 @@ impl AstBasedGenerator {
                     }
                 }
 
-                if iteration_count >= MAX_ITERATIONS && parser.logger.is_enabled() {
+                if iteration_count >= MAX_ITERATIONS && parser.logger_enabled {
                     parser.logger.log_warning(#filename, 0, &format!("⚠️ MAX ITERATIONS ({}) reached in + quantifier", MAX_ITERATIONS));
                 }
 

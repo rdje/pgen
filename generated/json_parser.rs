@@ -1088,7 +1088,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1103,7 +1103,7 @@ impl<'input> JsonParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_object()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1260,8 +1260,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1275,7 +1274,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1296,7 +1295,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1311,7 +1310,7 @@ impl<'input> JsonParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_array()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1468,8 +1467,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1483,7 +1481,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1504,7 +1502,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1519,7 +1517,7 @@ impl<'input> JsonParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_string()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1692,8 +1690,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1707,7 +1704,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1728,7 +1725,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1743,7 +1740,7 @@ impl<'input> JsonParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_number()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1916,8 +1913,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1931,7 +1927,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1952,7 +1948,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1966,7 +1962,7 @@ impl<'input> JsonParser<'input> {
                                                         }
                                                         let matched_str = parser.match_regex("\\s*true\\s*", true)?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2118,8 +2114,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2133,7 +2128,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2154,7 +2149,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2169,7 +2164,7 @@ impl<'input> JsonParser<'input> {
                                                         let matched_str = parser
                                                             .match_regex("\\s*false\\s*", true)?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2324,8 +2319,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2339,7 +2333,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2360,7 +2354,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2374,7 +2368,7 @@ impl<'input> JsonParser<'input> {
                                                         }
                                                         let matched_str = parser.match_regex("\\s*null\\s*", true)?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2524,8 +2518,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2539,7 +2532,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2563,7 +2556,7 @@ impl<'input> JsonParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -2803,7 +2796,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2818,7 +2811,7 @@ impl<'input> JsonParser<'input> {
                                                         let matched_str = parser
                                                             .match_regex("\\s*\\{\\s*\\}\\s*", true)?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2979,8 +2972,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2994,7 +2986,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3015,7 +3007,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3075,7 +3067,7 @@ impl<'input> JsonParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3249,8 +3241,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3264,7 +3255,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3288,7 +3279,7 @@ impl<'input> JsonParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -3528,7 +3519,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3589,7 +3580,7 @@ impl<'input> JsonParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3791,8 +3782,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3806,7 +3796,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3827,7 +3817,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3842,7 +3832,7 @@ impl<'input> JsonParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pair()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4008,8 +3998,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4023,7 +4012,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4047,7 +4036,7 @@ impl<'input> JsonParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -4570,7 +4559,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4585,7 +4574,7 @@ impl<'input> JsonParser<'input> {
                                                         let matched_str = parser
                                                             .match_regex("\\s*\\[\\s*\\]\\s*", true)?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4746,8 +4735,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4761,7 +4749,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4782,7 +4770,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4842,7 +4830,7 @@ impl<'input> JsonParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5016,8 +5004,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5031,7 +5018,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5055,7 +5042,7 @@ impl<'input> JsonParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -5295,7 +5282,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5356,7 +5343,7 @@ impl<'input> JsonParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5558,8 +5545,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5573,7 +5559,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5594,7 +5580,7 @@ impl<'input> JsonParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5609,7 +5595,7 @@ impl<'input> JsonParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_value()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5775,8 +5761,7 @@ impl<'input> JsonParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5790,7 +5775,7 @@ impl<'input> JsonParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5814,7 +5799,7 @@ impl<'input> JsonParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(

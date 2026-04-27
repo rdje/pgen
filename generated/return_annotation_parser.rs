@@ -898,7 +898,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -944,7 +944,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1086,8 +1086,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1102,7 +1101,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1123,7 +1122,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1138,7 +1137,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_arrow()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1295,8 +1294,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1311,7 +1309,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1332,7 +1330,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1347,7 +1345,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1504,8 +1502,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -1520,7 +1517,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -1544,7 +1541,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -1981,7 +1978,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -1996,7 +1993,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_spread_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2153,8 +2150,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2168,7 +2164,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2189,7 +2185,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2204,7 +2200,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_extraction_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2361,8 +2357,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2376,7 +2371,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2397,7 +2392,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2412,7 +2407,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_property_access_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2569,8 +2564,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2584,7 +2578,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2605,7 +2599,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2620,7 +2614,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_array_access_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2777,8 +2771,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -2792,7 +2785,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -2813,7 +2806,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2828,7 +2821,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_primary_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -2985,8 +2978,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3000,7 +2992,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3024,7 +3016,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -3266,7 +3258,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3281,7 +3273,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_object_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3438,8 +3430,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3454,7 +3445,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3475,7 +3466,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3490,7 +3481,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_array_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3647,8 +3638,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3663,7 +3653,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3684,7 +3674,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3699,7 +3689,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_positional_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3856,8 +3846,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -3872,7 +3861,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -3893,7 +3882,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -3908,7 +3897,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_string_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4065,8 +4054,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4081,7 +4069,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4102,7 +4090,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4117,7 +4105,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_number_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4274,8 +4262,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4290,7 +4277,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4311,7 +4298,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4326,7 +4313,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_boolean_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4483,8 +4470,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4499,7 +4485,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4520,7 +4506,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4535,7 +4521,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_identifier()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4692,8 +4678,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4708,7 +4693,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4729,7 +4714,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4789,7 +4774,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -4947,8 +4932,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -4963,7 +4947,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -4987,7 +4971,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -5560,7 +5544,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5575,7 +5559,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_positive_integer()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5732,8 +5716,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5748,7 +5731,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5769,7 +5752,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5783,7 +5766,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("first")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5940,8 +5923,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -5956,7 +5938,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -5977,7 +5959,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -5991,7 +5973,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("last")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -6148,8 +6130,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -6164,7 +6145,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -6188,7 +6169,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -6388,7 +6369,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 > = None;
                                 let matched_str = parser.match_regex("[1-9][0-9]*", true)?;
                                 let transformed = matched_str.parse::<usize>().unwrap_or(1);
-                                if parser.logger.is_enabled() {
+                                if parser.logger_enabled {
                                     parser
                                         .logger
                                         .log_debug(
@@ -6886,7 +6867,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -6901,7 +6882,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_extraction_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7058,8 +7039,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -7074,7 +7054,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -7095,7 +7075,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7110,7 +7090,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_positional_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7267,8 +7247,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -7283,7 +7262,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -7304,7 +7283,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7319,7 +7298,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_property_access_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7476,8 +7455,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -7492,7 +7470,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -7513,7 +7491,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7528,7 +7506,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_array_access_expression()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7685,8 +7663,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -7701,7 +7678,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -7722,7 +7699,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7782,7 +7759,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -7940,8 +7917,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -7956,7 +7932,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -7980,7 +7956,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -8435,7 +8411,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -8457,7 +8433,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -8581,7 +8557,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -8853,7 +8829,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -8875,7 +8851,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -8999,7 +8975,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -9227,7 +9203,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9242,7 +9218,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_positional_reference()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9399,8 +9375,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9415,7 +9390,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9436,7 +9411,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9496,7 +9471,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9654,8 +9629,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -9670,7 +9644,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -9694,7 +9668,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -9936,7 +9910,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -9981,7 +9955,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10190,8 +10164,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10206,7 +10179,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10227,7 +10200,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10287,7 +10260,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -10518,8 +10491,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -10534,7 +10506,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -10558,7 +10530,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -10796,7 +10768,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -10818,7 +10790,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -10902,7 +10874,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -11375,7 +11347,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11435,7 +11407,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11609,8 +11581,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11624,7 +11595,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11645,7 +11616,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11705,7 +11676,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 });
                                                         }
                                                         let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -11847,8 +11818,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -11862,7 +11832,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -11886,7 +11856,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -12524,7 +12494,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12539,7 +12509,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_float()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12696,8 +12666,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -12711,7 +12680,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -12732,7 +12701,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12747,7 +12716,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_integer()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -12904,8 +12873,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -12919,7 +12887,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -12943,7 +12911,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -13147,7 +13115,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         true,
                                     )?;
                                 let transformed = matched_str.parse::<f64>().unwrap_or(0.0);
-                                if parser.logger.is_enabled() {
+                                if parser.logger_enabled {
                                     parser
                                         .logger
                                         .log_debug(
@@ -13359,7 +13327,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 > = None;
                                 let matched_str = parser.match_regex("[-+]?[0-9]+", true)?;
                                 let transformed = matched_str.parse::<i64>().unwrap_or(0);
-                                if parser.logger.is_enabled() {
+                                if parser.logger_enabled {
                                     parser
                                         .logger
                                         .log_debug(
@@ -13611,7 +13579,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13625,7 +13593,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("true")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13782,8 +13750,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -13797,7 +13764,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -13818,7 +13785,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13832,7 +13799,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         }
                                                         let matched_str = parser.match_string("false")?;
                                                         let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -13989,8 +13956,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -14004,7 +13970,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -14028,7 +13994,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -14761,7 +14727,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -14783,7 +14749,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
@@ -15391,7 +15357,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15406,7 +15372,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_identifier()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15563,8 +15529,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -15578,7 +15543,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -15599,7 +15564,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                 if let Some(content) = parser
                                                     .try_parse(|p| {
                                                         let parser = p;
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15614,7 +15579,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_string_literal()?),
                                                         );
-                                                        if parser.logger.is_enabled() {
+                                                        if parser.logger_enabled {
                                                             parser
                                                                 .logger
                                                                 .log_info(
@@ -15771,8 +15736,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             best_raw_content = Some(raw_content.clone());
                                                         }
                                                         best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked
-                                                        && parser.logger.is_enabled()
+                                                    } else if branch_predicate_blocked && parser.logger_enabled
                                                     {
                                                         parser
                                                             .logger
@@ -15786,7 +15750,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                                 ),
                                                             );
                                                     }
-                                                } else if parser.logger.is_enabled() {
+                                                } else if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
@@ -15810,7 +15774,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 } else if let Some(content) = best_content {
                                     parser.position = best_end;
                                     semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger.is_enabled() {
+                                    if parser.logger_enabled {
                                         parser
                                             .logger
                                             .log_info(
@@ -16345,7 +16309,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             {
                                                 let current_position = parser.position;
                                                 if current_position == last_position {
-                                                    if parser.logger.is_enabled() {
+                                                    if parser.logger_enabled {
                                                         parser
                                                             .logger
                                                             .log_warning(
@@ -16367,7 +16331,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             }
                                         }
                                         if iteration_count >= MAX_ITERATIONS
-                                            && parser.logger.is_enabled()
+                                            && parser.logger_enabled
                                         {
                                             parser
                                                 .logger
