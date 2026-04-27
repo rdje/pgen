@@ -3875,35 +3875,48 @@ impl AstBasedGenerator {
             fn match_regex(&mut self, pattern: &str, skip_leading_whitespace: bool) -> ParseResult<&'input str> {
                 use std::cell::RefCell;
                 use std::collections::HashMap;
-                // Thread-local cache: a regex pattern string is hashed once, and the compiled
-                // `regex::Regex` is reused on every subsequent match in the same thread. The
-                // `regex` crate's `Regex` is internally `Arc`-shared; cloning out of the cache
-                // is O(1) (Arc bump). Avoids repeated Thompson NFA construction, which the
-                // samply profile of PGEN-RGX-0073 showed to be the dominant per-parse cost.
+                // Thread-local cache: each pattern is compiled once per thread,
+                // and the resulting `regex::Regex` instance is **borrowed in
+                // place** for every subsequent match. The instance carries its
+                // own internal `Cache` pool (the lazy-DFA scratch space the
+                // regex crate uses across searches); reusing the same instance
+                // means that pool warms up once and is kept hot. The previous
+                // shape cloned the cached `Regex` out of the closure on every
+                // call; even though `Regex::clone()` is an O(1) Arc bump,
+                // Cargo profiles of PGEN-RGX-0073 (samply, post-Optim-#8)
+                // show 5.55% of self-time inside
+                // `regex_automata::hybrid::dfa::Lazy::init_cache` —
+                // i.e. the lazy DFA cache being re-initialized on first use
+                // of each fresh borrow of the cloned instance, defeating the
+                // regex crate's internal cache pool. Doing the search in
+                // place fixes it.
                 thread_local! {
                     static REGEX_CACHE: RefCell<HashMap<String, regex::Regex>> =
                         RefCell::new(HashMap::new());
                 }
-                let re = REGEX_CACHE.with(|cache| -> Result<regex::Regex, regex::Error> {
+
+                // Phase 1: ensure pattern is compiled and cached, and (if
+                // needed) compute `can_match_empty` for layout-skip. Both
+                // reads can be done without exposing the Regex past the
+                // closure boundary.
+                let can_match_empty: bool = REGEX_CACHE.with(|cache| -> Result<bool, regex::Error> {
                     let mut cache = cache.borrow_mut();
-                    if let Some(cached) = cache.get(pattern) {
-                        return Ok(cached.clone());
+                    if !cache.contains_key(pattern) {
+                        let compiled = regex::Regex::new(pattern)?;
+                        cache.insert(pattern.to_string(), compiled);
                     }
-                    let compiled = regex::Regex::new(pattern)?;
-                    cache.insert(pattern.to_string(), compiled.clone());
-                    Ok(compiled)
+                    let re = cache.get(pattern).expect("just inserted");
+                    if #allow_layout_skip_for_regexes {
+                        Ok(re.find("").map(|m| m.start() == 0 && m.end() == 0).unwrap_or(false))
+                    } else {
+                        Ok(false)
+                    }
                 }).map_err(|e| self.create_contextual_error(&format!(
                     "Invalid regex pattern '{}': {}",
                     pattern, e
                 )))?;
 
                 if skip_leading_whitespace && #allow_layout_skip_for_regexes {
-                    // Regexes that can match empty should not consume newlines first.
-                    // Otherwise optional branches can silently jump into the next rule/line.
-                    let can_match_empty = re
-                        .find("")
-                        .map(|m| m.start() == 0 && m.end() == 0)
-                        .unwrap_or(false);
                     self.consume_layout_for_regex(can_match_empty);
                 }
 
@@ -3911,21 +3924,29 @@ impl AstBasedGenerator {
                     return Err(self.create_contextual_error("Parser position is not on a UTF-8 boundary"));
                 };
 
-                if let Some(mat) = re.find(haystack) {
-                    if mat.start() == 0 {
-                        let matched = mat.as_str();
-                        let start = self.position;
+                // Phase 2: do the actual `find` inside the cache closure
+                // — no Regex clone, internal Cache pool stays hot. Returns
+                // just the byte length of the matched prefix; we re-borrow
+                // self.input outside the closure for the typed return.
+                let match_end: Option<usize> = REGEX_CACHE.with(|cache| {
+                    let cache = cache.borrow();
+                    let re = cache.get(pattern).expect("compiled in phase 1");
+                    re.find(haystack).filter(|m| m.start() == 0).map(|m| m.end())
+                });
 
-                        if self.logger_enabled {
-                            self.logger.log_success(#filename, 0, &format!("✅ Regex '{}' matched '{}' at position {}", pattern, matched, start));
-                        }
-
-                        self.position += matched.len();
-                        if let Some(slice) = self.input.get(start..self.position) {
-                            return Ok(slice);
-                        }
-                        return Err(self.create_contextual_error("Regex matched invalid UTF-8 span"));
+                if let Some(end_offset) = match_end {
+                    let start = self.position;
+                    self.position += end_offset;
+                    if self.logger_enabled {
+                        self.logger.log_success(#filename, 0, &format!(
+                            "✅ Regex '{}' matched at position {} (len {})",
+                            pattern, start, end_offset
+                        ));
                     }
+                    if let Some(slice) = self.input.get(start..self.position) {
+                        return Ok(slice);
+                    }
+                    return Err(self.create_contextual_error("Regex matched invalid UTF-8 span"));
                 }
 
                 if self.logger_enabled {

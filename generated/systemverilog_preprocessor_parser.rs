@@ -29098,15 +29098,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
             static REGEX_CACHE : RefCell < HashMap < String, regex::Regex >> =
             RefCell::new(HashMap::new());
         }
-        let re = REGEX_CACHE
-            .with(|cache| -> Result<regex::Regex, regex::Error> {
+        let can_match_empty: bool = REGEX_CACHE
+            .with(|cache| -> Result<bool, regex::Error> {
                 let mut cache = cache.borrow_mut();
-                if let Some(cached) = cache.get(pattern) {
-                    return Ok(cached.clone());
+                if !cache.contains_key(pattern) {
+                    let compiled = regex::Regex::new(pattern)?;
+                    cache.insert(pattern.to_string(), compiled);
                 }
-                let compiled = regex::Regex::new(pattern)?;
-                cache.insert(pattern.to_string(), compiled.clone());
-                Ok(compiled)
+                let re = cache.get(pattern).expect("just inserted");
+                if false {
+                    Ok(
+                        re
+                            .find("")
+                            .map(|m| m.start() == 0 && m.end() == 0)
+                            .unwrap_or(false),
+                    )
+                } else {
+                    Ok(false)
+                }
             })
             .map_err(|e| {
                 self
@@ -29115,10 +29124,6 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                     )
             })?;
         if skip_leading_whitespace && false {
-            let can_match_empty = re
-                .find("")
-                .map(|m| m.start() == 0 && m.end() == 0)
-                .unwrap_or(false);
             self.consume_layout_for_regex(can_match_empty);
         }
         let Some(haystack) = self.input.get(self.position..) else {
@@ -29129,29 +29134,30 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                     ),
             );
         };
-        if let Some(mat) = re.find(haystack) {
-            if mat.start() == 0 {
-                let matched = mat.as_str();
-                let start = self.position;
-                if self.logger_enabled {
-                    self.logger
-                        .log_success(
-                            "/Users/richarddje/Documents/github/pgen/generated/systemverilog_preprocessor_parser.rs",
-                            0,
-                            &format!(
-                                "✅ Regex '{}' matched '{}' at position {}", pattern,
-                                matched, start
-                            ),
-                        );
-                }
-                self.position += matched.len();
-                if let Some(slice) = self.input.get(start..self.position) {
-                    return Ok(slice);
-                }
-                return Err(
-                    self.create_contextual_error("Regex matched invalid UTF-8 span"),
-                );
+        let match_end: Option<usize> = REGEX_CACHE
+            .with(|cache| {
+                let cache = cache.borrow();
+                let re = cache.get(pattern).expect("compiled in phase 1");
+                re.find(haystack).filter(|m| m.start() == 0).map(|m| m.end())
+            });
+        if let Some(end_offset) = match_end {
+            let start = self.position;
+            self.position += end_offset;
+            if self.logger_enabled {
+                self.logger
+                    .log_success(
+                        "/Users/richarddje/Documents/github/pgen/generated/systemverilog_preprocessor_parser.rs",
+                        0,
+                        &format!(
+                            "✅ Regex '{}' matched at position {} (len {})", pattern,
+                            start, end_offset
+                        ),
+                    );
             }
+            if let Some(slice) = self.input.get(start..self.position) {
+                return Ok(slice);
+            }
+            return Err(self.create_contextual_error("Regex matched invalid UTF-8 span"));
         }
         if self.logger_enabled {
             let preview = if self.position < self.input.len() {
