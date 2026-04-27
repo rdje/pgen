@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-27 - EBNF frontend: inline return-annotation extractor + correct branch-level placement
+### Achievement Summary
+Fixes the upstream bug behind the semantic_annotation regen failure. The EBNF frontend's `split_rule_expression_and_return_annotation` used to find the first top-level `->` and return everything after it as the annotation, with no end-of-payload detection AND placing the result at end-of-rule. For grammars with inline branch-level annotations followed by `|` continuations — e.g. `object_property := (...) -> {type: "property", ...} | computed_property | shorthand_property | spread_property` — this:
+1. Over-grabbed the annotation text (the `}` plus all subsequent `|` branches).
+2. Misclassified the annotation type (`return_scalar` instead of `return_object` because the over-grabbed text didn't end with `}`).
+3. Silently dropped the subsequent branches from the token stream entirely.
+4. Placed the annotation at end-of-rule, which under `extract_rule_annotations` would attach an inline-on-first-branch annotation to the LAST branch.
+
+Fix moves return-annotation tokenization into [`tokenize_rule_expression`](rust/src/ebnf_frontend.rs). When `->` appears at top level (`sequence_group_depth == 0`), the tokenizer now extracts the payload via [`extract_inline_return_annotation_payload`](rust/src/ebnf_frontend.rs) — bounded by the next top-level `|` or end-of-input, with full delimiter tracking through nested `{...}`, `[...]`, `(...)`, quoted literals, regex literals, and comments — and emits the `[return_*, ...]` token inline at the source position of `->`. Subsequent `|` branches are tokenized normally, so the rule body is no longer truncated.
+
+Per-branch attachment now works correctly: `extract_rule_annotations` increments `branch_idx` only on top-level `|` operators, so an annotation token emitted before any `|` lands at `branch_index = 0` (correct for inline-on-first-branch); an annotation emitted at end-of-rule (the rule-level pattern, e.g. `regex := pattern? -> {...}`) lands at `branch_index = branch_count - 1`, which is `0` for single-branch rules — same effective position as before for that pattern.
+
+### Scope of Changes
+- [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs):
+  - New `extract_inline_return_annotation_payload(expression, start)` walks the payload from `start` (post-`->`) through to the next top-level `|` or end-of-input, with `DelimiterTracker` providing the same delimiter-aware behavior used elsewhere in the frontend.
+  - New `'-'` case in `tokenize_rule_expression`: when `->` is at top level, calls the helper, classifies the payload via `classify_return_annotation`, emits the `[return_*, payload]` token inline, and resumes tokenization from `payload_end`. `->` inside groups (`sequence_group_depth > 0`) is not treated as an annotation marker. Standalone `-` characters (without a following `>`) are skipped as before.
+  - `scan_top_level_rules` no longer calls `split_rule_expression_and_return_annotation`; it keeps the whole rule body in `expression` so the tokenizer handles annotations.
+  - `convert_scanned_rule` no longer appends a rule-level annotation at end-of-rule (the tokenizer now emits annotations inline at source position).
+  - `split_rule_expression_and_return_annotation` and `find_top_level_return_annotation` removed (dead code after the migration).
+  - New regression test `inline_branch_level_return_annotation_lands_at_correct_branch_index` builds a 3-branch rule with an inline annotation on the first branch and asserts the token stream's annotation type is `return_object` (not the misclassified `return_scalar` of the old over-grab path), the annotation text is exactly the inline payload, the annotation token precedes the first `|` operator, and all three branches' rule references are present in the tokenization.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 478 passed.
+- `cargo test --lib --features ebnf_dual_run` ✅ 438 passed including the new regression test.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ 5 active family tests pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: re-running the EBNF frontend on `grammars/semantic_annotation.ebnf` now extracts a clean `object_property` token stream — `[return_object, "{type: \"property\", key: $1, value: $5}"]` followed by `[operator, |] [rule_reference, computed_property] [operator, |] [rule_reference, shorthand_property] [operator, |] [rule_reference, spread_property]`. Compare with the over-grabbed `[return_scalar, "{...} |\n    computed_property |\n    shorthand_property |\n    spread_property"]` from the old frontend.
+
+### Important Boundaries
+- **Tracked frontend JSONs are unchanged in this commit.** `generated/regex.json`, `generated/return_annotation.json`, `generated/semantic_annotation.json`, `generated/ebnf.json`, `generated/rtl_frontend.json` were produced by the OLD frontend and still carry the over-grab. The fix only takes effect on fresh EBNF-frontend runs.
+- **Per-family JSON refresh + manifest update is the natural next step.** The pipeline-emitted inventory artifact (auto-emitted by `--generate-parser`) plus the AST-shape contract gate's regression-lock will catch any drift the moment a grammar is re-processed through the new frontend. The auto-update flow you described — *"automatic return annotation extraction from the AST pipeline during parser generation and the automatic update of the gates/contracts of that same parser"* — is now end-to-end functional: re-run the frontend, regenerate the parser, the inventory artifact updates, and the contract gate either passes (manifest matches) or fails with a precise diff (manifest needs updating in the same commit).
+- **No tracked parsers regenerated in this commit.** Per the per-family regen blast-radius rule.
+
 ## 2026-04-27 - Codegen-fix defensive block-wrap + diagnostic localizer for syn-parse failures
 ### Achievement Summary
 Fixes the `Failed to parse generated TokenStream: expected '='` failure that surfaced when `ast_pipeline --generate-parser` was run against `generated/semantic_annotation.json`. Two real bugs in chain:

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-27 (+0200, task: codegen-fix-defensive-block-wrap-and-syn-parse-localizer)
+Last updated: 2026-04-27 (+0200, task: ebnf-frontend-inline-return-annotation-extractor-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,21 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Fixed the upstream EBNF frontend over-grab that caused the previous commit's defensive fix to be needed. `tokenize_rule_expression` in [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs) now recognizes top-level `->` and emits `[return_*, payload]` tokens inline at the source position via the new `extract_inline_return_annotation_payload` helper (delimiter-aware, bounded by next top-level `|` or end-of-input).
+- This fixes three sub-bugs at once: the over-grab (annotation text bleeding into following branches), the misclassification (`return_scalar` vs `return_object` because over-grabbed text didn't end with `}`), and the silent drop of subsequent branches from the token stream.
+- Per-branch attribution now works correctly. `extract_rule_annotations` increments `branch_idx` on top-level `|`, so an annotation token emitted before any `|` lands at branch[0] (correct for inline-on-first-branch). Annotation between branches lands at the right intermediate index (didn't work at all before).
+- `split_rule_expression_and_return_annotation` and `find_top_level_return_annotation` removed (dead code after the migration). `scan_top_level_rules` now keeps the whole rule body in `expression`. `convert_scanned_rule` no longer appends a rule-level annotation at end-of-rule.
+- New regression test `inline_branch_level_return_annotation_lands_at_correct_branch_index` builds a 3-branch rule with an inline annotation on the first branch and asserts proper extraction + placement.
+- The user's stated end-to-end requirement is now functional: change a grammar's return annotations → next regen auto-emits an updated inventory artifact → contract gate fails until manifest is updated to match. Single coupled flow.
+- Validation: `cargo test --lib --features generated_parsers` 478 passed; `cargo test --lib --features ebnf_dual_run` 438 passed; `ast_shape_contract_gate` 5 active family tests pass; clippy strict source lint pass.
+- **No tracked frontend JSONs or parsers regenerated.** The fix only takes effect on fresh EBNF-frontend runs. Per-family regen is now unblocked but deferred per blast-radius rule.
+- **Open follow-ups** (in order):
+  1. Per-family JSON refresh + parser regen + manifest update (the auto-update flow this commit enabled).
+  2. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+  3. Hook SV/VHDL gates to track their inventory artifacts.
+  4. Add ebnf manifest sample.
+
+## Prior Session Note
 - Fixed the `Failed to parse generated TokenStream: expected '='` error that surfaced when regenerating `generated/semantic_annotation_parser.rs` after the codegen-fix from `6ad4ffd`. The error was the downstream amplifier of an upstream EBNF-frontend bug.
 - **Two real bugs in chain**:
   1. EBNF frontend's `split_rule_expression_and_return_annotation` over-grabs inline annotation text. For `object_property := (...) -> {type: "property", ...} | computed_property | ...`, the frontend returns everything after `->` as the annotation, including the next `|` branches. The annotation parser correctly rejects this as malformed, returning `parsed_ast: None`.

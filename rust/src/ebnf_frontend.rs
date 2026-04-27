@@ -128,13 +128,18 @@ fn scan_top_level_rules(input: &str) -> Result<Vec<ScannedRule>> {
 
         if let Some((rule_name, first_body)) = parse_rule_header(trimmed) {
             let (body, next_idx) = collect_rule_body(&lines, idx, first_body);
-            let (expression, return_annotation) =
-                split_rule_expression_and_return_annotation(&body);
+            // The whole body — including any `->` annotations — is handed to
+            // `tokenize_rule_expression`, which now emits return-annotation
+            // tokens inline at the source position of `->`. This is what lets
+            // a per-branch annotation (e.g. `branch_a -> {...} | branch_b`)
+            // land at the correct branch index in the token stream instead
+            // of being dropped at the end of the rule (where it would attach
+            // to the LAST branch).
             rules.push(ScannedRule {
                 name: rule_name,
                 annotations: std::mem::take(&mut pending_annotations),
-                expression,
-                return_annotation,
+                expression: body.trim().to_string(),
+                return_annotation: None,
             });
             idx = next_idx;
             continue;
@@ -160,13 +165,11 @@ fn convert_scanned_rule(rule: &ScannedRule) -> Result<Value> {
     }
 
     tokens.extend(tokenize_rule_expression(&rule.expression)?);
-
-    if let Some(return_body) = &rule.return_annotation {
-        if !return_body.is_empty() {
-            let token_type = classify_return_annotation(return_body);
-            tokens.push(json!([token_type, return_body]));
-        }
-    }
+    // Return annotations are emitted inline by `tokenize_rule_expression`
+    // at the source position of `->`. The previous rule-level append at the
+    // end of the rule was wrong for inline branch-level annotations: it would
+    // place a per-branch annotation at the LAST branch even when it was
+    // declared on the FIRST branch.
 
     Ok(Value::Array(tokens))
 }
@@ -273,43 +276,61 @@ fn collect_rule_body(lines: &[&str], start_idx: usize, first_body: String) -> (S
     (body_lines.join("\n"), idx)
 }
 
-fn split_rule_expression_and_return_annotation(body: &str) -> (String, Option<String>) {
-    let Some(idx) = find_top_level_return_annotation(body) else {
-        return (body.trim().to_string(), None);
-    };
+/// Extract the payload of an inline return annotation starting at byte
+/// `start` in `expression`. The payload spans from the first non-whitespace
+/// character after `->` to the next top-level `|` (next branch separator)
+/// or to end-of-expression (rule-level annotation at end of body), whichever
+/// comes first. Delimiters inside the payload (`{...}`, `[...]`, `(...)`,
+/// quotes, regex literals, comments) are tracked so a `|` nested inside an
+/// object literal does not terminate the annotation.
+///
+/// Returns `(payload_text, payload_end_byte)` where `payload_end_byte` is
+/// the byte index in `expression` where the caller should resume tokenization
+/// (pointing at the `|` if any, or at `expression.len()` otherwise).
+fn extract_inline_return_annotation_payload(
+    expression: &str,
+    start: usize,
+) -> Result<(String, usize)> {
+    let bytes = expression.as_bytes();
+    let mut idx = start;
+    while idx < bytes.len() && (bytes[idx] as char).is_whitespace() {
+        idx += 1;
+    }
+    let payload_start = idx;
 
-    let expression = body
-        .get(..idx)
-        .map(str::trim)
-        .unwrap_or_default()
-        .to_string();
-    let return_annotation = body
-        .get(idx + 2..)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(str::to_string);
-
-    (expression, return_annotation)
-}
-
-fn find_top_level_return_annotation(body: &str) -> Option<usize> {
     let mut tracker = DelimiterTracker::default();
-    let mut chars = body.char_indices().peekable();
-
-    while let Some((idx, ch)) = chars.next() {
-        if tracker.consume(
+    let mut iter = expression[payload_start..].char_indices().peekable();
+    while let Some((rel_idx, ch)) = iter.next() {
+        let consumed = tracker.consume(
             ch,
-            chars.peek().map(|(_, next)| *next),
+            iter.peek().map(|(_, n)| *n),
             ScanMode::RuleExpression,
-        ) {
+        );
+        if consumed {
             continue;
         }
-        if ch == '-' && matches!(chars.peek(), Some((_, '>'))) && tracker.is_top_level() {
-            return Some(idx);
+        if ch == '|' && tracker.is_top_level() {
+            let abs_idx = payload_start + rel_idx;
+            let payload = expression[payload_start..abs_idx].trim().to_string();
+            return Ok((payload, abs_idx));
         }
     }
 
-    None
+    if tracker.in_quote.is_some() {
+        return Err(anyhow!(
+            "unterminated quoted literal inside return annotation payload starting at byte {}",
+            payload_start
+        ));
+    }
+    if tracker.in_regex {
+        return Err(anyhow!(
+            "unterminated regex literal inside return annotation payload starting at byte {}",
+            payload_start
+        ));
+    }
+
+    let payload = expression[payload_start..].trim().to_string();
+    Ok((payload, expression.len()))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -514,6 +535,35 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
                     branch_has_syntax = true;
                 }
                 idx += 1;
+            }
+            '-' => {
+                // `->` at top level introduces an inline return annotation.
+                // The payload extends to the next top-level `|` or to end of
+                // the rule body (rule-level annotation case).
+                //
+                // Position matters: the resulting `[return_*, ...]` token
+                // lands in the token stream at the source position of `->`,
+                // which is what makes per-branch annotations attach to the
+                // correct branch index in `extract_rule_annotations`. A `->`
+                // appearing inside a group `(...)` is NOT treated as an
+                // annotation marker — that would be unusual EBNF syntax;
+                // standalone `-` characters (without a following `>`) are
+                // skipped as before.
+                let next_ch = bytes.get(idx + 1).map(|b| *b as char);
+                if next_ch == Some('>') && sequence_group_depth == 0 {
+                    let payload_start = idx + 2;
+                    let (payload_text, payload_end) =
+                        extract_inline_return_annotation_payload(expression, payload_start)?;
+                    if !payload_text.is_empty() {
+                        let token_type = classify_return_annotation(&payload_text);
+                        tokens.push(json!([token_type, payload_text]));
+                        // The `->` annotation does not introduce its own
+                        // syntax token; it carries on the current branch.
+                    }
+                    idx = payload_end;
+                } else {
+                    idx += 1;
+                }
             }
             '{' => {
                 if let Some((quantifier, next_idx)) = parse_braced_quantifier(expression, idx) {
@@ -1086,6 +1136,109 @@ entry := "a" -> {type: "node"}
             first_rule.contains("[\"return_object\",\"{type: \\\"node\\\"}\"]"),
             "expected return annotation token in raw_ast, got: {}",
             first_rule
+        );
+    }
+
+    /// Regression test for the EBNF frontend's inline-annotation over-grab.
+    /// Before the fix, `split_rule_expression_and_return_annotation` returned
+    /// everything after the first top-level `->` as the annotation, including
+    /// any subsequent `|` branches, and the rule-level append in
+    /// `convert_scanned_rule` placed the (mis-extracted) annotation at end of
+    /// rule. The fix moves return-annotation tokenization into
+    /// `tokenize_rule_expression`, where the `->` payload is bounded by the
+    /// next top-level `|` or end-of-input, and the resulting `[return_*, ...]`
+    /// token lands inline at its source position.
+    #[test]
+    fn inline_branch_level_return_annotation_lands_at_correct_branch_index() {
+        let input = r#"
+property_rule :=
+    (key /\s*/ ":" /\s*/ value) -> {type: "kv", k: $1, v: $5} |
+    bare_id |
+    spread
+"#;
+        let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "mini", None)
+            .expect("frontend parse should succeed");
+        let raw_ast = envelope
+            .get("raw_ast")
+            .and_then(serde_json::Value::as_array)
+            .expect("raw_ast array should exist");
+        assert_eq!(raw_ast.len(), 1);
+        let rule_tokens = raw_ast[0].as_array().expect("rule array").clone();
+
+        // Walk the rule tokens and verify (a) the annotation text is clean
+        // (no over-grab of subsequent branches), (b) the annotation is typed
+        // `return_object` (not `return_scalar`), and (c) it appears BEFORE
+        // any top-level `|` operator so `extract_rule_annotations` will
+        // attach it to branch_index 0.
+        let mut annotation_position: Option<usize> = None;
+        let mut first_pipe_position: Option<usize> = None;
+        let mut annotation_type = String::new();
+        let mut annotation_text = String::new();
+        for (i, tok) in rule_tokens.iter().enumerate() {
+            if let Some(arr) = tok.as_array() {
+                let tag = arr.first().and_then(|v| v.as_str()).unwrap_or("");
+                match tag {
+                    "return_object" | "return_array" | "return_scalar" => {
+                        if annotation_position.is_none() {
+                            annotation_position = Some(i);
+                            annotation_type = tag.to_string();
+                            annotation_text =
+                                arr.get(1).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        }
+                    }
+                    "operator" => {
+                        if arr.get(1).and_then(|v| v.as_str()) == Some("|")
+                            && first_pipe_position.is_none()
+                        {
+                            first_pipe_position = Some(i);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        let ann = annotation_position.expect("expected an inline return annotation token");
+        let pipe = first_pipe_position.expect("expected the | operator after the annotation");
+        assert!(
+            ann < pipe,
+            "annotation token (position {}) must precede the first | operator (position {}) so extract_rule_annotations attaches it to branch_index 0",
+            ann,
+            pipe
+        );
+        assert_eq!(
+            annotation_type, "return_object",
+            "annotation must be classified return_object (the over-grab bug used to misclassify as return_scalar)"
+        );
+        assert_eq!(
+            annotation_text, "{type: \"kv\", k: $1, v: $5}",
+            "annotation text must be exactly the inline payload, not over-grabbing subsequent | branches"
+        );
+
+        // The subsequent branches (`bare_id`, `spread`) must be present in
+        // the token stream as rule_reference tokens. The over-grab bug used
+        // to swallow them into the annotation text and drop them from the
+        // tokenization.
+        let rule_refs: Vec<&str> = rule_tokens
+            .iter()
+            .filter_map(|tok| {
+                let arr = tok.as_array()?;
+                if arr.first()?.as_str()? == "rule_reference" {
+                    arr.get(1)?.as_str()
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert!(
+            rule_refs.contains(&"bare_id"),
+            "second branch's rule_reference 'bare_id' must be present in token stream, got refs: {:?}",
+            rule_refs
+        );
+        assert!(
+            rule_refs.contains(&"spread"),
+            "third branch's rule_reference 'spread' must be present in token stream, got refs: {:?}",
+            rule_refs
         );
     }
 
