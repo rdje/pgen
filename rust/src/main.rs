@@ -95,6 +95,21 @@ struct Args {
     /// (without this flag) is unchanged.
     #[arg(long)]
     inline_annotations: bool,
+    /// Override the path where the pipeline emits its return-annotation inventory
+    /// artifact alongside parser generation. The default is
+    /// `<output-dir>/<grammar>_return_annotations.json` next to the parser output;
+    /// the artifact captures the exact `(rule, branch_index, annotation_type, raw_text,
+    /// normalized_text)` tuples the pipeline passes to `Return_annotationParser` for
+    /// parsing. The AST-shape contract gate reads this artifact directly to assert that
+    /// the manifest's tracked declared-annotation list still matches the grammar.
+    #[arg(long)]
+    emit_return_annotations_json: Option<PathBuf>,
+    /// Disable the auto-emission of the return-annotation inventory artifact during
+    /// `--generate-parser`. Default is to auto-emit; pass this flag for environments
+    /// where the artifact is not desired (for example focused codegen experiments where
+    /// the tracked artifact should not be touched).
+    #[arg(long)]
+    no_emit_return_annotations: bool,
     /// Generate random grammar-valid stimuli from AST JSON
     #[arg(long, conflicts_with = "generate_parser")]
     generate_stimuli: bool,
@@ -899,6 +914,35 @@ fn main() -> Result<()> {
         std::fs::write(&output_rust, parser_code)?;
 
         println!("SOTA parser generated: {}", output_rust);
+
+        // Auto-emit the return-annotation inventory artifact alongside parser
+        // generation. Single source of truth for the AST-shape contract gate:
+        // the same Annotations struct the codegen consumed produces this
+        // artifact, eliminating any risk of divergence between what's tracked
+        // and what the parser actually sees.
+        if !args.no_emit_return_annotations {
+            let inventory_path = args
+                .emit_return_annotations_json
+                .clone()
+                .unwrap_or_else(|| {
+                    pgen::ast_pipeline::default_return_annotation_inventory_path(
+                        &grammar.grammar_name,
+                        &output_rust,
+                    )
+                });
+            let inventory =
+                pgen::ast_pipeline::EmittedReturnAnnotationInventory::from_annotations(
+                    &grammar.grammar_name,
+                    grammar.annotations.as_ref(),
+                );
+            let written = inventory.write_to_file(&inventory_path)?;
+            println!(
+                "Return-annotation inventory: {} ({} entries)",
+                written.display(),
+                inventory.annotation_count
+            );
+        }
+
         (0, Vec::<String>::new())
     } else if args.generate_stimuli_module {
         let grammar = apply_grammar_profile_filter(

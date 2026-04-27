@@ -10,8 +10,13 @@
       "rule_under_test": "regex",
       "declared_annotation": "{type: \"regex\", pattern: $1}",
       "expected_content_kind": "json_object",
-      "expected_json_object_keys_present": ["type", "pattern"],
-      "expected_json_object_string_values": {"type": "regex"},
+      "expected_json_object_keys_present": [
+        "type",
+        "pattern"
+      ],
+      "expected_json_object_string_values": {
+        "type": "regex"
+      },
       "current_content_kind": "quantified",
       "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
       "drift_tracked_in": "PGEN: per-family regex regeneration follow-up requires RGX coordination before tracked generated/regex_parser.rs is regenerated; regex_parser_integration_contract 1.1.31 will need a version bump and required_rule_names refresh when the typed-Json carrier reaches the public API."
@@ -22,8 +27,13 @@
       "rule_under_test": "regex",
       "declared_annotation": "{type: \"regex\", pattern: $1}",
       "expected_content_kind": "json_object",
-      "expected_json_object_keys_present": ["type", "pattern"],
-      "expected_json_object_string_values": {"type": "regex"},
+      "expected_json_object_keys_present": [
+        "type",
+        "pattern"
+      ],
+      "expected_json_object_string_values": {
+        "type": "regex"
+      },
       "current_content_kind": "quantified",
       "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
       "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
@@ -34,8 +44,13 @@
       "rule_under_test": "regex",
       "declared_annotation": "{type: \"regex\", pattern: $1}",
       "expected_content_kind": "json_object",
-      "expected_json_object_keys_present": ["type", "pattern"],
-      "expected_json_object_string_values": {"type": "regex"},
+      "expected_json_object_keys_present": [
+        "type",
+        "pattern"
+      ],
+      "expected_json_object_string_values": {
+        "type": "regex"
+      },
       "current_content_kind": "quantified",
       "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
       "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
@@ -46,11 +61,47 @@
       "rule_under_test": "regex",
       "declared_annotation": "{type: \"regex\", pattern: $1}",
       "expected_content_kind": "json_object",
-      "expected_json_object_keys_present": ["type", "pattern"],
-      "expected_json_object_string_values": {"type": "regex"},
+      "expected_json_object_keys_present": [
+        "type",
+        "pattern"
+      ],
+      "expected_json_object_string_values": {
+        "type": "regex"
+      },
       "current_content_kind": "quantified",
       "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
       "drift_tracked_in": "PGEN: per-family regex regeneration follow-up"
     }
-  ]
+  ],
+  "declared_annotation_inventory": {
+    "pipeline_inventory_artifact": "generated/regex_return_annotations.json",
+    "extracted_at": "2026-04-27",
+    "optional_grammar_json_crosscheck": "generated/regex.json",
+    "annotations": [
+      {
+        "rule": "pattern",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
+      },
+      {
+        "rule": "piece",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"piece\", atom: $1, quantifier: $2}"
+      },
+      {
+        "rule": "posix_class",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
+      },
+      {
+        "rule": "regex",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"regex\", pattern: $1}"
+      }
+    ]
+  }
 }

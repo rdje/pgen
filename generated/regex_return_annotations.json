@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "grammar": "regex",
+  "annotation_count": 4,
+  "annotations": [
+    {
+      "rule": "pattern",
+      "branch_index": 0,
+      "annotation_type": "return_scalar",
+      "raw_text": "$1",
+      "normalized_text": "$1"
+    },
+    {
+      "rule": "piece",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"piece\", atom: $1, quantifier: $2}",
+      "normalized_text": "{type: \"piece\", atom: $1, quantifier: $2}"
+    },
+    {
+      "rule": "posix_class",
+      "branch_index": 0,
+      "annotation_type": "return_scalar",
+      "raw_text": "$1",
+      "normalized_text": "$1"
+    },
+    {
+      "rule": "regex",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"regex\", pattern: $1}",
+      "normalized_text": "{type: \"regex\", pattern: $1}"
+    }
+  ]
+}

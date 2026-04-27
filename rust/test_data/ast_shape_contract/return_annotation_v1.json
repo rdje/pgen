@@ -34,5 +34,108 @@
       "drift_status": "aligned",
       "drift_tracked_in": "n/a"
     }
-  ]
+  ],
+  "declared_annotation_inventory": {
+    "pipeline_inventory_artifact": "generated/return_annotation_return_annotations.json",
+    "extracted_at": "2026-04-27",
+    "optional_grammar_json_crosscheck": "generated/return_annotation.json",
+    "annotations": [
+      {
+        "rule": "accessor_base",
+        "branch_index": 3,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "array_access_expression",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"array_access\", base: $1, index: $3}"
+      },
+      {
+        "rule": "array_elements",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1, $2::2*]"
+      },
+      {
+        "rule": "array_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"array\", elements: $2}"
+      },
+      {
+        "rule": "extraction_expression",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{ type: \"extraction\", base: $1, target: $3, spread: $4 }"
+      },
+      {
+        "rule": "object_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"object\", properties: $2}"
+      },
+      {
+        "rule": "object_properties",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1, $2::2*]"
+      },
+      {
+        "rule": "object_property",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{key: $1, value: $3}"
+      },
+      {
+        "rule": "parenthesized",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "positional_reference",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"positional\", index: $2}"
+      },
+      {
+        "rule": "primary_expression",
+        "branch_index": 7,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "property_access_expression",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"property_access\", base: $1, property: $3}"
+      },
+      {
+        "rule": "spread_expression",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"spread\", base: $1}"
+      },
+      {
+        "rule": "spread_suffix",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "\"true\""
+      },
+      {
+        "rule": "spreadable_expression",
+        "branch_index": 4,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "string_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"string\", value: $2}"
+      }
+    ]
+  }
 }

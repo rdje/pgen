@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-04-27 - Declared-annotation inventory: pipeline-emitted artifact + contract gate enforcement
+### Achievement Summary
+Closes the second half of the systemic gap. The AST-shape contract gate now also enforces the *declared* annotations side: every grammar that ships with a tracked inventory artifact must keep its manifest's tracked annotation list byte-identical to what the AST pipeline actually passes to `Return_annotationParser`. Adding, removing, or editing a return annotation in the grammar without an explicit manifest update fails the gate with a precise diff naming the (rule, branch_index, annotation_type, normalized_text) that drifted.
+
+The pipeline emits the inventory as a side-effect of `--generate-parser`. Single source of truth: the same `Annotations` struct the codegen consumed produces the artifact, eliminating any divergence risk between the gate and the codegen input.
+
+### Pipeline change (Option B from the design discussion)
+- [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs): adds `EmittedReturnAnnotationInventory`, `EmittedReturnAnnotationEntry`, `normalize_return_annotation_text`, and `default_return_annotation_inventory_path`. The inventory captures `(rule, branch_index, annotation_type, raw_text, normalized_text)` for every return annotation in `Annotations.branch_return_annotations`, sorted by `(rule, branch_index)` for stable diffing.
+- [rust/src/main.rs](rust/src/main.rs): two new CLI flags — `--emit-return-annotations-json <PATH>` (override default path) and `--no-emit-return-annotations` (opt-out). Default behavior auto-emits to `<output-dir>/<grammar>_return_annotations.json` next to the parser output whenever `--generate-parser` is used.
+
+### Gate change
+- [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs):
+  - Manifest schema gains `declared_annotation_inventory` (optional during rollout). Each entry tracks `(rule, branch_index, annotation_type, normalized_text)` with `pipeline_inventory_artifact` naming the pipeline-emitted artifact and `optional_grammar_json_crosscheck` enabling a secondary check via the legacy raw_ast walker.
+  - New runner step reads the pipeline-emitted artifact at gate time, compares against the manifest's tracked list, and emits precise diff lines on count or text mismatch. Failures land on `regression_lock_failures`.
+  - The crosscheck path (when configured) runs `extract_declared_annotations_from_json` (Option A's walker) against the grammar's frontend JSON and asserts the two extractors agree — a safety net against pipeline implementation drift between the inventory-emit step and the raw_ast generation step.
+- [rust/src/bin/dump_declared_annotation_inventory.rs](rust/src/bin/dump_declared_annotation_inventory.rs): cross-extractor binary that dumps a JSON walk of `generated/<grammar>.json` in the same format the manifest tracks. Useful for offline inspection and for seeding new manifests.
+
+### New tracked artifacts
+- [generated/regex_return_annotations.json](generated/regex_return_annotations.json) — 4 entries.
+- [generated/return_annotation_return_annotations.json](generated/return_annotation_return_annotations.json) — 16 entries.
+- [generated/ebnf_return_annotations.json](generated/ebnf_return_annotations.json) — 121 entries.
+- [generated/rtl_frontend_return_annotations.json](generated/rtl_frontend_return_annotations.json) — 1 entry.
+
+### Manifests updated with inventory
+- [rust/test_data/ast_shape_contract/regex_v1.json](rust/test_data/ast_shape_contract/regex_v1.json) — 4 declared annotations tracked, both pipeline-emitted artifact AND raw_ast crosscheck verified.
+- [rust/test_data/ast_shape_contract/return_annotation_v1.json](rust/test_data/ast_shape_contract/return_annotation_v1.json) — 16 declared annotations tracked.
+- [rust/test_data/ast_shape_contract/rtl_frontend_v1.json](rust/test_data/ast_shape_contract/rtl_frontend_v1.json) — 1 declared annotation tracked.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 477 passed.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ pass with 5 active family tests.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Drift-detection proof: tampering with one normalized_text in `regex_v1.json` ("$1" → "$99_DRIFTED_TEXT") immediately failed the gate with the precise diff — confirming the regression-lock works end-to-end. Restoring the manifest restored the green pass.
+
+### Important Boundaries
+- **Pipeline-emit is the source of truth**, raw_ast crosscheck is the safety net. The gate compares the manifest against the pipeline artifact first; the optional crosscheck flags pipeline implementation drift if the two extractors ever disagree.
+- **Two manifests still missing inventory**: `semantic_annotation_v1.json` and `rtl_const_expr_v1.json`. Their inventory artifacts are produced by `ast_pipeline --generate-parser` runs, but those runs need the codegen-fix (`6ad4ffd`) to be applied to the tracked parser, which is being deferred per the per-family regen blast-radius rule. Inventory tracking for those two will land in their respective per-family regeneration commits.
+- **Cfg-gated families (SV / SV-preprocessor / VHDL)** also still missing inventory. Their inventory artifacts are emitted by `sv_stimuli_quality_gate` / `vhdl_stimuli_quality_gate` runs (whenever those gates run with the new `ast_pipeline` binary). Hooking the SV/VHDL gates to track their inventories is the natural next step.
+- **No tracked parsers regenerated in this commit.** Pipeline change is additive; tracked `generated/*_parser.rs` files are unchanged from HEAD. Per-family regen continues to be deferred to coordination-aware follow-up commits.
+- **Pre-existing semantic_annotation regen issue surfaced**: attempting to regenerate `generated/semantic_annotation_parser.rs` through the pipeline now fails with `Failed to parse generated TokenStream: expected '='`. This is the codegen-fix from `6ad4ffd` activating transforms on a non-Or-rule whose emitted token stream is not syn-parseable on round trip. Logged as a tracked follow-up; does not affect this commit because the tracked semantic_annotation_parser.rs is unchanged.
+
 ## 2026-04-27 - AST-shape contract: cfg-gated coverage for systemverilog / systemverilog_preprocessor / vhdl
 ### Achievement Summary
 Adds AST-shape contract scaffolding for the three parser families whose generated parsers are NOT in the default `cargo test --features generated_parsers` build: SystemVerilog, SystemVerilog preprocessor, and VHDL. Their generated parsers are produced on-demand by the SV/VHDL stimuli-quality gates into `rust/target/<gate>/work/<parser>.rs` and discarded after the gate run, so the cfgs `has_generated_systemverilog_parser`, `has_generated_systemverilog_preprocessor_parser`, and `has_generated_vhdl_parser` stay off in default builds. The three new unit tests are cfg-gated to those flags, so they compile-out by default and activate whenever the parsers are present (gate runs or `PGEN_<FAMILY>_PARSER_PATH` overrides).

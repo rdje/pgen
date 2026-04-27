@@ -10,11 +10,29 @@
       "rule_under_test": "rtl_frontend_file",
       "declared_annotation": "{type: \"rtl_frontend_file\", items: $2}",
       "expected_content_kind": "json_object",
-      "expected_json_object_keys_present": ["type", "items"],
-      "expected_json_object_string_values": {"type": "rtl_frontend_file"},
+      "expected_json_object_keys_present": [
+        "type",
+        "items"
+      ],
+      "expected_json_object_string_values": {
+        "type": "rtl_frontend_file"
+      },
       "current_content_kind": "sequence",
       "drift_status": "annotation_dropped_at_codegen_pre_regeneration",
       "drift_tracked_in": "PGEN: per-family rtl_frontend regeneration follow-up"
     }
-  ]
+  ],
+  "declared_annotation_inventory": {
+    "pipeline_inventory_artifact": "generated/rtl_frontend_return_annotations.json",
+    "extracted_at": "2026-04-27",
+    "optional_grammar_json_crosscheck": "generated/rtl_frontend.json",
+    "annotations": [
+      {
+        "rule": "rtl_frontend_file",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"rtl_frontend_file\", items: $2}"
+      }
+    ]
+  }
 }

@@ -1,4 +1,90 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-27 - Declared-annotation inventory: pipeline-emitted artifact + contract gate enforcement
+
+### What this milestone landed
+
+Closes the systemic gap on the *declared-annotations* side. The earlier work captured runtime AST shape per sample; this work captures every annotation declared in the grammar and regression-locks it so the gate fails immediately if the grammar gains/loses/edits a return annotation without an explicit manifest update.
+
+### Architecture (Option B from the design discussion)
+
+The pipeline emits the inventory at parser-generation time. Same `Annotations` struct the codegen consumes produces the artifact, so divergence between gate and codegen is impossible by construction. The gate reads the artifact directly.
+
+**Pipeline side ([rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs)):**
+- `EmittedReturnAnnotationEntry { rule, branch_index, annotation_type, raw_text, normalized_text }` per declared annotation.
+- `EmittedReturnAnnotationInventory { version, grammar, annotation_count, annotations }` is the artifact wrapper, sorted by `(rule, branch_index)` for stable diffing.
+- `normalize_return_annotation_text` collapses whitespace runs, preserves string-literal contents verbatim, trims outer whitespace. Same algorithm used by the gate.
+- `default_return_annotation_inventory_path` resolves the default emit location: `<output-dir>/<grammar>_return_annotations.json`.
+
+**CLI side ([rust/src/main.rs](rust/src/main.rs)):**
+- `--emit-return-annotations-json <PATH>` overrides the default emit path.
+- `--no-emit-return-annotations` opts out of auto-emit (for focused codegen experiments).
+- Default behavior: auto-emit alongside `--generate-parser`.
+
+**Gate side ([rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs)):**
+- `DeclaredAnnotationInventory` in the manifest schema tracks `(rule, branch_index, annotation_type, normalized_text)` with `pipeline_inventory_artifact` naming the artifact path and an optional `optional_grammar_json_crosscheck` for the secondary raw_ast walker.
+- `read_pipeline_inventory_artifact` reads the artifact directly.
+- `diff_declared_annotation_inventory` produces precise mismatch lines on count or per-entry text/rule/branch differences.
+- `run_manifest` now performs both the artifact comparison and (when configured) the raw_ast crosscheck, with both failure modes landing on `regression_lock_failures`.
+
+**Cross-extractor ([rust/src/bin/dump_declared_annotation_inventory.rs](rust/src/bin/dump_declared_annotation_inventory.rs)):**
+- Stand-alone binary that dumps a normalized inventory from `generated/<grammar>.json` via the raw_ast walker.
+- Useful for offline inspection and for seeding new manifests when the pipeline-emit hasn't run yet.
+- Same sort order as the pipeline-emit so byte-comparison is meaningful.
+
+### Drift-detection proof
+
+Tampered `regex_v1.json`'s first inventory entry — changed `normalized_text` from `"$1"` to `"$99_DRIFTED_TEXT"`. Result: the regex contract test failed immediately with:
+
+> declared-annotation inventory check failed for grammar regex (pipeline artifact .../regex_return_annotations.json): declared annotation [0] mismatch:
+>   manifest: rule="pattern" branch=0 type=return_scalar text="$99_DRIFTED_TEXT"
+>   grammar:  rule="pattern" branch=0 type=return_scalar text="$1"
+
+Restoring the manifest restored the green pass.
+
+### Why both extractors agree on byte-comparable output
+
+When the gate first ran with the inventory check active, the crosscheck path (raw_ast walker) flagged ordering differences against the pipeline-emit (alphabetically sorted). Fix: extended `extract_declared_annotations_from_json` to sort by `(rule, branch_index)` matching `EmittedReturnAnnotationInventory::from_annotations`. Both extractors now produce identical output for the regex / return_annotation / rtl_frontend grammars covered in this commit.
+
+### Coverage in this commit
+
+Fully tracked (manifest inventory + pipeline artifact + crosscheck via frontend JSON):
+- `regex` — 4 declared annotations.
+- `return_annotation` — 16 declared annotations.
+- `rtl_frontend` — 1 declared annotation.
+
+Inventory artifact emitted but no manifest sample yet (will be added in follow-up):
+- `ebnf` — 121 declared annotations.
+
+Inventory artifact not yet emitted (parser regen blocked):
+- `semantic_annotation` — 108 declared annotations expected. Regen surfaces a pre-existing `Failed to parse generated TokenStream: expected '='` error when the codegen-fix from `6ad4ffd` activates on this grammar's specific annotation patterns. Tracked as a follow-up; does not block other work because the tracked `generated/semantic_annotation_parser.rs` is unchanged.
+- `rtl_const_expr` — emitted by `ebnf_dual_run`-feature builds; tracking deferred to per-family regen commit.
+
+Inventory artifact emitted on-demand by SV/VHDL gates (cfg-gated families):
+- `systemverilog`, `systemverilog_preprocessor`, `vhdl` — emit when their respective stimuli-quality gates run.
+
+### Why drift-detection works in BOTH directions
+
+- Adding a new return annotation to the grammar without updating the manifest: pipeline-emit grows; gate fails on count mismatch.
+- Removing a return annotation from the grammar without updating the manifest: pipeline-emit shrinks; gate fails on count mismatch.
+- Editing an annotation's text without updating the manifest: per-entry text mismatch with precise (rule, branch_index) diff.
+- Tampering with the manifest without changing the grammar: same per-entry diff but in the opposite direction.
+- A pipeline implementation bug that makes the inventory-emit and the raw_ast walk disagree: crosscheck flags it as `pipeline implementation drift — investigate`.
+
+### Validation
+
+- `cargo test --lib --features generated_parsers` — 477 passed.
+- `ast_shape_contract_gate` — 5 active family tests pass.
+- `clippy_on_rust_change` — strict source lint pass.
+- Drift-detection: tampering proven to fail the gate with precise diff; restoring proven to restore the pass.
+
+### Tracked follow-ups (closely connected)
+
+1. **Hook SV/VHDL gates to track their inventory artifacts**: when `sv_stimuli_quality_gate` and `vhdl_stimuli_quality_gate` run, they should produce the inventory artifacts and (under cfg-gated tests) the contract gate should compare against tracked manifests. The pipeline already emits — wiring is gate-side.
+2. **Investigate the semantic_annotation regen syn-parse error**: `expected '='` when the codegen fix from `6ad4ffd` activates on this grammar. Likely a real codegen bug surfacing only on certain non-Or-root annotation patterns. Add a focused test that reproduces the failure and fix the emitted token shape.
+3. **Add ebnf manifest sample + inventory tracking**: artifact emitted; just needs a manifest entry.
+4. **Per-family regen commits** to close the runtime-shape drift cluster (regex needs RGX coordination; others independent).
+5. **Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`**.
+
 ## 2026-04-27 - AST-shape contract: cfg-gated coverage for SV / SV-preprocessor / VHDL
 
 ### What this milestone landed

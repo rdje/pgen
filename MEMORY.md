@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-27 (+0200, task: ast-shape-contract-cfg-gated-sv-vhdl-svpp)
+Last updated: 2026-04-27 (+0200, task: declared-annotation-inventory-pipeline-emit-and-gate-enforcement)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,23 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Declared-annotation inventory check landed (Option B from the design discussion). The AST pipeline now auto-emits `<grammar>_return_annotations.json` as a side-effect of `--generate-parser`; the contract gate reads the artifact directly and regression-locks the manifest's tracked annotation list against it.
+- Pipeline change: [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) gains `EmittedReturnAnnotationEntry`, `EmittedReturnAnnotationInventory`, `normalize_return_annotation_text`, `default_return_annotation_inventory_path`. [rust/src/main.rs](rust/src/main.rs) gains `--emit-return-annotations-json` and `--no-emit-return-annotations`; default auto-emits next to the parser output.
+- Gate change: [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs) reads the pipeline-emitted artifact via `read_pipeline_inventory_artifact` + the optional raw_ast crosscheck via `extract_declared_annotations_from_json`. Both extractors sort by `(rule, branch_index)` so output is byte-comparable.
+- Cross-extractor binary at [rust/src/bin/dump_declared_annotation_inventory.rs](rust/src/bin/dump_declared_annotation_inventory.rs) dumps the same data from `generated/<grammar>.json` for offline inspection.
+- Tracked artifacts emitted: [generated/regex_return_annotations.json](generated/regex_return_annotations.json) (4), [generated/return_annotation_return_annotations.json](generated/return_annotation_return_annotations.json) (16), [generated/ebnf_return_annotations.json](generated/ebnf_return_annotations.json) (121), [generated/rtl_frontend_return_annotations.json](generated/rtl_frontend_return_annotations.json) (1).
+- Manifests with inventory tracking: regex, return_annotation, rtl_frontend. The other 5 manifests have inventory tracking deferred (semantic_annotation, rtl_const_expr need parser regen first; SV/VHDL/SVPP need their gate runs to emit artifacts).
+- Drift-detection proven end-to-end: tampering with one normalized_text in `regex_v1.json` immediately failed the gate with the precise diff naming the (rule, branch_index, type, text) that drifted; restoring the manifest restored the green pass.
+- New issue surfaced: regenerating `generated/semantic_annotation_parser.rs` through the pipeline now fails with `Failed to parse generated TokenStream: expected '='` because the codegen-fix from `6ad4ffd` activates on this grammar's annotation patterns and emits a token sequence syn cannot round-trip parse. Tracked as a follow-up; does not affect this commit.
+- Validation: `cargo test --lib --features generated_parsers` 477 passed; `ast_shape_contract_gate` 5 active family tests pass; clippy strict source lint pass.
+- **Next priority follow-ups** (in order):
+  1. Investigate the semantic_annotation regen syn-parse error (real codegen bug to fix).
+  2. Hook SV/VHDL gates so their inventory artifacts get produced and tracked.
+  3. Add ebnf manifest sample (artifact already emitted).
+  4. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+  5. Per-family parser regen commits (regex first; needs RGX coordination).
+
+## Prior Session Note
 - AST-shape contract scaffolding added for `systemverilog`, `systemverilog_preprocessor`, `vhdl`. Each grammar declares 1 top-level object-literal annotation on a non-Or root rule (same drop class as regex). Their generated parsers are produced on-demand by SV/VHDL gates into `rust/target/<gate>/work/<parser>.rs`, so the cfgs `has_generated_systemverilog_parser` / `has_generated_systemverilog_preprocessor_parser` / `has_generated_vhdl_parser` stay off in default builds. The 3 new tests are cfg-gated to those flags — they compile-out by default and activate when the parsers are present.
 - New manifests: [rust/test_data/ast_shape_contract/systemverilog_v1.json](rust/test_data/ast_shape_contract/systemverilog_v1.json), [.../systemverilog_preprocessor_v1.json](rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json), [.../vhdl_v1.json](rust/test_data/ast_shape_contract/vhdl_v1.json).
 - Each SV/VHDL/SV-preprocessor sample carries a `current_content_kind` placeholder calibrated from grammar inspection. First run with parser present will likely hit a regression-lock failure that reports the actual kind; the manifest fix is one-line.

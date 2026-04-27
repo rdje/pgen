@@ -53,6 +53,46 @@ pub struct AstShapeContractManifest {
     pub purpose: String,
     pub doctrine: String,
     pub samples: Vec<AstShapeContractSample>,
+    /// Declared-annotation inventory: every return annotation declared in the
+    /// grammar source, normalized. The runner extracts the same inventory from
+    /// the grammar's frontend JSON (or another source) at gate time and fails
+    /// on count or normalized-text mismatch. Optional during the rollout — a
+    /// missing inventory is tolerated for grammars whose frontend JSON is not
+    /// yet tracked, but every grammar should eventually carry one.
+    #[serde(default)]
+    pub declared_annotation_inventory: Option<DeclaredAnnotationInventory>,
+}
+
+/// Tracked snapshot of every return annotation declared in the grammar.
+/// `pipeline_inventory_artifact` names the path to the inventory artifact
+/// the AST pipeline emits as a side-effect of `--generate-parser`. The gate
+/// reads that artifact directly: single source of truth, no re-derivation.
+/// The `annotations` list must match the artifact in count and
+/// normalized-text terms exactly. `optional_grammar_json_crosscheck`, when
+/// present, also runs the legacy raw_ast walker against the named JSON and
+/// confirms the two extractors agree — a safety net against pipeline
+/// implementation drift.
+#[derive(Debug, Deserialize)]
+pub struct DeclaredAnnotationInventory {
+    pub pipeline_inventory_artifact: String,
+    pub extracted_at: String,
+    pub annotations: Vec<DeclaredAnnotation>,
+    #[serde(default)]
+    pub optional_grammar_json_crosscheck: Option<String>,
+}
+
+/// One declared annotation. `rule` and `branch_index` follow the
+/// `extract_rule_annotations` semantics from the AST pipeline (group_depth
+/// is honored, so `|` operators inside parentheses do not increment the
+/// branch counter). `annotation_type` is one of `return_scalar`,
+/// `return_array`, `return_object`. `normalized_text` is the annotation's
+/// payload after `normalize_annotation_text` is applied.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct DeclaredAnnotation {
+    pub rule: String,
+    pub branch_index: usize,
+    pub annotation_type: String,
+    pub normalized_text: String,
 }
 
 /// One assertion per sample input.
@@ -165,6 +205,213 @@ impl ContractReport {
     }
 }
 
+/// Normalize a return-annotation payload string for stable comparison. Trim
+/// outer whitespace; collapse runs of whitespace inside the payload to a
+/// single space; preserve characters inside string literals (quoted with
+/// `"` or `'`) verbatim. The result is deterministic — two annotations that
+/// differ only by inconsequential whitespace normalize to the same string,
+/// while any meaningful edit (key rename, value change, structural change)
+/// produces a different normalized form.
+pub fn normalize_annotation_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut prev_ws = false;
+    let mut in_str = false;
+    let mut quote: Option<char> = None;
+    for ch in s.trim().chars() {
+        if in_str {
+            out.push(ch);
+            if Some(ch) == quote {
+                in_str = false;
+                quote = None;
+            }
+            prev_ws = false;
+        } else if ch == '"' || ch == '\'' {
+            in_str = true;
+            quote = Some(ch);
+            out.push(ch);
+            prev_ws = false;
+        } else if ch.is_whitespace() {
+            if !prev_ws {
+                out.push(' ');
+                prev_ws = true;
+            }
+        } else {
+            out.push(ch);
+            prev_ws = false;
+        }
+    }
+    out.trim_end().to_string()
+}
+
+/// Extract the declared-annotation inventory from a grammar's frontend JSON
+/// file (e.g. `generated/regex.json`). The walk mirrors the behavior of
+/// `RustASTPipeline::extract_rule_annotations` in
+/// [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs), including
+/// `group_depth` tracking so `|` operators inside parentheses do NOT
+/// increment the branch counter. Annotations are returned in source order.
+pub fn extract_declared_annotations_from_json<P: AsRef<Path>>(
+    json_path: P,
+) -> std::io::Result<Vec<DeclaredAnnotation>> {
+    let raw = std::fs::read_to_string(json_path.as_ref())?;
+    let value: serde_json::Value = serde_json::from_str(&raw).map_err(|err| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("frontend JSON deserialise failed: {}", err),
+        )
+    })?;
+    let raw_ast = value
+        .get("raw_ast")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "frontend JSON missing `raw_ast` array",
+            )
+        })?;
+
+    let mut annotations = Vec::new();
+    for rule_arr in raw_ast {
+        let arr = match rule_arr.as_array() {
+            Some(a) if !a.is_empty() => a,
+            _ => continue,
+        };
+        let rule_name = match arr.first().and_then(|v| v.as_array()) {
+            Some(first)
+                if first.first().and_then(|v| v.as_str()) == Some("rule")
+                    && first.get(1).and_then(|v| v.as_str()).is_some() =>
+            {
+                first.get(1).and_then(|v| v.as_str()).unwrap().to_string()
+            }
+            _ => continue,
+        };
+
+        let mut group_depth: usize = 0;
+        let mut branch_index: usize = 0;
+
+        for item in &arr[1..] {
+            let item_arr = match item.as_array() {
+                Some(a) if !a.is_empty() => a,
+                _ => continue,
+            };
+            let tag = match item_arr.first().and_then(|v| v.as_str()) {
+                Some(t) => t,
+                None => continue,
+            };
+
+            match tag {
+                "group_open" => group_depth = group_depth.saturating_add(1),
+                "group_close" => group_depth = group_depth.saturating_sub(1),
+                "operator" => {
+                    if item_arr.get(1).and_then(|v| v.as_str()) == Some("|") && group_depth == 0 {
+                        branch_index = branch_index.saturating_add(1);
+                    }
+                }
+                "return_scalar" | "return_array" | "return_object" => {
+                    let text = item_arr
+                        .get(1)
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default();
+                    annotations.push(DeclaredAnnotation {
+                        rule: rule_name.clone(),
+                        branch_index,
+                        annotation_type: tag.to_string(),
+                        normalized_text: normalize_annotation_text(text),
+                    });
+                }
+                _ => {}
+            }
+        }
+    }
+    // Match the sort order used by `EmittedReturnAnnotationInventory::from_annotations`
+    // so the cross-extractor's output is byte-comparable with the pipeline's artifact.
+    annotations.sort_by(|a, b| {
+        a.rule
+            .cmp(&b.rule)
+            .then_with(|| a.branch_index.cmp(&b.branch_index))
+    });
+    Ok(annotations)
+}
+
+/// Read the pipeline-emitted inventory artifact at `path` and produce the
+/// flat `DeclaredAnnotation` list the contract gate compares against. The
+/// artifact format is produced by
+/// [`crate::ast_pipeline::EmittedReturnAnnotationInventory`] during
+/// `ast_pipeline --generate-parser`; this reader is the consumer side of
+/// that contract.
+pub fn read_pipeline_inventory_artifact<P: AsRef<Path>>(
+    path: P,
+) -> std::io::Result<Vec<DeclaredAnnotation>> {
+    let raw = std::fs::read_to_string(path.as_ref())?;
+    let parsed: crate::ast_pipeline::EmittedReturnAnnotationInventory =
+        serde_json::from_str(&raw).map_err(|err| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("pipeline inventory artifact deserialise failed: {}", err),
+            )
+        })?;
+    Ok(parsed
+        .annotations
+        .into_iter()
+        .map(|entry| DeclaredAnnotation {
+            rule: entry.rule,
+            branch_index: entry.branch_index,
+            annotation_type: entry.annotation_type,
+            normalized_text: entry.normalized_text,
+        })
+        .collect())
+}
+
+/// Compare a manifest's tracked declared-annotation inventory against the
+/// live extraction. Returns a list of human-readable mismatch lines suitable
+/// for placement on `ContractReport.regression_lock_failures`. An empty list
+/// means the manifest and the live source agree on every declared annotation.
+pub fn diff_declared_annotation_inventory(
+    manifest_inventory: &[DeclaredAnnotation],
+    live_inventory: &[DeclaredAnnotation],
+) -> Vec<String> {
+    let mut mismatches = Vec::new();
+
+    if manifest_inventory.len() != live_inventory.len() {
+        mismatches.push(format!(
+            "declared annotation count mismatch: manifest tracks {}, grammar declares {}",
+            manifest_inventory.len(),
+            live_inventory.len()
+        ));
+    }
+
+    let pair_count = manifest_inventory.len().min(live_inventory.len());
+    for idx in 0..pair_count {
+        let m = &manifest_inventory[idx];
+        let l = &live_inventory[idx];
+        if m != l {
+            mismatches.push(format!(
+                "declared annotation [{}] mismatch:\n  manifest: rule={:?} branch={} type={} text={:?}\n  grammar:  rule={:?} branch={} type={} text={:?}",
+                idx,
+                m.rule, m.branch_index, m.annotation_type, m.normalized_text,
+                l.rule, l.branch_index, l.annotation_type, l.normalized_text,
+            ));
+        }
+    }
+
+    if live_inventory.len() > manifest_inventory.len() {
+        for (idx, ann) in live_inventory.iter().enumerate().skip(manifest_inventory.len()) {
+            mismatches.push(format!(
+                "declared annotation [{}] present in grammar but missing from manifest: rule={:?} branch={} type={} text={:?}",
+                idx, ann.rule, ann.branch_index, ann.annotation_type, ann.normalized_text
+            ));
+        }
+    } else if manifest_inventory.len() > live_inventory.len() {
+        for (idx, ann) in manifest_inventory.iter().enumerate().skip(live_inventory.len()) {
+            mismatches.push(format!(
+                "declared annotation [{}] tracked in manifest but missing from grammar: rule={:?} branch={} type={} text={:?}",
+                idx, ann.rule, ann.branch_index, ann.annotation_type, ann.normalized_text
+            ));
+        }
+    }
+
+    mismatches
+}
+
 /// Load a manifest from a tracked path. Path is relative to the repo's
 /// `rust/` directory so callers can use the conventional
 /// `test_data/ast_shape_contract/<grammar>_v<n>.json` form.
@@ -183,6 +430,14 @@ pub fn load_manifest<P: AsRef<Path>>(path: P) -> std::io::Result<AstShapeContrac
 /// classifies the resulting content, asserts against the manifest, and
 /// produces a structured report. The runner does NOT panic; callers decide
 /// whether a non-passing report is a hard error.
+///
+/// When the manifest carries a `declared_annotation_inventory`, the runner
+/// also extracts the live inventory from the named frontend JSON and adds
+/// any count or normalized-text discrepancy to
+/// `ContractReport.regression_lock_failures`. This catches the case where a
+/// new return annotation is added to the grammar without an explicit
+/// manifest update — the gate fails until the manifest matches the grammar
+/// again.
 pub fn run_manifest<F>(
     manifest: &AstShapeContractManifest,
     mut parse_sample: F,
@@ -191,6 +446,57 @@ where
     F: for<'input> FnMut(&'input str) -> Result<ParseNode<'input>, String>,
 {
     let mut report = ContractReport::default();
+
+    if let Some(inventory) = &manifest.declared_annotation_inventory {
+        let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new(""))
+            .to_path_buf();
+
+        let artifact_path = repo_root.join(&inventory.pipeline_inventory_artifact);
+        match read_pipeline_inventory_artifact(&artifact_path) {
+            Ok(live) => {
+                for diff in diff_declared_annotation_inventory(&inventory.annotations, &live) {
+                    report.regression_lock_failures.push(format!(
+                        "declared-annotation inventory check failed for grammar {} (pipeline artifact {}): {}",
+                        manifest.grammar,
+                        artifact_path.display(),
+                        diff
+                    ));
+                }
+            }
+            Err(err) => {
+                report.regression_lock_failures.push(format!(
+                    "declared-annotation inventory: failed to read pipeline artifact {}: {} (regenerate the parser to refresh the artifact)",
+                    artifact_path.display(),
+                    err
+                ));
+            }
+        }
+
+        if let Some(crosscheck_json) = &inventory.optional_grammar_json_crosscheck {
+            let json_path = repo_root.join(crosscheck_json);
+            match extract_declared_annotations_from_json(&json_path) {
+                Ok(crosscheck) => {
+                    for diff in diff_declared_annotation_inventory(&inventory.annotations, &crosscheck) {
+                        report.regression_lock_failures.push(format!(
+                            "declared-annotation crosscheck failed for grammar {} (frontend JSON {}): {} (this means the pipeline's inventory-emit path and its raw_ast walk disagree — investigate)",
+                            manifest.grammar,
+                            json_path.display(),
+                            diff
+                        ));
+                    }
+                }
+                Err(err) => {
+                    report.regression_lock_failures.push(format!(
+                        "declared-annotation crosscheck: failed to read frontend JSON {}: {}",
+                        json_path.display(),
+                        err
+                    ));
+                }
+            }
+        }
+    }
 
     for sample in &manifest.samples {
         let parsed = match parse_sample(&sample.input) {

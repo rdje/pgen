@@ -765,6 +765,132 @@ pub struct Annotations {
     pub semantic_annotations: std::collections::HashMap<String, Vec<SemanticAnnotation>>,
 }
 
+/// Normalize a return-annotation payload string for stable comparison. Trim
+/// outer whitespace; collapse runs of whitespace inside the payload to a
+/// single space; preserve characters inside string literals (quoted with
+/// `"` or `'`) verbatim. Same algorithm used by the AST-shape contract gate
+/// so the emitted inventory artifact and the gate's tracked manifest agree
+/// byte-for-byte after normalization.
+pub fn normalize_return_annotation_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut prev_ws = false;
+    let mut in_str = false;
+    let mut quote: Option<char> = None;
+    for ch in s.trim().chars() {
+        if in_str {
+            out.push(ch);
+            if Some(ch) == quote {
+                in_str = false;
+                quote = None;
+            }
+            prev_ws = false;
+        } else if ch == '"' || ch == '\'' {
+            in_str = true;
+            quote = Some(ch);
+            out.push(ch);
+            prev_ws = false;
+        } else if ch.is_whitespace() {
+            if !prev_ws {
+                out.push(' ');
+                prev_ws = true;
+            }
+        } else {
+            out.push(ch);
+            prev_ws = false;
+        }
+    }
+    out.trim_end().to_string()
+}
+
+/// One entry in the emitted return-annotation inventory artifact.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct EmittedReturnAnnotationEntry {
+    pub rule: String,
+    pub branch_index: usize,
+    pub annotation_type: String,
+    pub raw_text: String,
+    pub normalized_text: String,
+}
+
+/// Top-level shape of `<grammar>_return_annotations.json`. This is the
+/// pipeline-emitted inventory the AST-shape contract gate compares against.
+/// Single source of truth: the pipeline's own annotation extraction step
+/// produces this artifact, the gate reads it directly, no re-derivation.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct EmittedReturnAnnotationInventory {
+    pub version: u32,
+    pub grammar: String,
+    pub annotation_count: usize,
+    pub annotations: Vec<EmittedReturnAnnotationEntry>,
+}
+
+impl EmittedReturnAnnotationInventory {
+    /// Build the inventory from the in-memory `Annotations` struct that the
+    /// pipeline carries. Annotations are emitted sorted by (rule,
+    /// branch_index) for stable diffing across regenerations.
+    pub fn from_annotations(grammar: &str, annotations: Option<&Annotations>) -> Self {
+        let mut entries: Vec<EmittedReturnAnnotationEntry> = Vec::new();
+        if let Some(annotations) = annotations {
+            for (rule, branches) in &annotations.branch_return_annotations {
+                for (branch_index, opt_annotation) in branches.iter().enumerate() {
+                    if let Some(annotation) = opt_annotation {
+                        entries.push(EmittedReturnAnnotationEntry {
+                            rule: rule.clone(),
+                            branch_index,
+                            annotation_type: annotation.annotation_type.clone(),
+                            raw_text: annotation.annotation_content.clone(),
+                            normalized_text: normalize_return_annotation_text(
+                                &annotation.annotation_content,
+                            ),
+                        });
+                    }
+                }
+            }
+        }
+        entries.sort_by(|a, b| {
+            a.rule
+                .cmp(&b.rule)
+                .then_with(|| a.branch_index.cmp(&b.branch_index))
+        });
+        Self {
+            version: 1,
+            grammar: grammar.to_string(),
+            annotation_count: entries.len(),
+            annotations: entries,
+        }
+    }
+
+    /// Write the inventory artifact to `path`. Creates the parent directory
+    /// if needed. Returns the same path so callers can log/print it.
+    pub fn write_to_file<P: AsRef<std::path::Path>>(
+        &self,
+        path: P,
+    ) -> std::io::Result<std::path::PathBuf> {
+        if let Some(parent) = path.as_ref().parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let pretty = serde_json::to_string_pretty(self).map_err(|err| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("inventory serialise failed: {}", err),
+            )
+        })?;
+        std::fs::write(&path, pretty + "\n")?;
+        Ok(path.as_ref().to_path_buf())
+    }
+}
+
+/// Default sibling path for the emitted inventory: same directory as the
+/// parser output, with `<grammar>_return_annotations.json` filename.
+pub fn default_return_annotation_inventory_path<P: AsRef<std::path::Path>>(
+    grammar: &str,
+    parser_output_path: P,
+) -> std::path::PathBuf {
+    let parser_path = parser_output_path.as_ref();
+    let parent = parser_path.parent().unwrap_or_else(|| std::path::Path::new("."));
+    parent.join(format!("{}_return_annotations.json", grammar))
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct TransformMetadata {
     pub format: String,
