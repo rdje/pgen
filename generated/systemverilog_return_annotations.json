@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "grammar": "systemverilog",
+  "annotation_count": 1,
+  "annotations": [
+    {
+      "rule": "systemverilog_parseable_file",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"systemverilog_parseable_file\", items: $2}",
+      "normalized_text": "{type: \"systemverilog_parseable_file\", items: $2}"
+    }
+  ]
+}

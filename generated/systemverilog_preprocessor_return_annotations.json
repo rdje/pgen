@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "grammar": "systemverilog_preprocessor",
+  "annotation_count": 1,
+  "annotations": [
+    {
+      "rule": "systemverilog_preprocessor_file",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+      "normalized_text": "{type: \"systemverilog_preprocessor_file\", items: $1}"
+    }
+  ]
+}

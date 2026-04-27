@@ -12,8 +12,8 @@
       "expected_content_kind": "json_object",
       "expected_json_object_keys_present": ["type", "items"],
       "expected_json_object_string_values": {"type": "systemverilog_preprocessor_file"},
-      "current_content_kind": "quantified",
-      "drift_status": "parser_unavailable_in_default_build_pending_first_run_calibration",
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
       "drift_tracked_in": "PGEN: SV-preprocessor per-family contract calibration on first parser availability + regen coordination follow-up"
     }
   ]

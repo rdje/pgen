@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "grammar": "vhdl",
+  "annotation_count": 1,
+  "annotations": [
+    {
+      "rule": "vhdl_file",
+      "branch_index": 0,
+      "annotation_type": "return_object",
+      "raw_text": "{type: \"vhdl_file\", design_units: $1}",
+      "normalized_text": "{type: \"vhdl_file\", design_units: $1}"
+    }
+  ]
+}
