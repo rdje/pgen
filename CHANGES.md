@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-04-27 - Suffix-fold for chained access: design proposal (no code change, awaiting strategy choice)
+### Achievement Summary
+Documents the next layer of the LR-elim ↔ inline-transform interaction (chained access semantics) and proposes three concrete fix strategies. The flatten fix from `a6a51d5` resolved position arithmetic; this layer is semantic — even with correct positions, the rule's annotation has no syntax to express "fold each suffix repetition match into a nested wrapper around the running result."
+
+The full design analysis is in [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md). Summary:
+
+- **Strategy 1: Runtime suffix folding (codegen-emit fold loop)** — codegen detects LR-elim'd rules and emits fold prologue/epilogue; ~120 lines, real plumbing across LR-elim + codegen.
+- **Strategy 2: Skip LR-elim for annotated rules** — restricts grammar form; either requires Packrat-LR runtime work or defers the problem.
+- **Strategy 3 (recommended): Annotation-aware LR-elim** — LR-elim wraps the original annotation with synthetic `_pgen_lr_chain` metadata; walker recognizes the wrapper and runs the fold; ~150 lines across `mod.rs` (LR-elim) and `unified_return_ast.rs` (walker), codegen unchanged.
+
+### Why this commit is design-only
+
+Strategy choice has long-term architectural implications worth confirming with the user before implementation. All three strategies block `return_annotation` regen; choosing one unblocks the others. No tracked parsers regenerated.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 478 passed (no code change, no regression).
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ 5 family tests pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
 ## 2026-04-27 - LR-elim flatten fix: wrapper_suffix's elements no longer collapsed into a single nested Sequence
 ### Achievement Summary
 First-layer fix of the LR-elimination ↔ inline-transform interaction. `apply_left_recursive_chain_plan` in [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) used to build the rewritten rule body as `Sequence([helper_base_ref, wrapper_suffix, suffix_repetition*])`. When `wrapper_suffix` was itself a Sequence (the common case — e.g. `'.' identifier` for `property_access_expression := accessor_base '.' identifier`), the rewritten rule had only **3 top-level elements** regardless of the original body length: helper_base_ref + nested-Sequence + Quantified.

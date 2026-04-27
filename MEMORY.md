@@ -8,6 +8,17 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Suffix-fold for chained access: documented as a design proposal in [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md). Three concrete fix strategies (runtime fold via codegen, skip LR-elim for annotated rules, annotation-aware LR-elim with synthetic `_pgen_lr_chain` metadata). Recommendation: Strategy 3 (annotation-aware LR-elim) for cleanest separation — codegen stays oblivious; LR-elim owns the rewrite of both rule body and annotation; walker recognizes one new `type` discriminator. Estimated ~150 lines across `mod.rs` and `unified_return_ast.rs` plus a focused regression test.
+- **No code change in this commit** — design alignment needed before picking a strategy. All three strategies block `return_annotation` regen; the chosen one unblocks all dependent grammars.
+- 478 tests pass. `ast_shape_contract_gate` 5 family tests pass. clippy strict pass.
+- **Open follow-ups** (priority order):
+  1. **Pick a suffix-fold strategy and implement** (currently the bottleneck for any left-recursive grammar regen).
+  2. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
+  3. `ebnf` regen.
+  4. `regex` regen — RGX coordination.
+  5. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+
+## Prior Session Note
 - LR-elim flatten fix landed: `apply_left_recursive_chain_plan` in [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) now flattens `wrapper_suffix`'s elements into the outer rewritten Sequence rather than nesting it. Preserves the original `$N` element positions across LR-elim rewrite.
 - Concretely fixed: for `property_access_expression := accessor_base '.' identifier`, the post-rewrite body now has 4 top-level elements (`[helper_base_ref, '.', identifier, suffix_repetition*]`) instead of 3 nested ones (`[helper_base_ref, Sequence([.', identifier]), suffix_repetition*]`). Annotation's `$3` correctly resolves to `identifier`.
 - Direct probe of regenerated `return_annotation_parser.rs`: `property: "A"` correctly extracted for input `$+0.A` (was `[["[", 0, "]"]]` before).

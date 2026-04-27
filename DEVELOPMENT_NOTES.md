@@ -1,4 +1,114 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-27 - Suffix-fold for chained access (LR-elim layer 2): design proposal
+
+### What's left after the flatten fix from `a6a51d5`
+
+The flatten fix preserved original element positions across LR-elim rewrite, so first-level annotations like `{type: "property_access", base: $1, property: $3}` now resolve correctly. What remains: **chained-access semantic** for inputs that hit the `suffix_repetition*` Quantified.
+
+Concrete failing case (from `generated_return_tree_to_typed_ast_accepts_zero_and_signed_zero_indices`):
+
+| Input | Bootstrap (correct) | Generated (post-flatten-fix) |
+|---|---|---|
+| `-> $+0.A[0]` | `ArrayAccess { base: PropertyAccess { base: PositionalRef{0}, property: "A" }, index: 0 }` | `PropertyAccess { base: PositionalRef{0}, property: "A" }` |
+
+The parser correctly consumes all of `$+0.A[0]`. The `[0]` is matched by the `suffix_repetition*` Quantified at the end of the rewritten `property_access_expression` body. But the rule's annotation only references `$1` and `$3` — the suffix matches are captured but **dropped at codegen** because the annotation has no syntax to reference them.
+
+### Why this is fundamentally different from the flatten layer
+
+The flatten fix was a position-arithmetic bug — `$3` pointed at the wrong slot, and reordering elements fixed it. **This** layer is semantic: even with correct positions, the annotation can't express "fold each suffix match into a nested wrapper around the running result." That's a different operation than flat positional extraction.
+
+Bootstrap handles this implicitly because its parser is recursive — `accessor_base.parse()` recurses into `property_access_expression.parse()` which recurses again — so every level of access nests naturally. LR-elim flattens that recursion into a `*` repetition for parser-performance reasons; the natural nesting is now lost in the parse output.
+
+### Three concrete fix strategies
+
+#### Strategy 1: Runtime suffix folding (codegen-emit fold loop)
+
+When the codegen detects a rule that's been LR-elim'd (meaning: rule body ends in `suffix_repetition*` from `apply_left_recursive_chain_plan`), emit runtime code that:
+
+1. Applies the rule's first-level annotation transform → `result_first_level`.
+2. Iterates the suffix_repetition's matches.
+3. For each match, identifies which wrapper-suffix Or-alternative it matched (by inspecting the match's Alternative tag, or by matching shape).
+4. Applies that wrapper rule's annotation transform with `result_first_level` substituted as `$1` and the suffix elements substituted as `$2, $3, ...`.
+5. Rebinds `result_first_level` to the wrapped value.
+6. Returns final folded result.
+
+**Implementation cost:**
+- LR-elim must tag rewritten rules + record the wrapper-rule mapping per suffix alternative (small change to `LeftRecursiveChainPlan` plumbing).
+- `generate_rule_method` must detect the tag and emit a fold prologue/epilogue.
+- The fold loop needs runtime-tagged Alternative matches to identify which wrapper applies.
+- Adds ~80 lines of codegen + ~40 lines of runtime-recognized identification.
+
+**Pros:** preserves the original grammar's meaning end-to-end; chained access produces the same nested AST as the bootstrap parser; no grammar-author cognitive load.
+
+**Cons:** real plumbing — tag must propagate from LR-elim through codegen; Alternative-tag identification in the fold loop is fragile if rules change.
+
+#### Strategy 2: Skip LR-elim for annotated rules
+
+When `detect_left_recursive_chain_plan` finds a left-recursive cycle that includes a rule with an inline annotation, **skip the rewrite for the entire cycle**. The grammar stays left-recursive; the parser must handle LR via a different mechanism.
+
+**Mechanism options:**
+- **Memoized Packrat-with-LR**: standard technique that handles direct left recursion via per-position memoization with seed-and-grow.
+- **Manual de-recursion**: ask the grammar author to refactor the cycle into a non-recursive form.
+
+**Implementation cost:**
+- `detect_left_recursive_chain_plan` checks each rule in the cycle for an inline annotation; if any rule has one, return `None` (no plan).
+- Either implement Packrat-LR in the parser runtime (significant work) OR document the constraint and let the runtime's existing `recursion_guard` reject the parse (tested behavior, but emits parse errors on legitimate input).
+
+**Pros:** no codegen complexity; annotation semantics stay simple ("$N is the Nth top-level body element").
+
+**Cons:** if no Packrat-LR runtime is built, this restricts what grammars can use inline annotations on left-recursive rules. Mostly defers the problem.
+
+#### Strategy 3: Annotation-aware LR-elim (synthesize a fold annotation)
+
+When LR-elim rewrites a rule, also rewrite the rule's annotation to include the fold semantics explicitly. The original annotation `{type: "property_access", base: $1, property: $3}` becomes something like:
+
+```text
+{
+  type: "_pgen_lr_chain",
+  initial: {type: "property_access", base: $1, property: $3},
+  suffixes: $4,
+  wrapper_index_to_rule: {0: "property_access_expression", 1: "array_access_expression"}
+}
+```
+
+The walker recognizes `_pgen_lr_chain` and runs the fold using the embedded metadata.
+
+**Implementation cost:**
+- LR-elim modifies `Annotations.branch_return_annotations[rule]` to wrap with `_pgen_lr_chain` metadata.
+- The walker (`parse_typed_return_value`) gets a new `_pgen_lr_chain` case that knows how to fold.
+- The codegen path stays unchanged (the existing inline-transform emit handles the wrapped annotation).
+
+**Pros:** localizes the change to the LR-elim pass and the walker; codegen doesn't need any LR awareness.
+
+**Cons:** introduces a synthetic annotation type that leaks LR-elim semantics into the typed AST (technically the wrapped annotation isn't visible to grammar authors, but it's now part of the typed-value language). Walker becomes coupled to LR-elim's tag conventions.
+
+### Recommendation
+
+**Strategy 3** has the smallest blast radius and the cleanest separation: LR-elim owns the rewrite of both rule body and annotation; the walker recognizes one new `type` discriminator; codegen stays oblivious. The "leak" is contained — no grammar-author-visible API change, just an internal contract between the LR-elim pass and the walker.
+
+Strategy 1 is more invasive (codegen must understand LR-elim).
+Strategy 2 either defers the problem or requires significant runtime work (Packrat-LR).
+
+Strategy 3 plumbing:
+1. Extend `LeftRecursiveChainPlan` with `wrapper_annotations: Vec<Option<BranchAnnotation>>` paired with `wrapper_rules` order.
+2. In `apply_left_recursive_chain_plan`, look up each wrapper rule's existing annotation in `Annotations.branch_return_annotations` and capture it.
+3. After rewriting the rule body, REWRITE the annotation: original → `{type: "_pgen_lr_chain", initial: <original>, suffixes: $N+1, wrappers: [(suffix_alternative_index, wrapper_annotation), ...]}`.
+4. Store the rewritten annotation back into `Annotations.branch_return_annotations[rule]`.
+5. The walker's `parse_typed_return_value` gains a `_pgen_lr_chain` case that:
+   - Reads `initial` typed value to build the first-level UnifiedReturnAST.
+   - Iterates `suffixes` (the suffix_repetition match content, which is a `Json(Array)` of typed match values).
+   - For each suffix, identifies which wrapper alternative matched and applies its wrapper annotation to wrap the current result.
+
+Estimated implementation: ~150 lines split across `mod.rs` (LR-elim plumbing) and `unified_return_ast.rs` (walker), plus a focused regression test.
+
+### Decision deferred to user
+
+Need direction on which strategy to implement. Strategies 1 and 3 both work; Strategy 2 punts. The recommendation is Strategy 3 but the choice has long-term architectural implications worth confirming.
+
+### Why this commit doesn't include code
+
+This commit lands the design proposal as tracked continuity-doc text. Implementation requires a strategy choice; without that, the right code path is unclear. The walker fix from `a6a51d5` is the last layer that landed without a strategy choice.
+
 ## 2026-04-27 - Walker handles both no-transform and transform-applied ASTs
 
 ### What this milestone landed
