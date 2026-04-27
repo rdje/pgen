@@ -74,18 +74,6 @@ pub struct JsonParser<'input> {
     semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
     logger: Box<dyn Logger>,
     logger_enabled: bool,
-    skip_post_parse_transforms: bool,
-}
-impl<'input> JsonParser<'input> {
-    /// Toggle the post-parse transform path emitted by the
-    /// codegen-fix from commit 6ad4ffd. When `skip == true`,
-    /// rules with declared return annotations return their raw
-    /// `ParseContent` (with all child `ParseNode`s and their
-    /// `rule_name` fields intact) instead of the typed-Json
-    /// shape derived from the annotation.
-    pub fn set_skip_post_parse_transforms(&mut self, skip: bool) {
-        self.skip_post_parse_transforms = skip;
-    }
 }
 impl<'input> JsonParser<'input> {
     const RULE_JSON: RuleId = 0u16;
@@ -124,7 +112,6 @@ impl<'input> JsonParser<'input> {
             semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
             logger,
             logger_enabled,
-            skip_post_parse_transforms: false,
         }
     }
     pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -849,9 +836,7 @@ impl<'input> JsonParser<'input> {
                                 let result = ParseContent::Alternative(
                                     Box::new(parser.parse_value()?),
                                 );
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -4309,9 +4294,7 @@ impl<'input> JsonParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -6032,9 +6015,7 @@ impl<'input> JsonParser<'input> {
                                 let matched_str = parser
                                     .match_regex("\\s*\"[^\"]*\"\\s*", true)?;
                                 let result = ParseContent::Terminal(matched_str);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let __pgen_base = (result).clone();
                                         match __pgen_base {
@@ -6232,9 +6213,7 @@ impl<'input> JsonParser<'input> {
                                 let matched_str = parser
                                     .match_regex("\\s*-?[0-9]+(\\.[0-9]+)?\\s*", true)?;
                                 let result = ParseContent::Terminal(matched_str);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let __pgen_base = (result).clone();
                                         match __pgen_base {

@@ -74,18 +74,6 @@ pub struct ReturnAnnotationParser<'input> {
     semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
     logger: Box<dyn Logger>,
     logger_enabled: bool,
-    skip_post_parse_transforms: bool,
-}
-impl<'input> ReturnAnnotationParser<'input> {
-    /// Toggle the post-parse transform path emitted by the
-    /// codegen-fix from commit 6ad4ffd. When `skip == true`,
-    /// rules with declared return annotations return their raw
-    /// `ParseContent` (with all child `ParseNode`s and their
-    /// `rule_name` fields intact) instead of the typed-Json
-    /// shape derived from the annotation.
-    pub fn set_skip_post_parse_transforms(&mut self, skip: bool) {
-        self.skip_post_parse_transforms = skip;
-    }
 }
 impl<'input> ReturnAnnotationParser<'input> {
     const RULE_RETURN_ANNOTATION: RuleId = 0u16;
@@ -147,7 +135,6 @@ impl<'input> ReturnAnnotationParser<'input> {
             semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
             logger,
             logger_enabled,
-            skip_post_parse_transforms: false,
         }
     }
     pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -5044,9 +5031,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -6355,9 +6340,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -7846,11 +7829,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 > = None;
                                 let matched_str = parser.match_string("*")?;
                                 let result = ParseContent::Terminal(matched_str);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
-                                    ParseContent::Terminal("true")
-                                };
+                                let result = { ParseContent::Terminal("true") };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -8152,9 +8131,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -8253,7 +8230,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -8572,9 +8549,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -8673,7 +8648,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -10502,9 +10477,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -10563,7 +10536,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -10782,9 +10755,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -13992,9 +13963,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -14323,9 +14292,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut array_elements = Vec::new();
                                         array_elements
@@ -14636,9 +14603,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -15552,9 +15517,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut __pgen_obj = serde_json::Map::new();
                                         __pgen_obj
@@ -15883,9 +15846,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let mut array_elements = Vec::new();
                                         array_elements
@@ -16375,9 +16336,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
-                                let result = if parser.skip_post_parse_transforms {
-                                    result
-                                } else {
+                                let result = {
                                     {
                                         let __pgen_base = (result).clone();
                                         match __pgen_base {

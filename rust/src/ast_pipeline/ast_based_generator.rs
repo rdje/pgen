@@ -354,30 +354,6 @@ impl AstBasedGenerator {
                 // path skips the per-call vtable dispatch through Box<dyn Logger>. Logger
                 // is set once at new() and not swapped at runtime, so the cache is sound.
                 logger_enabled: bool,
-                // When true, rules with declared return annotations skip the
-                // `let result = { #transform };` post-parse transform step
-                // and return the raw structural ParseContent (Sequence /
-                // Alternative / Quantified) intact. AST inspection adapters
-                // that walk the parse tree looking for `rule_name` fields
-                // (e.g. `regex_rule_spans`, `parser_registry`'s
-                // `rtl_frontend_ast_contains_rule`) need this raw view; the
-                // typed-Json carrier flattens inner ParseNodes via
-                // `ParseContent::to_json_value()` and erases their rule_name
-                // wrappers, so the transformed view is unsuited for those
-                // consumers. Default `false` (codegen-fix transform applies).
-                skip_post_parse_transforms: bool,
-            }
-
-            impl<'input> #parser_name<'input> {
-                /// Toggle the post-parse transform path emitted by the
-                /// codegen-fix from commit 6ad4ffd. When `skip == true`,
-                /// rules with declared return annotations return their raw
-                /// `ParseContent` (with all child `ParseNode`s and their
-                /// `rule_name` fields intact) instead of the typed-Json
-                /// shape derived from the annotation.
-                pub fn set_skip_post_parse_transforms(&mut self, skip: bool) {
-                    self.skip_post_parse_transforms = skip;
-                }
             }
         }
     }
@@ -621,7 +597,6 @@ impl AstBasedGenerator {
                     semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
                     logger,
                     logger_enabled,
-                    skip_post_parse_transforms: false,
                 }
             }
         })
@@ -1375,20 +1350,8 @@ impl AstBasedGenerator {
                         rule_name,
                         &["result".to_string()],
                     )?;
-                    // Gate the post-parse transform on the runtime
-                    // `skip_post_parse_transforms` flag so AST-inspection
-                    // adapters can opt into a raw structural parse tree
-                    // (with rule_name fields preserved at every ParseNode
-                    // wrapper). When the flag is `false` (default), the
-                    // codegen-fix from 6ad4ffd applies the declared return
-                    // annotation as before, producing the typed-Json
-                    // carrier shape downstream codegen and walkers expect.
                     quote! {
-                        let result = if parser.skip_post_parse_transforms {
-                            result
-                        } else {
-                            #transform
-                        };
+                        let result = { #transform };
                     }
                 } else {
                     quote! {}
