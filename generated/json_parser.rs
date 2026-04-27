@@ -187,6 +187,12 @@ impl<'input> JsonParser<'input> {
             &mut Self,
         ) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>,
     {
+        if self.semantic_runtime_annotations.is_empty()
+            || !self.semantic_runtime_annotations.has_rule(rule_name)
+        {
+            let (node, _raw) = f(self)?;
+            return Ok(node);
+        }
         let original_semantic_runtime_state = std::mem::take(
             &mut self.semantic_runtime_state,
         );

@@ -727,6 +727,25 @@ impl AstBasedGenerator {
             where
                 F: FnOnce(&mut Self) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>,
             {
+                // PGEN-RGX-0073 Optim #11: fast-path when no semantic
+                // directives are configured for this rule. Skips the
+                // state-take + clone + transaction-create + commit
+                // sequence below, which costs 4–6% of self-time on the
+                // regex parser hot path (samply, post-Optim-#10) even
+                // though the regex grammar has zero semantic predicates.
+                // Two-level check: whole-grammar emptiness
+                // (`is_empty`, O(1) HashMap len check) catches grammars
+                // like regex / json that have no predicates anywhere;
+                // per-rule lookup (`has_rule`, O(1) HashMap probe)
+                // catches the unannotated rules in grammars that have
+                // some predicates elsewhere (e.g. systemverilog).
+                if self.semantic_runtime_annotations.is_empty()
+                    || !self.semantic_runtime_annotations.has_rule(rule_name)
+                {
+                    let (node, _raw) = f(self)?;
+                    return Ok(node);
+                }
+
                 let original_semantic_runtime_state =
                     std::mem::take(&mut self.semantic_runtime_state);
                 self.semantic_runtime_state = original_semantic_runtime_state.clone();

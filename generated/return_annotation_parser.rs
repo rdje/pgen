@@ -210,6 +210,12 @@ impl<'input> ReturnAnnotationParser<'input> {
             &mut Self,
         ) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>,
     {
+        if self.semantic_runtime_annotations.is_empty()
+            || !self.semantic_runtime_annotations.has_rule(rule_name)
+        {
+            let (node, _raw) = f(self)?;
+            return Ok(node);
+        }
         let original_semantic_runtime_state = std::mem::take(
             &mut self.semantic_runtime_state,
         );
@@ -8557,7 +8563,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -8975,7 +8981,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -10874,7 +10880,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
