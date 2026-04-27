@@ -1274,11 +1274,29 @@ impl RustASTPipeline {
         grammar_tree.insert(plan.base_rule.clone(), rewritten_base_rule);
 
         for (wrapper_rule, wrapper_suffix) in &plan.wrapper_rules {
-            let rewritten_wrapper = Self::build_sequence_node(vec![
-                helper_base_ref.clone(),
-                wrapper_suffix.clone(),
-                suffix_repetition.clone(),
-            ]);
+            // Flatten wrapper_suffix's elements into the outer Sequence rather
+            // than nesting it. This is what preserves the original 1-based
+            // `$N` element-index convention in any inline return annotation
+            // attached to this wrapper rule. Without flattening, the rewritten
+            // rule body becomes `Sequence([helper_base_ref, wrapper_suffix,
+            // suffix_repetition])` — three top-level elements regardless of
+            // the original body length — and the grammar author's `$3`
+            // reference (intended for, say, `identifier` in
+            // `accessor_base '.' identifier`) ends up pointing at the
+            // synthetic `suffix_repetition` instead. Flattening preserves the
+            // original element positions; the only NEW element is the
+            // tail-position `suffix_repetition` whose index is past the
+            // original body's range.
+            let mut flat_elements: Vec<ASTNode> = Vec::new();
+            flat_elements.push(helper_base_ref.clone());
+            match wrapper_suffix {
+                ASTNode::Sequence { elements } => {
+                    flat_elements.extend(elements.iter().cloned());
+                }
+                other => flat_elements.push(other.clone()),
+            }
+            flat_elements.push(suffix_repetition.clone());
+            let rewritten_wrapper = Self::build_sequence_node(flat_elements);
             grammar_tree.insert(wrapper_rule.clone(), rewritten_wrapper);
         }
 

@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-27 - LR-elim flatten fix: wrapper_suffix's elements no longer collapsed into a single nested Sequence
+### Achievement Summary
+First-layer fix of the LR-elimination ↔ inline-transform interaction. `apply_left_recursive_chain_plan` in [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) used to build the rewritten rule body as `Sequence([helper_base_ref, wrapper_suffix, suffix_repetition*])`. When `wrapper_suffix` was itself a Sequence (the common case — e.g. `'.' identifier` for `property_access_expression := accessor_base '.' identifier`), the rewritten rule had only **3 top-level elements** regardless of the original body length: helper_base_ref + nested-Sequence + Quantified.
+
+The grammar author's annotation `{type: "property_access", base: $1, property: $3}` referenced `$3` expecting the third original element (`identifier`). Post-rewrite, `[2]` was the synthetic `suffix_repetition*`, so `$3` produced the wrong runtime value. (Concretely: for input `$+0.A[0]`, `property` was filling with `[["[", 0, "]"]]` — the parsed `[0]` syntax — instead of `"A"`.)
+
+Fix flattens `wrapper_suffix`'s elements into the outer Sequence rather than nesting it. The rewritten rule body is now `Sequence([helper_base_ref, wrapper_suffix_elements..., suffix_repetition*])`. Original element positions are preserved; the only NEW element is the tail-position `suffix_repetition*` whose index is past the original body's range.
+
+After this fix, regenerating `return_annotation_parser.rs` produces correct `property: "A"` for `$+0.A`. A separate (deeper) LR-elim issue remains: chained access like `$+0.A[0]` is collected by the `suffix_repetition*` Quantified but the annotation can't see those suffixes — the resulting typed value only carries the first-level access. Logged as a follow-up.
+
+### Validation
+- `cargo test --lib --features generated_parsers` ✅ 478 passed.
+- `make -C rust SHELL=/bin/bash ast_shape_contract_gate` ✅ 5 active family tests pass.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: regenerating `return_annotation_parser.rs` with all current fixes shows the property-extraction correctness restored. Chained-access cases (`$+0.A[0]`, `$2::2*`) still mismatch bootstrap because of the suffix-fold gap.
+
+### Important Boundaries
+- **No tracked parsers regenerated.** The fix is in the LR-elim pass; effect is observed only when a parser is regenerated through the new pipeline.
+- **`return_annotation` regen still deferred** — chained-access semantic remains unresolved. The flatten fix is one layer; the next layer is suffix-fold (how to reconstruct nested AST when the Quantified suffix repetition matches multiple chained accesses).
+
+### New tracked follow-up: suffix-fold for chained access
+For input `$+0.A[0]` parsed by `property_access_expression := accessor_base '.' identifier (suffix*)` (post-LR-elim):
+- helper_base matches `$+0` (positional, $1 ✓).
+- '.' identifier matches `.A` ($3 = "A" ✓).
+- suffix* matches `[0]` as one suffix from the Or alternative `'.' identifier | '[' expression ']'`.
+
+Bootstrap parses this as `ArrayAccess { base: PropertyAccess { base: PositionalRef{0}, property: "A" }, index: 0 }` — chained nested access. Generated parser produces just the first-level `PropertyAccess { ... property: "A" }` because the annotation has no way to reference suffix matches.
+
+Three possible fixes:
+1. **Runtime suffix folding**: emit code that walks the Quantified suffix matches and folds each one into nested AST (each suffix wraps around the previous result).
+2. **Disable LR-elim for annotated rules**: skip the rewrite when the rule has an inline annotation; let the parser handle LR via a different mechanism.
+3. **Annotation-aware LR-elim**: synthesize an annotation that references the suffix matches explicitly.
+
 ## 2026-04-27 - Walker hardening: negative-index reject, extraction-target 1-based conversion, LR-elim interaction logged
 ### Achievement Summary
 Three small follow-on fixes to the walker landed in commit `4c7a903`, plus tracking of a deeper interaction surfaced when retrying `return_annotation` regen with all current fixes applied.

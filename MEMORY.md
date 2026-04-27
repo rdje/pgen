@@ -8,6 +8,19 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- LR-elim flatten fix landed: `apply_left_recursive_chain_plan` in [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) now flattens `wrapper_suffix`'s elements into the outer rewritten Sequence rather than nesting it. Preserves the original `$N` element positions across LR-elim rewrite.
+- Concretely fixed: for `property_access_expression := accessor_base '.' identifier`, the post-rewrite body now has 4 top-level elements (`[helper_base_ref, '.', identifier, suffix_repetition*]`) instead of 3 nested ones (`[helper_base_ref, Sequence([.', identifier]), suffix_repetition*]`). Annotation's `$3` correctly resolves to `identifier`.
+- Direct probe of regenerated `return_annotation_parser.rs`: `property: "A"` correctly extracted for input `$+0.A` (was `[["[", 0, "]"]]` before).
+- New layer of follow-up surfaced: **suffix-fold for chained access**. LR-elim's `suffix_repetition*` Quantified collects multiple chained accesses (e.g. `.A[0]` matches as one identifier suffix + one array-access suffix), but the annotation can't reference suffix matches. Generated parser produces only the first-level access shape; bootstrap produces the nested chain. Three fix strategies (runtime suffix folding, LR-elim disabled for annotated rules, annotation-aware LR-elim) logged.
+- 478 tests pass. `ast_shape_contract_gate` 5 active family tests pass. clippy strict source lint pass. No tracked parsers regenerated.
+- **Open follow-ups** (priority order):
+  1. **Suffix-fold for chained access** (next layer of LR-elim ↔ inline transform interaction).
+  2. `rtl_frontend` regen — needs contract probe walker update.
+  3. `ebnf` regen.
+  4. `regex` regen — HIGH blast radius, RGX coordination.
+  5. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+
+## Prior Session Note
 - Walker hardening (follow-on to `4c7a903`): rejected negative positional indices, fixed extraction-target 1-based-to-0-based conversion (matching bootstrap semantics), improved property_access mismatch diagnostic. All in `parse_typed_return_value` and `parse_typed_extraction_target`.
 - New tracked follow-up surfaced: **LR-elimination interaction with inline transforms**. After all walker + codegen fixes, retrying `return_annotation` regen produces a `property_access` typed value with `property: [["[", 0, "]"]]` (array carrying parsed `[0]` syntax) instead of `property: "A"`. Rule body `accessor_base '.' identifier` (3 elements) gets restructured by `--eliminate-left-recursion`, and `$3` no longer points at the original `identifier`. Not a walker bug — it's annotation `$N` references staying frozen at pre-rewrite positions while LR-elim shifts elements. Three possible fixes (annotation rewriting, pre-rewrite capture, LR-aware codegen) — logged.
 - 478 tests pass. `ast_shape_contract_gate` 5 active family tests pass. clippy strict source lint pass.
