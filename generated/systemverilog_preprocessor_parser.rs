@@ -1252,7 +1252,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -1445,7 +1460,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -1638,7 +1668,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -1831,7 +1876,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2024,7 +2084,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2217,7 +2292,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2410,7 +2500,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2603,7 +2708,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2796,7 +2916,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2989,7 +3124,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -5207,7 +5357,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -5400,7 +5565,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -5836,7 +6016,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -6029,7 +6224,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -6983,7 +7193,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             let raw_content = content;
                                                             let transformed = {
                                                                 let content = raw_content.clone();
-                                                                content
+                                                                {
+                                                                    let __pgen_base = (content).clone();
+                                                                    match __pgen_base {
+                                                                        ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                            elements[0usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Quantified(
+                                                                            elements,
+                                                                            _,
+                                                                        ) if !elements.is_empty() => {
+                                                                            elements[0usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Alternative(node) => node.content.clone(),
+                                                                        other => other,
+                                                                    }
+                                                                }
                                                             };
                                                             let mut branch_predicate_blocked = false;
                                                             let mut blocked_branch_predicate: Option<String> = None;
@@ -7176,7 +7401,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                             let raw_content = content;
                                                             let transformed = {
                                                                 let content = raw_content.clone();
-                                                                content
+                                                                {
+                                                                    let __pgen_base = (content).clone();
+                                                                    match __pgen_base {
+                                                                        ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                            elements[0usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Quantified(
+                                                                            elements,
+                                                                            _,
+                                                                        ) if !elements.is_empty() => {
+                                                                            elements[0usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Alternative(node) => node.content.clone(),
+                                                                        other => other,
+                                                                    }
+                                                                }
                                                             };
                                                             let mut branch_predicate_blocked = false;
                                                             let mut blocked_branch_predicate: Option<String> = None;
@@ -8590,6 +8830,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         );
                                 }
                                 let result = ParseContent::Quantified(results, "+");
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -8846,7 +9104,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -9039,7 +9312,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -9232,7 +9520,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -9425,7 +9728,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -9618,7 +9936,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -9811,7 +10144,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -10004,7 +10352,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -10197,7 +10560,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -10390,7 +10768,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -10583,7 +10976,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -10776,7 +11184,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -10969,7 +11392,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -12197,6 +12635,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         );
                                 }
                                 let result = ParseContent::Quantified(results, "+");
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -12455,7 +12911,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -12649,7 +13120,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -12843,7 +13329,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -13037,7 +13538,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -13231,7 +13747,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -13425,7 +13956,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -13619,7 +14165,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -13813,7 +14374,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -14466,6 +15042,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         );
                                 }
                                 let result = ParseContent::Quantified(results, "+");
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -14724,7 +15318,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -14918,7 +15527,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -15112,7 +15736,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -15306,7 +15945,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -15500,7 +16154,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -15694,7 +16363,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -15888,7 +16572,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -16082,7 +16781,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -16276,7 +16990,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -16848,6 +17577,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Alternative(
                                     Box::new(parser.parse_bt_identifier()?),
                                 );
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -17668,6 +18415,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Alternative(
                                     Box::new(parser.parse_newline()?),
                                 );
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -18491,6 +19256,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let result = ParseContent::Alternative(
                                     Box::new(parser.parse_identifier()?),
                                 );
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -20020,7 +20803,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let raw_content = content;
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
-                                                                    content
+                                                                    {
+                                                                        let __pgen_base = (content).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                            other => other,
+                                                                        }
+                                                                    }
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -20213,7 +21011,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let raw_content = content;
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
-                                                                    content
+                                                                    {
+                                                                        let __pgen_base = (content).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                            other => other,
+                                                                        }
+                                                                    }
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -20438,6 +21251,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         );
                                 }
                                 let result = ParseContent::Quantified(results, "*");
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -20702,7 +21533,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let raw_content = content;
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
-                                                                    content
+                                                                    {
+                                                                        let __pgen_base = (content).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                            other => other,
+                                                                        }
+                                                                    }
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -20895,7 +21741,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let raw_content = content;
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
-                                                                    content
+                                                                    {
+                                                                        let __pgen_base = (content).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                            other => other,
+                                                                        }
+                                                                    }
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -21088,7 +21949,22 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                                                 let raw_content = content;
                                                                 let transformed = {
                                                                     let content = raw_content.clone();
-                                                                    content
+                                                                    {
+                                                                        let __pgen_base = (content).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                            other => other,
+                                                                        }
+                                                                    }
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -21313,6 +22189,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                         );
                                 }
                                 let result = ParseContent::Quantified(results, "*");
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -21492,6 +22386,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 > = None;
                                 let matched_str = parser.match_regex("[ \\t]+", true)?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -21672,6 +22584,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let matched_str = parser
                                     .match_regex("\\/\\/[^\\r\\n]*", true)?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -21852,6 +22782,24 @@ impl<'input> SystemverilogPreprocessorParser<'input> {
                                 let matched_str = parser
                                     .match_regex("\\/\\*([^*]|\\*+[^*\\/])*\\*+\\/", true)?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(

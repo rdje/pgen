@@ -1339,11 +1339,18 @@ impl AstBasedGenerator {
         let post_parse_transform_tokens: TokenStream = match ast_node {
             ASTNode::Or { .. } => quote! {},
             _ => {
+                // Look up the explicit branch annotation; if absent and the
+                // body is a single-element shape, fall back to a synthetic
+                // `-> $1` default. Multi-element Sequences keep no-transform
+                // semantics until an author declares one.
                 let annotation_opt = self
                     .branch_return_annotations
                     .get(rule_name)
                     .and_then(|branches| branches.get(0).cloned())
-                    .flatten();
+                    .flatten()
+                    .or_else(|| {
+                        Self::synthesize_default_passthrough_for_single_element_branch(ast_node)
+                    });
                 if let Some(annotation) = annotation_opt {
                     let transform = self.generate_return_transform(
                         &annotation,
@@ -1663,21 +1670,23 @@ impl AstBasedGenerator {
             eprintln!();
             let branch_logic = self.generate_node_parsing_logic(branch, rule_name, filename)?;
 
-            // Check for return annotations for this rule
-            let has_transform =
-                if let Some(branches) = self.branch_return_annotations.get(rule_name) {
-                    branches.get(0).map(|ann| ann.is_some()).unwrap_or(false)
-                } else {
-                    false
-                };
+            // Resolve the branch's annotation: explicit declaration if
+            // present; otherwise the synthetic `-> $1` default for single-
+            // element branches; otherwise None (no transform).
+            let resolved_annotation: Option<BranchAnnotation> = self
+                .branch_return_annotations
+                .get(rule_name)
+                .and_then(|branches| branches.get(0).cloned())
+                .flatten()
+                .or_else(|| {
+                    Self::synthesize_default_passthrough_for_single_element_branch(branch)
+                });
+            let has_transform = resolved_annotation.is_some();
 
             if has_transform {
-                // Has return annotation - need to transform
-                let transform = self
-                    .branch_return_annotations
-                    .get(rule_name)
-                    .and_then(|branches| branches.get(0))
-                    .and_then(|ann| ann.as_ref())
+                // Has return annotation (explicit or default) - need to transform
+                let transform = resolved_annotation
+                    .as_ref()
                     .map(|annotation| {
                         self.generate_return_transform(
                             annotation,
@@ -1806,21 +1815,27 @@ impl AstBasedGenerator {
                 let branch_logic =
                     self.generate_node_parsing_logic(alternative, rule_name, filename)?;
 
-                // Check for branch-specific return annotation
-                let transform =
-                    if let Some(branches) = self.branch_return_annotations.get(rule_name) {
-                        if let Some(Some(annotation)) = branches.get(idx) {
-                            self.generate_return_transform(
-                                annotation,
-                                rule_name,
-                                &["content".to_string()],
-                            )?
-                        } else {
-                            quote! { content }
-                        }
-                    } else {
-                        quote! { content }
-                    };
+                // Resolve the branch's annotation: explicit declaration if
+                // present; otherwise the synthetic `-> $1` default for
+                // single-element branches; otherwise pass `content` through
+                // as-is (no transform).
+                let explicit_annotation: Option<BranchAnnotation> = self
+                    .branch_return_annotations
+                    .get(rule_name)
+                    .and_then(|branches| branches.get(idx).cloned())
+                    .flatten();
+                let resolved_annotation: Option<BranchAnnotation> = explicit_annotation
+                    .or_else(|| {
+                        Self::synthesize_default_passthrough_for_single_element_branch(alternative)
+                    });
+                let transform = match resolved_annotation {
+                    Some(annotation) => self.generate_return_transform(
+                        &annotation,
+                        rule_name,
+                        &["content".to_string()],
+                    )?,
+                    None => quote! { content },
+                };
 
                 let branch_num = idx + 1;
                 let branch_priority = branch_priorities.get(idx).copied().unwrap_or(0);
@@ -2509,6 +2524,46 @@ impl AstBasedGenerator {
             }),
             _ => Err(anyhow::anyhow!("Unknown quantifier: {}", quantifier)),
         }
+    }
+
+    /// True when a branch's body parses to exactly one element — a single
+    /// terminal, single rule reference, single quantified element, single
+    /// lookahead, single Or, or a Sequence whose `elements` length is 1.
+    /// False for Sequences with two or more elements.
+    ///
+    /// Used by the implicit `-> $1` default policy: branches with a
+    /// single-element body get a synthetic Passthrough annotation when
+    /// the grammar author didn't write one explicitly. Multi-element
+    /// Sequences keep current behaviour (no transform) until the author
+    /// declares one — defaulting to `$1` there would silently drop every
+    /// element past the first (e.g. for `'(' expression ')'`, $1 = `'('`,
+    /// not the expression payload the author meant).
+    fn body_has_single_element(node: &ASTNode) -> bool {
+        match node {
+            ASTNode::Sequence { elements } => elements.len() <= 1,
+            _ => true,
+        }
+    }
+
+    /// Synthesize a `-> $1` BranchAnnotation when the branch body is a
+    /// single element AND no explicit annotation was declared. The
+    /// synthetic annotation is **codegen-only**: it's never written back
+    /// to `branch_return_annotations` and never appears in the inventory
+    /// artifact. The inventory contract continues to surface only
+    /// grammar-author-written annotations.
+    fn synthesize_default_passthrough_for_single_element_branch(
+        body: &ASTNode,
+    ) -> Option<BranchAnnotation> {
+        if !Self::body_has_single_element(body) {
+            return None;
+        }
+        Some(BranchAnnotation {
+            annotation_type: "_pgen_default_passthrough_synthetic".to_string(),
+            annotation_content: String::new(),
+            parsed_ast: Some(crate::ast_pipeline::unified_return_ast::UnifiedReturnAST::PositionalRef {
+                index: 1,
+            }),
+        })
     }
 
     fn generate_return_transform(

@@ -3469,7 +3469,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -3662,7 +3677,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -4213,7 +4243,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -4406,7 +4451,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -4599,7 +4659,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -4792,7 +4867,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -5343,7 +5433,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -5536,7 +5641,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -6087,7 +6207,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -6280,7 +6415,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -6833,7 +6983,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -7027,7 +7192,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -7221,7 +7401,22 @@ impl<'input> RtlConstExprParser<'input> {
                                                                                 let raw_content = content;
                                                                                 let transformed = {
                                                                                     let content = raw_content.clone();
-                                                                                    content
+                                                                                    {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    }
                                                                                 };
                                                                                 let mut branch_predicate_blocked = false;
                                                                                 let mut blocked_branch_predicate: Option<String> = None;
@@ -11448,6 +11643,24 @@ impl<'input> RtlConstExprParser<'input> {
                                 let matched_str = parser
                                     .match_regex("[ \\t\\r\\n]*", true)?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(

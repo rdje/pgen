@@ -1160,7 +1160,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -1354,7 +1369,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -1714,6 +1744,24 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 > = None;
                                 let matched_str = parser.match_string("->")?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -1970,7 +2018,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2163,7 +2226,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2356,7 +2434,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2549,7 +2642,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -2742,7 +2850,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -3180,7 +3303,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -3374,7 +3512,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -3568,7 +3721,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -3762,7 +3930,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -3956,7 +4139,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -4150,7 +4348,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -4344,7 +4557,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -5369,7 +5597,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -5562,7 +5805,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -5755,7 +6013,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -6130,6 +6403,24 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::TransformedTerminal(
                                     transformed.to_string(),
                                 );
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -6632,7 +6923,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -6826,7 +7132,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -7020,7 +7341,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -7214,7 +7550,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -8230,7 +8581,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -8648,7 +8999,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -8913,7 +9264,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -10536,7 +10902,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"index\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -11722,6 +12088,24 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 > = None;
                                 let matched_str = parser.match_regex("[^\"]*", false)?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -11903,6 +12287,24 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 > = None;
                                 let matched_str = parser.match_regex("[^']*", false)?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -12159,7 +12561,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -12352,7 +12769,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -12730,6 +13162,24 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::TransformedTerminal(
                                     transformed.to_string(),
                                 );
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -12924,6 +13374,24 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::TransformedTerminal(
                                     transformed.to_string(),
                                 );
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -13179,7 +13647,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -13371,7 +13854,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -13731,6 +14229,24 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let matched_str = parser
                                     .match_regex("[a-zA-Z_][a-zA-Z0-9_]*", true)?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -14912,7 +15428,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -15105,7 +15636,22 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if !elements.is_empty() => {
+                                                                    elements[0usize].content.clone()
+                                                                }
+                                                                ParseContent::Alternative(node) => node.content.clone(),
+                                                                other => other,
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -16111,6 +16657,24 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let result = ParseContent::Alternative(
                                     Box::new(parser.parse_expression()?),
                                 );
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if !elements.is_empty() => {
+                                                elements[0usize].content.clone()
+                                            }
+                                            ParseContent::Alternative(node) => node.content.clone(),
+                                            other => other,
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(

@@ -9,8 +9,8 @@
       "input": "$1",
       "rule_under_test": "return_annotation",
       "declared_annotation": "-> $2",
-      "expected_content_kind": "alternative",
-      "current_content_kind": "alternative",
+      "expected_content_kind": "json_object",
+      "current_content_kind": "json_object",
       "drift_status": "aligned",
       "drift_tracked_in": "n/a"
     },
@@ -19,7 +19,7 @@
       "input": "-> $1",
       "rule_under_test": "return_annotation",
       "declared_annotation": "-> $2",
-      "expected_content_kind": "alternative",
+      "expected_content_kind": "json_object",
       "current_content_kind": "sequence",
       "drift_status": "rule_level_annotation_not_applied_for_multibranch_or_root",
       "drift_tracked_in": "PGEN: a rule-level `-> $2` annotation declared on a multi-branch Or-root rule is not applied at runtime today. generate_or_logic applies per-branch annotations (none of these branches has its own `-> ...`), and the rule-level annotation is read from branches[0] which on this rule's branch[0] (`arrow expression`) means the runtime returns the full Sequence([arrow, expression]) instead of just the expression. Whether to apply rule-level annotations to every multi-branch arm is a separate codegen design decision; this manifest sample documents the current behavior so any future change is caught."
@@ -29,8 +29,8 @@
       "input": "->",
       "rule_under_test": "return_annotation",
       "declared_annotation": "-> $2",
-      "expected_content_kind": "alternative",
-      "current_content_kind": "alternative",
+      "expected_content_kind": "terminal",
+      "current_content_kind": "terminal",
       "drift_status": "aligned",
       "drift_tracked_in": "n/a"
     }
