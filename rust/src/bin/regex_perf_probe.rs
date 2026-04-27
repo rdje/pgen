@@ -18,6 +18,15 @@
 //!   cargo run --release --features generated_parsers --bin regex_perf_probe
 //!   cargo run --release --features generated_parsers --bin regex_perf_probe -- --samples 5000 --warmup 200
 
+// Optim #10 candidate: opt-in mimalloc as the global allocator. macOS's
+// libsystem_malloc dominates the post-Optim-#9 self-time profile (~30% of
+// samples land inside it). Build with `--features mimalloc_perf` to swap
+// in mimalloc and measure the impact in isolation. The library itself
+// does NOT set a global allocator — embedders pick.
+#[cfg(feature = "mimalloc_perf")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use std::time::Instant;
 
 #[cfg(all(feature = "generated_parsers"))]

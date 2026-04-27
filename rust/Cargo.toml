@@ -80,6 +80,14 @@ rustfmt-wrapper = "0.2.1"
 # rustc uses internally — small crate, no transitive deps, ~3-4× faster on small
 # integer keys per the standard rustc-hash benchmarks.
 rustc-hash = "2.1"
+# Optim #10 (PGEN-RGX-0073): mimalloc as opt-in global allocator for the
+# perf probe binary. macOS's libsystem_malloc accounts for ~30% of self-time
+# on the regex parser hot path per samply profiling; mimalloc is a high-
+# performance drop-in replacement with no additional transitive deps. The
+# library itself does NOT set a global allocator — that's an embedder
+# decision — but the perf probe binary opts in via the `mimalloc_perf`
+# feature so we can measure the impact independently.
+mimalloc = { version = "0.1", default-features = false, optional = true }
 
 [features]
 default = ["normal"]
@@ -87,6 +95,7 @@ normal = []
 bootstrap = []
 generated_parsers = []
 ebnf_dual_run = []
+mimalloc_perf = ["dep:mimalloc"]
 
 [dev-dependencies]
 serde_json = "1.0"
