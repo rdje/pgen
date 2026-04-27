@@ -87,6 +87,18 @@ enum AccessPostfix {
     Index(UnifiedReturnAST),
 }
 
+/// Per-wrapper-alternative metadata embedded in a `_pgen_lr_chain` typed value.
+/// `annotation_template` carries the wrapper rule's original return-annotation
+/// AST verbatim; positional refs in the template stay as `PositionalRef`
+/// nodes so the walker's substitution step can replace them with the running
+/// fold value (`$1`) and the suffix's captures (`$K` for `K >= 2`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LrChainWrapperSpec {
+    pub alt_index: usize,
+    pub original_body_length: usize,
+    pub annotation_template: UnifiedReturnAST,
+}
+
 impl UnifiedReturnAST {
     /// Convert a transform-applied AST (`ParseContent::Json(value)`) into a
     /// `UnifiedReturnAST` directly, without walking sub-rule ParseNodes. The
@@ -253,6 +265,7 @@ impl UnifiedReturnAST {
                             };
                             Ok(UnifiedReturnAST::StringLiteral { value: value_text })
                         }
+                        "_pgen_lr_chain" => Self::parse_typed_lr_chain(map),
                         other => Err(format!(
                             "typed return value: unrecognized 'type' label '{}' (value={})",
                             other, value
@@ -329,6 +342,242 @@ impl UnifiedReturnAST {
                 "typed extraction 'target' must be number or string, got {}",
                 other
             )),
+        }
+    }
+
+    /// Resolve a synthetic `_pgen_lr_chain` typed value into a folded
+    /// `UnifiedReturnAST`. Strategy 3a chain shape:
+    ///
+    /// ```ignore
+    /// {
+    ///   "type": "_pgen_lr_chain",
+    ///   "initial": <typed-Json of the prefix annotation result>,
+    ///   "suffixes": [{"type": "_pgen_lr_chain_alt", "alt_index": N, "captures": [...]}, ...],
+    ///   "wrapper_specs": "<JSON-serialized Vec<WrapperSpec>>"
+    /// }
+    /// ```
+    ///
+    /// The `wrapper_specs` string carries the static (compile-time) per-alt
+    /// templates serialized as `UnifiedReturnAST` (default serde tagged form).
+    /// At fold time each suffix is matched to its `alt_index`, and the
+    /// corresponding wrapper template is substituted with `running` for `$1`
+    /// and the suffix's captures for `$K` (`K >= 2`). The substitution emits a
+    /// typed-Json value that can flow back through `parse_typed_return_value`
+    /// as the next iteration's `running`.
+    fn parse_typed_lr_chain(
+        map: &serde_json::Map<String, serde_json::Value>,
+    ) -> Result<UnifiedReturnAST, String> {
+        let initial_value = map
+            .get("initial")
+            .ok_or_else(|| "_pgen_lr_chain missing 'initial' field".to_string())?;
+        let suffixes_value = map
+            .get("suffixes")
+            .ok_or_else(|| "_pgen_lr_chain missing 'suffixes' field".to_string())?;
+        let wrapper_specs_value = map
+            .get("wrapper_specs")
+            .ok_or_else(|| "_pgen_lr_chain missing 'wrapper_specs' field".to_string())?;
+
+        let wrapper_specs_str = wrapper_specs_value.as_str().ok_or_else(|| {
+            format!(
+                "_pgen_lr_chain 'wrapper_specs' must be a JSON-encoded string; got {}",
+                wrapper_specs_value
+            )
+        })?;
+        let wrapper_specs: Vec<LrChainWrapperSpec> = serde_json::from_str(wrapper_specs_str)
+            .map_err(|err| {
+                format!(
+                    "_pgen_lr_chain 'wrapper_specs' deserialize failed: {} (raw='{}')",
+                    err, wrapper_specs_str
+                )
+            })?;
+
+        // `suffixes` may be Array (Quantified content folded by the codegen)
+        // or Null when the suffix Quantified matched zero iterations. Anything
+        // else is a contract violation.
+        let empty: Vec<serde_json::Value> = Vec::new();
+        let suffixes_arr: &Vec<serde_json::Value> = match suffixes_value {
+            serde_json::Value::Array(arr) => arr,
+            serde_json::Value::Null => &empty,
+            other => {
+                return Err(format!(
+                    "_pgen_lr_chain 'suffixes' must be array or null; got {}",
+                    other
+                ));
+            }
+        };
+
+        let mut running_value = initial_value.clone();
+        for (suffix_index, suffix_value) in suffixes_arr.iter().enumerate() {
+            let suffix_obj = suffix_value.as_object().ok_or_else(|| {
+                format!(
+                    "_pgen_lr_chain suffix[{}] must be object; got {}",
+                    suffix_index, suffix_value
+                )
+            })?;
+            let alt_index = suffix_obj
+                .get("alt_index")
+                .and_then(|v| v.as_u64())
+                .ok_or_else(|| {
+                    format!(
+                        "_pgen_lr_chain suffix[{}] missing 'alt_index' u64",
+                        suffix_index
+                    )
+                })? as usize;
+            let captures_arr = suffix_obj
+                .get("captures")
+                .and_then(|v| v.as_array())
+                .ok_or_else(|| {
+                    format!(
+                        "_pgen_lr_chain suffix[{}] missing 'captures' array",
+                        suffix_index
+                    )
+                })?;
+            let spec = wrapper_specs
+                .iter()
+                .find(|s| s.alt_index == alt_index)
+                .ok_or_else(|| {
+                    format!(
+                        "_pgen_lr_chain suffix[{}] alt_index={} not found in wrapper_specs",
+                        suffix_index, alt_index
+                    )
+                })?;
+
+            running_value = Self::substitute_chain_template_to_typed_json(
+                &spec.annotation_template,
+                &running_value,
+                captures_arr,
+            )?;
+        }
+
+        Self::parse_typed_return_value(&running_value)
+    }
+
+    /// Walk `template` (a `UnifiedReturnAST` template originating from a
+    /// wrapper rule's original annotation) and produce a typed-Json value.
+    /// `PositionalRef { index: 1 }` is replaced by `running`; for `index: K`
+    /// (`K >= 2`) it is replaced by `captures[K-2]`. Other variants are
+    /// transcribed into the typed-Json shape that `parse_typed_return_value`
+    /// understands. This function is the inverse direction of
+    /// `parse_typed_return_value` for the static template subset and is the
+    /// fold step's substitution primitive.
+    fn substitute_chain_template_to_typed_json(
+        template: &UnifiedReturnAST,
+        running: &serde_json::Value,
+        captures: &[serde_json::Value],
+    ) -> Result<serde_json::Value, String> {
+        match template {
+            UnifiedReturnAST::PositionalRef { index } => {
+                if *index == 1 {
+                    Ok(running.clone())
+                } else if *index >= 2 {
+                    let cap_idx = index - 2;
+                    captures.get(cap_idx).cloned().ok_or_else(|| {
+                        format!(
+                            "_pgen_lr_chain template positional ${} out of range (captures len={})",
+                            index,
+                            captures.len()
+                        )
+                    })
+                } else {
+                    Err(format!(
+                        "_pgen_lr_chain template positional ${} invalid (zero-indexed refs are not part of chain templates)",
+                        index
+                    ))
+                }
+            }
+            UnifiedReturnAST::StringLiteral { value } => {
+                Ok(serde_json::Value::String(value.clone()))
+            }
+            UnifiedReturnAST::NumberLiteral { value } => {
+                Ok(serde_json::Number::from_f64(*value)
+                    .map(serde_json::Value::Number)
+                    .unwrap_or(serde_json::Value::Null))
+            }
+            UnifiedReturnAST::BooleanLiteral { value } => Ok(serde_json::Value::Bool(*value)),
+            UnifiedReturnAST::Identifier { name } => Ok(serde_json::Value::String(name.clone())),
+            UnifiedReturnAST::Passthrough => Ok(serde_json::Value::Null),
+            UnifiedReturnAST::Object { properties } => {
+                let mut map = serde_json::Map::new();
+                for (k, v) in properties {
+                    map.insert(
+                        k.clone(),
+                        Self::substitute_chain_template_to_typed_json(v, running, captures)?,
+                    );
+                }
+                Ok(serde_json::Value::Object(map))
+            }
+            UnifiedReturnAST::Array { elements } => {
+                let mut arr = Vec::with_capacity(elements.len());
+                for e in elements {
+                    arr.push(Self::substitute_chain_template_to_typed_json(
+                        e, running, captures,
+                    )?);
+                }
+                Ok(serde_json::Value::Array(arr))
+            }
+            UnifiedReturnAST::Spread { base } => {
+                let mut map = serde_json::Map::new();
+                map.insert("type".to_string(), serde_json::Value::String("spread".to_string()));
+                map.insert(
+                    "base".to_string(),
+                    Self::substitute_chain_template_to_typed_json(base, running, captures)?,
+                );
+                Ok(serde_json::Value::Object(map))
+            }
+            UnifiedReturnAST::PropertyAccess { base, property } => {
+                let mut map = serde_json::Map::new();
+                map.insert(
+                    "type".to_string(),
+                    serde_json::Value::String("property_access".to_string()),
+                );
+                map.insert(
+                    "base".to_string(),
+                    Self::substitute_chain_template_to_typed_json(base, running, captures)?,
+                );
+                map.insert(
+                    "property".to_string(),
+                    serde_json::Value::String(property.clone()),
+                );
+                Ok(serde_json::Value::Object(map))
+            }
+            UnifiedReturnAST::ArrayAccess { base, index } => {
+                let mut map = serde_json::Map::new();
+                map.insert(
+                    "type".to_string(),
+                    serde_json::Value::String("array_access".to_string()),
+                );
+                map.insert(
+                    "base".to_string(),
+                    Self::substitute_chain_template_to_typed_json(base, running, captures)?,
+                );
+                map.insert(
+                    "index".to_string(),
+                    Self::substitute_chain_template_to_typed_json(index, running, captures)?,
+                );
+                Ok(serde_json::Value::Object(map))
+            }
+            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+                let mut map = serde_json::Map::new();
+                map.insert(
+                    "type".to_string(),
+                    serde_json::Value::String("extraction".to_string()),
+                );
+                map.insert(
+                    "base".to_string(),
+                    Self::substitute_chain_template_to_typed_json(base, running, captures)?,
+                );
+                let target_value = match target {
+                    ExtractionTarget::Index(zero_based) => {
+                        // parse_typed_extraction_target expects 1-based; emit the
+                        // user-facing 1-based form to round-trip cleanly.
+                        serde_json::Value::Number(serde_json::Number::from(*zero_based + 1))
+                    }
+                    ExtractionTarget::First => serde_json::Value::String("first".to_string()),
+                    ExtractionTarget::Last => serde_json::Value::String("last".to_string()),
+                };
+                map.insert("target".to_string(), target_value);
+                Ok(serde_json::Value::Object(map))
+            }
         }
     }
 
@@ -2485,6 +2734,211 @@ mod tests {
             },
             _ => panic!("Expected outer Spread"),
         }
+    }
+
+    #[test]
+    fn pgen_lr_chain_walker_folds_property_then_array_access() {
+        // Verify the walker resolves a synthetic `_pgen_lr_chain` typed JSON
+        // value into a folded UnifiedReturnAST. Models the post-LR-elim shape
+        // for `$+0.A[0]` against the return_annotation grammar:
+        //   wrapper alt 0 = property_access ('.' identifier)  with template
+        //                   `{type: "property_access", base: $1, property: $3}`
+        //   wrapper alt 1 = array_access ('[' expression ']') with template
+        //                   `{type: "array_access", base: $1, index: $3}`
+        //   prefix matched property_access for `$+0.A`, suffix matched
+        //   array_access for `[0]`.
+        use serde_json::json;
+        use std::collections::HashMap;
+
+        let prop_template = UnifiedReturnAST::Object {
+            properties: HashMap::from([
+                (
+                    "type".to_string(),
+                    Box::new(UnifiedReturnAST::StringLiteral {
+                        value: "property_access".to_string(),
+                    }),
+                ),
+                (
+                    "base".to_string(),
+                    Box::new(UnifiedReturnAST::PositionalRef { index: 1 }),
+                ),
+                (
+                    "property".to_string(),
+                    Box::new(UnifiedReturnAST::PositionalRef { index: 3 }),
+                ),
+            ]),
+        };
+        let array_template = UnifiedReturnAST::Object {
+            properties: HashMap::from([
+                (
+                    "type".to_string(),
+                    Box::new(UnifiedReturnAST::StringLiteral {
+                        value: "array_access".to_string(),
+                    }),
+                ),
+                (
+                    "base".to_string(),
+                    Box::new(UnifiedReturnAST::PositionalRef { index: 1 }),
+                ),
+                (
+                    "index".to_string(),
+                    Box::new(UnifiedReturnAST::PositionalRef { index: 3 }),
+                ),
+            ]),
+        };
+        let wrapper_specs = vec![
+            LrChainWrapperSpec {
+                alt_index: 0,
+                original_body_length: 3,
+                annotation_template: prop_template,
+            },
+            LrChainWrapperSpec {
+                alt_index: 1,
+                original_body_length: 4,
+                annotation_template: array_template,
+            },
+        ];
+        let wrapper_specs_str = serde_json::to_string(&wrapper_specs).unwrap();
+
+        // Initial = property_access prefix already evaluated against $+0.A.
+        let initial = json!({
+            "type": "property_access",
+            "base": {"type": "positional", "index": 0},
+            "property": "A",
+        });
+        // Suffix carries the alt_index + captures shape that the helper
+        // suffix rule's per-branch annotation will produce at runtime.
+        let suffixes = json!([
+            {
+                "type": "_pgen_lr_chain_alt",
+                "alt_index": 1,
+                "captures": ["[", 0, "]"],
+            }
+        ]);
+
+        let chain = json!({
+            "type": "_pgen_lr_chain",
+            "initial": initial,
+            "suffixes": suffixes,
+            "wrapper_specs": wrapper_specs_str,
+        });
+
+        let result = UnifiedReturnAST::parse_typed_return_value(&chain)
+            .expect("chain walker should resolve typed _pgen_lr_chain");
+
+        let expected = UnifiedReturnAST::ArrayAccess {
+            base: Box::new(UnifiedReturnAST::PropertyAccess {
+                base: Box::new(UnifiedReturnAST::PositionalRef { index: 0 }),
+                property: "A".to_string(),
+            }),
+            index: Box::new(UnifiedReturnAST::NumberLiteral { value: 0.0 }),
+        };
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn pgen_lr_chain_walker_passthrough_initial_with_chained_property_access() {
+        // Models a base-rule rewrite (`accessor_base`) where the rewritten
+        // body is `[helper_base_ref, suffix*]` and the synthetic annotation
+        // is `_pgen_lr_chain { initial: $1, suffixes: $2, wrapper_specs }`.
+        // For `$1.a.b`, prefix is just `$1` (helper_base = positional_reference),
+        // and two property_access suffix iterations follow.
+        use serde_json::json;
+        use std::collections::HashMap;
+
+        let prop_template = UnifiedReturnAST::Object {
+            properties: HashMap::from([
+                (
+                    "type".to_string(),
+                    Box::new(UnifiedReturnAST::StringLiteral {
+                        value: "property_access".to_string(),
+                    }),
+                ),
+                (
+                    "base".to_string(),
+                    Box::new(UnifiedReturnAST::PositionalRef { index: 1 }),
+                ),
+                (
+                    "property".to_string(),
+                    Box::new(UnifiedReturnAST::PositionalRef { index: 3 }),
+                ),
+            ]),
+        };
+        let wrapper_specs = vec![LrChainWrapperSpec {
+            alt_index: 0,
+            original_body_length: 3,
+            annotation_template: prop_template,
+        }];
+        let wrapper_specs_str = serde_json::to_string(&wrapper_specs).unwrap();
+
+        let initial = json!({"type": "positional", "index": 1});
+        let suffixes = json!([
+            {"type": "_pgen_lr_chain_alt", "alt_index": 0, "captures": [".", "a"]},
+            {"type": "_pgen_lr_chain_alt", "alt_index": 0, "captures": [".", "b"]},
+        ]);
+        let chain = json!({
+            "type": "_pgen_lr_chain",
+            "initial": initial,
+            "suffixes": suffixes,
+            "wrapper_specs": wrapper_specs_str,
+        });
+
+        let result = UnifiedReturnAST::parse_typed_return_value(&chain)
+            .expect("chain walker should resolve nested property access");
+        let expected = UnifiedReturnAST::PropertyAccess {
+            base: Box::new(UnifiedReturnAST::PropertyAccess {
+                base: Box::new(UnifiedReturnAST::PositionalRef { index: 1 }),
+                property: "a".to_string(),
+            }),
+            property: "b".to_string(),
+        };
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn pgen_lr_chain_walker_with_empty_suffixes_returns_initial() {
+        use serde_json::json;
+        let wrapper_specs: Vec<LrChainWrapperSpec> = Vec::new();
+        let wrapper_specs_str = serde_json::to_string(&wrapper_specs).unwrap();
+
+        let chain = json!({
+            "type": "_pgen_lr_chain",
+            "initial": {"type": "positional", "index": 0},
+            "suffixes": [],
+            "wrapper_specs": wrapper_specs_str,
+        });
+
+        let result = UnifiedReturnAST::parse_typed_return_value(&chain)
+            .expect("empty suffixes => initial passthrough");
+        assert_eq!(result, UnifiedReturnAST::PositionalRef { index: 0 });
+    }
+
+    #[test]
+    fn pgen_lr_chain_walker_unknown_alt_index_errors() {
+        use serde_json::json;
+        let wrapper_specs: Vec<LrChainWrapperSpec> = vec![LrChainWrapperSpec {
+            alt_index: 0,
+            original_body_length: 3,
+            annotation_template: UnifiedReturnAST::PositionalRef { index: 1 },
+        }];
+        let wrapper_specs_str = serde_json::to_string(&wrapper_specs).unwrap();
+
+        let chain = json!({
+            "type": "_pgen_lr_chain",
+            "initial": {"type": "positional", "index": 1},
+            "suffixes": [
+                {"type": "_pgen_lr_chain_alt", "alt_index": 99, "captures": []}
+            ],
+            "wrapper_specs": wrapper_specs_str,
+        });
+
+        let err = UnifiedReturnAST::parse_typed_return_value(&chain)
+            .expect_err("unknown alt_index should error");
+        assert!(
+            err.contains("alt_index=99 not found in wrapper_specs"),
+            "expected alt_index lookup error, got: {}",
+            err
+        );
     }
 
     #[test]
