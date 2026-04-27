@@ -8581,7 +8581,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -8999,7 +8999,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );
@@ -10902,7 +10902,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             .insert(
                                                 "wrapper_specs".to_string(),
                                                 serde_json::Value::String(
-                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"property\":{\"PositionalRef\":{\"index\":3}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"base\":{\"PositionalRef\":{\"index\":1}},\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
                                                         .to_string(),
                                                 ),
                                             );

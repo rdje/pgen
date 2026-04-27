@@ -2566,6 +2566,25 @@ impl AstBasedGenerator {
         })
     }
 
+    // FUTURE: bolder default — for a multi-element Sequence with EXACTLY
+    // ONE non-terminal (rule reference / quantified rule ref / grouped
+    // non-terminal), default to `-> $N` where N is that non-terminal's
+    // position. Example: `'(' expression ')'` → `-> $2`.
+    //
+    // Attempted on 2026-04-27 and reverted: the heuristic fires
+    // PER-BRANCH and ignores whether sibling branches in the same Or
+    // already carry an explicit annotation. For
+    // `string_literal := ('"' string_content_double '"' | "'" string_content_single "'") -> {type: "string", value: $2}`
+    // the codegen stores the explicit `{type: "string", ...}` on
+    // branch_index 0 only. The bolder default then fires `-> $2` on
+    // branch_index 1, producing a bare-string output while branch 0
+    // produces a typed object — inconsistent shape per branch.
+    //
+    // Before re-introducing: add a "don't override sibling-branch intent"
+    // rule (skip the default if any sibling Or-branch has an explicit
+    // annotation OR if the rule itself carries a body-level annotation
+    // that's stored at a single branch index).
+
     fn generate_return_transform(
         &self,
         annotation: &BranchAnnotation,
