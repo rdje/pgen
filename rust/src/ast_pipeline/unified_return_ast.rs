@@ -125,10 +125,36 @@ impl UnifiedReturnAST {
                                     "typed extraction missing 'target' field".to_string()
                                 })?,
                             )?;
-                            Ok(UnifiedReturnAST::QuantifiedExtraction {
+                            let extraction = UnifiedReturnAST::QuantifiedExtraction {
                                 base: Box::new(base),
                                 target,
-                            })
+                            };
+                            // The return_annotation grammar's extraction shape is
+                            //   `extraction_expression := positional_reference '::' extraction_target spread_suffix?`
+                            //   `-> {type: "extraction", base: $1, target: $3, spread: $4}`
+                            // and `spread_suffix := '*' -> "true"`. So `spread`
+                            // is `null` (absent), the JSON string `"true"`
+                            // (from spread_suffix's annotation when matched),
+                            // or — for legacy / no-transform paths — an empty
+                            // sequence/array. Treat any non-null, non-empty
+                            // value as "spread present" and wrap in Spread.
+                            let spread_present = match map.get("spread") {
+                                None | Some(serde_json::Value::Null) => false,
+                                Some(serde_json::Value::Bool(b)) => *b,
+                                Some(serde_json::Value::String(s)) => {
+                                    !s.is_empty() && s != "false"
+                                }
+                                Some(serde_json::Value::Array(arr)) => !arr.is_empty(),
+                                Some(serde_json::Value::Object(obj)) => !obj.is_empty(),
+                                Some(serde_json::Value::Number(_)) => true,
+                            };
+                            if spread_present {
+                                Ok(UnifiedReturnAST::Spread {
+                                    base: Box::new(extraction),
+                                })
+                            } else {
+                                Ok(extraction)
+                            }
                         }
                         "spread" => {
                             let base = Self::parse_typed_return_value(
@@ -151,13 +177,45 @@ impl UnifiedReturnAST {
                                 let prop_map = prop_value.as_object().ok_or_else(|| {
                                     format!("object_property entry must be an object, got {}", prop_value)
                                 })?;
-                                let key = prop_map
-                                    .get("key")
-                                    .and_then(|v| v.as_str())
-                                    .ok_or_else(|| {
-                                        "object_property missing 'key' field".to_string()
-                                    })?
-                                    .to_string();
+                                // The grammar's `property_key := identifier | string_literal`
+                                // means `$1` (the key in `object_property`'s annotation
+                                // `{key: $1, value: $3}`) can be either:
+                                //   - a bare string (identifier terminal), OR
+                                //   - a typed `{type: "string", value: "..."}` object
+                                //     (string_literal's annotation result).
+                                // Accept both shapes; the result is the same string key.
+                                let key_value = prop_map.get("key").ok_or_else(|| {
+                                    "object_property missing 'key' field".to_string()
+                                })?;
+                                let key = match key_value {
+                                    serde_json::Value::String(s) => s.clone(),
+                                    serde_json::Value::Object(obj) => {
+                                        match obj.get("type").and_then(|v| v.as_str()) {
+                                            Some("string") => obj
+                                                .get("value")
+                                                .and_then(|v| v.as_str())
+                                                .ok_or_else(|| {
+                                                    format!(
+                                                        "object_property typed-string key missing 'value' string: {:?}",
+                                                        obj
+                                                    )
+                                                })?
+                                                .to_string(),
+                                            other => {
+                                                return Err(format!(
+                                                    "object_property 'key' object has unsupported 'type' {:?}",
+                                                    other
+                                                ));
+                                            }
+                                        }
+                                    }
+                                    other => {
+                                        return Err(format!(
+                                            "object_property 'key' must be string or typed object; got {}",
+                                            other
+                                        ));
+                                    }
+                                };
                                 let val = Self::parse_typed_return_value(
                                     prop_map.get("value").ok_or_else(|| {
                                         "object_property missing 'value' field".to_string()
@@ -284,7 +342,18 @@ impl UnifiedReturnAST {
                 }
             }
             serde_json::Value::String(s) => {
-                Ok(UnifiedReturnAST::StringLiteral { value: s.clone() })
+                // Bare-string flow-through from terminal-only rules (e.g.
+                // `boolean_literal := 'true' | 'false'` carries no annotation
+                // and the matched terminal flows through unchanged). Match
+                // the bootstrap parser's keyword recognition for `true`/
+                // `false` so the typed AST round-trips between bootstrap
+                // and generated paths even when these tokens come through
+                // unwrapped.
+                match s.as_str() {
+                    "true" => Ok(UnifiedReturnAST::BooleanLiteral { value: true }),
+                    "false" => Ok(UnifiedReturnAST::BooleanLiteral { value: false }),
+                    _ => Ok(UnifiedReturnAST::StringLiteral { value: s.clone() }),
+                }
             }
             serde_json::Value::Number(n) => {
                 let f = n.as_f64().unwrap_or(0.0);
@@ -414,15 +483,44 @@ impl UnifiedReturnAST {
                     suffix_index, suffix_value
                 )
             })?;
-            let alt_index = suffix_obj
-                .get("alt_index")
-                .and_then(|v| v.as_u64())
-                .ok_or_else(|| {
-                    format!(
-                        "_pgen_lr_chain suffix[{}] missing 'alt_index' u64",
-                        suffix_index
-                    )
-                })? as usize;
+            // `alt_index` may be emitted as a float-typed `Number` because
+            // the synthetic annotation routes through `UnifiedReturnAST::NumberLiteral`
+            // (whose codegen emits `serde_json::Value::from(f64)`). Accept
+            // both integer- and float-typed Numbers and require non-negative
+            // integer-valued.
+            let alt_index_value = suffix_obj.get("alt_index").ok_or_else(|| {
+                format!(
+                    "_pgen_lr_chain suffix[{}] missing 'alt_index' field",
+                    suffix_index
+                )
+            })?;
+            let alt_index = match alt_index_value {
+                serde_json::Value::Number(n) => {
+                    if let Some(u) = n.as_u64() {
+                        u as usize
+                    } else if let Some(f) = n.as_f64() {
+                        if f >= 0.0 && f.fract() == 0.0 && f <= usize::MAX as f64 {
+                            f as usize
+                        } else {
+                            return Err(format!(
+                                "_pgen_lr_chain suffix[{}] 'alt_index' float {} not a non-negative integer",
+                                suffix_index, f
+                            ));
+                        }
+                    } else {
+                        return Err(format!(
+                            "_pgen_lr_chain suffix[{}] 'alt_index' Number unrepresentable",
+                            suffix_index
+                        ));
+                    }
+                }
+                other => {
+                    return Err(format!(
+                        "_pgen_lr_chain suffix[{}] 'alt_index' must be Number; got {}",
+                        suffix_index, other
+                    ));
+                }
+            };
             let captures_arr = suffix_obj
                 .get("captures")
                 .and_then(|v| v.as_array())

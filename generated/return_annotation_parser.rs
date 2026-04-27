@@ -89,24 +89,25 @@ impl<'input> ReturnAnnotationParser<'input> {
     const RULE_PROPERTY_ACCESS_EXPRESSION: RuleId = 10u16;
     const RULE_ARRAY_ACCESS_EXPRESSION: RuleId = 11u16;
     const RULE_ACCESSOR_BASE_LR_BASE: RuleId = 12u16;
-    const RULE_ACCESSOR_BASE: RuleId = 13u16;
-    const RULE_POSITIONAL_REFERENCE: RuleId = 14u16;
-    const RULE_STRING_LITERAL: RuleId = 15u16;
-    const RULE_STRING_CONTENT_DOUBLE: RuleId = 16u16;
-    const RULE_STRING_CONTENT_SINGLE: RuleId = 17u16;
-    const RULE_NUMBER_LITERAL: RuleId = 18u16;
-    const RULE_FLOAT: RuleId = 19u16;
-    const RULE_INTEGER: RuleId = 20u16;
-    const RULE_BOOLEAN_LITERAL: RuleId = 21u16;
-    const RULE_IDENTIFIER: RuleId = 22u16;
-    const RULE_OBJECT_LITERAL: RuleId = 23u16;
-    const RULE_OBJECT_PROPERTIES: RuleId = 24u16;
-    const RULE_OBJECT_PROPERTY: RuleId = 25u16;
-    const RULE_PROPERTY_KEY: RuleId = 26u16;
-    const RULE_ARRAY_LITERAL: RuleId = 27u16;
-    const RULE_ARRAY_ELEMENTS: RuleId = 28u16;
-    const RULE_ARRAY_ELEMENT: RuleId = 29u16;
-    const RULE_PARENTHESIZED: RuleId = 30u16;
+    const RULE_ACCESSOR_BASE_LR_SUFFIX: RuleId = 13u16;
+    const RULE_ACCESSOR_BASE: RuleId = 14u16;
+    const RULE_POSITIONAL_REFERENCE: RuleId = 15u16;
+    const RULE_STRING_LITERAL: RuleId = 16u16;
+    const RULE_STRING_CONTENT_DOUBLE: RuleId = 17u16;
+    const RULE_STRING_CONTENT_SINGLE: RuleId = 18u16;
+    const RULE_NUMBER_LITERAL: RuleId = 19u16;
+    const RULE_FLOAT: RuleId = 20u16;
+    const RULE_INTEGER: RuleId = 21u16;
+    const RULE_BOOLEAN_LITERAL: RuleId = 22u16;
+    const RULE_IDENTIFIER: RuleId = 23u16;
+    const RULE_OBJECT_LITERAL: RuleId = 24u16;
+    const RULE_OBJECT_PROPERTIES: RuleId = 25u16;
+    const RULE_OBJECT_PROPERTY: RuleId = 26u16;
+    const RULE_PROPERTY_KEY: RuleId = 27u16;
+    const RULE_ARRAY_LITERAL: RuleId = 28u16;
+    const RULE_ARRAY_ELEMENTS: RuleId = 29u16;
+    const RULE_ARRAY_ELEMENT: RuleId = 30u16;
+    const RULE_PARENTHESIZED: RuleId = 31u16;
     pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
         let logger_enabled = logger.is_enabled();
         Self {
@@ -781,7 +782,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         self.deterministic_partition_runtime_mode = mode;
     }
     pub fn parse_return_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("return_annotation", position);
         match cycle_type {
@@ -789,7 +790,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -806,7 +807,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -823,7 +824,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -901,7 +902,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -947,7 +948,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -1091,7 +1092,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -1105,7 +1106,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -1126,7 +1127,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -1141,7 +1142,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -1285,7 +1286,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -1299,7 +1300,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -1320,7 +1321,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -1335,7 +1336,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -1479,7 +1480,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -1493,7 +1494,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -1517,7 +1518,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -1581,7 +1582,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -1592,7 +1593,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -1602,7 +1603,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -1624,7 +1625,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -1637,7 +1638,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_arrow(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("arrow", position);
         match cycle_type {
@@ -1645,7 +1646,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -1662,7 +1663,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -1679,7 +1680,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -1760,7 +1761,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -1771,7 +1772,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -1781,7 +1782,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -1803,7 +1804,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -1816,7 +1817,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("expression", position);
         match cycle_type {
@@ -1824,7 +1825,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -1841,7 +1842,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -1858,7 +1859,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -1936,7 +1937,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -1951,7 +1952,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2095,7 +2096,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2108,7 +2109,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2129,7 +2130,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -2144,7 +2145,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2288,7 +2289,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2301,7 +2302,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2322,7 +2323,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -2337,7 +2338,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2481,7 +2482,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2494,7 +2495,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2515,7 +2516,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -2530,7 +2531,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2674,7 +2675,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2687,7 +2688,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2708,7 +2709,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -2723,7 +2724,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -2867,7 +2868,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2880,7 +2881,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -2904,7 +2905,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -2968,7 +2969,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -2979,7 +2980,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -2989,7 +2990,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -3011,7 +3012,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -3024,7 +3025,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_primary_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -3034,7 +3035,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -3051,7 +3052,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -3068,7 +3069,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -3146,7 +3147,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3161,7 +3162,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3305,7 +3306,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3319,7 +3320,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3340,7 +3341,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3355,7 +3356,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3499,7 +3500,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3513,7 +3514,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3534,7 +3535,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3549,7 +3550,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3693,7 +3694,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3707,7 +3708,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3728,7 +3729,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3743,7 +3744,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -3887,7 +3888,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -3901,7 +3902,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -3922,7 +3923,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -3937,7 +3938,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4081,7 +4082,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4095,7 +4096,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4116,7 +4117,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4131,7 +4132,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4275,7 +4276,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4289,7 +4290,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4310,7 +4311,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4325,7 +4326,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4469,7 +4470,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4483,7 +4484,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4504,7 +4505,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -4564,7 +4565,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -4724,7 +4725,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -4738,7 +4739,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -4762,7 +4763,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -4826,7 +4827,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -4837,7 +4838,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -4847,7 +4848,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -4869,7 +4870,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -4882,7 +4883,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_extraction_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -4892,7 +4893,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -4909,7 +4910,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -4926,7 +4927,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -5030,6 +5031,88 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "base".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                            other => other,
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "spread".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 3usize => {
+                                                                elements[3usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 3usize => {
+                                                                elements[3usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "target".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 2usize => {
+                                                                elements[2usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 2usize => {
+                                                                elements[2usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("extraction".to_string()),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -5077,7 +5160,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -5088,7 +5171,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -5098,7 +5181,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -5120,7 +5203,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -5133,7 +5216,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_extraction_target(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("extraction_target", position);
         match cycle_type {
@@ -5141,7 +5224,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -5158,7 +5241,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -5175,7 +5258,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -5253,7 +5336,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -5268,7 +5351,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -5412,7 +5495,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -5426,7 +5509,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -5447,7 +5530,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -5461,7 +5544,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -5605,7 +5688,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -5619,7 +5702,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -5640,7 +5723,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -5654,7 +5737,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -5798,7 +5881,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -5812,7 +5895,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -5836,7 +5919,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -5900,7 +5983,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -5911,7 +5994,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -5921,7 +6004,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -5943,7 +6026,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -5956,7 +6039,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_positive_integer(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("positive_integer", position);
         match cycle_type {
@@ -5964,7 +6047,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -5981,7 +6064,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -5998,7 +6081,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -6094,7 +6177,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -6105,7 +6188,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -6115,7 +6198,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -6137,7 +6220,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -6150,7 +6233,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_spread_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("spread_expression", position);
         match cycle_type {
@@ -6158,7 +6241,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -6175,7 +6258,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -6192,7 +6275,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -6257,6 +6340,40 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "base".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                            other => other,
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("spread".to_string()),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -6304,7 +6421,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -6315,7 +6432,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -6325,7 +6442,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -6347,7 +6464,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -6360,7 +6477,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_spreadable_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -6370,7 +6487,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -6387,7 +6504,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -6404,7 +6521,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -6482,7 +6599,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6497,7 +6614,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -6641,7 +6758,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -6655,7 +6772,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -6676,7 +6793,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6691,7 +6808,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -6835,7 +6952,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -6849,7 +6966,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -6870,7 +6987,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -6885,7 +7002,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7029,7 +7146,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7043,7 +7160,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7064,7 +7181,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -7079,7 +7196,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7223,7 +7340,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7237,7 +7354,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7258,7 +7375,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -7318,7 +7435,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -7478,7 +7595,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -7492,7 +7609,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -7516,7 +7633,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -7580,7 +7697,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -7591,7 +7708,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -7601,7 +7718,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -7623,7 +7740,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -7636,7 +7753,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_spread_suffix(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("spread_suffix", position);
         match cycle_type {
@@ -7644,7 +7761,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -7661,7 +7778,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -7678,7 +7795,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -7712,6 +7829,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 > = None;
                                 let matched_str = parser.match_string("*")?;
                                 let result = ParseContent::Terminal(matched_str);
+                                let result = { ParseContent::Terminal("true") };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -7759,7 +7877,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -7770,7 +7888,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -7780,7 +7898,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -7802,7 +7920,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -7817,7 +7935,7 @@ impl<'input> ReturnAnnotationParser<'input> {
     pub fn parse_property_access_expression(
         &mut self,
     ) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -7827,7 +7945,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -7844,7 +7962,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -7861,7 +7979,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -7895,7 +8013,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let mut semantic_raw_content: Option<
                                     ParseContent<'input>,
                                 > = None;
-                                let mut sequence_elements = Vec::with_capacity(3usize);
+                                let mut sequence_elements = Vec::with_capacity(4usize);
                                 {
                                     let element_start = parser.position;
                                     let element_content = {
@@ -7915,45 +8033,30 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 {
                                     let element_start = parser.position;
                                     let element_content = {
-                                        let mut sequence_elements = Vec::with_capacity(2usize);
-                                        {
-                                            let element_start = parser.position;
-                                            let element_content = {
-                                                let matched_str = parser.match_string(".")?;
-                                                let result = ParseContent::Terminal(matched_str);
-                                                result
-                                            };
-                                            let element_end = parser.position;
-                                            sequence_elements
-                                                .push(ParseNode {
-                                                    rule_name: "element_0",
-                                                    content: element_content,
-                                                    span: element_start..element_end,
-                                                });
-                                        }
-                                        {
-                                            let element_start = parser.position;
-                                            let element_content = {
-                                                let result = ParseContent::Alternative(
-                                                    Box::new(parser.parse_identifier()?),
-                                                );
-                                                result
-                                            };
-                                            let element_end = parser.position;
-                                            sequence_elements
-                                                .push(ParseNode {
-                                                    rule_name: "element_1",
-                                                    content: element_content,
-                                                    span: element_start..element_end,
-                                                });
-                                        }
-                                        let result = ParseContent::Sequence(sequence_elements);
+                                        let matched_str = parser.match_string(".")?;
+                                        let result = ParseContent::Terminal(matched_str);
                                         result
                                     };
                                     let element_end = parser.position;
                                     sequence_elements
                                         .push(ParseNode {
                                             rule_name: "element_1",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let result = ParseContent::Alternative(
+                                            Box::new(parser.parse_identifier()?),
+                                        );
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_2",
                                             content: element_content,
                                             span: element_start..element_end,
                                         });
@@ -7969,596 +8072,9 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             if let Some(node) = parser
                                                 .try_parse(|p| {
                                                     let parser = p;
-                                                    let parse_start = parser.position;
-                                                    let mut best_content: Option<ParseContent<'input>> = None;
-                                                    let mut best_raw_content: Option<ParseContent<'input>> = None;
-                                                    let mut best_end = parse_start;
-                                                    let mut best_priority: i64 = i64::MIN;
-                                                    let mut best_branch_index: usize = 0usize;
-                                                    let mut best_branch = 0usize;
-                                                    let mut nonassoc_tie = false;
-                                                    let mut result = ParseContent::Sequence(Vec::new());
-                                                    let deterministic_partition_effective_enabled = parser
-                                                        .effective_deterministic_partition_enabled(false);
-                                                    let deterministic_partition_effective_group = parser
-                                                        .effective_deterministic_partition_group(
-                                                            "property_access_expression",
-                                                            "rule.property_access_expression",
-                                                        );
-                                                    let deterministic_partition_offset = if deterministic_partition_effective_enabled {
-                                                        parser
-                                                            .deterministic_partition_offset_runtime(
-                                                                &deterministic_partition_effective_group,
-                                                                2usize,
-                                                            )
-                                                    } else {
-                                                        0usize
-                                                    };
-                                                    let mut evaluation_order: Vec<usize> = (0..2usize)
-                                                        .collect();
-                                                    if deterministic_partition_effective_enabled && 2usize > 1
-                                                        && deterministic_partition_offset > 0
-                                                    {
-                                                        evaluation_order
-                                                            .rotate_left(deterministic_partition_offset);
-                                                    }
-                                                    for branch_index in evaluation_order {
-                                                        match branch_index {
-                                                            0usize => {
-                                                                if "longest_match" == "ordered" && best_content.is_some()
-                                                                {} else {
-                                                                    parser.position = parse_start;
-                                                                    if let Some(content) = parser
-                                                                        .try_parse(|p| {
-                                                                            let parser = p;
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                                            1usize, 2usize, "property_access_expression", parser
-                                                                                            .position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            let mut sequence_elements = Vec::with_capacity(2usize);
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string(".")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_0",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let result = ParseContent::Alternative(
-                                                                                        Box::new(parser.parse_identifier()?),
-                                                                                    );
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_1",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            let result = ParseContent::Sequence(sequence_elements);
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                                            1usize, 2usize, "property_access_expression", parser
-                                                                                            .position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            Ok(result)
-                                                                        })
-                                                                    {
-                                                                        let candidate_end = parser.position;
-                                                                        parser.position = parse_start;
-                                                                        let candidate_priority: i64 = 0i64;
-                                                                        let current_branch_index: usize = 0usize;
-                                                                        let raw_content = content;
-                                                                        let transformed = {
-                                                                            let content = raw_content.clone();
-                                                                            {
-                                                                                let mut __pgen_obj = serde_json::Map::new();
-                                                                                __pgen_obj
-                                                                                    .insert(
-                                                                                        "base".to_string(),
-                                                                                        {
-                                                                                            let __pgen_content = {
-                                                                                                let __pgen_base = (content).clone();
-                                                                                                match __pgen_base {
-                                                                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                                                        elements[0usize].content.clone()
-                                                                                                    }
-                                                                                                    ParseContent::Quantified(
-                                                                                                        elements,
-                                                                                                        _,
-                                                                                                    ) if !elements.is_empty() => {
-                                                                                                        elements[0usize].content.clone()
-                                                                                                    }
-                                                                                                    ParseContent::Alternative(node) => node.content.clone(),
-                                                                                                    other => other,
-                                                                                                }
-                                                                                            };
-                                                                                            __pgen_content.to_json_value()
-                                                                                        },
-                                                                                    );
-                                                                                __pgen_obj
-                                                                                    .insert(
-                                                                                        "property".to_string(),
-                                                                                        {
-                                                                                            let __pgen_content = {
-                                                                                                let __pgen_base = (content).clone();
-                                                                                                match __pgen_base {
-                                                                                                    ParseContent::Sequence(
-                                                                                                        elements,
-                                                                                                    ) if elements.len() > 2usize => {
-                                                                                                        elements[2usize].content.clone()
-                                                                                                    }
-                                                                                                    ParseContent::Quantified(
-                                                                                                        elements,
-                                                                                                        _,
-                                                                                                    ) if elements.len() > 2usize => {
-                                                                                                        elements[2usize].content.clone()
-                                                                                                    }
-                                                                                                    _ => ParseContent::Terminal("<invalid_sequence_access>"),
-                                                                                                }
-                                                                                            };
-                                                                                            __pgen_content.to_json_value()
-                                                                                        },
-                                                                                    );
-                                                                                __pgen_obj
-                                                                                    .insert(
-                                                                                        "type".to_string(),
-                                                                                        serde_json::Value::String("property_access".to_string()),
-                                                                                    );
-                                                                                ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                                            }
-                                                                        };
-                                                                        let mut branch_predicate_blocked = false;
-                                                                        let mut blocked_branch_predicate: Option<String> = None;
-                                                                        for directive in parser
-                                                                            .semantic_runtime_annotations
-                                                                            .branch_predicates_for_rule("property_access_expression")
-                                                                            .chain(
-                                                                                parser
-                                                                                    .semantic_runtime_annotations
-                                                                                    .branch_predicates_for_rule_branch(
-                                                                                        "property_access_expression",
-                                                                                        current_branch_index,
-                                                                                    ),
-                                                                            )
-                                                                        {
-                                                                            match directive {
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    spec,
-                                                                                ) if spec.phase
-                                                                                    == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                                    let Some(resolved_spec) = parser
-                                                                                        .try_resolve_semantic_predicate_spec_against_content(
-                                                                                            spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )? else {
-                                                                                        blocked_branch_predicate = Some(
-                                                                                            parser.semantic_predicate_debug_label(spec),
-                                                                                        );
-                                                                                        branch_predicate_blocked = true;
-                                                                                        break;
-                                                                                    };
-                                                                                    match parser
-                                                                                        .semantic_runtime_state
-                                                                                        .evaluate_content_aware_predicate(
-                                                                                            &resolved_spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )
-                                                                                    {
-                                                                                        Some(true) => {}
-                                                                                        Some(false) => {
-                                                                                            blocked_branch_predicate = Some(
-                                                                                                parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                                            );
-                                                                                            branch_predicate_blocked = true;
-                                                                                            break;
-                                                                                        }
-                                                                                        None => {}
-                                                                                    }
-                                                                                }
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                                    _,
-                                                                                )
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    _,
-                                                                                ) => {}
-                                                                            }
-                                                                        }
-                                                                        let should_take = if branch_predicate_blocked {
-                                                                            false
-                                                                        } else if "longest_match" == "ordered" {
-                                                                            best_content.is_none()
-                                                                        } else if "longest_match" == "priority_first" {
-                                                                            if best_content.is_none() {
-                                                                                true
-                                                                            } else if candidate_priority > best_priority {
-                                                                                true
-                                                                            } else if candidate_priority < best_priority {
-                                                                                false
-                                                                            } else if candidate_end > best_end {
-                                                                                true
-                                                                            } else if candidate_end < best_end {
-                                                                                false
-                                                                            } else {
-                                                                                match "left" {
-                                                                                    "right" => current_branch_index > best_branch_index,
-                                                                                    "nonassoc" => {
-                                                                                        if current_branch_index != best_branch_index {
-                                                                                            nonassoc_tie = true;
-                                                                                        }
-                                                                                        false
-                                                                                    }
-                                                                                    _ => false,
-                                                                                }
-                                                                            }
-                                                                        } else if best_content.is_none() {
-                                                                            true
-                                                                        } else if candidate_end > best_end {
-                                                                            true
-                                                                        } else if candidate_end < best_end {
-                                                                            false
-                                                                        } else if candidate_priority > best_priority {
-                                                                            true
-                                                                        } else if candidate_priority < best_priority {
-                                                                            false
-                                                                        } else {
-                                                                            match "left" {
-                                                                                "right" => current_branch_index > best_branch_index,
-                                                                                "nonassoc" => {
-                                                                                    if current_branch_index != best_branch_index {
-                                                                                        nonassoc_tie = true;
-                                                                                    }
-                                                                                    false
-                                                                                }
-                                                                                _ => false,
-                                                                            }
-                                                                        };
-                                                                        if should_take {
-                                                                            best_end = candidate_end;
-                                                                            best_priority = candidate_priority;
-                                                                            best_branch_index = current_branch_index;
-                                                                            best_branch = 1usize;
-                                                                            if semantic_capture_raw_for_post {
-                                                                                best_raw_content = Some(raw_content.clone());
-                                                                            }
-                                                                            best_content = Some(transformed);
-                                                                        } else if branch_predicate_blocked
-                                                                            && parser.logger.is_enabled()
-                                                                        {
-                                                                            parser
-                                                                                .logger
-                                                                                .log_info(
-                                                                                    "generated/return_annotation_parser.rs",
-                                                                                    0,
-                                                                                    &format!(
-                                                                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                                        1usize, 2usize, "property_access_expression",
-                                                                                        blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
-                                                                                        candidate_end
-                                                                                    ),
-                                                                                );
-                                                                        }
-                                                                    } else if parser.logger.is_enabled() {
-                                                                        parser
-                                                                            .logger
-                                                                            .log_info(
-                                                                                "generated/return_annotation_parser.rs",
-                                                                                0,
-                                                                                &format!(
-                                                                                    "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                                    1usize, 2usize, "property_access_expression", parser
-                                                                                    .position
-                                                                                ),
-                                                                            );
-                                                                    }
-                                                                }
-                                                            }
-                                                            1usize => {
-                                                                if "longest_match" == "ordered" && best_content.is_some()
-                                                                {} else {
-                                                                    parser.position = parse_start;
-                                                                    if let Some(content) = parser
-                                                                        .try_parse(|p| {
-                                                                            let parser = p;
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                                            2usize, 2usize, "property_access_expression", parser
-                                                                                            .position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            let mut sequence_elements = Vec::with_capacity(3usize);
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string("[")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_0",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let result = ParseContent::Alternative(
-                                                                                        Box::new(parser.parse_expression()?),
-                                                                                    );
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_1",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string("]")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_2",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            let result = ParseContent::Sequence(sequence_elements);
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                                            2usize, 2usize, "property_access_expression", parser
-                                                                                            .position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            Ok(result)
-                                                                        })
-                                                                    {
-                                                                        let candidate_end = parser.position;
-                                                                        parser.position = parse_start;
-                                                                        let candidate_priority: i64 = 0i64;
-                                                                        let current_branch_index: usize = 1usize;
-                                                                        let raw_content = content;
-                                                                        let transformed = {
-                                                                            let content = raw_content.clone();
-                                                                            content
-                                                                        };
-                                                                        let mut branch_predicate_blocked = false;
-                                                                        let mut blocked_branch_predicate: Option<String> = None;
-                                                                        for directive in parser
-                                                                            .semantic_runtime_annotations
-                                                                            .branch_predicates_for_rule("property_access_expression")
-                                                                            .chain(
-                                                                                parser
-                                                                                    .semantic_runtime_annotations
-                                                                                    .branch_predicates_for_rule_branch(
-                                                                                        "property_access_expression",
-                                                                                        current_branch_index,
-                                                                                    ),
-                                                                            )
-                                                                        {
-                                                                            match directive {
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    spec,
-                                                                                ) if spec.phase
-                                                                                    == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                                    let Some(resolved_spec) = parser
-                                                                                        .try_resolve_semantic_predicate_spec_against_content(
-                                                                                            spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )? else {
-                                                                                        blocked_branch_predicate = Some(
-                                                                                            parser.semantic_predicate_debug_label(spec),
-                                                                                        );
-                                                                                        branch_predicate_blocked = true;
-                                                                                        break;
-                                                                                    };
-                                                                                    match parser
-                                                                                        .semantic_runtime_state
-                                                                                        .evaluate_content_aware_predicate(
-                                                                                            &resolved_spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )
-                                                                                    {
-                                                                                        Some(true) => {}
-                                                                                        Some(false) => {
-                                                                                            blocked_branch_predicate = Some(
-                                                                                                parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                                            );
-                                                                                            branch_predicate_blocked = true;
-                                                                                            break;
-                                                                                        }
-                                                                                        None => {}
-                                                                                    }
-                                                                                }
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                                    _,
-                                                                                )
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    _,
-                                                                                ) => {}
-                                                                            }
-                                                                        }
-                                                                        let should_take = if branch_predicate_blocked {
-                                                                            false
-                                                                        } else if "longest_match" == "ordered" {
-                                                                            best_content.is_none()
-                                                                        } else if "longest_match" == "priority_first" {
-                                                                            if best_content.is_none() {
-                                                                                true
-                                                                            } else if candidate_priority > best_priority {
-                                                                                true
-                                                                            } else if candidate_priority < best_priority {
-                                                                                false
-                                                                            } else if candidate_end > best_end {
-                                                                                true
-                                                                            } else if candidate_end < best_end {
-                                                                                false
-                                                                            } else {
-                                                                                match "left" {
-                                                                                    "right" => current_branch_index > best_branch_index,
-                                                                                    "nonassoc" => {
-                                                                                        if current_branch_index != best_branch_index {
-                                                                                            nonassoc_tie = true;
-                                                                                        }
-                                                                                        false
-                                                                                    }
-                                                                                    _ => false,
-                                                                                }
-                                                                            }
-                                                                        } else if best_content.is_none() {
-                                                                            true
-                                                                        } else if candidate_end > best_end {
-                                                                            true
-                                                                        } else if candidate_end < best_end {
-                                                                            false
-                                                                        } else if candidate_priority > best_priority {
-                                                                            true
-                                                                        } else if candidate_priority < best_priority {
-                                                                            false
-                                                                        } else {
-                                                                            match "left" {
-                                                                                "right" => current_branch_index > best_branch_index,
-                                                                                "nonassoc" => {
-                                                                                    if current_branch_index != best_branch_index {
-                                                                                        nonassoc_tie = true;
-                                                                                    }
-                                                                                    false
-                                                                                }
-                                                                                _ => false,
-                                                                            }
-                                                                        };
-                                                                        if should_take {
-                                                                            best_end = candidate_end;
-                                                                            best_priority = candidate_priority;
-                                                                            best_branch_index = current_branch_index;
-                                                                            best_branch = 2usize;
-                                                                            if semantic_capture_raw_for_post {
-                                                                                best_raw_content = Some(raw_content.clone());
-                                                                            }
-                                                                            best_content = Some(transformed);
-                                                                        } else if branch_predicate_blocked
-                                                                            && parser.logger.is_enabled()
-                                                                        {
-                                                                            parser
-                                                                                .logger
-                                                                                .log_info(
-                                                                                    "generated/return_annotation_parser.rs",
-                                                                                    0,
-                                                                                    &format!(
-                                                                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                                        2usize, 2usize, "property_access_expression",
-                                                                                        blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
-                                                                                        candidate_end
-                                                                                    ),
-                                                                                );
-                                                                        }
-                                                                    } else if parser.logger.is_enabled() {
-                                                                        parser
-                                                                            .logger
-                                                                            .log_info(
-                                                                                "generated/return_annotation_parser.rs",
-                                                                                0,
-                                                                                &format!(
-                                                                                    "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                                    2usize, 2usize, "property_access_expression", parser
-                                                                                    .position
-                                                                                ),
-                                                                            );
-                                                                    }
-                                                                }
-                                                            }
-                                                            _ => {}
-                                                        }
-                                                    }
-                                                    if nonassoc_tie {
-                                                        return Err(ParseError::Backtrack {
-                                                            position: parse_start,
-                                                        });
-                                                    } else if let Some(content) = best_content {
-                                                        parser.position = best_end;
-                                                        semantic_selected_branch_index = Some(best_branch);
-                                                        if parser.logger.is_enabled() {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "generated/return_annotation_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                                        "property_access_expression", best_branch, 2usize, best_end
-                                                                        .saturating_sub(parse_start), best_priority, "left",
-                                                                        "longest_match"
-                                                                    ),
-                                                                );
-                                                        }
-                                                        result = content;
-                                                        semantic_raw_content = best_raw_content;
-                                                    } else {
-                                                        return Err(ParseError::Backtrack {
-                                                            position: parse_start,
-                                                        });
-                                                    };
+                                                    let result = ParseContent::Alternative(
+                                                        Box::new(parser.parse_accessor_base_lr_suffix()?),
+                                                    );
                                                     Ok(ParseNode {
                                                         rule_name: "quantified",
                                                         content: result,
@@ -8572,7 +8088,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -8595,7 +8111,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "generated/return_annotation_parser.rs",
+                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -8609,12 +8125,118 @@ impl<'input> ReturnAnnotationParser<'input> {
                                     let element_end = parser.position;
                                     sequence_elements
                                         .push(ParseNode {
-                                            rule_name: "element_2",
+                                            rule_name: "element_3",
                                             content: element_content,
                                             span: element_start..element_end,
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "initial".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let mut __pgen_obj = serde_json::Map::new();
+                                                        __pgen_obj
+                                                            .insert(
+                                                                "base".to_string(),
+                                                                {
+                                                                    let __pgen_content = {
+                                                                        let __pgen_base = (result).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                            other => other,
+                                                                        }
+                                                                    };
+                                                                    __pgen_content.to_json_value()
+                                                                },
+                                                            );
+                                                        __pgen_obj
+                                                            .insert(
+                                                                "property".to_string(),
+                                                                {
+                                                                    let __pgen_content = {
+                                                                        let __pgen_base = (result).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(
+                                                                                elements,
+                                                                            ) if elements.len() > 2usize => {
+                                                                                elements[2usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if elements.len() > 2usize => {
+                                                                                elements[2usize].content.clone()
+                                                                            }
+                                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                        }
+                                                                    };
+                                                                    __pgen_content.to_json_value()
+                                                                },
+                                                            );
+                                                        __pgen_obj
+                                                            .insert(
+                                                                "type".to_string(),
+                                                                serde_json::Value::String("property_access".to_string()),
+                                                            );
+                                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "suffixes".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 3usize => {
+                                                                elements[3usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 3usize => {
+                                                                elements[3usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("_pgen_lr_chain".to_string()),
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "wrapper_specs".to_string(),
+                                                serde_json::Value::String(
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                        .to_string(),
+                                                ),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -8662,7 +8284,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -8673,7 +8295,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -8683,7 +8305,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -8705,7 +8327,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -8718,7 +8340,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_array_access_expression(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -8728,7 +8350,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -8745,7 +8367,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -8762,7 +8384,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -8794,7 +8416,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 let mut semantic_raw_content: Option<
                                     ParseContent<'input>,
                                 > = None;
-                                let mut sequence_elements = Vec::with_capacity(3usize);
+                                let mut sequence_elements = Vec::with_capacity(5usize);
                                 {
                                     let element_start = parser.position;
                                     let element_content = {
@@ -8814,60 +8436,45 @@ impl<'input> ReturnAnnotationParser<'input> {
                                 {
                                     let element_start = parser.position;
                                     let element_content = {
-                                        let mut sequence_elements = Vec::with_capacity(3usize);
-                                        {
-                                            let element_start = parser.position;
-                                            let element_content = {
-                                                let matched_str = parser.match_string("[")?;
-                                                let result = ParseContent::Terminal(matched_str);
-                                                result
-                                            };
-                                            let element_end = parser.position;
-                                            sequence_elements
-                                                .push(ParseNode {
-                                                    rule_name: "element_0",
-                                                    content: element_content,
-                                                    span: element_start..element_end,
-                                                });
-                                        }
-                                        {
-                                            let element_start = parser.position;
-                                            let element_content = {
-                                                let result = ParseContent::Alternative(
-                                                    Box::new(parser.parse_expression()?),
-                                                );
-                                                result
-                                            };
-                                            let element_end = parser.position;
-                                            sequence_elements
-                                                .push(ParseNode {
-                                                    rule_name: "element_1",
-                                                    content: element_content,
-                                                    span: element_start..element_end,
-                                                });
-                                        }
-                                        {
-                                            let element_start = parser.position;
-                                            let element_content = {
-                                                let matched_str = parser.match_string("]")?;
-                                                let result = ParseContent::Terminal(matched_str);
-                                                result
-                                            };
-                                            let element_end = parser.position;
-                                            sequence_elements
-                                                .push(ParseNode {
-                                                    rule_name: "element_2",
-                                                    content: element_content,
-                                                    span: element_start..element_end,
-                                                });
-                                        }
-                                        let result = ParseContent::Sequence(sequence_elements);
+                                        let matched_str = parser.match_string("[")?;
+                                        let result = ParseContent::Terminal(matched_str);
                                         result
                                     };
                                     let element_end = parser.position;
                                     sequence_elements
                                         .push(ParseNode {
                                             rule_name: "element_1",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let result = ParseContent::Alternative(
+                                            Box::new(parser.parse_expression()?),
+                                        );
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_2",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let matched_str = parser.match_string("]")?;
+                                        let result = ParseContent::Terminal(matched_str);
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_3",
                                             content: element_content,
                                             span: element_start..element_end,
                                         });
@@ -8883,590 +8490,9 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             if let Some(node) = parser
                                                 .try_parse(|p| {
                                                     let parser = p;
-                                                    let parse_start = parser.position;
-                                                    let mut best_content: Option<ParseContent<'input>> = None;
-                                                    let mut best_raw_content: Option<ParseContent<'input>> = None;
-                                                    let mut best_end = parse_start;
-                                                    let mut best_priority: i64 = i64::MIN;
-                                                    let mut best_branch_index: usize = 0usize;
-                                                    let mut best_branch = 0usize;
-                                                    let mut nonassoc_tie = false;
-                                                    let mut result = ParseContent::Sequence(Vec::new());
-                                                    let deterministic_partition_effective_enabled = parser
-                                                        .effective_deterministic_partition_enabled(false);
-                                                    let deterministic_partition_effective_group = parser
-                                                        .effective_deterministic_partition_group(
-                                                            "array_access_expression",
-                                                            "rule.array_access_expression",
-                                                        );
-                                                    let deterministic_partition_offset = if deterministic_partition_effective_enabled {
-                                                        parser
-                                                            .deterministic_partition_offset_runtime(
-                                                                &deterministic_partition_effective_group,
-                                                                2usize,
-                                                            )
-                                                    } else {
-                                                        0usize
-                                                    };
-                                                    let mut evaluation_order: Vec<usize> = (0..2usize)
-                                                        .collect();
-                                                    if deterministic_partition_effective_enabled && 2usize > 1
-                                                        && deterministic_partition_offset > 0
-                                                    {
-                                                        evaluation_order
-                                                            .rotate_left(deterministic_partition_offset);
-                                                    }
-                                                    for branch_index in evaluation_order {
-                                                        match branch_index {
-                                                            0usize => {
-                                                                if "longest_match" == "ordered" && best_content.is_some()
-                                                                {} else {
-                                                                    parser.position = parse_start;
-                                                                    if let Some(content) = parser
-                                                                        .try_parse(|p| {
-                                                                            let parser = p;
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                                            1usize, 2usize, "array_access_expression", parser.position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            let mut sequence_elements = Vec::with_capacity(2usize);
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string(".")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_0",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let result = ParseContent::Alternative(
-                                                                                        Box::new(parser.parse_identifier()?),
-                                                                                    );
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_1",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            let result = ParseContent::Sequence(sequence_elements);
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                                            1usize, 2usize, "array_access_expression", parser.position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            Ok(result)
-                                                                        })
-                                                                    {
-                                                                        let candidate_end = parser.position;
-                                                                        parser.position = parse_start;
-                                                                        let candidate_priority: i64 = 0i64;
-                                                                        let current_branch_index: usize = 0usize;
-                                                                        let raw_content = content;
-                                                                        let transformed = {
-                                                                            let content = raw_content.clone();
-                                                                            {
-                                                                                let mut __pgen_obj = serde_json::Map::new();
-                                                                                __pgen_obj
-                                                                                    .insert(
-                                                                                        "base".to_string(),
-                                                                                        {
-                                                                                            let __pgen_content = {
-                                                                                                let __pgen_base = (content).clone();
-                                                                                                match __pgen_base {
-                                                                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                                                        elements[0usize].content.clone()
-                                                                                                    }
-                                                                                                    ParseContent::Quantified(
-                                                                                                        elements,
-                                                                                                        _,
-                                                                                                    ) if !elements.is_empty() => {
-                                                                                                        elements[0usize].content.clone()
-                                                                                                    }
-                                                                                                    ParseContent::Alternative(node) => node.content.clone(),
-                                                                                                    other => other,
-                                                                                                }
-                                                                                            };
-                                                                                            __pgen_content.to_json_value()
-                                                                                        },
-                                                                                    );
-                                                                                __pgen_obj
-                                                                                    .insert(
-                                                                                        "index".to_string(),
-                                                                                        {
-                                                                                            let __pgen_content = {
-                                                                                                let __pgen_base = (content).clone();
-                                                                                                match __pgen_base {
-                                                                                                    ParseContent::Sequence(
-                                                                                                        elements,
-                                                                                                    ) if elements.len() > 2usize => {
-                                                                                                        elements[2usize].content.clone()
-                                                                                                    }
-                                                                                                    ParseContent::Quantified(
-                                                                                                        elements,
-                                                                                                        _,
-                                                                                                    ) if elements.len() > 2usize => {
-                                                                                                        elements[2usize].content.clone()
-                                                                                                    }
-                                                                                                    _ => ParseContent::Terminal("<invalid_sequence_access>"),
-                                                                                                }
-                                                                                            };
-                                                                                            __pgen_content.to_json_value()
-                                                                                        },
-                                                                                    );
-                                                                                __pgen_obj
-                                                                                    .insert(
-                                                                                        "type".to_string(),
-                                                                                        serde_json::Value::String("array_access".to_string()),
-                                                                                    );
-                                                                                ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                                            }
-                                                                        };
-                                                                        let mut branch_predicate_blocked = false;
-                                                                        let mut blocked_branch_predicate: Option<String> = None;
-                                                                        for directive in parser
-                                                                            .semantic_runtime_annotations
-                                                                            .branch_predicates_for_rule("array_access_expression")
-                                                                            .chain(
-                                                                                parser
-                                                                                    .semantic_runtime_annotations
-                                                                                    .branch_predicates_for_rule_branch(
-                                                                                        "array_access_expression",
-                                                                                        current_branch_index,
-                                                                                    ),
-                                                                            )
-                                                                        {
-                                                                            match directive {
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    spec,
-                                                                                ) if spec.phase
-                                                                                    == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                                    let Some(resolved_spec) = parser
-                                                                                        .try_resolve_semantic_predicate_spec_against_content(
-                                                                                            spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )? else {
-                                                                                        blocked_branch_predicate = Some(
-                                                                                            parser.semantic_predicate_debug_label(spec),
-                                                                                        );
-                                                                                        branch_predicate_blocked = true;
-                                                                                        break;
-                                                                                    };
-                                                                                    match parser
-                                                                                        .semantic_runtime_state
-                                                                                        .evaluate_content_aware_predicate(
-                                                                                            &resolved_spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )
-                                                                                    {
-                                                                                        Some(true) => {}
-                                                                                        Some(false) => {
-                                                                                            blocked_branch_predicate = Some(
-                                                                                                parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                                            );
-                                                                                            branch_predicate_blocked = true;
-                                                                                            break;
-                                                                                        }
-                                                                                        None => {}
-                                                                                    }
-                                                                                }
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                                    _,
-                                                                                )
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    _,
-                                                                                ) => {}
-                                                                            }
-                                                                        }
-                                                                        let should_take = if branch_predicate_blocked {
-                                                                            false
-                                                                        } else if "longest_match" == "ordered" {
-                                                                            best_content.is_none()
-                                                                        } else if "longest_match" == "priority_first" {
-                                                                            if best_content.is_none() {
-                                                                                true
-                                                                            } else if candidate_priority > best_priority {
-                                                                                true
-                                                                            } else if candidate_priority < best_priority {
-                                                                                false
-                                                                            } else if candidate_end > best_end {
-                                                                                true
-                                                                            } else if candidate_end < best_end {
-                                                                                false
-                                                                            } else {
-                                                                                match "left" {
-                                                                                    "right" => current_branch_index > best_branch_index,
-                                                                                    "nonassoc" => {
-                                                                                        if current_branch_index != best_branch_index {
-                                                                                            nonassoc_tie = true;
-                                                                                        }
-                                                                                        false
-                                                                                    }
-                                                                                    _ => false,
-                                                                                }
-                                                                            }
-                                                                        } else if best_content.is_none() {
-                                                                            true
-                                                                        } else if candidate_end > best_end {
-                                                                            true
-                                                                        } else if candidate_end < best_end {
-                                                                            false
-                                                                        } else if candidate_priority > best_priority {
-                                                                            true
-                                                                        } else if candidate_priority < best_priority {
-                                                                            false
-                                                                        } else {
-                                                                            match "left" {
-                                                                                "right" => current_branch_index > best_branch_index,
-                                                                                "nonassoc" => {
-                                                                                    if current_branch_index != best_branch_index {
-                                                                                        nonassoc_tie = true;
-                                                                                    }
-                                                                                    false
-                                                                                }
-                                                                                _ => false,
-                                                                            }
-                                                                        };
-                                                                        if should_take {
-                                                                            best_end = candidate_end;
-                                                                            best_priority = candidate_priority;
-                                                                            best_branch_index = current_branch_index;
-                                                                            best_branch = 1usize;
-                                                                            if semantic_capture_raw_for_post {
-                                                                                best_raw_content = Some(raw_content.clone());
-                                                                            }
-                                                                            best_content = Some(transformed);
-                                                                        } else if branch_predicate_blocked
-                                                                            && parser.logger.is_enabled()
-                                                                        {
-                                                                            parser
-                                                                                .logger
-                                                                                .log_info(
-                                                                                    "generated/return_annotation_parser.rs",
-                                                                                    0,
-                                                                                    &format!(
-                                                                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                                        1usize, 2usize, "array_access_expression",
-                                                                                        blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
-                                                                                        candidate_end
-                                                                                    ),
-                                                                                );
-                                                                        }
-                                                                    } else if parser.logger.is_enabled() {
-                                                                        parser
-                                                                            .logger
-                                                                            .log_info(
-                                                                                "generated/return_annotation_parser.rs",
-                                                                                0,
-                                                                                &format!(
-                                                                                    "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                                    1usize, 2usize, "array_access_expression", parser.position
-                                                                                ),
-                                                                            );
-                                                                    }
-                                                                }
-                                                            }
-                                                            1usize => {
-                                                                if "longest_match" == "ordered" && best_content.is_some()
-                                                                {} else {
-                                                                    parser.position = parse_start;
-                                                                    if let Some(content) = parser
-                                                                        .try_parse(|p| {
-                                                                            let parser = p;
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                                            2usize, 2usize, "array_access_expression", parser.position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            let mut sequence_elements = Vec::with_capacity(3usize);
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string("[")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_0",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let result = ParseContent::Alternative(
-                                                                                        Box::new(parser.parse_expression()?),
-                                                                                    );
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_1",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string("]")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_2",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            let result = ParseContent::Sequence(sequence_elements);
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                                            2usize, 2usize, "array_access_expression", parser.position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            Ok(result)
-                                                                        })
-                                                                    {
-                                                                        let candidate_end = parser.position;
-                                                                        parser.position = parse_start;
-                                                                        let candidate_priority: i64 = 0i64;
-                                                                        let current_branch_index: usize = 1usize;
-                                                                        let raw_content = content;
-                                                                        let transformed = {
-                                                                            let content = raw_content.clone();
-                                                                            content
-                                                                        };
-                                                                        let mut branch_predicate_blocked = false;
-                                                                        let mut blocked_branch_predicate: Option<String> = None;
-                                                                        for directive in parser
-                                                                            .semantic_runtime_annotations
-                                                                            .branch_predicates_for_rule("array_access_expression")
-                                                                            .chain(
-                                                                                parser
-                                                                                    .semantic_runtime_annotations
-                                                                                    .branch_predicates_for_rule_branch(
-                                                                                        "array_access_expression",
-                                                                                        current_branch_index,
-                                                                                    ),
-                                                                            )
-                                                                        {
-                                                                            match directive {
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    spec,
-                                                                                ) if spec.phase
-                                                                                    == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                                    let Some(resolved_spec) = parser
-                                                                                        .try_resolve_semantic_predicate_spec_against_content(
-                                                                                            spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )? else {
-                                                                                        blocked_branch_predicate = Some(
-                                                                                            parser.semantic_predicate_debug_label(spec),
-                                                                                        );
-                                                                                        branch_predicate_blocked = true;
-                                                                                        break;
-                                                                                    };
-                                                                                    match parser
-                                                                                        .semantic_runtime_state
-                                                                                        .evaluate_content_aware_predicate(
-                                                                                            &resolved_spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )
-                                                                                    {
-                                                                                        Some(true) => {}
-                                                                                        Some(false) => {
-                                                                                            blocked_branch_predicate = Some(
-                                                                                                parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                                            );
-                                                                                            branch_predicate_blocked = true;
-                                                                                            break;
-                                                                                        }
-                                                                                        None => {}
-                                                                                    }
-                                                                                }
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                                    _,
-                                                                                )
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    _,
-                                                                                ) => {}
-                                                                            }
-                                                                        }
-                                                                        let should_take = if branch_predicate_blocked {
-                                                                            false
-                                                                        } else if "longest_match" == "ordered" {
-                                                                            best_content.is_none()
-                                                                        } else if "longest_match" == "priority_first" {
-                                                                            if best_content.is_none() {
-                                                                                true
-                                                                            } else if candidate_priority > best_priority {
-                                                                                true
-                                                                            } else if candidate_priority < best_priority {
-                                                                                false
-                                                                            } else if candidate_end > best_end {
-                                                                                true
-                                                                            } else if candidate_end < best_end {
-                                                                                false
-                                                                            } else {
-                                                                                match "left" {
-                                                                                    "right" => current_branch_index > best_branch_index,
-                                                                                    "nonassoc" => {
-                                                                                        if current_branch_index != best_branch_index {
-                                                                                            nonassoc_tie = true;
-                                                                                        }
-                                                                                        false
-                                                                                    }
-                                                                                    _ => false,
-                                                                                }
-                                                                            }
-                                                                        } else if best_content.is_none() {
-                                                                            true
-                                                                        } else if candidate_end > best_end {
-                                                                            true
-                                                                        } else if candidate_end < best_end {
-                                                                            false
-                                                                        } else if candidate_priority > best_priority {
-                                                                            true
-                                                                        } else if candidate_priority < best_priority {
-                                                                            false
-                                                                        } else {
-                                                                            match "left" {
-                                                                                "right" => current_branch_index > best_branch_index,
-                                                                                "nonassoc" => {
-                                                                                    if current_branch_index != best_branch_index {
-                                                                                        nonassoc_tie = true;
-                                                                                    }
-                                                                                    false
-                                                                                }
-                                                                                _ => false,
-                                                                            }
-                                                                        };
-                                                                        if should_take {
-                                                                            best_end = candidate_end;
-                                                                            best_priority = candidate_priority;
-                                                                            best_branch_index = current_branch_index;
-                                                                            best_branch = 2usize;
-                                                                            if semantic_capture_raw_for_post {
-                                                                                best_raw_content = Some(raw_content.clone());
-                                                                            }
-                                                                            best_content = Some(transformed);
-                                                                        } else if branch_predicate_blocked
-                                                                            && parser.logger.is_enabled()
-                                                                        {
-                                                                            parser
-                                                                                .logger
-                                                                                .log_info(
-                                                                                    "generated/return_annotation_parser.rs",
-                                                                                    0,
-                                                                                    &format!(
-                                                                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                                        2usize, 2usize, "array_access_expression",
-                                                                                        blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
-                                                                                        candidate_end
-                                                                                    ),
-                                                                                );
-                                                                        }
-                                                                    } else if parser.logger.is_enabled() {
-                                                                        parser
-                                                                            .logger
-                                                                            .log_info(
-                                                                                "generated/return_annotation_parser.rs",
-                                                                                0,
-                                                                                &format!(
-                                                                                    "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                                    2usize, 2usize, "array_access_expression", parser.position
-                                                                                ),
-                                                                            );
-                                                                    }
-                                                                }
-                                                            }
-                                                            _ => {}
-                                                        }
-                                                    }
-                                                    if nonassoc_tie {
-                                                        return Err(ParseError::Backtrack {
-                                                            position: parse_start,
-                                                        });
-                                                    } else if let Some(content) = best_content {
-                                                        parser.position = best_end;
-                                                        semantic_selected_branch_index = Some(best_branch);
-                                                        if parser.logger.is_enabled() {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "generated/return_annotation_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                                        "array_access_expression", best_branch, 2usize, best_end
-                                                                        .saturating_sub(parse_start), best_priority, "left",
-                                                                        "longest_match"
-                                                                    ),
-                                                                );
-                                                        }
-                                                        result = content;
-                                                        semantic_raw_content = best_raw_content;
-                                                    } else {
-                                                        return Err(ParseError::Backtrack {
-                                                            position: parse_start,
-                                                        });
-                                                    };
+                                                    let result = ParseContent::Alternative(
+                                                        Box::new(parser.parse_accessor_base_lr_suffix()?),
+                                                    );
                                                     Ok(ParseNode {
                                                         rule_name: "quantified",
                                                         content: result,
@@ -9480,7 +8506,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -9503,7 +8529,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "generated/return_annotation_parser.rs",
+                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -9517,12 +8543,118 @@ impl<'input> ReturnAnnotationParser<'input> {
                                     let element_end = parser.position;
                                     sequence_elements
                                         .push(ParseNode {
-                                            rule_name: "element_2",
+                                            rule_name: "element_4",
                                             content: element_content,
                                             span: element_start..element_end,
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "initial".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let mut __pgen_obj = serde_json::Map::new();
+                                                        __pgen_obj
+                                                            .insert(
+                                                                "base".to_string(),
+                                                                {
+                                                                    let __pgen_content = {
+                                                                        let __pgen_base = (result).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if !elements.is_empty() => {
+                                                                                elements[0usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                            other => other,
+                                                                        }
+                                                                    };
+                                                                    __pgen_content.to_json_value()
+                                                                },
+                                                            );
+                                                        __pgen_obj
+                                                            .insert(
+                                                                "index".to_string(),
+                                                                {
+                                                                    let __pgen_content = {
+                                                                        let __pgen_base = (result).clone();
+                                                                        match __pgen_base {
+                                                                            ParseContent::Sequence(
+                                                                                elements,
+                                                                            ) if elements.len() > 2usize => {
+                                                                                elements[2usize].content.clone()
+                                                                            }
+                                                                            ParseContent::Quantified(
+                                                                                elements,
+                                                                                _,
+                                                                            ) if elements.len() > 2usize => {
+                                                                                elements[2usize].content.clone()
+                                                                            }
+                                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                        }
+                                                                    };
+                                                                    __pgen_content.to_json_value()
+                                                                },
+                                                            );
+                                                        __pgen_obj
+                                                            .insert(
+                                                                "type".to_string(),
+                                                                serde_json::Value::String("array_access".to_string()),
+                                                            );
+                                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "suffixes".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 4usize => {
+                                                                elements[4usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 4usize => {
+                                                                elements[4usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("_pgen_lr_chain".to_string()),
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "wrapper_specs".to_string(),
+                                                serde_json::Value::String(
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                        .to_string(),
+                                                ),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -9570,7 +8702,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -9581,7 +8713,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -9591,7 +8723,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -9613,7 +8745,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -9626,7 +8758,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_accessor_base_lr_base(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -9636,7 +8768,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -9653,7 +8785,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -9670,7 +8802,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -9748,7 +8880,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -9763,7 +8895,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -9907,7 +9039,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -9921,7 +9053,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -9942,7 +9074,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -10002,7 +9134,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -10020,7 +9152,23 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     let raw_content = content;
                                                     let transformed = {
                                                         let content = raw_content.clone();
-                                                        content
+                                                        {
+                                                            let __pgen_base = (content).clone();
+                                                            match __pgen_base {
+                                                                ParseContent::Sequence(
+                                                                    elements,
+                                                                ) if elements.len() > 1usize => {
+                                                                    elements[1usize].content.clone()
+                                                                }
+                                                                ParseContent::Quantified(
+                                                                    elements,
+                                                                    _,
+                                                                ) if elements.len() > 1usize => {
+                                                                    elements[1usize].content.clone()
+                                                                }
+                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                            }
+                                                        }
                                                     };
                                                     let mut branch_predicate_blocked = false;
                                                     let mut blocked_branch_predicate: Option<String> = None;
@@ -10146,7 +9294,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -10160,7 +9308,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -10184,7 +9332,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -10248,7 +9396,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -10259,7 +9407,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -10269,7 +9417,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -10291,7 +9439,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -10303,8 +9451,872 @@ impl<'input> ReturnAnnotationParser<'input> {
         }
         result
     }
+    pub fn parse_accessor_base_lr_suffix(&mut self) -> ParseResult<ParseNode<'input>> {
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
+        let position = self.position;
+        let cycle_type = self
+            .recursion_guard
+            .check_cycle("accessor_base_lr_suffix", position);
+        match cycle_type {
+            CycleType::Infinite => {
+                if self.logger_enabled {
+                    self.logger
+                        .log_error(
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "💥 Infinite recursion detected in rule '{}' at position {}",
+                                "accessor_base_lr_suffix", position
+                            ),
+                        );
+                }
+                return Err(ParseError::InvalidSyntax {
+                    message: "Infinite recursion detected",
+                    position,
+                });
+            }
+            CycleType::LeftRecursive => {
+                if self.logger_enabled {
+                    self.logger
+                        .log_error(
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "🔄 Left recursion detected in rule '{}' at position {}",
+                                "accessor_base_lr_suffix", position
+                            ),
+                        );
+                }
+                return Err(ParseError::InvalidSyntax {
+                    message: "Left recursion detected",
+                    position,
+                });
+            }
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 4096usize => {
+                if self.logger_enabled {
+                    self.logger
+                        .log_error(
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
+                                "accessor_base_lr_suffix", position, depth
+                            ),
+                        );
+                }
+                return Err(ParseError::RecursionDepthExceeded {
+                    position,
+                    depth,
+                });
+            }
+            _ => {}
+        }
+        self.recursion_guard.enter("accessor_base_lr_suffix", position);
+        let start_pos = self.position;
+        let result = self
+            .with_semantic_runtime_rule_transaction(
+                "accessor_base_lr_suffix",
+                |parser| {
+                    parser
+                        .memoized_call(
+                            Self::RULE_ACCESSOR_BASE_LR_SUFFIX,
+                            |parser| {
+                                let semantic_capture_raw_for_post = parser
+                                    .semantic_runtime_annotations
+                                    .needs_raw_post_capture_for_rule("accessor_base_lr_suffix");
+                                let mut semantic_selected_branch_index: Option<usize> = None;
+                                let mut semantic_raw_content: Option<
+                                    ParseContent<'input>,
+                                > = None;
+                                let parse_start = parser.position;
+                                let mut best_content: Option<ParseContent<'input>> = None;
+                                let mut best_raw_content: Option<ParseContent<'input>> = None;
+                                let mut best_end = parse_start;
+                                let mut best_priority: i64 = i64::MIN;
+                                let mut best_branch_index: usize = 0usize;
+                                let mut best_branch = 0usize;
+                                let mut nonassoc_tie = false;
+                                let mut result = ParseContent::Sequence(Vec::new());
+                                let deterministic_partition_effective_enabled = parser
+                                    .effective_deterministic_partition_enabled(false);
+                                let deterministic_partition_effective_group = parser
+                                    .effective_deterministic_partition_group(
+                                        "accessor_base_lr_suffix",
+                                        "rule.accessor_base_lr_suffix",
+                                    );
+                                let deterministic_partition_offset = if deterministic_partition_effective_enabled {
+                                    parser
+                                        .deterministic_partition_offset_runtime(
+                                            &deterministic_partition_effective_group,
+                                            2usize,
+                                        )
+                                } else {
+                                    0usize
+                                };
+                                let mut evaluation_order: Vec<usize> = (0..2usize)
+                                    .collect();
+                                if deterministic_partition_effective_enabled && 2usize > 1
+                                    && deterministic_partition_offset > 0
+                                {
+                                    evaluation_order
+                                        .rotate_left(deterministic_partition_offset);
+                                }
+                                for branch_index in evaluation_order {
+                                    match branch_index {
+                                        0usize => {
+                                            if "longest_match" == "ordered" && best_content.is_some()
+                                            {} else {
+                                                parser.position = parse_start;
+                                                if let Some(content) = parser
+                                                    .try_parse(|p| {
+                                                        let parser = p;
+                                                        if parser.logger.is_enabled() {
+                                                            parser
+                                                                .logger
+                                                                .log_info(
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                                    0,
+                                                                    &format!(
+                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                                        1usize, 2usize, "accessor_base_lr_suffix", parser.position
+                                                                    ),
+                                                                );
+                                                        }
+                                                        let mut sequence_elements = Vec::with_capacity(2usize);
+                                                        {
+                                                            let element_start = parser.position;
+                                                            let element_content = {
+                                                                let matched_str = parser.match_string(".")?;
+                                                                let result = ParseContent::Terminal(matched_str);
+                                                                result
+                                                            };
+                                                            let element_end = parser.position;
+                                                            sequence_elements
+                                                                .push(ParseNode {
+                                                                    rule_name: "element_0",
+                                                                    content: element_content,
+                                                                    span: element_start..element_end,
+                                                                });
+                                                        }
+                                                        {
+                                                            let element_start = parser.position;
+                                                            let element_content = {
+                                                                let result = ParseContent::Alternative(
+                                                                    Box::new(parser.parse_identifier()?),
+                                                                );
+                                                                result
+                                                            };
+                                                            let element_end = parser.position;
+                                                            sequence_elements
+                                                                .push(ParseNode {
+                                                                    rule_name: "element_1",
+                                                                    content: element_content,
+                                                                    span: element_start..element_end,
+                                                                });
+                                                        }
+                                                        let result = ParseContent::Sequence(sequence_elements);
+                                                        if parser.logger.is_enabled() {
+                                                            parser
+                                                                .logger
+                                                                .log_info(
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                                    0,
+                                                                    &format!(
+                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                        1usize, 2usize, "accessor_base_lr_suffix", parser.position
+                                                                    ),
+                                                                );
+                                                        }
+                                                        Ok(result)
+                                                    })
+                                                {
+                                                    let candidate_end = parser.position;
+                                                    parser.position = parse_start;
+                                                    let candidate_priority: i64 = 0i64;
+                                                    let current_branch_index: usize = 0usize;
+                                                    let raw_content = content;
+                                                    let transformed = {
+                                                        let content = raw_content.clone();
+                                                        {
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "alt_index".to_string(),
+                                                                    serde_json::Value::from(0f64),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "captures".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let mut array_elements = Vec::new();
+                                                                            array_elements
+                                                                                .push(ParseNode {
+                                                                                    rule_name: "element_0",
+                                                                                    content: {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    },
+                                                                                    span: 0..0,
+                                                                                });
+                                                                            array_elements
+                                                                                .push(ParseNode {
+                                                                                    rule_name: "element_1",
+                                                                                    content: {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(
+                                                                                                elements,
+                                                                                            ) if elements.len() > 1usize => {
+                                                                                                elements[1usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if elements.len() > 1usize => {
+                                                                                                elements[1usize].content.clone()
+                                                                                            }
+                                                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                                        }
+                                                                                    },
+                                                                                    span: 0..0,
+                                                                                });
+                                                                            ParseContent::Sequence(array_elements)
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("_pgen_lr_chain_alt".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                        }
+                                                    };
+                                                    let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
+                                                    for directive in parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule("accessor_base_lr_suffix")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "accessor_base_lr_suffix",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
+                                                    {
+                                                        match directive {
+                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                                spec,
+                                                            ) if spec.phase
+                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                                let Some(resolved_spec) = parser
+                                                                    .try_resolve_semantic_predicate_spec_against_content(
+                                                                        spec,
+                                                                        &raw_content,
+                                                                        &transformed,
+                                                                    )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
+                                                                    branch_predicate_blocked = true;
+                                                                    break;
+                                                                };
+                                                                match parser
+                                                                    .semantic_runtime_state
+                                                                    .evaluate_content_aware_predicate(
+                                                                        &resolved_spec,
+                                                                        &raw_content,
+                                                                        &transformed,
+                                                                    )
+                                                                {
+                                                                    Some(true) => {}
+                                                                    Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
+                                                                        branch_predicate_blocked = true;
+                                                                        break;
+                                                                    }
+                                                                    None => {}
+                                                                }
+                                                            }
+                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                                _,
+                                                            )
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                                _,
+                                                            ) => {}
+                                                        }
+                                                    }
+                                                    let should_take = if branch_predicate_blocked {
+                                                        false
+                                                    } else if "longest_match" == "ordered" {
+                                                        best_content.is_none()
+                                                    } else if "longest_match" == "priority_first" {
+                                                        if best_content.is_none() {
+                                                            true
+                                                        } else if candidate_priority > best_priority {
+                                                            true
+                                                        } else if candidate_priority < best_priority {
+                                                            false
+                                                        } else if candidate_end > best_end {
+                                                            true
+                                                        } else if candidate_end < best_end {
+                                                            false
+                                                        } else {
+                                                            match "left" {
+                                                                "right" => current_branch_index > best_branch_index,
+                                                                "nonassoc" => {
+                                                                    if current_branch_index != best_branch_index {
+                                                                        nonassoc_tie = true;
+                                                                    }
+                                                                    false
+                                                                }
+                                                                _ => false,
+                                                            }
+                                                        }
+                                                    } else if best_content.is_none() {
+                                                        true
+                                                    } else if candidate_end > best_end {
+                                                        true
+                                                    } else if candidate_end < best_end {
+                                                        false
+                                                    } else if candidate_priority > best_priority {
+                                                        true
+                                                    } else if candidate_priority < best_priority {
+                                                        false
+                                                    } else {
+                                                        match "left" {
+                                                            "right" => current_branch_index > best_branch_index,
+                                                            "nonassoc" => {
+                                                                if current_branch_index != best_branch_index {
+                                                                    nonassoc_tie = true;
+                                                                }
+                                                                false
+                                                            }
+                                                            _ => false,
+                                                        }
+                                                    };
+                                                    if should_take {
+                                                        best_end = candidate_end;
+                                                        best_priority = candidate_priority;
+                                                        best_branch_index = current_branch_index;
+                                                        best_branch = 1usize;
+                                                        if semantic_capture_raw_for_post {
+                                                            best_raw_content = Some(raw_content.clone());
+                                                        }
+                                                        best_content = Some(transformed);
+                                                    } else if branch_predicate_blocked
+                                                        && parser.logger.is_enabled()
+                                                    {
+                                                        parser
+                                                            .logger
+                                                            .log_info(
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                                0,
+                                                                &format!(
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 2usize, "accessor_base_lr_suffix",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
+                                                                ),
+                                                            );
+                                                    }
+                                                } else if parser.logger.is_enabled() {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                1usize, 2usize, "accessor_base_lr_suffix", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                            }
+                                        }
+                                        1usize => {
+                                            if "longest_match" == "ordered" && best_content.is_some()
+                                            {} else {
+                                                parser.position = parse_start;
+                                                if let Some(content) = parser
+                                                    .try_parse(|p| {
+                                                        let parser = p;
+                                                        if parser.logger.is_enabled() {
+                                                            parser
+                                                                .logger
+                                                                .log_info(
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                                    0,
+                                                                    &format!(
+                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                                        2usize, 2usize, "accessor_base_lr_suffix", parser.position
+                                                                    ),
+                                                                );
+                                                        }
+                                                        let mut sequence_elements = Vec::with_capacity(3usize);
+                                                        {
+                                                            let element_start = parser.position;
+                                                            let element_content = {
+                                                                let matched_str = parser.match_string("[")?;
+                                                                let result = ParseContent::Terminal(matched_str);
+                                                                result
+                                                            };
+                                                            let element_end = parser.position;
+                                                            sequence_elements
+                                                                .push(ParseNode {
+                                                                    rule_name: "element_0",
+                                                                    content: element_content,
+                                                                    span: element_start..element_end,
+                                                                });
+                                                        }
+                                                        {
+                                                            let element_start = parser.position;
+                                                            let element_content = {
+                                                                let result = ParseContent::Alternative(
+                                                                    Box::new(parser.parse_expression()?),
+                                                                );
+                                                                result
+                                                            };
+                                                            let element_end = parser.position;
+                                                            sequence_elements
+                                                                .push(ParseNode {
+                                                                    rule_name: "element_1",
+                                                                    content: element_content,
+                                                                    span: element_start..element_end,
+                                                                });
+                                                        }
+                                                        {
+                                                            let element_start = parser.position;
+                                                            let element_content = {
+                                                                let matched_str = parser.match_string("]")?;
+                                                                let result = ParseContent::Terminal(matched_str);
+                                                                result
+                                                            };
+                                                            let element_end = parser.position;
+                                                            sequence_elements
+                                                                .push(ParseNode {
+                                                                    rule_name: "element_2",
+                                                                    content: element_content,
+                                                                    span: element_start..element_end,
+                                                                });
+                                                        }
+                                                        let result = ParseContent::Sequence(sequence_elements);
+                                                        if parser.logger.is_enabled() {
+                                                            parser
+                                                                .logger
+                                                                .log_info(
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                                    0,
+                                                                    &format!(
+                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                        2usize, 2usize, "accessor_base_lr_suffix", parser.position
+                                                                    ),
+                                                                );
+                                                        }
+                                                        Ok(result)
+                                                    })
+                                                {
+                                                    let candidate_end = parser.position;
+                                                    parser.position = parse_start;
+                                                    let candidate_priority: i64 = 0i64;
+                                                    let current_branch_index: usize = 1usize;
+                                                    let raw_content = content;
+                                                    let transformed = {
+                                                        let content = raw_content.clone();
+                                                        {
+                                                            let mut __pgen_obj = serde_json::Map::new();
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "alt_index".to_string(),
+                                                                    serde_json::Value::from(1f64),
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "captures".to_string(),
+                                                                    {
+                                                                        let __pgen_content = {
+                                                                            let mut array_elements = Vec::new();
+                                                                            array_elements
+                                                                                .push(ParseNode {
+                                                                                    rule_name: "element_0",
+                                                                                    content: {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if !elements.is_empty() => {
+                                                                                                elements[0usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                                                            other => other,
+                                                                                        }
+                                                                                    },
+                                                                                    span: 0..0,
+                                                                                });
+                                                                            array_elements
+                                                                                .push(ParseNode {
+                                                                                    rule_name: "element_1",
+                                                                                    content: {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(
+                                                                                                elements,
+                                                                                            ) if elements.len() > 1usize => {
+                                                                                                elements[1usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if elements.len() > 1usize => {
+                                                                                                elements[1usize].content.clone()
+                                                                                            }
+                                                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                                        }
+                                                                                    },
+                                                                                    span: 0..0,
+                                                                                });
+                                                                            array_elements
+                                                                                .push(ParseNode {
+                                                                                    rule_name: "element_2",
+                                                                                    content: {
+                                                                                        let __pgen_base = (content).clone();
+                                                                                        match __pgen_base {
+                                                                                            ParseContent::Sequence(
+                                                                                                elements,
+                                                                                            ) if elements.len() > 2usize => {
+                                                                                                elements[2usize].content.clone()
+                                                                                            }
+                                                                                            ParseContent::Quantified(
+                                                                                                elements,
+                                                                                                _,
+                                                                                            ) if elements.len() > 2usize => {
+                                                                                                elements[2usize].content.clone()
+                                                                                            }
+                                                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                                        }
+                                                                                    },
+                                                                                    span: 0..0,
+                                                                                });
+                                                                            ParseContent::Sequence(array_elements)
+                                                                        };
+                                                                        __pgen_content.to_json_value()
+                                                                    },
+                                                                );
+                                                            __pgen_obj
+                                                                .insert(
+                                                                    "type".to_string(),
+                                                                    serde_json::Value::String("_pgen_lr_chain_alt".to_string()),
+                                                                );
+                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                        }
+                                                    };
+                                                    let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
+                                                    for directive in parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule("accessor_base_lr_suffix")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "accessor_base_lr_suffix",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
+                                                    {
+                                                        match directive {
+                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                                spec,
+                                                            ) if spec.phase
+                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                                let Some(resolved_spec) = parser
+                                                                    .try_resolve_semantic_predicate_spec_against_content(
+                                                                        spec,
+                                                                        &raw_content,
+                                                                        &transformed,
+                                                                    )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
+                                                                    branch_predicate_blocked = true;
+                                                                    break;
+                                                                };
+                                                                match parser
+                                                                    .semantic_runtime_state
+                                                                    .evaluate_content_aware_predicate(
+                                                                        &resolved_spec,
+                                                                        &raw_content,
+                                                                        &transformed,
+                                                                    )
+                                                                {
+                                                                    Some(true) => {}
+                                                                    Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
+                                                                        branch_predicate_blocked = true;
+                                                                        break;
+                                                                    }
+                                                                    None => {}
+                                                                }
+                                                            }
+                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                                _,
+                                                            )
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                                _,
+                                                            ) => {}
+                                                        }
+                                                    }
+                                                    let should_take = if branch_predicate_blocked {
+                                                        false
+                                                    } else if "longest_match" == "ordered" {
+                                                        best_content.is_none()
+                                                    } else if "longest_match" == "priority_first" {
+                                                        if best_content.is_none() {
+                                                            true
+                                                        } else if candidate_priority > best_priority {
+                                                            true
+                                                        } else if candidate_priority < best_priority {
+                                                            false
+                                                        } else if candidate_end > best_end {
+                                                            true
+                                                        } else if candidate_end < best_end {
+                                                            false
+                                                        } else {
+                                                            match "left" {
+                                                                "right" => current_branch_index > best_branch_index,
+                                                                "nonassoc" => {
+                                                                    if current_branch_index != best_branch_index {
+                                                                        nonassoc_tie = true;
+                                                                    }
+                                                                    false
+                                                                }
+                                                                _ => false,
+                                                            }
+                                                        }
+                                                    } else if best_content.is_none() {
+                                                        true
+                                                    } else if candidate_end > best_end {
+                                                        true
+                                                    } else if candidate_end < best_end {
+                                                        false
+                                                    } else if candidate_priority > best_priority {
+                                                        true
+                                                    } else if candidate_priority < best_priority {
+                                                        false
+                                                    } else {
+                                                        match "left" {
+                                                            "right" => current_branch_index > best_branch_index,
+                                                            "nonassoc" => {
+                                                                if current_branch_index != best_branch_index {
+                                                                    nonassoc_tie = true;
+                                                                }
+                                                                false
+                                                            }
+                                                            _ => false,
+                                                        }
+                                                    };
+                                                    if should_take {
+                                                        best_end = candidate_end;
+                                                        best_priority = candidate_priority;
+                                                        best_branch_index = current_branch_index;
+                                                        best_branch = 2usize;
+                                                        if semantic_capture_raw_for_post {
+                                                            best_raw_content = Some(raw_content.clone());
+                                                        }
+                                                        best_content = Some(transformed);
+                                                    } else if branch_predicate_blocked
+                                                        && parser.logger.is_enabled()
+                                                    {
+                                                        parser
+                                                            .logger
+                                                            .log_info(
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                                0,
+                                                                &format!(
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 2usize, "accessor_base_lr_suffix",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
+                                                                ),
+                                                            );
+                                                    }
+                                                } else if parser.logger.is_enabled() {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                2usize, 2usize, "accessor_base_lr_suffix", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                if nonassoc_tie {
+                                    return Err(ParseError::Backtrack {
+                                        position: parse_start,
+                                    });
+                                } else if let Some(content) = best_content {
+                                    parser.position = best_end;
+                                    semantic_selected_branch_index = Some(best_branch);
+                                    if parser.logger.is_enabled() {
+                                        parser
+                                            .logger
+                                            .log_info(
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                                0,
+                                                &format!(
+                                                    "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
+                                                    "accessor_base_lr_suffix", best_branch, 2usize, best_end
+                                                    .saturating_sub(parse_start), best_priority, "left",
+                                                    "longest_match"
+                                                ),
+                                            );
+                                    }
+                                    result = content;
+                                    semantic_raw_content = best_raw_content;
+                                } else {
+                                    return Err(ParseError::Backtrack {
+                                        position: parse_start,
+                                    });
+                                };
+                                let end_pos = parser.position;
+                                parser
+                                    .record_coverage_target_event(
+                                        "accessor_base_lr_suffix",
+                                        start_pos,
+                                        end_pos,
+                                        semantic_selected_branch_index,
+                                        0u64,
+                                        false,
+                                    );
+                                let deterministic_partition_effective_enabled = parser
+                                    .effective_deterministic_partition_enabled(false);
+                                let deterministic_partition_effective_group = parser
+                                    .effective_deterministic_partition_group(
+                                        "accessor_base_lr_suffix",
+                                        "rule.accessor_base_lr_suffix",
+                                    );
+                                parser
+                                    .record_deterministic_partition_event(
+                                        "accessor_base_lr_suffix",
+                                        start_pos,
+                                        end_pos,
+                                        deterministic_partition_effective_enabled,
+                                        &deterministic_partition_effective_group,
+                                    );
+                                Ok((
+                                    ParseNode {
+                                        rule_name: "accessor_base_lr_suffix",
+                                        content: result,
+                                        span: start_pos..end_pos,
+                                    },
+                                    semantic_raw_content,
+                                ))
+                            },
+                        )
+                },
+            );
+        self.recursion_guard.exit();
+        match &result {
+            Ok(node) => {
+                if self.logger_enabled {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        let consumed_preview = self
+                            .byte_window_lossy(start_pos, node.span.end);
+                        self.logger
+                            .log_success(
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
+                                    "accessor_base_lr_suffix", start_pos, node.span.end,
+                                    consumed, consumed_preview
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "accessor_base_lr_suffix", start_pos
+                                ),
+                            );
+                    }
+                    self.logger
+                        .log_success(
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "✅ Exiting rule '{}' successfully - advanced from {} to {}",
+                                "accessor_base_lr_suffix", start_pos, self.position
+                            ),
+                        );
+                }
+            }
+            Err(e) => {
+                if false {
+                    self.record_negative_case_failure(
+                        "accessor_base_lr_suffix",
+                        start_pos,
+                        self.position,
+                        false,
+                        &format!("{:?}", e),
+                    );
+                }
+                if self.logger_enabled {
+                    self.logger
+                        .log_error(
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
+                                "accessor_base_lr_suffix", e, self.position
+                            ),
+                        );
+                }
+            }
+        }
+        result
+    }
     pub fn parse_accessor_base(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("accessor_base", position);
         match cycle_type {
@@ -10312,7 +10324,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -10329,7 +10341,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -10346,7 +10358,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -10406,533 +10418,9 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             if let Some(node) = parser
                                                 .try_parse(|p| {
                                                     let parser = p;
-                                                    let parse_start = parser.position;
-                                                    let mut best_content: Option<ParseContent<'input>> = None;
-                                                    let mut best_raw_content: Option<ParseContent<'input>> = None;
-                                                    let mut best_end = parse_start;
-                                                    let mut best_priority: i64 = i64::MIN;
-                                                    let mut best_branch_index: usize = 0usize;
-                                                    let mut best_branch = 0usize;
-                                                    let mut nonassoc_tie = false;
-                                                    let mut result = ParseContent::Sequence(Vec::new());
-                                                    let deterministic_partition_effective_enabled = parser
-                                                        .effective_deterministic_partition_enabled(false);
-                                                    let deterministic_partition_effective_group = parser
-                                                        .effective_deterministic_partition_group(
-                                                            "accessor_base",
-                                                            "rule.accessor_base",
-                                                        );
-                                                    let deterministic_partition_offset = if deterministic_partition_effective_enabled {
-                                                        parser
-                                                            .deterministic_partition_offset_runtime(
-                                                                &deterministic_partition_effective_group,
-                                                                2usize,
-                                                            )
-                                                    } else {
-                                                        0usize
-                                                    };
-                                                    let mut evaluation_order: Vec<usize> = (0..2usize)
-                                                        .collect();
-                                                    if deterministic_partition_effective_enabled && 2usize > 1
-                                                        && deterministic_partition_offset > 0
-                                                    {
-                                                        evaluation_order
-                                                            .rotate_left(deterministic_partition_offset);
-                                                    }
-                                                    for branch_index in evaluation_order {
-                                                        match branch_index {
-                                                            0usize => {
-                                                                if "longest_match" == "ordered" && best_content.is_some()
-                                                                {} else {
-                                                                    parser.position = parse_start;
-                                                                    if let Some(content) = parser
-                                                                        .try_parse(|p| {
-                                                                            let parser = p;
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                                            1usize, 2usize, "accessor_base", parser.position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            let mut sequence_elements = Vec::with_capacity(2usize);
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string(".")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_0",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let result = ParseContent::Alternative(
-                                                                                        Box::new(parser.parse_identifier()?),
-                                                                                    );
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_1",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            let result = ParseContent::Sequence(sequence_elements);
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                                            1usize, 2usize, "accessor_base", parser.position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            Ok(result)
-                                                                        })
-                                                                    {
-                                                                        let candidate_end = parser.position;
-                                                                        parser.position = parse_start;
-                                                                        let candidate_priority: i64 = 0i64;
-                                                                        let current_branch_index: usize = 0usize;
-                                                                        let raw_content = content;
-                                                                        let transformed = {
-                                                                            let content = raw_content.clone();
-                                                                            content
-                                                                        };
-                                                                        let mut branch_predicate_blocked = false;
-                                                                        let mut blocked_branch_predicate: Option<String> = None;
-                                                                        for directive in parser
-                                                                            .semantic_runtime_annotations
-                                                                            .branch_predicates_for_rule("accessor_base")
-                                                                            .chain(
-                                                                                parser
-                                                                                    .semantic_runtime_annotations
-                                                                                    .branch_predicates_for_rule_branch(
-                                                                                        "accessor_base",
-                                                                                        current_branch_index,
-                                                                                    ),
-                                                                            )
-                                                                        {
-                                                                            match directive {
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    spec,
-                                                                                ) if spec.phase
-                                                                                    == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                                    let Some(resolved_spec) = parser
-                                                                                        .try_resolve_semantic_predicate_spec_against_content(
-                                                                                            spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )? else {
-                                                                                        blocked_branch_predicate = Some(
-                                                                                            parser.semantic_predicate_debug_label(spec),
-                                                                                        );
-                                                                                        branch_predicate_blocked = true;
-                                                                                        break;
-                                                                                    };
-                                                                                    match parser
-                                                                                        .semantic_runtime_state
-                                                                                        .evaluate_content_aware_predicate(
-                                                                                            &resolved_spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )
-                                                                                    {
-                                                                                        Some(true) => {}
-                                                                                        Some(false) => {
-                                                                                            blocked_branch_predicate = Some(
-                                                                                                parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                                            );
-                                                                                            branch_predicate_blocked = true;
-                                                                                            break;
-                                                                                        }
-                                                                                        None => {}
-                                                                                    }
-                                                                                }
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                                    _,
-                                                                                )
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    _,
-                                                                                ) => {}
-                                                                            }
-                                                                        }
-                                                                        let should_take = if branch_predicate_blocked {
-                                                                            false
-                                                                        } else if "longest_match" == "ordered" {
-                                                                            best_content.is_none()
-                                                                        } else if "longest_match" == "priority_first" {
-                                                                            if best_content.is_none() {
-                                                                                true
-                                                                            } else if candidate_priority > best_priority {
-                                                                                true
-                                                                            } else if candidate_priority < best_priority {
-                                                                                false
-                                                                            } else if candidate_end > best_end {
-                                                                                true
-                                                                            } else if candidate_end < best_end {
-                                                                                false
-                                                                            } else {
-                                                                                match "left" {
-                                                                                    "right" => current_branch_index > best_branch_index,
-                                                                                    "nonassoc" => {
-                                                                                        if current_branch_index != best_branch_index {
-                                                                                            nonassoc_tie = true;
-                                                                                        }
-                                                                                        false
-                                                                                    }
-                                                                                    _ => false,
-                                                                                }
-                                                                            }
-                                                                        } else if best_content.is_none() {
-                                                                            true
-                                                                        } else if candidate_end > best_end {
-                                                                            true
-                                                                        } else if candidate_end < best_end {
-                                                                            false
-                                                                        } else if candidate_priority > best_priority {
-                                                                            true
-                                                                        } else if candidate_priority < best_priority {
-                                                                            false
-                                                                        } else {
-                                                                            match "left" {
-                                                                                "right" => current_branch_index > best_branch_index,
-                                                                                "nonassoc" => {
-                                                                                    if current_branch_index != best_branch_index {
-                                                                                        nonassoc_tie = true;
-                                                                                    }
-                                                                                    false
-                                                                                }
-                                                                                _ => false,
-                                                                            }
-                                                                        };
-                                                                        if should_take {
-                                                                            best_end = candidate_end;
-                                                                            best_priority = candidate_priority;
-                                                                            best_branch_index = current_branch_index;
-                                                                            best_branch = 1usize;
-                                                                            if semantic_capture_raw_for_post {
-                                                                                best_raw_content = Some(raw_content.clone());
-                                                                            }
-                                                                            best_content = Some(transformed);
-                                                                        } else if branch_predicate_blocked
-                                                                            && parser.logger.is_enabled()
-                                                                        {
-                                                                            parser
-                                                                                .logger
-                                                                                .log_info(
-                                                                                    "generated/return_annotation_parser.rs",
-                                                                                    0,
-                                                                                    &format!(
-                                                                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                                        1usize, 2usize, "accessor_base", blocked_branch_predicate
-                                                                                        .as_deref().unwrap_or("<unknown>"), candidate_end
-                                                                                    ),
-                                                                                );
-                                                                        }
-                                                                    } else if parser.logger.is_enabled() {
-                                                                        parser
-                                                                            .logger
-                                                                            .log_info(
-                                                                                "generated/return_annotation_parser.rs",
-                                                                                0,
-                                                                                &format!(
-                                                                                    "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                                    1usize, 2usize, "accessor_base", parser.position
-                                                                                ),
-                                                                            );
-                                                                    }
-                                                                }
-                                                            }
-                                                            1usize => {
-                                                                if "longest_match" == "ordered" && best_content.is_some()
-                                                                {} else {
-                                                                    parser.position = parse_start;
-                                                                    if let Some(content) = parser
-                                                                        .try_parse(|p| {
-                                                                            let parser = p;
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                                            2usize, 2usize, "accessor_base", parser.position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            let mut sequence_elements = Vec::with_capacity(3usize);
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string("[")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_0",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let result = ParseContent::Alternative(
-                                                                                        Box::new(parser.parse_expression()?),
-                                                                                    );
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_1",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            {
-                                                                                let element_start = parser.position;
-                                                                                let element_content = {
-                                                                                    let matched_str = parser.match_string("]")?;
-                                                                                    let result = ParseContent::Terminal(matched_str);
-                                                                                    result
-                                                                                };
-                                                                                let element_end = parser.position;
-                                                                                sequence_elements
-                                                                                    .push(ParseNode {
-                                                                                        rule_name: "element_2",
-                                                                                        content: element_content,
-                                                                                        span: element_start..element_end,
-                                                                                    });
-                                                                            }
-                                                                            let result = ParseContent::Sequence(sequence_elements);
-                                                                            if parser.logger.is_enabled() {
-                                                                                parser
-                                                                                    .logger
-                                                                                    .log_info(
-                                                                                        "generated/return_annotation_parser.rs",
-                                                                                        0,
-                                                                                        &format!(
-                                                                                            "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                                            2usize, 2usize, "accessor_base", parser.position
-                                                                                        ),
-                                                                                    );
-                                                                            }
-                                                                            Ok(result)
-                                                                        })
-                                                                    {
-                                                                        let candidate_end = parser.position;
-                                                                        parser.position = parse_start;
-                                                                        let candidate_priority: i64 = 0i64;
-                                                                        let current_branch_index: usize = 1usize;
-                                                                        let raw_content = content;
-                                                                        let transformed = {
-                                                                            let content = raw_content.clone();
-                                                                            content
-                                                                        };
-                                                                        let mut branch_predicate_blocked = false;
-                                                                        let mut blocked_branch_predicate: Option<String> = None;
-                                                                        for directive in parser
-                                                                            .semantic_runtime_annotations
-                                                                            .branch_predicates_for_rule("accessor_base")
-                                                                            .chain(
-                                                                                parser
-                                                                                    .semantic_runtime_annotations
-                                                                                    .branch_predicates_for_rule_branch(
-                                                                                        "accessor_base",
-                                                                                        current_branch_index,
-                                                                                    ),
-                                                                            )
-                                                                        {
-                                                                            match directive {
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    spec,
-                                                                                ) if spec.phase
-                                                                                    == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                                    let Some(resolved_spec) = parser
-                                                                                        .try_resolve_semantic_predicate_spec_against_content(
-                                                                                            spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )? else {
-                                                                                        blocked_branch_predicate = Some(
-                                                                                            parser.semantic_predicate_debug_label(spec),
-                                                                                        );
-                                                                                        branch_predicate_blocked = true;
-                                                                                        break;
-                                                                                    };
-                                                                                    match parser
-                                                                                        .semantic_runtime_state
-                                                                                        .evaluate_content_aware_predicate(
-                                                                                            &resolved_spec,
-                                                                                            &raw_content,
-                                                                                            &transformed,
-                                                                                        )
-                                                                                    {
-                                                                                        Some(true) => {}
-                                                                                        Some(false) => {
-                                                                                            blocked_branch_predicate = Some(
-                                                                                                parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                                            );
-                                                                                            branch_predicate_blocked = true;
-                                                                                            break;
-                                                                                        }
-                                                                                        None => {}
-                                                                                    }
-                                                                                }
-                                                                                crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                                    _,
-                                                                                )
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                                    _,
-                                                                                ) => {}
-                                                                            }
-                                                                        }
-                                                                        let should_take = if branch_predicate_blocked {
-                                                                            false
-                                                                        } else if "longest_match" == "ordered" {
-                                                                            best_content.is_none()
-                                                                        } else if "longest_match" == "priority_first" {
-                                                                            if best_content.is_none() {
-                                                                                true
-                                                                            } else if candidate_priority > best_priority {
-                                                                                true
-                                                                            } else if candidate_priority < best_priority {
-                                                                                false
-                                                                            } else if candidate_end > best_end {
-                                                                                true
-                                                                            } else if candidate_end < best_end {
-                                                                                false
-                                                                            } else {
-                                                                                match "left" {
-                                                                                    "right" => current_branch_index > best_branch_index,
-                                                                                    "nonassoc" => {
-                                                                                        if current_branch_index != best_branch_index {
-                                                                                            nonassoc_tie = true;
-                                                                                        }
-                                                                                        false
-                                                                                    }
-                                                                                    _ => false,
-                                                                                }
-                                                                            }
-                                                                        } else if best_content.is_none() {
-                                                                            true
-                                                                        } else if candidate_end > best_end {
-                                                                            true
-                                                                        } else if candidate_end < best_end {
-                                                                            false
-                                                                        } else if candidate_priority > best_priority {
-                                                                            true
-                                                                        } else if candidate_priority < best_priority {
-                                                                            false
-                                                                        } else {
-                                                                            match "left" {
-                                                                                "right" => current_branch_index > best_branch_index,
-                                                                                "nonassoc" => {
-                                                                                    if current_branch_index != best_branch_index {
-                                                                                        nonassoc_tie = true;
-                                                                                    }
-                                                                                    false
-                                                                                }
-                                                                                _ => false,
-                                                                            }
-                                                                        };
-                                                                        if should_take {
-                                                                            best_end = candidate_end;
-                                                                            best_priority = candidate_priority;
-                                                                            best_branch_index = current_branch_index;
-                                                                            best_branch = 2usize;
-                                                                            if semantic_capture_raw_for_post {
-                                                                                best_raw_content = Some(raw_content.clone());
-                                                                            }
-                                                                            best_content = Some(transformed);
-                                                                        } else if branch_predicate_blocked
-                                                                            && parser.logger.is_enabled()
-                                                                        {
-                                                                            parser
-                                                                                .logger
-                                                                                .log_info(
-                                                                                    "generated/return_annotation_parser.rs",
-                                                                                    0,
-                                                                                    &format!(
-                                                                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                                        2usize, 2usize, "accessor_base", blocked_branch_predicate
-                                                                                        .as_deref().unwrap_or("<unknown>"), candidate_end
-                                                                                    ),
-                                                                                );
-                                                                        }
-                                                                    } else if parser.logger.is_enabled() {
-                                                                        parser
-                                                                            .logger
-                                                                            .log_info(
-                                                                                "generated/return_annotation_parser.rs",
-                                                                                0,
-                                                                                &format!(
-                                                                                    "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                                    2usize, 2usize, "accessor_base", parser.position
-                                                                                ),
-                                                                            );
-                                                                    }
-                                                                }
-                                                            }
-                                                            _ => {}
-                                                        }
-                                                    }
-                                                    if nonassoc_tie {
-                                                        return Err(ParseError::Backtrack {
-                                                            position: parse_start,
-                                                        });
-                                                    } else if let Some(content) = best_content {
-                                                        parser.position = best_end;
-                                                        semantic_selected_branch_index = Some(best_branch);
-                                                        if parser.logger.is_enabled() {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "generated/return_annotation_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                                        "accessor_base", best_branch, 2usize, best_end
-                                                                        .saturating_sub(parse_start), best_priority, "left",
-                                                                        "longest_match"
-                                                                    ),
-                                                                );
-                                                        }
-                                                        result = content;
-                                                        semantic_raw_content = best_raw_content;
-                                                    } else {
-                                                        return Err(ParseError::Backtrack {
-                                                            position: parse_start,
-                                                        });
-                                                    };
+                                                    let result = ParseContent::Alternative(
+                                                        Box::new(parser.parse_accessor_base_lr_suffix()?),
+                                                    );
                                                     Ok(ParseNode {
                                                         rule_name: "quantified",
                                                         content: result,
@@ -10946,7 +10434,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -10969,7 +10457,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "generated/return_annotation_parser.rs",
+                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -10989,6 +10477,72 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "initial".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                            other => other,
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "suffixes".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 1usize => {
+                                                                elements[1usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 1usize => {
+                                                                elements[1usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("_pgen_lr_chain".to_string()),
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "wrapper_specs".to_string(),
+                                                serde_json::Value::String(
+                                                    "[{\"alt_index\":0,\"original_body_length\":3,\"annotation_template\":{\"Object\":{\"properties\":{\"property\":{\"PositionalRef\":{\"index\":3}},\"type\":{\"StringLiteral\":{\"value\":\"property_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}}}}}},{\"alt_index\":1,\"original_body_length\":4,\"annotation_template\":{\"Object\":{\"properties\":{\"type\":{\"StringLiteral\":{\"value\":\"array_access\"}},\"base\":{\"PositionalRef\":{\"index\":1}},\"index\":{\"PositionalRef\":{\"index\":3}}}}}}]"
+                                                        .to_string(),
+                                                ),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -11036,7 +10590,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11047,7 +10601,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11057,7 +10611,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11079,7 +10633,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -11092,7 +10646,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_positional_reference(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -11102,7 +10656,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11119,7 +10673,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11136,7 +10690,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11201,6 +10755,41 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "index".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 1usize => {
+                                                                elements[1usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 1usize => {
+                                                                elements[1usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("positional".to_string()),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -11248,7 +10837,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -11259,7 +10848,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -11269,7 +10858,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -11291,7 +10880,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -11304,7 +10893,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_string_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("string_literal", position);
         match cycle_type {
@@ -11312,7 +10901,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -11329,7 +10918,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -11346,7 +10935,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -11424,7 +11013,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -11484,7 +11073,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -11660,7 +11249,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -11673,7 +11262,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -11694,7 +11283,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -11754,7 +11343,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -11898,7 +11487,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -11911,7 +11500,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -11935,7 +11524,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -11999,7 +11588,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12010,7 +11599,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12020,7 +11609,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12042,7 +11631,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12055,7 +11644,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_string_content_double(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -12065,7 +11654,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12082,7 +11671,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12099,7 +11688,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12180,7 +11769,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12191,7 +11780,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12201,7 +11790,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12223,7 +11812,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12236,7 +11825,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_string_content_single(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -12246,7 +11835,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12263,7 +11852,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12280,7 +11869,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12361,7 +11950,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -12372,7 +11961,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -12382,7 +11971,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -12404,7 +11993,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -12417,7 +12006,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_number_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("number_literal", position);
         match cycle_type {
@@ -12425,7 +12014,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -12442,7 +12031,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -12459,7 +12048,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -12537,7 +12126,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -12552,7 +12141,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -12696,7 +12285,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -12709,7 +12298,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -12730,7 +12319,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -12745,7 +12334,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -12889,7 +12478,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -12902,7 +12491,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -12926,7 +12515,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -12990,7 +12579,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13001,7 +12590,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13011,7 +12600,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13033,7 +12622,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13046,7 +12635,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_float(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("float", position);
         match cycle_type {
@@ -13054,7 +12643,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13071,7 +12660,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13088,7 +12677,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13188,7 +12777,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13199,7 +12788,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13209,7 +12798,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13231,7 +12820,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13244,7 +12833,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_integer(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("integer", position);
         match cycle_type {
@@ -13252,7 +12841,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13269,7 +12858,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13286,7 +12875,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13382,7 +12971,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -13393,7 +12982,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -13403,7 +12992,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -13425,7 +13014,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -13438,7 +13027,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_boolean_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("boolean_literal", position);
         match cycle_type {
@@ -13446,7 +13035,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -13463,7 +13052,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -13480,7 +13069,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -13558,7 +13147,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -13572,7 +13161,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -13716,7 +13305,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -13729,7 +13318,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -13750,7 +13339,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -13764,7 +13353,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -13908,7 +13497,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -13921,7 +13510,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -13945,7 +13534,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -14009,7 +13598,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14020,7 +13609,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14030,7 +13619,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14052,7 +13641,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14065,7 +13654,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_identifier(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("identifier", position);
         match cycle_type {
@@ -14073,7 +13662,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14090,7 +13679,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14107,7 +13696,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14189,7 +13778,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14200,7 +13789,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14210,7 +13799,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14232,7 +13821,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14245,7 +13834,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_object_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("object_literal", position);
         match cycle_type {
@@ -14253,7 +13842,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14270,7 +13859,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14287,7 +13876,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14374,6 +13963,41 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "properties".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 1usize => {
+                                                                elements[1usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 1usize => {
+                                                                elements[1usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("object".to_string()),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -14421,7 +14045,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14432,7 +14056,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14442,7 +14066,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14464,7 +14088,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14477,7 +14101,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_object_properties(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("object_properties", position);
         match cycle_type {
@@ -14485,7 +14109,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14502,7 +14126,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14519,7 +14143,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14625,7 +14249,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -14648,7 +14272,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "generated/return_annotation_parser.rs",
+                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -14668,6 +14292,91 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut array_elements = Vec::new();
+                                        array_elements
+                                            .push(ParseNode {
+                                                rule_name: "element_0",
+                                                content: {
+                                                    let __pgen_base = (result).clone();
+                                                    match __pgen_base {
+                                                        ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                            elements[0usize].content.clone()
+                                                        }
+                                                        ParseContent::Quantified(
+                                                            elements,
+                                                            _,
+                                                        ) if !elements.is_empty() => {
+                                                            elements[0usize].content.clone()
+                                                        }
+                                                        ParseContent::Alternative(node) => node.content.clone(),
+                                                        other => other,
+                                                    }
+                                                },
+                                                span: 0..0,
+                                            });
+                                        match {
+                                            let __pgen_base = ({
+                                                let __pgen_base = (result).clone();
+                                                match __pgen_base {
+                                                    ParseContent::Sequence(
+                                                        elements,
+                                                    ) if elements.len() > 1usize => {
+                                                        elements[1usize].content.clone()
+                                                    }
+                                                    ParseContent::Quantified(
+                                                        elements,
+                                                        _,
+                                                    ) if elements.len() > 1usize => {
+                                                        elements[1usize].content.clone()
+                                                    }
+                                                    _ => ParseContent::Terminal("<invalid_extraction_base>"),
+                                                }
+                                            })
+                                                .clone();
+                                            match __pgen_base {
+                                                ParseContent::Quantified(elements, _) => {
+                                                    let extracted: Vec<ParseNode> = elements
+                                                        .iter()
+                                                        .filter_map(|node| {
+                                                            match &node.content {
+                                                                ParseContent::Sequence(
+                                                                    subelems,
+                                                                ) if subelems.len() > 1usize => {
+                                                                    Some(subelems[1usize].clone())
+                                                                }
+                                                                _ => None,
+                                                            }
+                                                        })
+                                                        .collect();
+                                                    ParseContent::Sequence(extracted)
+                                                }
+                                                _ => ParseContent::Terminal("<not_quantified>"),
+                                            }
+                                        } {
+                                            ParseContent::Sequence(nodes) => {
+                                                for node in nodes {
+                                                    array_elements.push(node);
+                                                }
+                                            }
+                                            ParseContent::Quantified(nodes, _) => {
+                                                for node in nodes {
+                                                    array_elements.push(node);
+                                                }
+                                            }
+                                            other => {
+                                                array_elements
+                                                    .push(ParseNode {
+                                                        rule_name: "spread_element",
+                                                        content: other,
+                                                        span: 0..0,
+                                                    });
+                                            }
+                                        }
+                                        ParseContent::Sequence(array_elements)
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -14715,7 +14424,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14726,7 +14435,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14736,7 +14445,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14758,7 +14467,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14771,7 +14480,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_object_property(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("object_property", position);
         match cycle_type {
@@ -14779,7 +14488,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -14796,7 +14505,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -14813,7 +14522,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -14894,6 +14603,59 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "key".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if !elements.is_empty() => {
+                                                                elements[0usize].content.clone()
+                                                            }
+                                                            ParseContent::Alternative(node) => node.content.clone(),
+                                                            other => other,
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "value".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 2usize => {
+                                                                elements[2usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 2usize => {
+                                                                elements[2usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -14941,7 +14703,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -14952,7 +14714,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -14962,7 +14724,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -14984,7 +14746,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -14997,7 +14759,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_property_key(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("property_key", position);
         match cycle_type {
@@ -15005,7 +14767,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15022,7 +14784,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15039,7 +14801,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15117,7 +14879,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -15132,7 +14894,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -15276,7 +15038,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -15289,7 +15051,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -15310,7 +15072,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
@@ -15325,7 +15087,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                             parser
                                                                 .logger
                                                                 .log_info(
-                                                                    "generated/return_annotation_parser.rs",
+                                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
@@ -15469,7 +15231,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_info(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -15482,7 +15244,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                     parser
                                                         .logger
                                                         .log_info(
-                                                            "generated/return_annotation_parser.rs",
+                                                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
@@ -15506,7 +15268,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         parser
                                             .logger
                                             .log_info(
-                                                "generated/return_annotation_parser.rs",
+                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -15570,7 +15332,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15581,7 +15343,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15591,7 +15353,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15613,7 +15375,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15626,7 +15388,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_array_literal(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_literal", position);
         match cycle_type {
@@ -15634,7 +15396,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15651,7 +15413,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15668,7 +15430,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -15755,6 +15517,41 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut __pgen_obj = serde_json::Map::new();
+                                        __pgen_obj
+                                            .insert(
+                                                "elements".to_string(),
+                                                {
+                                                    let __pgen_content = {
+                                                        let __pgen_base = (result).clone();
+                                                        match __pgen_base {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 1usize => {
+                                                                elements[1usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 1usize => {
+                                                                elements[1usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    };
+                                                    __pgen_content.to_json_value()
+                                                },
+                                            );
+                                        __pgen_obj
+                                            .insert(
+                                                "type".to_string(),
+                                                serde_json::Value::String("array".to_string()),
+                                            );
+                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -15802,7 +15599,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -15813,7 +15610,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -15823,7 +15620,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -15845,7 +15642,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -15858,7 +15655,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_array_elements(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_elements", position);
         match cycle_type {
@@ -15866,7 +15663,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -15883,7 +15680,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -15900,7 +15697,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -16006,7 +15803,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                                         parser
                                                             .logger
                                                             .log_warning(
-                                                                "generated/return_annotation_parser.rs",
+                                                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                                 0,
                                                                 &format!(
                                                                     "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
@@ -16029,7 +15826,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                                             parser
                                                 .logger
                                                 .log_warning(
-                                                    "generated/return_annotation_parser.rs",
+                                                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                                     0,
                                                     &format!(
                                                         "⚠️ MAX ITERATIONS ({}) reached in quantifier",
@@ -16049,6 +15846,91 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let mut array_elements = Vec::new();
+                                        array_elements
+                                            .push(ParseNode {
+                                                rule_name: "element_0",
+                                                content: {
+                                                    let __pgen_base = (result).clone();
+                                                    match __pgen_base {
+                                                        ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                            elements[0usize].content.clone()
+                                                        }
+                                                        ParseContent::Quantified(
+                                                            elements,
+                                                            _,
+                                                        ) if !elements.is_empty() => {
+                                                            elements[0usize].content.clone()
+                                                        }
+                                                        ParseContent::Alternative(node) => node.content.clone(),
+                                                        other => other,
+                                                    }
+                                                },
+                                                span: 0..0,
+                                            });
+                                        match {
+                                            let __pgen_base = ({
+                                                let __pgen_base = (result).clone();
+                                                match __pgen_base {
+                                                    ParseContent::Sequence(
+                                                        elements,
+                                                    ) if elements.len() > 1usize => {
+                                                        elements[1usize].content.clone()
+                                                    }
+                                                    ParseContent::Quantified(
+                                                        elements,
+                                                        _,
+                                                    ) if elements.len() > 1usize => {
+                                                        elements[1usize].content.clone()
+                                                    }
+                                                    _ => ParseContent::Terminal("<invalid_extraction_base>"),
+                                                }
+                                            })
+                                                .clone();
+                                            match __pgen_base {
+                                                ParseContent::Quantified(elements, _) => {
+                                                    let extracted: Vec<ParseNode> = elements
+                                                        .iter()
+                                                        .filter_map(|node| {
+                                                            match &node.content {
+                                                                ParseContent::Sequence(
+                                                                    subelems,
+                                                                ) if subelems.len() > 1usize => {
+                                                                    Some(subelems[1usize].clone())
+                                                                }
+                                                                _ => None,
+                                                            }
+                                                        })
+                                                        .collect();
+                                                    ParseContent::Sequence(extracted)
+                                                }
+                                                _ => ParseContent::Terminal("<not_quantified>"),
+                                            }
+                                        } {
+                                            ParseContent::Sequence(nodes) => {
+                                                for node in nodes {
+                                                    array_elements.push(node);
+                                                }
+                                            }
+                                            ParseContent::Quantified(nodes, _) => {
+                                                for node in nodes {
+                                                    array_elements.push(node);
+                                                }
+                                            }
+                                            other => {
+                                                array_elements
+                                                    .push(ParseNode {
+                                                        rule_name: "spread_element",
+                                                        content: other,
+                                                        span: 0..0,
+                                                    });
+                                            }
+                                        }
+                                        ParseContent::Sequence(array_elements)
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -16096,7 +15978,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -16107,7 +15989,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -16117,7 +15999,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -16139,7 +16021,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -16152,7 +16034,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_array_element(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_element", position);
         match cycle_type {
@@ -16160,7 +16042,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -16177,7 +16059,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -16194,7 +16076,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -16276,7 +16158,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -16287,7 +16169,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -16297,7 +16179,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -16319,7 +16201,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -16332,7 +16214,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         result
     }
     pub fn parse_parenthesized(&mut self) -> ParseResult<ParseNode<'input>> {
-        let filename_str = "generated/return_annotation_parser.rs";
+        let filename_str = "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs";
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("parenthesized", position);
         match cycle_type {
@@ -16340,7 +16222,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💥 Infinite recursion detected in rule '{}' at position {}",
@@ -16357,7 +16239,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Left recursion detected in rule '{}' at position {}",
@@ -16374,7 +16256,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
@@ -16454,6 +16336,25 @@ impl<'input> ReturnAnnotationParser<'input> {
                                         });
                                 }
                                 let result = ParseContent::Sequence(sequence_elements);
+                                let result = {
+                                    {
+                                        let __pgen_base = (result).clone();
+                                        match __pgen_base {
+                                            ParseContent::Sequence(
+                                                elements,
+                                            ) if elements.len() > 1usize => {
+                                                elements[1usize].content.clone()
+                                            }
+                                            ParseContent::Quantified(
+                                                elements,
+                                                _,
+                                            ) if elements.len() > 1usize => {
+                                                elements[1usize].content.clone()
+                                            }
+                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                        }
+                                    }
+                                };
                                 let end_pos = parser.position;
                                 parser
                                     .record_coverage_target_event(
@@ -16501,7 +16402,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                             .byte_window_lossy(start_pos, node.span.end);
                         self.logger
                             .log_success(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
@@ -16512,7 +16413,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     } else {
                         self.logger
                             .log_warning(
-                                "generated/return_annotation_parser.rs",
+                                "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                                 0,
                                 &format!(
                                     "⚠️ Rule '{}' matched with zero length at position {}",
@@ -16522,7 +16423,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                     }
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Exiting rule '{}' successfully - advanced from {} to {}",
@@ -16544,7 +16445,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_error(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
@@ -16668,7 +16569,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             let marker = if critical_path { "critical" } else { "target" };
             self.logger
                 .log_info(
-                    "generated/return_annotation_parser.rs",
+                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "🎯 SC-10 parser instrumentation: rule='{}' branch={:?} weight={} kind={} span={}..{}",
@@ -16701,7 +16602,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_info(
-                    "generated/return_annotation_parser.rs",
+                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "🧭 SC-12 parser partition: rule='{}' group='{}' span={}..{}",
@@ -16731,7 +16632,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             let mode = if negative { "near-invalid" } else { "invalid-case" };
             self.logger
                 .log_info(
-                    "generated/return_annotation_parser.rs",
+                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "⚠️ SC-11 expected-failure path: rule='{}' mode={} start={} failure={} kind={}",
@@ -16756,7 +16657,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🛟 Recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16772,7 +16673,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🛟 Parse-scope recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16788,7 +16689,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🛟 Global recovery budget exhausted for rule '{}': used={} limit={}",
@@ -16867,7 +16768,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 let marker = if token_priority == 0 { "panic_until" } else { "sync" };
                 self.logger
                     .log_warning(
-                        "generated/return_annotation_parser.rs",
+                        "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "🛟 Recovery for rule '{}': moved parser from {} to {} using {} token at {}",
@@ -16896,7 +16797,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_warning(
-                        "generated/return_annotation_parser.rs",
+                        "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
@@ -17691,7 +17592,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "generated/return_annotation_parser.rs",
+                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "🔤 Attempting to match terminal '{}' at position {} (end: {})",
@@ -17715,7 +17616,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_success(
-                        "generated/return_annotation_parser.rs",
+                        "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "✅ Terminal '{}' matched, advanced to position {}",
@@ -17734,7 +17635,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             };
             self.logger
                 .log_error(
-                    "generated/return_annotation_parser.rs",
+                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "❌ Terminal '{}' failed at position {} - found '{}'", expected,
@@ -17795,7 +17696,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "✅ Regex '{}' matched '{}' at position {}", pattern,
@@ -17821,7 +17722,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             };
             self.logger
                 .log_error(
-                    "generated/return_annotation_parser.rs",
+                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "❌ Regex '{}' no match at position {} (next: '{}')", pattern,
@@ -17845,7 +17746,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "generated/return_annotation_parser.rs",
+                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                     0,
                     &format!("🔄 Starting speculative parse at position {}", saved_pos),
                 );
@@ -17855,7 +17756,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_success(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔄 Speculative parse succeeded, advanced to position {}",
@@ -17871,7 +17772,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "🔙 Speculative parse failed with error '{:?}', backtracked to position {}",
@@ -17900,7 +17801,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_info(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💾 Memo hit for rule {} at position {} - reusing cached result",
@@ -17913,7 +17814,7 @@ impl<'input> ReturnAnnotationParser<'input> {
                 if self.logger_enabled {
                     self.logger
                         .log_warning(
-                            "generated/return_annotation_parser.rs",
+                            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                             0,
                             &format!(
                                 "💾 Memo miss for rule {} at position {} - cached failure",
@@ -17930,7 +17831,7 @@ impl<'input> ReturnAnnotationParser<'input> {
         if self.logger_enabled {
             self.logger
                 .log_debug(
-                    "generated/return_annotation_parser.rs",
+                    "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                     0,
                     &format!(
                         "💾 Memo miss for rule {} at position {} - computing fresh result",
@@ -17953,7 +17854,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_info(
-                        "generated/return_annotation_parser.rs",
+                        "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "💾 Memoized successful result for rule {} at position {}",
@@ -17974,7 +17875,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             if self.logger_enabled {
                 self.logger
                     .log_warning(
-                        "generated/return_annotation_parser.rs",
+                        "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
                         0,
                         &format!(
                             "💾 Memoized failed result for rule {} at position {}",

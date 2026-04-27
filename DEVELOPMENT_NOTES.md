@@ -1,4 +1,89 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-27 - Suffix-fold strategy log: 3 top-level strategies + 3 sub-options for Strategy 3, current pick = 3a
+
+### Why this entry exists
+Earlier 2026-04-27 entries describe the LR-elim ↔ inline-transform interaction's chained-access semantic gap. Three top-level strategies were proposed (1 = runtime fold via codegen; 2 = skip LR-elim for annotated rules; 3 = annotation-aware LR-elim with synthetic `_pgen_lr_chain` metadata). User picked Strategy 3. Implementation scoping then revealed three sub-options inside Strategy 3 (3a inline metadata; 3b sidecar; 3c const-in-parser-file). After honest comparison, the current pick is **3a**. This entry consolidates everything in one place so the design space stays visible and actionable.
+
+### Strategy 1 — Runtime suffix folding via codegen [NOT PICKED]
+- LR-elim's plan tags rewritten rules with metadata; `generate_rule_method` detects the tag and emits a fold prologue/epilogue.
+- For each match in the suffix_repetition* Quantified, the codegen-emit code identifies which wrapper alternative matched and applies that wrapper's annotation transform with the running result substituted as `$1`.
+- **Implementation cost**: ~120 lines + plumbing across LR-elim + codegen + runtime tag identification.
+- **Pros**: end-to-end inline emit; the typed-Json shape stays clean (walker doesn't see synthetic LR-chain wrappers).
+- **Cons**: codegen must understand LR-elim semantics; tag identification at runtime is fragile if rule structure changes.
+
+### Strategy 2 — Skip LR-elim for annotated rules [NOT PICKED, kept as a fallback]
+- `detect_left_recursive_chain_plan` returns `None` if the cycle includes any rule with an inline annotation. Cycle stays left-recursive.
+- The runtime's existing `recursion_guard` either parses (if reachable via finite recursion depth) or rejects with a clear error message.
+- **Implementation cost**: ~30 lines + a clear error message.
+- **Pros**: simplest; no runtime changes; no walker changes; no codegen changes.
+- **Cons**: defers the deep semantics; restricts what grammars can use inline annotations on left-recursive rules; may break existing grammars that worked under LR-elim before.
+- **Use case**: useful as an emergency rollback if Strategy 3 hits an unforeseen wall.
+
+### Strategy 3 — Annotation-aware LR-elim with synthetic `_pgen_lr_chain` metadata [PICKED]
+- LR-elim wraps the rule's original annotation in a synthetic `_pgen_lr_chain` shape that includes the original annotation under `initial`, the suffix_repetition's matches under `suffixes`, and per-wrapper-alternative annotation templates.
+- The walker recognizes `_pgen_lr_chain` and runs the fold by applying each suffix's matched-wrapper annotation to the running result.
+- **Where wrapper-spec metadata lives**: this is the choice between 3a/3b/3c below.
+
+### Strategy 3a — Inline metadata in the `_pgen_lr_chain` typed-Json [CURRENT PICK]
+- Each LR-elim'd rule's runtime output embeds `wrapper_specs` (compile-time-static metadata) directly in the typed-Json:
+```json
+{
+  "type": "_pgen_lr_chain",
+  "initial": {...original-annotation-result...},
+  "suffixes": [{"alt_index": 1, "captures": [...]}],
+  "wrapper_specs": [
+    {"alt_index": 0, "annotation_template": <serialized AST>, "original_body_length": 3},
+    {"alt_index": 1, "annotation_template": <serialized AST>, "original_body_length": 4}
+  ]
+}
+```
+- Walker reads everything from the typed value; no external lookup needed.
+- **Public M1 typed-entry invariant**: `parse_full_<entry>_typed` for any LR-elim'd grammar must always run the walker and return its `UnifiedReturnAST`-equivalent shape, never the raw `_pgen_lr_chain` parse-tree shape. This invariant keeps `_pgen_lr_chain` and `wrapper_specs` from leaking to downstream consumers.
+- **Implementation cost**: ~180 lines (LR-elim plumbing + walker `_pgen_lr_chain` case + typed-entry invariant + focused regression test).
+- **Pros**: walker self-contained; no API changes; metadata travels with the parse output.
+- **Cons**: per-parse memory cost (compile-time-static `wrapper_specs` are embedded each parse); `_pgen_lr_chain` visible in raw serialized parse output (mitigated by the typed-entry invariant).
+
+### Strategy 3b — Sidecar in `Annotations` struct [NOT PICKED]
+- New `Annotations.lr_chain_meta: HashMap<RuleName, LrChainMeta>` map populated at LR-elim time.
+- Walker takes `&Annotations` parameter (or accesses via context).
+- **Implementation cost**: ~150 lines + call-site fan-out (every caller of `parse_generated_return_annotation` and friends must pass `&Annotations`).
+- **Pros**: cleanest typed-Json (no metadata bloat).
+- **Cons**: walker public-API change propagates through every caller; the walker becomes coupled to the grammar's `Annotations` shape; metadata is fragile across grammar regenerations because the sidecar must stay in sync with the embedded wrapper info.
+
+### Strategy 3c — Const in generated parser file [NOT PICKED]
+- LR-elim emits a static const inside the regenerated parser source file holding the `LrChainMeta`.
+- Walker reaches into that const to look up wrapper info.
+- **Implementation cost**: ~140 lines + a cross-module hook so the lib can read parser-file consts.
+- **Pros**: no per-parse cost; clean typed-Json.
+- **Cons**: couples the `pgen` library to specific generated parser modules; the cross-module hook is awkward; same fragility as 3b across regenerations.
+
+### Current pick rationale
+- **3a is recommended** because it keeps the walker self-contained, requires no API changes, and the cost is per-parse bytes that don't escape past the walker (given the M1 typed-entry invariant).
+- The visible "ugliness" of `wrapper_specs` in serialized output is mitigated by the invariant — downstream consumers of `parse_full_<entry>_typed` see the clean walker output.
+- Per-parse memory cost matters only if a grammar parses millions of LR-elim'd rule instances per run; no such grammar exists today.
+
+### Tracked sub-options not yet selected
+- If 3a's per-parse cost ever becomes measurable, **migrate to 3c** (const-in-parser-file). The migration is mechanical — same metadata, just relocated.
+- If a grammar's annotations interact with LR-elim in a way 3a can't express cleanly, **fall back to Strategy 2** for that grammar (skip LR-elim) and document the constraint.
+
+### What blocks implementation right now
+- Strategy 3a is fully scoped; no further design questions remain.
+- Implementation scope is ~180 lines plus tests, suitable for a focused commit.
+- Awaiting explicit "implement 3a" go-ahead before starting code.
+
+### Outcome (post-implementation, 2026-04-27)
+- Strategy 3a landed in two commits:
+  - **M1** (walker side): `_pgen_lr_chain` typed-Json case + `LrChainWrapperSpec` + 4 focused regression tests. Behaviour-neutral until M2 ships.
+  - **M2** (pipeline side): LR-elim now allocates a `<base>_lr_suffix` helper rule (carrying per-branch `_pgen_lr_chain_alt` annotations), migrates the base rule's per-branch annotations into the `<base>_lr_base` helper, and rewrites both the base rule and each wrapper rule's branch[0] annotation into a synthetic `_pgen_lr_chain` shape whose `initial` embeds the wrapper's original AST verbatim and whose `wrapper_specs` carries the static fold metadata.
+- **Empirical correction to the strategy-log "What blocks…" assumption**: when the resume probe was run, all chained-access tests already passed via the bespoke structural walker (`parse_generated_property_access_expression_node` & friends). Strategy 3a is therefore an architectural refactor (replace bespoke per-grammar walkers with the uniform typed-Json mechanism), not a bug fix. The M1 commit message and this entry both call this out so future work doesn't replay the misframing.
+- **Inventory contract preservation**: the LR-elim pass now snapshots `branch_return_annotations` into `pre_lr_elim_branch_return_annotations` before any rewrites; the inventory builder reads from that snapshot when present, so the public per-grammar declared-annotation contract continues to surface the grammar-author-written layout (e.g. `accessor_base[3] = "$2"`) even though codegen consumes the post-LR-elim layout (`accessor_base_lr_base[1]`).
+- **Walker robustness fixes surfaced by regen**: the regen exposed three pre-existing walker gaps that the OLD parser hadn't triggered (because pre-codegen-fix rules didn't apply many annotations):
+  - `"extraction"` typed value now reads `spread` and wraps in `Spread { ... }` when present.
+  - bare-string flow-through now recognises `"true"`/`"false"` as `BooleanLiteral` (matches bootstrap's keyword recognition).
+  - object_property `"key"` now accepts both bare strings and `{type: "string", value: "..."}` typed objects (string-quoted keys go through the typed shape after the codegen-fix landed).
+- **Bespoke structural walker still co-exists** as the safety net for non-typed-Json paths; deletion is deferred to a follow-up commit once 3a has burned in across more grammars (currently only `return_annotation` is regenerated).
+- 482 tests green at HEAD (478 prior + 4 new chain walker regression tests). Inventory artifact is byte-identical to pre-3a thanks to the snapshot path; the only `return_annotation_parser.rs` shape change is the introduction of `accessor_base_lr_suffix` and the synthetic `_pgen_lr_chain` annotations on `accessor_base` / `property_access_expression` / `array_access_expression`.
+
 ## 2026-04-27 - Suffix-fold for chained access (LR-elim layer 2): design proposal
 
 ### What's left after the flatten fix from `a6a51d5`

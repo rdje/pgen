@@ -763,6 +763,15 @@ pub struct Annotations {
         std::collections::HashMap<String, Vec<Vec<MidSequenceSemanticAnnotation>>>,
     #[serde(default)]
     pub semantic_annotations: std::collections::HashMap<String, Vec<SemanticAnnotation>>,
+    /// Pre-LR-elim snapshot of `branch_return_annotations`. Populated by
+    /// the LR-elim pass before it rewrites annotations into the
+    /// `_pgen_lr_chain` shape (Strategy 3a). The inventory builder uses
+    /// this snapshot when present so the emitted artifact reflects the
+    /// grammar-author-written annotations rather than the post-LR-elim
+    /// migration. `None` when no LR-elim transformation has run.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_lr_elim_branch_return_annotations:
+        Option<std::collections::HashMap<String, Vec<Option<BranchAnnotation>>>>,
 }
 
 /// Normalize a return-annotation payload string for stable comparison. Trim
@@ -831,9 +840,30 @@ impl EmittedReturnAnnotationInventory {
     pub fn from_annotations(grammar: &str, annotations: Option<&Annotations>) -> Self {
         let mut entries: Vec<EmittedReturnAnnotationEntry> = Vec::new();
         if let Some(annotations) = annotations {
-            for (rule, branches) in &annotations.branch_return_annotations {
+            // Prefer the pre-LR-elim snapshot when present so the emitted
+            // inventory artifact reflects the grammar-author-written
+            // annotations rather than any pipeline-internal migrations
+            // (Strategy 3a moves per-branch annotations from base rules to
+            // their `*_lr_base` helpers). When no snapshot exists (e.g. no
+            // LR-elim ran), the live `branch_return_annotations` is the
+            // authoritative source.
+            let source = annotations
+                .pre_lr_elim_branch_return_annotations
+                .as_ref()
+                .unwrap_or(&annotations.branch_return_annotations);
+            for (rule, branches) in source {
                 for (branch_index, opt_annotation) in branches.iter().enumerate() {
                     if let Some(annotation) = opt_annotation {
+                        // LR-elim's Strategy 3a synthetic entries are book-keeping
+                        // for the runtime fold; they are not grammar-author-
+                        // written and must not surface in the public inventory
+                        // contract. Skip them so the inventory continues to
+                        // reflect only declared annotations. (The pre-LR-elim
+                        // snapshot won't contain these by construction, but
+                        // the fallback path may.)
+                        if annotation.annotation_type == "_pgen_lr_chain_synthetic" {
+                            continue;
+                        }
                         entries.push(EmittedReturnAnnotationEntry {
                             rule: rule.clone(),
                             branch_index,
@@ -950,8 +980,21 @@ pub struct RustASTPipeline {
 struct LeftRecursiveChainPlan {
     base_rule: String,
     helper_base_rule: String,
-    base_alternatives: Vec<ASTNode>,
-    wrapper_rules: Vec<(String, ASTNode)>,
+    /// Synthetic helper rule that owns the suffix Or, allocated on demand
+    /// when the LR-elim pass also rewrites annotations into a
+    /// `_pgen_lr_chain` shape (Strategy 3a). Empty when annotations are
+    /// not in scope (e.g. tools that disable annotation preservation).
+    helper_suffix_rule: String,
+    /// Surviving (non-LR) alternatives from the base rule's original Or.
+    /// Each entry is `(original_or_branch_index, alternative_node)` so
+    /// that per-branch annotations attached to the original base rule's
+    /// Or can migrate to `helper_base_rule` in their proper positions.
+    base_alternatives: Vec<(usize, ASTNode)>,
+    /// LR alternatives from the base rule's original Or. Each entry is
+    /// `(original_or_branch_index, wrapper_rule_name, wrapper_suffix_node)`.
+    /// The `wrapper_suffix_node` is the wrapper rule's body with the
+    /// leading LR self-reference stripped.
+    wrapper_rules: Vec<(usize, String, ASTNode)>,
     suffix_alternative: ASTNode,
 }
 
@@ -1135,7 +1178,11 @@ impl RustASTPipeline {
         }
 
         if self.config.eliminate_left_recursion {
-            self.eliminate_left_recursive_patterns(&mut grammar_tree, &mut rule_order);
+            self.eliminate_left_recursive_patterns(
+                &mut grammar_tree,
+                &mut rule_order,
+                Some(&mut annotations),
+            );
         } else {
             eprintln!(
                 "[mod.rs][transform_from_raw_ast()] ⏭️  Left-recursion elimination disabled by configuration"
@@ -1169,10 +1216,27 @@ impl RustASTPipeline {
         &self,
         grammar_tree: &mut HashMap<String, ASTNode>,
         rule_order: &mut Vec<String>,
+        mut annotations: Option<&mut Annotations>,
     ) {
         eprintln!(
             "[mod.rs][eliminate_left_recursive_patterns()] 🔧 Starting left-recursion elimination pass"
         );
+        // Take a snapshot of the user's grammar-author-written branch return
+        // annotations BEFORE any LR-elim migration. Strategy 3a's annotation
+        // rewrite migrates per-branch annotations from base rules to
+        // `*_lr_base` helpers; the inventory contract should still surface
+        // the original layout so grammar authors recognise their own
+        // annotations and the pre-LR-elim crosscheck against the frontend
+        // raw_ast JSON stays valid.
+        if let Some(annotations_ref) = annotations.as_deref_mut() {
+            if annotations_ref
+                .pre_lr_elim_branch_return_annotations
+                .is_none()
+            {
+                annotations_ref.pre_lr_elim_branch_return_annotations =
+                    Some(annotations_ref.branch_return_annotations.clone());
+            }
+        }
         let original_order = rule_order.clone();
         let mut transformed_rules = HashSet::new();
         let mut transformation_count = 0usize;
@@ -1193,10 +1257,15 @@ impl RustASTPipeline {
                 plan.wrapper_rules.len()
             );
 
-            self.apply_left_recursive_chain_plan(&plan, grammar_tree, rule_order);
+            self.apply_left_recursive_chain_plan(
+                &plan,
+                grammar_tree,
+                rule_order,
+                annotations.as_deref_mut(),
+            );
             transformation_count += 1;
             transformed_rules.insert(plan.base_rule.clone());
-            for (wrapper_rule, _) in &plan.wrapper_rules {
+            for (_orig_idx, wrapper_rule, _suffix) in &plan.wrapper_rules {
                 transformed_rules.insert(wrapper_rule.clone());
             }
             transformed_rules.insert(plan.helper_base_rule.clone());
@@ -1219,19 +1288,19 @@ impl RustASTPipeline {
             return None;
         }
 
-        let mut base_alternatives = Vec::new();
-        let mut wrapper_rules: Vec<(String, ASTNode)> = Vec::new();
+        let mut base_alternatives: Vec<(usize, ASTNode)> = Vec::new();
+        let mut wrapper_rules: Vec<(usize, String, ASTNode)> = Vec::new();
 
-        for alternative in &rule_alternatives {
+        for (orig_idx, alternative) in rule_alternatives.iter().enumerate() {
             if let Some(wrapper_rule) = Self::extract_rule_reference_name(alternative) {
                 if let Some(wrapper_suffix) =
                     Self::extract_wrapper_suffix(rule_name, &wrapper_rule, grammar_tree)
                 {
-                    wrapper_rules.push((wrapper_rule, wrapper_suffix));
+                    wrapper_rules.push((orig_idx, wrapper_rule, wrapper_suffix));
                     continue;
                 }
             }
-            base_alternatives.push(alternative.clone());
+            base_alternatives.push((orig_idx, alternative.clone()));
         }
 
         if wrapper_rules.is_empty() || base_alternatives.is_empty() {
@@ -1241,16 +1310,19 @@ impl RustASTPipeline {
         let suffix_alternative = Self::build_or_node(
             wrapper_rules
                 .iter()
-                .map(|(_, suffix)| suffix.clone())
+                .map(|(_, _, suffix)| suffix.clone())
                 .collect(),
         );
 
         let helper_base_rule =
             Self::allocate_synthetic_rule_name(format!("{}_lr_base", rule_name), grammar_tree);
+        let helper_suffix_rule =
+            Self::allocate_synthetic_rule_name(format!("{}_lr_suffix", rule_name), grammar_tree);
 
         Some(LeftRecursiveChainPlan {
             base_rule: rule_name.to_string(),
             helper_base_rule,
+            helper_suffix_rule,
             base_alternatives,
             wrapper_rules,
             suffix_alternative,
@@ -1262,10 +1334,23 @@ impl RustASTPipeline {
         plan: &LeftRecursiveChainPlan,
         grammar_tree: &mut HashMap<String, ASTNode>,
         rule_order: &mut Vec<String>,
+        annotations: Option<&mut Annotations>,
     ) {
         let helper_base_ref = Self::make_rule_reference_node(&plan.helper_base_rule);
+
+        // Strategy 3a only kicks in when annotations are in scope. When they
+        // are, the suffix Or is hoisted into a `<base>_lr_suffix` helper rule
+        // so per-branch annotations carrying `alt_index`/`captures` can ride
+        // each suffix iteration. When annotations are not preserved, keep the
+        // legacy inline Quantified(suffix_alternative) shape.
+        let want_chain_annotations = annotations.is_some();
+        let suffix_element_node = if want_chain_annotations {
+            Self::make_rule_reference_node(&plan.helper_suffix_rule)
+        } else {
+            plan.suffix_alternative.clone()
+        };
         let suffix_repetition = ASTNode::Quantified {
-            element: Box::new(plan.suffix_alternative.clone()),
+            element: Box::new(suffix_element_node),
             quantifier: "*".to_string(),
         };
 
@@ -1273,10 +1358,16 @@ impl RustASTPipeline {
             Self::build_sequence_node(vec![helper_base_ref.clone(), suffix_repetition.clone()]);
         grammar_tree.insert(plan.base_rule.clone(), rewritten_base_rule);
 
-        for (wrapper_rule, wrapper_suffix) in &plan.wrapper_rules {
+        // Track each wrapper rule's ORIGINAL body length so we can compute
+        // where the appended `suffix_repetition` lives ($N where N is one
+        // past the original body length) — this becomes the `suffixes:` $-ref
+        // in the wrapper rule's synthetic `_pgen_lr_chain` annotation.
+        let mut wrapper_original_body_lengths: Vec<usize> =
+            Vec::with_capacity(plan.wrapper_rules.len());
+        for (_orig_idx, wrapper_rule, wrapper_suffix) in &plan.wrapper_rules {
             // Flatten wrapper_suffix's elements into the outer Sequence rather
-            // than nesting it. This is what preserves the original 1-based
-            // `$N` element-index convention in any inline return annotation
+            // than nesting it. This preserves the original 1-based `$N`
+            // element-index convention in any inline return annotation
             // attached to this wrapper rule. Without flattening, the rewritten
             // rule body becomes `Sequence([helper_base_ref, wrapper_suffix,
             // suffix_repetition])` — three top-level elements regardless of
@@ -1289,18 +1380,29 @@ impl RustASTPipeline {
             // original body's range.
             let mut flat_elements: Vec<ASTNode> = Vec::new();
             flat_elements.push(helper_base_ref.clone());
-            match wrapper_suffix {
+            let suffix_element_count = match wrapper_suffix {
                 ASTNode::Sequence { elements } => {
                     flat_elements.extend(elements.iter().cloned());
+                    elements.len()
                 }
-                other => flat_elements.push(other.clone()),
-            }
+                other => {
+                    flat_elements.push(other.clone());
+                    1
+                }
+            };
+            // Original body length = LR-self-ref (1) + suffix elements.
+            wrapper_original_body_lengths.push(1 + suffix_element_count);
             flat_elements.push(suffix_repetition.clone());
             let rewritten_wrapper = Self::build_sequence_node(flat_elements);
             grammar_tree.insert(wrapper_rule.clone(), rewritten_wrapper);
         }
 
-        let helper_base_ast = Self::build_or_node(plan.base_alternatives.clone());
+        let helper_base_ast = Self::build_or_node(
+            plan.base_alternatives
+                .iter()
+                .map(|(_, alt)| alt.clone())
+                .collect(),
+        );
         grammar_tree.insert(plan.helper_base_rule.clone(), helper_base_ast);
 
         if !rule_order.contains(&plan.helper_base_rule) {
@@ -1309,6 +1411,254 @@ impl RustASTPipeline {
             } else {
                 rule_order.push(plan.helper_base_rule.clone());
             }
+        }
+
+        if want_chain_annotations {
+            grammar_tree
+                .insert(plan.helper_suffix_rule.clone(), plan.suffix_alternative.clone());
+            if !rule_order.contains(&plan.helper_suffix_rule) {
+                if let Some(base_pos) = rule_order.iter().position(|name| name == &plan.base_rule)
+                {
+                    rule_order.insert(base_pos, plan.helper_suffix_rule.clone());
+                } else {
+                    rule_order.push(plan.helper_suffix_rule.clone());
+                }
+            }
+        }
+
+        if let Some(annotations) = annotations {
+            self.rewrite_lr_chain_annotations(
+                plan,
+                &wrapper_original_body_lengths,
+                annotations,
+            );
+        }
+    }
+
+    /// Strategy 3a annotation rewrite. Mutates `annotations` to:
+    ///
+    /// - Migrate per-branch annotations from `plan.base_rule` (whose original
+    ///   Or has been replaced by a Sequence) onto `helper_base_rule` at the
+    ///   surviving alternatives' new branch indices.
+    /// - Replace `plan.base_rule`'s branch annotations with a single synthetic
+    ///   `_pgen_lr_chain` entry whose `initial: $1`, `suffixes: $2`, and
+    ///   `wrapper_specs` carry the chain-fold metadata.
+    /// - Replace each wrapper rule's branch[0] annotation with a synthetic
+    ///   `_pgen_lr_chain` entry whose `initial` embeds the wrapper's original
+    ///   parsed AST verbatim (with `$1..$N` still meaning the wrapper's
+    ///   original body positions — the flatten path preserved them) and
+    ///   whose `suffixes` reads from the trailing `suffix_repetition`.
+    /// - Add per-branch `_pgen_lr_chain_alt` annotations to `helper_suffix_rule`,
+    ///   one per branch, that emit `{alt_index, captures: [$1, .., $M]}`.
+    ///
+    /// Synthetic entries (those with `annotation_type == "_pgen_lr_chain_synthetic"`)
+    /// are skipped by the inventory builder so the grammar's tracked
+    /// declared-annotation contract stays stable across this rewrite.
+    fn rewrite_lr_chain_annotations(
+        &self,
+        plan: &LeftRecursiveChainPlan,
+        wrapper_original_body_lengths: &[usize],
+        annotations: &mut Annotations,
+    ) {
+        // ---- 1. Migrate base_rule's per-branch annotations to helper_base_rule.
+        // The base rule's branch_return_annotations Vec was indexed against
+        // the original Or's branch positions. After LR-elim, helper_base_rule
+        // owns the surviving non-LR alternatives; its branch indices are the
+        // positions in plan.base_alternatives, in order.
+        let original_base_branches = annotations
+            .branch_return_annotations
+            .remove(&plan.base_rule)
+            .unwrap_or_default();
+        let migrated_helper_base_branches: Vec<Option<BranchAnnotation>> = plan
+            .base_alternatives
+            .iter()
+            .map(|(orig_idx, _)| {
+                original_base_branches
+                    .get(*orig_idx)
+                    .cloned()
+                    .unwrap_or(None)
+            })
+            .collect();
+        if migrated_helper_base_branches.iter().any(|e| e.is_some()) {
+            annotations
+                .branch_return_annotations
+                .insert(plan.helper_base_rule.clone(), migrated_helper_base_branches);
+        }
+
+        // ---- 2. Compute wrapper_specs (one entry per branch of the suffix Or).
+        // For each wrapper rule, its wrapper_suffix may be a Sequence (single
+        // suffix branch) or another shape; we expand each into one or more
+        // alts in suffix order. alt_index runs sequentially across wrappers.
+        let mut wrapper_specs: Vec<unified_return_ast::LrChainWrapperSpec> = Vec::new();
+        let mut alt_index_cursor = 0usize;
+        // Track per-helper-suffix-branch the matching wrapper's original body
+        // length and elements count for capture annotation generation.
+        let mut suffix_branch_metadata: Vec<usize> = Vec::new(); // captures count per branch
+        for ((_orig_idx, wrapper_rule, wrapper_suffix), wrapper_body_len) in plan
+            .wrapper_rules
+            .iter()
+            .zip(wrapper_original_body_lengths.iter())
+        {
+            let wrapper_branch_annotation: UnifiedReturnAST = annotations
+                .branch_return_annotations
+                .get(wrapper_rule)
+                .and_then(|branches| branches.get(0).cloned().flatten())
+                .and_then(|ann| ann.parsed_ast)
+                .unwrap_or(UnifiedReturnAST::PositionalRef { index: 1 });
+
+            let branch_element_counts: Vec<usize> = match wrapper_suffix {
+                ASTNode::Or { alternatives } => alternatives
+                    .iter()
+                    .map(|alt| match alt {
+                        ASTNode::Sequence { elements } => elements.len(),
+                        _ => 1,
+                    })
+                    .collect(),
+                ASTNode::Sequence { elements } => vec![elements.len()],
+                _ => vec![1],
+            };
+            for elem_count in &branch_element_counts {
+                wrapper_specs.push(unified_return_ast::LrChainWrapperSpec {
+                    alt_index: alt_index_cursor,
+                    original_body_length: *wrapper_body_len,
+                    annotation_template: wrapper_branch_annotation.clone(),
+                });
+                suffix_branch_metadata.push(*elem_count);
+                alt_index_cursor += 1;
+            }
+        }
+
+        let wrapper_specs_serialized = serde_json::to_string(&wrapper_specs)
+            .expect("LrChainWrapperSpec Serialize must not fail");
+
+        // ---- 3. Build the synthetic _pgen_lr_chain Object literal that's
+        // attached as the rewritten annotation. `wrapper_specs_str` is shared
+        // across base_rule and all wrapper rules.
+        let wrapper_specs_node = UnifiedReturnAST::StringLiteral {
+            value: wrapper_specs_serialized,
+        };
+        let make_chain_annotation = |initial: UnifiedReturnAST, suffix_position: usize| {
+            let mut props: std::collections::HashMap<String, Box<UnifiedReturnAST>> =
+                std::collections::HashMap::new();
+            props.insert(
+                "type".to_string(),
+                Box::new(UnifiedReturnAST::StringLiteral {
+                    value: "_pgen_lr_chain".to_string(),
+                }),
+            );
+            props.insert("initial".to_string(), Box::new(initial));
+            props.insert(
+                "suffixes".to_string(),
+                Box::new(UnifiedReturnAST::PositionalRef {
+                    index: suffix_position,
+                }),
+            );
+            props.insert(
+                "wrapper_specs".to_string(),
+                Box::new(wrapper_specs_node.clone()),
+            );
+            UnifiedReturnAST::Object { properties: props }
+        };
+
+        // ---- 4. Replace base_rule's annotation with a single synthetic
+        // _pgen_lr_chain entry. The base rule's rewritten body is
+        // `[helper_base_ref, suffix_repetition]`, so initial = $1 and
+        // suffixes = $2.
+        let base_chain_ast =
+            make_chain_annotation(UnifiedReturnAST::PositionalRef { index: 1 }, 2);
+        annotations.branch_return_annotations.insert(
+            plan.base_rule.clone(),
+            vec![Some(BranchAnnotation {
+                annotation_type: "_pgen_lr_chain_synthetic".to_string(),
+                annotation_content: String::new(),
+                parsed_ast: Some(base_chain_ast),
+            })],
+        );
+
+        // ---- 5. Replace each wrapper rule's branch[0] annotation with a
+        // synthetic _pgen_lr_chain entry that wraps the original. We KEEP
+        // the original `annotation_content` and `annotation_type` so the
+        // emitted return-annotation inventory continues to surface the
+        // grammar-author-written text and its declared type — the rewrite
+        // is invisible to the contract gate. Only `parsed_ast` flips to the
+        // chain shape (which is what codegen consumes).
+        for ((_orig_idx, wrapper_rule, _suffix), wrapper_body_len) in plan
+            .wrapper_rules
+            .iter()
+            .zip(wrapper_original_body_lengths.iter())
+        {
+            let suffix_position = wrapper_body_len + 1;
+            let wrapper_branches = annotations
+                .branch_return_annotations
+                .entry(wrapper_rule.clone())
+                .or_insert_with(|| vec![None]);
+            if wrapper_branches.is_empty() {
+                wrapper_branches.push(None);
+            }
+            let original_initial = wrapper_branches[0]
+                .as_ref()
+                .and_then(|ann| ann.parsed_ast.clone())
+                .unwrap_or(UnifiedReturnAST::PositionalRef { index: 1 });
+            let chain_ast = make_chain_annotation(original_initial, suffix_position);
+            let (preserved_type, preserved_content) = match &wrapper_branches[0] {
+                Some(existing) => (
+                    existing.annotation_type.clone(),
+                    existing.annotation_content.clone(),
+                ),
+                None => (
+                    "_pgen_lr_chain_synthetic".to_string(),
+                    String::new(),
+                ),
+            };
+            wrapper_branches[0] = Some(BranchAnnotation {
+                annotation_type: preserved_type,
+                annotation_content: preserved_content,
+                parsed_ast: Some(chain_ast),
+            });
+        }
+
+        // ---- 6. Add per-branch annotations to helper_suffix_rule so each
+        // suffix iteration emits `{type: "_pgen_lr_chain_alt", alt_index,
+        // captures: [$1, .., $M]}` at runtime — the shape the walker's
+        // chain fold step consumes.
+        let suffix_branch_annotations: Vec<Option<BranchAnnotation>> = suffix_branch_metadata
+            .iter()
+            .enumerate()
+            .map(|(alt_index, captures_count)| {
+                let mut props: std::collections::HashMap<String, Box<UnifiedReturnAST>> =
+                    std::collections::HashMap::new();
+                props.insert(
+                    "type".to_string(),
+                    Box::new(UnifiedReturnAST::StringLiteral {
+                        value: "_pgen_lr_chain_alt".to_string(),
+                    }),
+                );
+                props.insert(
+                    "alt_index".to_string(),
+                    Box::new(UnifiedReturnAST::NumberLiteral {
+                        value: alt_index as f64,
+                    }),
+                );
+                let captures_array_elements: Vec<UnifiedReturnAST> = (1..=*captures_count)
+                    .map(|i| UnifiedReturnAST::PositionalRef { index: i })
+                    .collect();
+                props.insert(
+                    "captures".to_string(),
+                    Box::new(UnifiedReturnAST::Array {
+                        elements: captures_array_elements,
+                    }),
+                );
+                Some(BranchAnnotation {
+                    annotation_type: "_pgen_lr_chain_synthetic".to_string(),
+                    annotation_content: String::new(),
+                    parsed_ast: Some(UnifiedReturnAST::Object { properties: props }),
+                })
+            })
+            .collect();
+        if !suffix_branch_annotations.is_empty() {
+            annotations
+                .branch_return_annotations
+                .insert(plan.helper_suffix_rule.clone(), suffix_branch_annotations);
         }
     }
 
