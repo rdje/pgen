@@ -83,28 +83,38 @@ struct SemanticTokenSteeringPolicy {
 }
 
 impl AstBasedGenerator {
-    /// PGEN-RGX-0073 Optim #13: true when the grammar has zero semantic
-    /// annotations of any kind (rule-level, branch-local, or mid-sequence).
-    /// For such grammars (today: `json`, `rtl_const_expr`), the per-rule
-    /// semantic-runtime wrapper is dead weight — it always takes the
-    /// runtime fast-path landed in Optim #11 and immediately returns.
-    /// Skipping the wrapper at codegen time avoids the function call
-    /// plus `is_empty`/`has_rule` HashMap lookups for every rule call.
+    /// PGEN-RGX-0073 Optim #14: true when this specific rule carries
+    /// no semantic annotations of any kind (direct, branch-local, or
+    /// mid-sequence). Such a rule's `with_semantic_runtime_rule_transaction`
+    /// wrapper is dead weight — the runtime fast-path landed in Optim #11
+    /// always short-circuits in this case, and Optim #13 already proved
+    /// the elision is safe at the grammar level. This is the per-rule
+    /// generalization: a partially-annotated grammar (e.g. `regex`,
+    /// where `@semantic_value` lives on a small fraction of rules) can
+    /// have its non-annotated rules elided too.
     ///
-    /// Note: grammars that carry `@semantic_value` annotations (e.g.
-    /// `regex`) do NOT qualify here, because those populate
-    /// `branch_semantic_annotations`. Per-rule elision for grammars
-    /// with some-but-not-all rules annotated is a separate follow-up;
-    /// this slice is grammar-level only.
-    fn grammar_has_no_semantic_annotations(&self) -> bool {
+    /// Safety note: the per-rule elision is exactly equivalent to the
+    /// runtime fast-path always firing for this rule. Children that
+    /// carry annotations still run their own wrappers; the parent's
+    /// wrapper is not load-bearing for child state because each child
+    /// transaction commits/rolls back independently at its own wrapper.
+    fn rule_has_no_semantic_annotations(&self, rule_name: &str) -> bool {
         let Some(annotations) = &self.annotations else {
             return true;
         };
-        annotations.semantic_annotations.is_empty()
-            && annotations.branch_semantic_annotations.is_empty()
-            && annotations
-                .branch_mid_sequence_semantic_annotations
-                .is_empty()
+        let direct_empty = annotations
+            .semantic_annotations
+            .get(rule_name)
+            .is_none_or(|v| v.is_empty());
+        let branch_empty = annotations
+            .branch_semantic_annotations
+            .get(rule_name)
+            .is_none_or(|branches| branches.iter().all(|b| b.is_empty()));
+        let mid_seq_empty = annotations
+            .branch_mid_sequence_semantic_annotations
+            .get(rule_name)
+            .is_none_or(|branches| branches.iter().all(|b| b.is_empty()));
+        direct_empty && branch_empty && mid_seq_empty
     }
 
     pub fn new(grammar_name: String) -> Self {
@@ -1423,9 +1433,13 @@ impl AstBasedGenerator {
             .unwrap_or_else(|| format!("rule.{}", rule_name));
         let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
 
-        // Optim #13: conditionally emit the semantic-runtime transaction
-        // wrapper. The inner `memoized_call` body is identical in both
-        // arms; only the surrounding wrapper differs.
+        // Optim #14: conditionally emit the semantic-runtime transaction
+        // wrapper per rule. The inner `memoized_call` body is identical
+        // in both arms; only the surrounding wrapper differs. The Optim
+        // #13 grammar-level gate is generalized here to a per-rule check
+        // so a partially-annotated grammar (e.g. `regex`, where most
+        // rules have no semantic annotations) can elide the wrapper on
+        // its non-annotated rules too.
         let memoized_inner = quote! {
             parser.memoized_call(Self::#rule_const, |parser| {
                 let semantic_capture_raw_for_post =
@@ -1475,7 +1489,7 @@ impl AstBasedGenerator {
                 ))
             })
         };
-        let wrapped_rule_call: TokenStream = if self.grammar_has_no_semantic_annotations() {
+        let wrapped_rule_call: TokenStream = if self.rule_has_no_semantic_annotations(rule_name) {
             quote! {
                 let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
                     let inner_result = #memoized_inner;

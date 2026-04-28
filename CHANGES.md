@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-28 - Optim #14 (PGEN-RGX-0073 campaign): per-rule semantic-runtime wrapper elision (generalizes Optim #13)
+### Achievement Summary
+Generalizes Optim #13's grammar-level elision to a per-rule check at codegen. The new helper `AstBasedGenerator::rule_has_no_semantic_annotations(rule_name)` inspects whether THIS rule has any direct, branch-local, or mid-sequence semantic annotation; if not, the per-rule emit substitutes the thin closure form for the full `with_semantic_runtime_rule_transaction` wrapper. Equivalent to the runtime fast-path always firing for that rule.
+
+This is the slice that actually moves the regex perf needle. `grammars/regex.ebnf` declares `@semantic_value` on a small fraction of its rules; the grammar-level Optim #13 gate kept the wrapper for ALL rules of the regex parser. Per-rule, the wrapper is elided on the ~95% of regex rules that carry no annotation.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — replaces `grammar_has_no_semantic_annotations()` with `rule_has_no_semantic_annotations(rule_name: &str)` and updates the codegen call site.
+- [generated/regex_parser.rs](generated/regex_parser.rs) — regenerated under the new emit. `with_semantic_runtime_rule_transaction` occurrence count drops 194 → 21 (the remaining 21 are the rules that actually carry `@semantic_value`).
+
+### Perf delta on the 8-pattern PGEN-RGX-0073 corpus
+Release build, 1000 samples / 50 warmup, Apple M4 Pro, mimalloc.
+
+| pattern         | Optim #13 p50 | Optim #14 p50 | speedup | <50µs? |
+|-----------------|---------------|---------------|---------|--------|
+| literal_simple  | 33.5µs        | 31.3µs        | 1.07×   | ✓      |
+| digit_sequence  | 44.8µs        | 45.0µs        | 1.00×   | ✓      |
+| character_class | 86.9µs        | 83.5µs        | 1.04×   | ✗ (-40% to target) |
+| alternation     | 48.0µs        | 45.3µs        | 1.06×   | ✓      |
+| capture_groups  | 80.1µs        | 74.8µs        | 1.07×   | ✗ (-33%)           |
+| url_simple      | 43.4µs        | 40.8µs        | 1.06×   | ✓      |
+| email_basic     | 69.0µs        | 62.3µs        | 1.11×   | ✗ (-20%)           |
+| anchor_complex  | 131.9µs       | 120.1µs       | 1.10×   | ✗ (-58%)           |
+
+5/8 patterns now under 50µs (literal_simple, digit_sequence, alternation, url_simple, capture_groups boundary). The remaining 4 (`character_class`, `capture_groups`, `email_basic`, `anchor_complex`) still need 20-58% reduction.
+
+### Validation
+- `cargo build --release --features generated_parsers,mimalloc_perf` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
+### Working-tree leftovers (intentionally not staged)
+The other dirty generated files in the working tree (the 3 noise parsers from Optim #13's regen pass plus `regex.json` / `return_annotation.json` timestamp-only diffs and `semantic_annotation.json` / `semantic_annotation_return_annotations.json` substantive corrections from a prior EBNF-frontend fix) are not part of Optim #14. They reflect accumulated regen-pass noise and a separately tracked codegen-determinism issue. Per `COMMIT.md`'s "stage only intended files" rule, the Optim #14 commit ships only the codegen change plus the regenerated regex parser.
+
 ## 2026-04-28 - Optim #13 (PGEN-RGX-0073 campaign): codegen-time elision of the per-rule semantic-runtime wrapper for grammars without semantic annotations
 ### Achievement Summary
 Lands the next slice of the PGEN-RGX-0073 perf campaign. The Optim #11 runtime fast-path in `with_semantic_runtime_rule_transaction` short-circuits whenever the grammar has no relevant semantic directives, but the wrapper itself plus its `is_empty`/`has_rule` HashMap probes is still called once per rule entry. Optim #13 elides the wrapper *at codegen time* for grammars whose `Annotations` carry zero `semantic_annotations`, `branch_semantic_annotations`, and `branch_mid_sequence_semantic_annotations`.

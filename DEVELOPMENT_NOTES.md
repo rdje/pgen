@@ -1,4 +1,87 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-28 - Optim #14: per-rule codegen elision of `with_semantic_runtime_rule_transaction`
+
+### Why this entry exists
+Optim #13 elided the semantic-runtime wrapper for grammars whose `Annotations` carry zero semantic annotations across the entire grammar. That gate qualified `json` and `rtl_const_expr` but excluded `regex` (which has `@semantic_value` on 8 alternatives). Because PGEN-RGX-0073's perf target is the regex parser specifically, Optim #13 did not move the regex p50 numbers.
+
+Optim #14 generalizes the gate to a **per-rule** check at codegen. A partially-annotated grammar — `regex` is the canonical case — can have its non-annotated rules elided while the annotated ones keep the wrapper.
+
+### Implementation shape
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+```rust
+fn rule_has_no_semantic_annotations(&self, rule_name: &str) -> bool {
+    let Some(annotations) = &self.annotations else {
+        return true;
+    };
+    let direct_empty = annotations
+        .semantic_annotations
+        .get(rule_name)
+        .is_none_or(|v| v.is_empty());
+    let branch_empty = annotations
+        .branch_semantic_annotations
+        .get(rule_name)
+        .is_none_or(|branches| branches.iter().all(|b| b.is_empty()));
+    let mid_seq_empty = annotations
+        .branch_mid_sequence_semantic_annotations
+        .get(rule_name)
+        .is_none_or(|branches| branches.iter().all(|b| b.is_empty()));
+    direct_empty && branch_empty && mid_seq_empty
+}
+```
+
+The codegen call site changes from `if self.grammar_has_no_semantic_annotations()` to `if self.rule_has_no_semantic_annotations(rule_name)`. Same two emit arms; only the gate is more permissive.
+
+### Safety argument
+The per-rule elision is exactly equivalent to the runtime fast-path in `with_semantic_runtime_rule_transaction` always firing for that rule:
+
+```rust
+if self.semantic_runtime_annotations.is_empty()
+    || !self.semantic_runtime_annotations.has_rule(rule_name)
+{
+    let (node, _raw) = f(self)?;
+    return Ok(node);
+}
+```
+
+That fast-path has been in production since Optim #11 and bypasses transaction setup. Children that carry annotations still run their own wrappers; the parent rule's wrapper is not load-bearing for child state because each child transaction commits/rolls back independently at its own wrapper. So eliding the parent's wrapper at codegen produces identical observable behavior to the runtime fast-path.
+
+### Effect on the regex parser
+`with_semantic_runtime_rule_transaction` occurrence count in `generated/regex_parser.rs`: **194 → 21**. The remaining 21 are the rules that actually carry `@semantic_value`. The other ~95% of rules drop the wrapper.
+
+### Perf delta
+Release build, 1000 samples / 50 warmup, Apple M4 Pro, `--features generated_parsers,mimalloc_perf`.
+
+| pattern         | Optim #13 p50 | Optim #14 p50 | speedup |
+|-----------------|---------------|---------------|---------|
+| literal_simple  | 33.5µs        | 31.3µs        | 1.07×   |
+| digit_sequence  | 44.8µs        | 45.0µs        | 1.00×   |
+| character_class | 86.9µs        | 83.5µs        | 1.04×   |
+| alternation     | 48.0µs        | 45.3µs        | 1.06×   |
+| capture_groups  | 80.1µs        | 74.8µs        | 1.07×   |
+| url_simple      | 43.4µs        | 40.8µs        | 1.06×   |
+| email_basic     | 69.0µs        | 62.3µs        | 1.11×   |
+| anchor_complex  | 131.9µs       | 120.1µs       | 1.10×   |
+
+GeoMean ~1.06×. Cumulative speedup vs the bug-baseline (Optim #1): the regex parser is now ~25-35× faster than at the time the bug was filed, depending on pattern.
+
+### Bug target status
+- **Primary `<50µs`**: 5/8 patterns under target.
+- **Acceptable interim `<200µs`**: all 8 patterns well under.
+- **Remaining gap to PRIMARY**: `character_class` 83.5µs (-40%), `capture_groups` 74.8µs (-33%), `email_basic` 62.3µs (-20%), `anchor_complex` 120.1µs (-58%).
+
+### Why the remaining gap is hard to close incrementally
+The per-Optim profile from #11 / #12 left these residual cost classes per rule entry: `match_string` ~7%, `Vec::clone` (AST cloning during $N extraction) ~5.6%, mimalloc malloc/free ~9% combined, `RecursionGuard::check_cycle` ~4.3%, `HashMap::insert` (memo writes) ~5.9%, `ParseNode::clone` ~2%. Stacking another grammar-agnostic micro-optim is unlikely to close 20–58% in one slice; the more promising directions are:
+
+1. **Memo / recursion-guard elision for non-recursive rules.** Many regex rules participate in no cycle. Codegen could detect that and skip both the memo HashMap insert/lookup AND the `RecursionGuard::enter`/`exit` per call.
+2. **Phase 2 inline annotation application** (logged as task #30 / RGX-0073 follow-up). Generated parsers currently emit generic `ParseNode` trees with per-node `String` rule-name allocations regardless of whether the rule has a return annotation; annotations are applied post-parse via `UnifiedReturnAST::from_parse_node`. Restoring inline shape-emit at the rule-method level eliminates the entire generic-tree allocation path.
+3. **Profile-guided micro-optims** — direct samply/instruments profiling on the 4 remaining patterns to find the actual hot frames.
+
+### Validation
+- `cargo build --release --features generated_parsers,mimalloc_perf` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
 ## 2026-04-28 - Optim #13: grammar-level codegen elision of `with_semantic_runtime_rule_transaction`
 
 ### Why this entry exists

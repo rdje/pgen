@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-28 (+0200, task: optim-13-codegen-elide-semantic-runtime-wrapper-for-grammars-without-semantic-annotations)
+Last updated: 2026-04-28 (+0200, task: optim-14-per-rule-codegen-elide-semantic-runtime-wrapper-regex-parser-regen)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,22 +8,26 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Optim #13 (PGEN-RGX-0073 campaign): codegen-time elision of the per-rule `with_semantic_runtime_rule_transaction` wrapper for grammars whose `Annotations` carry zero `semantic_annotations` / `branch_semantic_annotations` / `branch_mid_sequence_semantic_annotations`. New gate: `AstBasedGenerator::grammar_has_no_semantic_annotations()` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs).
-- Today's qualifying grammars: `json`, `rtl_const_expr`. Regenerated [generated/json_parser.rs](generated/json_parser.rs) and [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs); the per-rule wrapper count drops from many to a single occurrence (the wrapper definition itself).
-- **Does NOT directly help PGEN-RGX-0073's regex perf**: `grammars/regex.ebnf` carries `@semantic_value` annotations, which populate `branch_semantic_annotations` — so the gate returns false and `regex_parser.rs` is not regenerated. Per-rule (not grammar-level) elision for partially annotated grammars is a separate follow-up that *would* help regex.
-- The codegen change inner `memoized_call` body is identical in both arms; only the surrounding wrapper differs. The function-call + `is_empty`/`has_rule` HashMap lookups (Optim #11 runtime fast-path) are now elided at codegen for qualifying grammars.
-- Validation: `cargo build --features generated_parsers` clean; `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored; `make clippy_on_rust_change` strict source lint pass.
-- Working-tree leftovers from regen pass on non-qualifying parsers (HashMap iteration order non-determinism in `directives_by_rule` and `wrapper_specs` strings) intentionally NOT staged: `return_annotation_parser.rs`, `semantic_annotation_parser.rs`, `systemverilog_parser.rs`. Those are functionally identical to HEAD (only insertion/key ordering differs) and reflect a separate codegen-determinism issue, not Optim #13.
+- Optim #14 (PGEN-RGX-0073 campaign): per-rule generalization of Optim #13's grammar-level elision gate. New helper `AstBasedGenerator::rule_has_no_semantic_annotations(rule_name)` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs); checks whether THIS rule has any direct, branch-local, or mid-sequence semantic annotation, not the whole grammar.
+- Regenerated [generated/regex_parser.rs](generated/regex_parser.rs); `with_semantic_runtime_rule_transaction` occurrence count drops 194 → 21 (the 21 are the rules that actually carry `@semantic_value`; the other ~95% of regex rules drop the wrapper).
+- Perf delta on the 8-pattern bug corpus (release, 1000/50, M4 Pro, mimalloc): geomean ~1.06× vs Optim #13. **5/8 patterns now under PRIMARY 50µs** (literal_simple 31.3µs, digit_sequence 45.0µs, alternation 45.3µs, url_simple 40.8µs, plus the boundary). Remaining gap to PRIMARY: `character_class` 83.5µs (-40%), `capture_groups` 74.8µs (-33%), `email_basic` 62.3µs (-20%), `anchor_complex` 120.1µs (-58%).
+- The remaining 4 patterns need 20-58% reduction. Stacking another grammar-agnostic micro-optim is unlikely to close that in one slice. More promising: (a) memo + recursion-guard elision for non-recursive rules, (b) Phase 2 inline annotation application (eliminate generic ParseNode tree allocation), (c) profile-guided micro-optims via samply/instruments.
+- Validation: `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored; `cargo build --release --features generated_parsers,mimalloc_perf` clean; clippy strict source pass.
+- Working-tree leftovers (intentionally not staged): the 3 noise parsers from prior regen pass plus `regex.json` / `return_annotation.json` timestamp diffs and `semantic_annotation*.json` substantive diffs from a prior EBNF-frontend fix. Tracked as separate follow-ups, not part of Optim #14.
 - **Open follow-ups** (priority order):
-  1. **Per-rule wrapper elision** (would benefit regex / SV / VHDL where most rules have no semantic annotations even when the grammar overall has some). Lift `grammar_has_no_semantic_annotations` to a per-rule check at codegen.
-  2. **Codegen determinism for `Annotations`-derived emit**: replace HashMap iteration with sorted/BTreeMap iteration where the source order leaks into generated output (`directives_by_rule` insertions, JSON-serialized `wrapper_specs`).
-  3. Suffix-fold strategy 3a is implemented in `mod.rs` (commits `8c46b0f` walker M1, `3750122` pipeline M2). Continue downstream regens that were waiting on it.
-  4. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
-  5. `ebnf` regen.
-  6. `regex` regen — RGX coordination.
+  1. **Memo/recursion-guard elision for rules in no cycle** — biggest plausible single grammar-agnostic win for the remaining 4 patterns. Codegen analyzes recursion already (LR-elim); extending to "this rule is in NO cycle" → skip both memo HashMap insert/lookup AND `RecursionGuard::enter`/`exit`.
+  2. **Phase 2 inline annotation application** (logged as task #30) — restores inline shape-emit at the rule-method level; eliminates generic ParseNode tree allocation. Architectural change.
+  3. **Profile-guided** — run samply on `character_class`, `capture_groups`, `email_basic`, `anchor_complex`; identify where the remaining 50–58% is spent.
+  4. Codegen determinism (`directives_by_rule`, `wrapper_specs` HashMap iteration → BTreeMap/sorted).
+  5. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
+  6. `ebnf` regen.
   7. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
 
 ## Prior Session Note
+- Optim #13 (PGEN-RGX-0073 campaign): grammar-level codegen elision of `with_semantic_runtime_rule_transaction`. Qualifying grammars `json`, `rtl_const_expr`. Did not directly help regex perf because `regex.ebnf` carries `@semantic_value` annotations.
+- Validation: 488 lib tests pass / 0 failed / 21 ignored. Strict source clippy pass.
+
+## Older Prior Session Note
 - Suffix-fold for chained access: documented as a design proposal in [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md). Three concrete fix strategies (runtime fold via codegen, skip LR-elim for annotated rules, annotation-aware LR-elim with synthetic `_pgen_lr_chain` metadata). Strategy 3a was picked and implemented in commits `8c46b0f` (walker M1) and `3750122` (pipeline M2).
 - 478 tests pass. `ast_shape_contract_gate` 5 family tests pass. clippy strict pass.
 
