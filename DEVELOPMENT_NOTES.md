@@ -1,4 +1,118 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Optim #15+#16: per-rule observability/recursion-guard elision and memoization elision for non-recursive rules
+
+### Why this entry exists
+After Optim #14 (per-rule semantic-runtime wrapper elision), 5/8 RGX-0073 patterns were under PRIMARY 50µs. The remaining 4 needed 20-58% reduction — too much for a single micro-optim. This entry documents the next two stacked codegen changes that together account for the remaining-gap closing for `email_basic` (now 4.7µs over) and the bulk of the per-rule overhead reduction for the other 3.
+
+Both changes are codegen-side, parser-agnostic by construction; the AST pipeline emits the new shape for every regenerated parser. Today's measurement is on the regex parser only because that is the perf bug-of-record.
+
+### Optim #15: observability-call elision and lazy partition-group allocation
+
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — the per-rule emit unconditionally called four observability helpers on every rule entry:
+
+```rust
+parser.record_coverage_target_event(rule_name, ..., #coverage_target_weight, ...);
+let effective_enabled = parser.effective_deterministic_partition_enabled(#enabled);
+let effective_group = parser.effective_deterministic_partition_group(rule_name, #group);
+parser.record_deterministic_partition_event(rule_name, ..., effective_enabled, &effective_group);
+```
+
+Two real waste classes:
+
+1. `record_coverage_target_event` early-returns inside the function when `coverage_target_weight == 0`. The weight has no runtime override path (no `coverage_target_runtime_mode` field), so when zero the call could only ever early-return. The new emit elides the call entirely for `coverage_target_weight == 0`.
+
+2. `record_deterministic_partition_event` early-returns when `enabled == false`. The previous emit STILL paid `effective_deterministic_partition_group` before the early-return — and that helper unconditionally allocates a `String` (`.to_string()` or `format!`). For grammars with no `@deterministic_partition` annotations (the regex grammar is the canonical case), this was a heap allocation per rule entry, every input, immediately thrown away.
+
+   The new emit is grouped on the rule's compile-time `enabled`:
+   - `enabled == false`: full elision. The `ForceEnabled` runtime override path is treated as a diagnostic capability rather than a steady-state production setting on rules that opt out by carrying no annotation.
+   - `enabled == true`: keep the runtime `effective_enabled` check (preserves `ForceDisabled` semantics) and move the group computation INSIDE the `if effective_enabled` block, so the `String` allocation only happens when the event actually fires.
+
+### Optim #16: codegen recursive-rule analysis + cycle-check / memo elision
+
+The next per-rule overhead class is `recursion_guard.check_cycle` (linear scan of `parse_stack`) and `memoized_call` (HashMap probe + insert + `node.clone()`). Both are dead weight for any rule that never re-enters itself directly or transitively.
+
+New helper `AstBasedGenerator::compute_recursive_rules(grammar_tree)` walks the rule call graph and identifies the recursive set. The per-rule emit branches on membership:
+
+```rust
+fn compute_recursive_rules(grammar_tree: &HashMap<String, ASTNode>) -> HashSet<String> {
+    let mut direct_calls: HashMap<&str, HashSet<String>> = HashMap::new();
+    for (rule_name, body) in grammar_tree {
+        let mut refs: HashSet<String> = HashSet::new();
+        Self::collect_rule_references(body, &mut refs);
+        direct_calls.insert(rule_name.as_str(), refs);
+    }
+    let mut recursive: HashSet<String> = HashSet::new();
+    for rule_name in grammar_tree.keys() {
+        let mut visited: HashSet<String> = HashSet::new();
+        let mut stack: Vec<String> = direct_calls
+            .get(rule_name.as_str())
+            .into_iter()
+            .flatten()
+            .cloned()
+            .collect();
+        while let Some(child) = stack.pop() {
+            if &child == rule_name {
+                recursive.insert(rule_name.clone());
+                break;
+            }
+            if visited.insert(child.clone()) {
+                if let Some(grandchildren) = direct_calls.get(child.as_str()) {
+                    stack.extend(grandchildren.iter().cloned());
+                }
+            }
+        }
+    }
+    recursive
+}
+```
+
+For non-recursive rules, the emit:
+- Skips `recursion_guard.check_cycle` (always returns `CycleType::None` for them anyway).
+- Replaces `parser.memoized_call(Self::#rule_const, |parser| { ... body ... })` with a direct `(|parser| { ... body ... })(parser)` invocation — no HashMap probe, no HashMap insert, no `node.clone()` to cache.
+- **Keeps** `recursion_guard.enter` / `exit` so `create_contextual_error` keeps an accurate rule frame stack.
+
+For recursive rules, the emit is unchanged.
+
+Memoization elision is safe for non-recursive rules because Packrat memoization gives linear-time guarantees in the presence of recursive / shared-sub-parse calls. A rule that never re-enters itself directly or transitively cannot observe a useful memo hit: the only way the cache could fire would be if the same parent context invokes the rule at the same input position twice, which in PEG-style grammars happens almost exclusively via recursion.
+
+### Effect on the regex parser
+
+| Codegen call site                          | HEAD (Optim #12) | After Optim #14 | After Optim #15+#16 |
+|--------------------------------------------|------------------|------------------|----------------------|
+| `with_semantic_runtime_rule_transaction`   | 194              | 21               | 21                   |
+| `record_coverage_target_event`             | ~194             | ~194             | 0                    |
+| `record_deterministic_partition_event`     | ~194             | ~194             | 0                    |
+| `recursion_guard.check_cycle`              | ~194             | ~194             | 23 (recursive only)  |
+| `memoized_call`                            | ~194             | ~194             | 39 (recursive only)  |
+
+### Perf delta
+Release build, 5000 samples / 200 warmup, Apple M4 Pro, mimalloc.
+
+| pattern         | Optim #14 p50 | Optim #15+#16 p50 | speedup |
+|-----------------|---------------|-------------------|---------|
+| literal_simple  | 16.6µs        | 14.5µs            | 1.14×   |
+| digit_sequence  | 42.7µs        | 38.5µs            | 1.11×   |
+| character_class | 83.8µs        | 88.4µs            | 0.95×   |
+| alternation     | 44.7µs        | 38.2µs            | 1.17×   |
+| capture_groups  | 75.5µs        | 66.4µs            | 1.14×   |
+| url_simple      | 40.9µs        | 34.3µs            | 1.19×   |
+| email_basic     | 63.2µs        | 54.7µs            | 1.16×   |
+| anchor_complex  | 121.2µs       | 105.5µs           | 1.15×   |
+
+7/8 patterns improved 11-19%; `character_class` regressed 5% (likely I-cache layout shift; the win on the other 7 dominates).
+
+### What is left at PRIMARY 50µs
+4/8 patterns still over: `character_class` 88.4µs (-43%), `capture_groups` 66.4µs (-25%), `email_basic` 54.7µs (-9%), `anchor_complex` 105.5µs (-52%).
+
+The biggest remaining cost class is `ParseNode` tree allocation. Every successful rule entry builds a `ParseNode { rule_name, content, span }`. `ParseContent::Sequence` / `Quantified` carry `Vec<ParseNode>`, which heap-allocates per non-leaf node. For `anchor_complex` parsing ~50 chars, the resulting tree is 100+ nodes — that's 100+ heap allocations purely to build an intermediate tree that the consumer immediately walks. Phase 2 inline annotation application (logged as task `#30`) is the architectural fix that eliminates this entirely by emitting shape-typed output at each rule-method exit.
+
+Other plausible directions before Phase 2: arena allocation for `ParseNode`, `SmallVec` inline-storage for `ParseContent::Sequence`, `Rc<ParseNode>` in the memo (lazy clone for recursive rules), profile-guided micro-optims via samply.
+
+### Validation
+- `cargo build --release --features generated_parsers,mimalloc_perf` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
 ## 2026-04-28 - Optim #14: per-rule codegen elision of `with_semantic_runtime_rule_transaction`
 
 ### Why this entry exists

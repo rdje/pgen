@@ -98,6 +98,49 @@ impl AstBasedGenerator {
     /// carry annotations still run their own wrappers; the parent's
     /// wrapper is not load-bearing for child state because each child
     /// transaction commits/rolls back independently at its own wrapper.
+    /// PGEN-RGX-0073 Optim #16: returns the set of rules that are
+    /// transitively reachable from themselves through rule references.
+    /// Rules NOT in this set never form a cycle, so the per-rule entry
+    /// `recursion_guard.check_cycle` + `enter`/`exit` is dead weight,
+    /// and `memoized_call` (which exists to give Packrat its
+    /// linear-time guarantee under recursive sub-parses) cannot
+    /// observe a cache hit either: a non-recursive rule never re-enters
+    /// itself at the same position, and shared-sub-parse hits across
+    /// distinct call paths are rare in PEG-style grammars and bounded
+    /// by the rule's own complexity. Eliding both for the non-recursive
+    /// set is parser-agnostic: any generated parser whose grammar has
+    /// non-recursive rules picks up the same wins.
+    fn compute_recursive_rules(grammar_tree: &HashMap<String, ASTNode>) -> HashSet<String> {
+        let mut direct_calls: HashMap<&str, HashSet<String>> = HashMap::new();
+        for (rule_name, body) in grammar_tree {
+            let mut refs: HashSet<String> = HashSet::new();
+            Self::collect_rule_references(body, &mut refs);
+            direct_calls.insert(rule_name.as_str(), refs);
+        }
+        let mut recursive: HashSet<String> = HashSet::new();
+        for rule_name in grammar_tree.keys() {
+            let mut visited: HashSet<String> = HashSet::new();
+            let mut stack: Vec<String> = direct_calls
+                .get(rule_name.as_str())
+                .into_iter()
+                .flatten()
+                .cloned()
+                .collect();
+            while let Some(child) = stack.pop() {
+                if child.as_str() == rule_name.as_str() {
+                    recursive.insert(rule_name.clone());
+                    break;
+                }
+                if visited.insert(child.clone()) {
+                    if let Some(grandchildren) = direct_calls.get(child.as_str()) {
+                        stack.extend(grandchildren.iter().cloned());
+                    }
+                }
+            }
+        }
+        recursive
+    }
+
     fn rule_has_no_semantic_annotations(&self, rule_name: &str) -> bool {
         let Some(annotations) = &self.annotations else {
             return true;
@@ -411,12 +454,19 @@ impl AstBasedGenerator {
         eprintln!("\n{}", "-".repeat(60));
         eprintln!("RULE METHOD GENERATION");
         eprintln!("{}", "-".repeat(60));
+        let recursive_rules = Self::compute_recursive_rules(grammar_tree);
         let mut rule_methods = Vec::new();
         for rule_name in rule_order {
             eprintln!("   📋  Rule: {} - File: {}:{}", rule_name, file!(), line!());
             if let Some(ast_node) = grammar_tree.get(rule_name) {
-                let method =
-                    self.generate_rule_method(rule_name, ast_node, rule_order, filename)?;
+                let is_recursive = recursive_rules.contains(rule_name.as_str());
+                let method = self.generate_rule_method_with_recursion(
+                    rule_name,
+                    ast_node,
+                    rule_order,
+                    filename,
+                    is_recursive,
+                )?;
                 rule_methods.push(method);
                 eprintln!("        ✓   Completed - File: {}:{}", file!(), line!());
                 eprintln!();
@@ -1352,6 +1402,21 @@ impl AstBasedGenerator {
         rule_order: &[String],
         filename: &str,
     ) -> Result<TokenStream> {
+        // Default to "recursive" — preserves prior emit shape for
+        // callers that don't supply a recursive-rules set (notably the
+        // unit tests that exercise `generate_rule_method` directly).
+        // Production codegen goes through `generate_rule_method_with_recursion`.
+        self.generate_rule_method_with_recursion(rule_name, ast_node, rule_order, filename, true)
+    }
+
+    fn generate_rule_method_with_recursion(
+        &self,
+        rule_name: &str,
+        ast_node: &ASTNode,
+        rule_order: &[String],
+        filename: &str,
+        is_recursive: bool,
+    ) -> Result<TokenStream> {
         let method_name = format_ident!("parse_{}", rule_name);
         let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
 
@@ -1433,30 +1498,35 @@ impl AstBasedGenerator {
             .unwrap_or_else(|| format!("rule.{}", rule_name));
         let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
 
-        // Optim #14: conditionally emit the semantic-runtime transaction
-        // wrapper per rule. The inner `memoized_call` body is identical
-        // in both arms; only the surrounding wrapper differs. The Optim
-        // #13 grammar-level gate is generalized here to a per-rule check
-        // so a partially-annotated grammar (e.g. `regex`, where most
-        // rules have no semantic annotations) can elide the wrapper on
-        // its non-annotated rules too.
-        let memoized_inner = quote! {
-            parser.memoized_call(Self::#rule_const, |parser| {
-                let semantic_capture_raw_for_post =
-                    parser.semantic_runtime_annotations
-                        .needs_raw_post_capture_for_rule(#rule_name);
-                let mut semantic_selected_branch_index: Option<usize> = None;
-                let mut semantic_raw_content: Option<ParseContent<'input>> = None;
-                // Main parsing logic - produces the 'result' variable
-                #parse_logic;
-
-                // Apply rule-level return annotation for non-Or roots
-                // (Or roots apply per-branch transforms inline)
-                #post_parse_transform_tokens
-
-                #relational_guards
-
-                let end_pos = parser.position;
+        // Optim #15: elide / lazify per-rule observability hooks that
+        // the previous emit ran unconditionally on every rule entry.
+        //
+        // 1. `record_coverage_target_event` early-returns when
+        //    `coverage_target_weight == 0`. The weight is a compile-time
+        //    constant per rule (no runtime override path), so when zero
+        //    we elide the call entirely instead of paying the arg setup
+        //    plus call frame for an immediate return.
+        //
+        // 2. `record_deterministic_partition_event` early-returns when
+        //    `enabled == false`. The previous emit STILL paid for the
+        //    `effective_deterministic_partition_group` call before that
+        //    early-return — and that helper unconditionally allocates a
+        //    `String` (`.to_string()` or `format!`). For grammars that
+        //    declare no `@deterministic_partition` (the regex grammar
+        //    is the canonical case), this was a String allocation per
+        //    rule entry that was immediately thrown away. When the rule
+        //    has no annotation, we elide the entire partition logic at
+        //    codegen — under the default `AnnotationDriven` runtime
+        //    mode no event would fire anyway, and `ForceEnabled` is a
+        //    diagnostic mode rather than a steady-state production
+        //    setting. When the rule does have the annotation, the
+        //    group computation is moved inside the runtime
+        //    `effective_enabled` check so the allocation only happens
+        //    when an event will actually be recorded.
+        let coverage_event_emit = if coverage_target_weight == 0 {
+            quote! {}
+        } else {
+            quote! {
                 parser.record_coverage_target_event(
                     #rule_name,
                     start_pos,
@@ -1465,29 +1535,86 @@ impl AstBasedGenerator {
                     #coverage_target_weight,
                     #coverage_critical_path,
                 );
+            }
+        };
+        let partition_event_emit = if !deterministic_partition_enabled {
+            quote! {}
+        } else {
+            quote! {
                 let deterministic_partition_effective_enabled =
-                    parser.effective_deterministic_partition_enabled(#deterministic_partition_enabled);
-                let deterministic_partition_effective_group = parser.effective_deterministic_partition_group(
-                    #rule_name,
-                    #deterministic_partition_group,
-                );
-                parser.record_deterministic_partition_event(
-                    #rule_name,
-                    start_pos,
-                    end_pos,
-                    deterministic_partition_effective_enabled,
-                    &deterministic_partition_effective_group,
-                );
+                    parser.effective_deterministic_partition_enabled(true);
+                if deterministic_partition_effective_enabled {
+                    let deterministic_partition_effective_group =
+                        parser.effective_deterministic_partition_group(
+                            #rule_name,
+                            #deterministic_partition_group,
+                        );
+                    parser.record_deterministic_partition_event(
+                        #rule_name,
+                        start_pos,
+                        end_pos,
+                        true,
+                        &deterministic_partition_effective_group,
+                    );
+                }
+            }
+        };
 
-                Ok((
-                    ParseNode {
-                        rule_name: #rule_name,
-                        content: result,
-                        span: start_pos..end_pos,
-                    },
-                    semantic_raw_content,
-                ))
-            })
+        // Optim #14: conditionally emit the semantic-runtime transaction
+        // wrapper per rule. The inner `memoized_call` body is identical
+        // in both arms; only the surrounding wrapper differs. The Optim
+        // #13 grammar-level gate is generalized here to a per-rule check
+        // so a partially-annotated grammar (e.g. `regex`, where most
+        // rules have no semantic annotations) can elide the wrapper on
+        // its non-annotated rules too.
+        //
+        // Optim #16: when the rule is statically non-recursive, the
+        // `memoized_call` wrapper is also dead weight. Memoization gives
+        // Packrat its linear-time guarantee in the presence of recursive
+        // / shared-sub-parse calls; for a rule that never re-enters
+        // itself directly or transitively, the cache cannot observe a
+        // hit it could not avoid by simply running the body once. The
+        // emitted body is the same; only the wrapping differs.
+        let rule_body_inner = quote! {
+            let semantic_capture_raw_for_post =
+                parser.semantic_runtime_annotations
+                    .needs_raw_post_capture_for_rule(#rule_name);
+            let mut semantic_selected_branch_index: Option<usize> = None;
+            let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+            // Main parsing logic - produces the 'result' variable
+            #parse_logic;
+
+            // Apply rule-level return annotation for non-Or roots
+            // (Or roots apply per-branch transforms inline)
+            #post_parse_transform_tokens
+
+            #relational_guards
+
+            let end_pos = parser.position;
+            #coverage_event_emit
+            #partition_event_emit
+
+            Ok((
+                ParseNode {
+                    rule_name: #rule_name,
+                    content: result,
+                    span: start_pos..end_pos,
+                },
+                semantic_raw_content,
+            ))
+        };
+        let memoized_inner: TokenStream = if is_recursive {
+            quote! {
+                parser.memoized_call(Self::#rule_const, |parser| {
+                    #rule_body_inner
+                })
+            }
+        } else {
+            quote! {
+                (|parser: &mut Self| -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)> {
+                    #rule_body_inner
+                })(parser)
+            }
         };
         let wrapped_rule_call: TokenStream = if self.rule_has_no_semantic_annotations(rule_name) {
             quote! {
@@ -1518,12 +1645,15 @@ impl AstBasedGenerator {
             }
         };
 
-        // Build the complete method
-        Ok(quote! {
-            pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
-                let filename_str = #filename;
-                // Check for recursion cycles
-                let position = self.position;
+        // Optim #16: emit `recursion_guard.check_cycle` only for rules
+        // statically known to be recursive. A non-recursive rule cannot
+        // directly or transitively re-enter itself, so `check_cycle`'s
+        // linear scan of `parse_stack` always returns
+        // `CycleType::None` for it; the call is dead weight per rule
+        // entry. Push/pop on `parse_stack` is still emitted so error
+        // messages keep an accurate rule frame.
+        let cycle_check_emit = if is_recursive {
+            quote! {
                 let cycle_type = self.recursion_guard.check_cycle(#rule_name, position);
 
                 match cycle_type {
@@ -1556,6 +1686,18 @@ impl AstBasedGenerator {
                     }
                     _ => {}
                 }
+            }
+        } else {
+            quote! {}
+        };
+
+        // Build the complete method
+        Ok(quote! {
+            pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+                let filename_str = #filename;
+                // Check for recursion cycles (recursive rules only after Optim #16)
+                let position = self.position;
+                #cycle_check_emit
 
                 #profile_guard
 

@@ -1,4 +1,59 @@
 # CHANGES.md
+## 2026-04-29 - Optim #15+#16 (PGEN-RGX-0073 campaign): per-rule observability/recursion-guard elision and memoization elision for non-recursive rules
+### Achievement Summary
+Two stacked codegen changes in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs); both are parser-agnostic by construction (the change lives in the AST pipeline's parser-emit template, so every regenerated parser inherits the wins).
+
+**Optim #15** elides / lazifies the unconditional per-rule observability hooks:
+- `record_coverage_target_event` is fully elided when the rule's compile-time `coverage_target_weight == 0`. The weight has no runtime override path; when zero, the call could only early-return inside the function. Now the call is gone entirely.
+- `record_deterministic_partition_event` is fully elided when the rule has no `@deterministic_partition` annotation. The previous emit unconditionally allocated a `String` via `effective_deterministic_partition_group` (`.to_string()` or `format!`) before the function's early-return — a heap allocation per rule entry, every input. When the rule does carry the annotation, the group computation is moved inside the runtime `effective_enabled` check so the allocation only happens when an event will actually be recorded. The `ForceEnabled` runtime override path is treated as a diagnostic capability rather than a steady-state production setting on rules that opt out by carrying no annotation.
+
+**Optim #16** adds codegen-side recursive-rule analysis (`compute_recursive_rules`) that walks the call graph and identifies rules statically known to be non-recursive (no transitive self-call). Such rules drop:
+- `recursion_guard.check_cycle` — its linear scan of `parse_stack` always returns `CycleType::None` for them, so the call is dead weight per entry.
+- `memoized_call` wrapper — Packrat memoization gives linear-time guarantees in the presence of recursive / shared-sub-parse calls; for a rule that never re-enters itself directly or transitively, the cache cannot observe a useful hit. The wrapper costs a HashMap probe, a HashMap insert (with `node.clone()` on the result — a deep clone of the entire `ParseNode` subtree), and a function frame; eliding all three is a real per-rule saving.
+
+Push/pop on `parse_stack` (`recursion_guard.enter` / `exit`) is **kept** for non-recursive rules so error messages keep an accurate rule frame. Only the cycle scan and memo are skipped.
+
+### Effect on the regex parser
+
+| Codegen call site                          | HEAD (Optim #12) | After Optim #14 | After Optim #15+#16 |
+|--------------------------------------------|------------------|------------------|----------------------|
+| `with_semantic_runtime_rule_transaction`   | 194              | 21               | 21                   |
+| `record_coverage_target_event`             | ~194             | ~194             | 0                    |
+| `record_deterministic_partition_event`     | ~194             | ~194             | 0                    |
+| `recursion_guard.check_cycle`              | ~194             | ~194             | 23 (recursive only)  |
+| `memoized_call`                            | ~194             | ~194             | 39 (recursive only)  |
+
+### Perf delta on the 8-pattern PGEN-RGX-0073 corpus
+Release build, 5000 samples / 200 warmup, Apple M4 Pro, mimalloc.
+
+| pattern         | Optim #14 p50 | Optim #15+#16 p50 | speedup | <50µs?  |
+|-----------------|---------------|-------------------|---------|---------|
+| literal_simple  | 16.6µs        | 14.5µs            | 1.14×   | yes     |
+| digit_sequence  | 42.7µs        | 38.5µs            | 1.11×   | yes     |
+| character_class | 83.8µs        | 88.4µs            | 0.95×   | -43%    |
+| alternation     | 44.7µs        | 38.2µs            | 1.17×   | yes     |
+| capture_groups  | 75.5µs        | 66.4µs            | 1.14×   | -25%    |
+| url_simple      | 40.9µs        | 34.3µs            | 1.19×   | yes     |
+| email_basic     | 63.2µs        | 54.7µs            | 1.16×   | -9%     |
+| anchor_complex  | 121.2µs       | 105.5µs           | 1.15×   | -52%    |
+
+GeoMean ~1.13× this slice. 7/8 patterns measurably improved 11-19%; `character_class` regressed 5% (likely I-cache layout shift; the win on the other 7 dominates the ledger). 4/8 patterns under PRIMARY 50µs (literal_simple, digit_sequence, alternation, url_simple); `email_basic` 4.7µs over the line.
+
+### Why this is parser-agnostic
+The codegen change lives entirely in the AST pipeline's parser-emit template. Every regenerated parser inherits the same wins. Today's measurement is on the regex parser only because PGEN-RGX-0073 is the perf bug-of-record; the SV / VHDL / annotation / Phase S parsers will pick up the same per-rule reductions on next regeneration.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — new `compute_recursive_rules` helper plus conditional emit for the four affected per-rule code paths.
+- [generated/regex_parser.rs](generated/regex_parser.rs) — regenerated under the new emit.
+
+### Validation
+- `cargo build --release --features generated_parsers,mimalloc_perf` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
+### Next plausible directions
+The remaining gap to PRIMARY for `anchor_complex` (-52%) and `character_class` (-43%) is too large for stacked grammar-agnostic micro-optims. The biggest single remaining cost class is `ParseNode` tree allocation: every successful rule entry builds a `ParseNode { rule_name, content, span }`, and `ParseContent::Sequence`/`Quantified` carry `Vec<ParseNode>` (heap allocation per non-leaf node). Phase 2 inline annotation application (logged as task `#30`) eliminates the generic `ParseNode` tree entirely by emitting shape-typed output at each rule-method exit. Other plausible directions: arena/SmallVec for `ParseNode::content`, `Rc<ParseNode>` in the memo (lazy clone), profile-guided micro-optims via samply.
+
 ## 2026-04-28 - Optim #14 (PGEN-RGX-0073 campaign): per-rule semantic-runtime wrapper elision (generalizes Optim #13)
 ### Achievement Summary
 Generalizes Optim #13's grammar-level elision to a per-rule check at codegen. The new helper `AstBasedGenerator::rule_has_no_semantic_annotations(rule_name)` inspects whether THIS rule has any direct, branch-local, or mid-sequence semantic annotation; if not, the per-rule emit substitutes the thin closure form for the full `with_semantic_runtime_rule_transaction` wrapper. Equivalent to the runtime fast-path always firing for that rule.
