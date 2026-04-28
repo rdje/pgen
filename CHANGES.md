@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-04-28 - Optim #13 (PGEN-RGX-0073 campaign): codegen-time elision of the per-rule semantic-runtime wrapper for grammars without semantic annotations
+### Achievement Summary
+Lands the next slice of the PGEN-RGX-0073 perf campaign. The Optim #11 runtime fast-path in `with_semantic_runtime_rule_transaction` short-circuits whenever the grammar has no relevant semantic directives, but the wrapper itself plus its `is_empty`/`has_rule` HashMap probes is still called once per rule entry. Optim #13 elides the wrapper *at codegen time* for grammars whose `Annotations` carry zero `semantic_annotations`, `branch_semantic_annotations`, and `branch_mid_sequence_semantic_annotations`.
+
+New gate: [`AstBasedGenerator::grammar_has_no_semantic_annotations`](rust/src/ast_pipeline/ast_based_generator.rs). When true, the rule emit substitutes a thin closure form (`|parser| memoized_call(...)`) for the full transaction wrapper. The inner `memoized_call` body is identical in both arms — only the surrounding wrapper differs.
+
+Today's qualifying grammars: `json`, `rtl_const_expr`. Regenerated [generated/json_parser.rs](generated/json_parser.rs) and [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs); the `with_semantic_runtime_rule_transaction` occurrence count drops to a single site (the wrapper definition itself) in each.
+
+### Why this slice does NOT directly close PGEN-RGX-0073
+[grammars/regex.ebnf](grammars/regex.ebnf) declares `@semantic_value` annotations, which populate `branch_semantic_annotations`. The grammar-level gate therefore returns `false` and `generated/regex_parser.rs` is not regenerated. Per-rule (rather than grammar-level) wrapper elision — which would benefit regex, SV, and VHDL where most rules have no semantic annotations even when the grammar overall has some — is logged as a separate follow-up.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — new `grammar_has_no_semantic_annotations()` helper plus conditional `wrapped_rule_call` emit.
+- [generated/json_parser.rs](generated/json_parser.rs) — regenerated under the new emit.
+- [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) — regenerated under the new emit.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
+### Working-tree leftovers (intentionally not staged)
+The previous session's regen pass also touched `return_annotation_parser.rs`, `semantic_annotation_parser.rs`, and `systemverilog_parser.rs`. Those parsers do **not** qualify for Optim #13 elision; the byte differences vs HEAD are HashMap iteration-order changes (different `directives_by_rule.insert(...)` orderings, different key orderings inside serialized `wrapper_specs` strings) that surface from a separate codegen-determinism issue. They are functionally identical to HEAD and reflect work for a separate "codegen determinism" follow-up, not Optim #13.
+
 ## 2026-04-27 - Suffix-fold for chained access: design proposal (no code change, awaiting strategy choice)
 ### Achievement Summary
 Documents the next layer of the LR-elim ↔ inline-transform interaction (chained access semantics) and proposes three concrete fix strategies. The flatten fix from `a6a51d5` resolved position arithmetic; this layer is semantic — even with correct positions, the rule's annotation has no syntax to express "fold each suffix repetition match into a nested wrapper around the running result."

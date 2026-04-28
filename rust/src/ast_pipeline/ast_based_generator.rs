@@ -83,6 +83,30 @@ struct SemanticTokenSteeringPolicy {
 }
 
 impl AstBasedGenerator {
+    /// PGEN-RGX-0073 Optim #13: true when the grammar has zero semantic
+    /// annotations of any kind (rule-level, branch-local, or mid-sequence).
+    /// For such grammars (today: `json`, `rtl_const_expr`), the per-rule
+    /// semantic-runtime wrapper is dead weight — it always takes the
+    /// runtime fast-path landed in Optim #11 and immediately returns.
+    /// Skipping the wrapper at codegen time avoids the function call
+    /// plus `is_empty`/`has_rule` HashMap lookups for every rule call.
+    ///
+    /// Note: grammars that carry `@semantic_value` annotations (e.g.
+    /// `regex`) do NOT qualify here, because those populate
+    /// `branch_semantic_annotations`. Per-rule elision for grammars
+    /// with some-but-not-all rules annotated is a separate follow-up;
+    /// this slice is grammar-level only.
+    fn grammar_has_no_semantic_annotations(&self) -> bool {
+        let Some(annotations) = &self.annotations else {
+            return true;
+        };
+        annotations.semantic_annotations.is_empty()
+            && annotations.branch_semantic_annotations.is_empty()
+            && annotations
+                .branch_mid_sequence_semantic_annotations
+                .is_empty()
+    }
+
     pub fn new(grammar_name: String) -> Self {
         Self {
             grammar_name,
@@ -1398,6 +1422,74 @@ impl AstBasedGenerator {
             .group_label
             .unwrap_or_else(|| format!("rule.{}", rule_name));
         let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
+
+        // Optim #13: conditionally emit the semantic-runtime transaction
+        // wrapper. The inner `memoized_call` body is identical in both
+        // arms; only the surrounding wrapper differs.
+        let memoized_inner = quote! {
+            parser.memoized_call(Self::#rule_const, |parser| {
+                let semantic_capture_raw_for_post =
+                    parser.semantic_runtime_annotations
+                        .needs_raw_post_capture_for_rule(#rule_name);
+                let mut semantic_selected_branch_index: Option<usize> = None;
+                let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                // Main parsing logic - produces the 'result' variable
+                #parse_logic;
+
+                // Apply rule-level return annotation for non-Or roots
+                // (Or roots apply per-branch transforms inline)
+                #post_parse_transform_tokens
+
+                #relational_guards
+
+                let end_pos = parser.position;
+                parser.record_coverage_target_event(
+                    #rule_name,
+                    start_pos,
+                    end_pos,
+                    semantic_selected_branch_index,
+                    #coverage_target_weight,
+                    #coverage_critical_path,
+                );
+                let deterministic_partition_effective_enabled =
+                    parser.effective_deterministic_partition_enabled(#deterministic_partition_enabled);
+                let deterministic_partition_effective_group = parser.effective_deterministic_partition_group(
+                    #rule_name,
+                    #deterministic_partition_group,
+                );
+                parser.record_deterministic_partition_event(
+                    #rule_name,
+                    start_pos,
+                    end_pos,
+                    deterministic_partition_effective_enabled,
+                    &deterministic_partition_effective_group,
+                );
+
+                Ok((
+                    ParseNode {
+                        rule_name: #rule_name,
+                        content: result,
+                        span: start_pos..end_pos,
+                    },
+                    semantic_raw_content,
+                ))
+            })
+        };
+        let wrapped_rule_call: TokenStream = if self.grammar_has_no_semantic_annotations() {
+            quote! {
+                let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+                    let inner_result = #memoized_inner;
+                    inner_result.map(|(node, _raw)| node)
+                })(self);
+            }
+        } else {
+            quote! {
+                let result = self.with_semantic_runtime_rule_transaction(#rule_name, |parser| {
+                    #memoized_inner
+                });
+            }
+        };
+
         let rule_profiles = self.rule_profiles(rule_name);
         let profile_guard = if rule_profiles.is_empty() {
             quote! {}
@@ -1458,55 +1550,14 @@ impl AstBasedGenerator {
                 // Declare start_pos outside the closure so it can be used outside
                 let start_pos = self.position;
 
-                let result = self.with_semantic_runtime_rule_transaction(#rule_name, |parser| {
-                    parser.memoized_call(Self::#rule_const, |parser| {
-                        let semantic_capture_raw_for_post =
-                            parser.semantic_runtime_annotations
-                                .needs_raw_post_capture_for_rule(#rule_name);
-                        let mut semantic_selected_branch_index: Option<usize> = None;
-                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
-                        // Main parsing logic - produces the 'result' variable
-                        #parse_logic;
-
-                        // Apply rule-level return annotation for non-Or roots
-                        // (Or roots apply per-branch transforms inline)
-                        #post_parse_transform_tokens
-
-                        #relational_guards
-
-                        let end_pos = parser.position;
-                        parser.record_coverage_target_event(
-                            #rule_name,
-                            start_pos,
-                            end_pos,
-                            semantic_selected_branch_index,
-                            #coverage_target_weight,
-                            #coverage_critical_path,
-                        );
-                        let deterministic_partition_effective_enabled =
-                            parser.effective_deterministic_partition_enabled(#deterministic_partition_enabled);
-                        let deterministic_partition_effective_group = parser.effective_deterministic_partition_group(
-                            #rule_name,
-                            #deterministic_partition_group,
-                        );
-                        parser.record_deterministic_partition_event(
-                            #rule_name,
-                            start_pos,
-                            end_pos,
-                            deterministic_partition_effective_enabled,
-                            &deterministic_partition_effective_group,
-                        );
-
-                        Ok((
-                            ParseNode {
-                                rule_name: #rule_name,
-                                content: result,
-                                span: start_pos..end_pos,
-                            },
-                            semantic_raw_content,
-                        ))
-                    })
-                });
+                // PGEN-RGX-0073 Optim #13: when the grammar has no
+                // semantic annotations, skip the semantic-runtime
+                // wrapper at codegen time. The runtime fast-path landed
+                // in Optim #11 already short-circuits in this case, but
+                // the wrapper call + per-call HashMap probe (~2700 sites
+                // in the regex parser) still costs a few %; eliding at
+                // codegen drops it entirely.
+                #wrapped_rule_call
 
                 self.recursion_guard.exit();
 

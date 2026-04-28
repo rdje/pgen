@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-27 (+0200, task: walker-typed-json-reader-and-quantified-extraction-single-capture-fix)
+Last updated: 2026-04-28 (+0200, task: optim-13-codegen-elide-semantic-runtime-wrapper-for-grammars-without-semantic-annotations)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,15 +8,24 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Suffix-fold for chained access: documented as a design proposal in [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md). Three concrete fix strategies (runtime fold via codegen, skip LR-elim for annotated rules, annotation-aware LR-elim with synthetic `_pgen_lr_chain` metadata). Recommendation: Strategy 3 (annotation-aware LR-elim) for cleanest separation — codegen stays oblivious; LR-elim owns the rewrite of both rule body and annotation; walker recognizes one new `type` discriminator. Estimated ~150 lines across `mod.rs` and `unified_return_ast.rs` plus a focused regression test.
-- **No code change in this commit** — design alignment needed before picking a strategy. All three strategies block `return_annotation` regen; the chosen one unblocks all dependent grammars.
-- 478 tests pass. `ast_shape_contract_gate` 5 family tests pass. clippy strict pass.
+- Optim #13 (PGEN-RGX-0073 campaign): codegen-time elision of the per-rule `with_semantic_runtime_rule_transaction` wrapper for grammars whose `Annotations` carry zero `semantic_annotations` / `branch_semantic_annotations` / `branch_mid_sequence_semantic_annotations`. New gate: `AstBasedGenerator::grammar_has_no_semantic_annotations()` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs).
+- Today's qualifying grammars: `json`, `rtl_const_expr`. Regenerated [generated/json_parser.rs](generated/json_parser.rs) and [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs); the per-rule wrapper count drops from many to a single occurrence (the wrapper definition itself).
+- **Does NOT directly help PGEN-RGX-0073's regex perf**: `grammars/regex.ebnf` carries `@semantic_value` annotations, which populate `branch_semantic_annotations` — so the gate returns false and `regex_parser.rs` is not regenerated. Per-rule (not grammar-level) elision for partially annotated grammars is a separate follow-up that *would* help regex.
+- The codegen change inner `memoized_call` body is identical in both arms; only the surrounding wrapper differs. The function-call + `is_empty`/`has_rule` HashMap lookups (Optim #11 runtime fast-path) are now elided at codegen for qualifying grammars.
+- Validation: `cargo build --features generated_parsers` clean; `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored; `make clippy_on_rust_change` strict source lint pass.
+- Working-tree leftovers from regen pass on non-qualifying parsers (HashMap iteration order non-determinism in `directives_by_rule` and `wrapper_specs` strings) intentionally NOT staged: `return_annotation_parser.rs`, `semantic_annotation_parser.rs`, `systemverilog_parser.rs`. Those are functionally identical to HEAD (only insertion/key ordering differs) and reflect a separate codegen-determinism issue, not Optim #13.
 - **Open follow-ups** (priority order):
-  1. **Pick a suffix-fold strategy and implement** (currently the bottleneck for any left-recursive grammar regen).
-  2. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
-  3. `ebnf` regen.
-  4. `regex` regen — RGX coordination.
-  5. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+  1. **Per-rule wrapper elision** (would benefit regex / SV / VHDL where most rules have no semantic annotations even when the grammar overall has some). Lift `grammar_has_no_semantic_annotations` to a per-rule check at codegen.
+  2. **Codegen determinism for `Annotations`-derived emit**: replace HashMap iteration with sorted/BTreeMap iteration where the source order leaks into generated output (`directives_by_rule` insertions, JSON-serialized `wrapper_specs`).
+  3. Suffix-fold strategy 3a is implemented in `mod.rs` (commits `8c46b0f` walker M1, `3750122` pipeline M2). Continue downstream regens that were waiting on it.
+  4. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
+  5. `ebnf` regen.
+  6. `regex` regen — RGX coordination.
+  7. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+
+## Prior Session Note
+- Suffix-fold for chained access: documented as a design proposal in [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md). Three concrete fix strategies (runtime fold via codegen, skip LR-elim for annotated rules, annotation-aware LR-elim with synthetic `_pgen_lr_chain` metadata). Strategy 3a was picked and implemented in commits `8c46b0f` (walker M1) and `3750122` (pipeline M2).
+- 478 tests pass. `ast_shape_contract_gate` 5 family tests pass. clippy strict pass.
 
 ## Prior Session Note
 - LR-elim flatten fix landed: `apply_left_recursive_chain_plan` in [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) now flattens `wrapper_suffix`'s elements into the outer rewritten Sequence rather than nesting it. Preserves the original `$N` element positions across LR-elim rewrite.

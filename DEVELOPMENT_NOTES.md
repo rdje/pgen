@@ -1,4 +1,83 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-28 - Optim #13: grammar-level codegen elision of `with_semantic_runtime_rule_transaction`
+
+### Why this entry exists
+The PGEN-RGX-0073 perf campaign keeps stripping per-rule overhead in the generated parsers. Optim #11 added a runtime fast-path to `with_semantic_runtime_rule_transaction` that short-circuits whenever the grammar has no relevant semantic directives — but each rule entry still pays:
+1. one function call into the wrapper,
+2. a `semantic_runtime_annotations.is_empty()` HashMap probe,
+3. a `has_rule(rule_name)` HashMap probe.
+
+For grammars whose `Annotations` carry zero `semantic_annotations`, `branch_semantic_annotations`, and `branch_mid_sequence_semantic_annotations`, those probes always answer the same way; the wrapper is dead weight. Optim #13 elides it at codegen time.
+
+### Implementation shape
+
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+```rust
+fn grammar_has_no_semantic_annotations(&self) -> bool {
+    let Some(annotations) = &self.annotations else {
+        return true;
+    };
+    annotations.semantic_annotations.is_empty()
+        && annotations.branch_semantic_annotations.is_empty()
+        && annotations.branch_mid_sequence_semantic_annotations.is_empty()
+}
+```
+
+The generator extracts the `memoized_call` body into a shared `memoized_inner` token stream and wraps it in one of two arms based on the gate:
+
+```rust
+let wrapped_rule_call: TokenStream = if self.grammar_has_no_semantic_annotations() {
+    quote! {
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = #memoized_inner;
+            inner_result.map(|(node, _raw)| node)
+        })(self);
+    }
+} else {
+    quote! {
+        let result = self.with_semantic_runtime_rule_transaction(#rule_name, |parser| {
+            #memoized_inner
+        });
+    }
+};
+```
+
+The inner `memoized_call` body is byte-for-byte identical between the two arms; only the surrounding wrapper differs. For qualifying grammars, the generated rule method drops one function call and two HashMap probes per invocation.
+
+### Qualifying grammars today
+- `json` — wrapper count drops to 1 (the wrapper definition itself; no rule call sites).
+- `rtl_const_expr` — same.
+
+### Why regex does NOT qualify
+[grammars/regex.ebnf](grammars/regex.ebnf) declares `@semantic_value` annotations on multiple rules:
+```
+@semantic_value: $1 != null
+@semantic_value: flatten($1)
+@semantic_value: {type: "range", start: $1, end: $5}
+@semantic_value: {type: "literal", char: $1}
+@semantic_value: {type: "escape", pattern: $1}
+@semantic_value: {type: "posix", name: $3, negated: $2 != null}
+@semantic_value: {type: "atom", value: $1}
+@semantic_value: $1
+```
+These populate `branch_semantic_annotations`, so the gate returns `false` and the wrapper stays for the regex parser. Optim #13 therefore does not directly close PGEN-RGX-0073's primary perf target. It is general perf goodness from the same campaign that benefits non-annotated parsers.
+
+### Per-rule elision is the natural follow-up
+The win that *would* directly help regex / SV / VHDL is per-rule (not grammar-level) wrapper elision. Most rules in those grammars carry no semantic annotations even when the grammar as a whole carries some. Lifting `grammar_has_no_semantic_annotations` to a per-rule check at codegen — examining `annotations.semantic_annotations.get(rule_name)` and the corresponding branch-level / mid-sequence buckets — would let the elision reach those rules. Tracked as the next slice in the campaign.
+
+### Working-tree leftovers from the regen pass (intentionally not staged)
+The previous session's regen also touched `return_annotation_parser.rs`, `semantic_annotation_parser.rs`, and `systemverilog_parser.rs`. None of those grammars qualify for Optim #13 elision. The byte differences vs HEAD are entirely:
+- `wrapper_specs` JSON-key ordering inside string literals (HashMap iteration order at the JSON-build site);
+- `directives_by_rule.insert(...)` statement ordering (HashMap iteration order at the codegen site).
+
+Functionally identical to HEAD; semantically zero-impact. They reflect a separate codegen-determinism issue that surfaces every time a non-qualifying parser is regenerated. That issue is logged as its own follow-up. Per [COMMIT.md](COMMIT.md)'s "stage only the files intended for the task" rule, those three files are left dirty in the working tree rather than committed.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
 ## 2026-04-27 - Suffix-fold strategy log: 3 top-level strategies + 3 sub-options for Strategy 3, current pick = 3a
 
 ### Why this entry exists

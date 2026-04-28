@@ -824,94 +824,89 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("json", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "json",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_JSON,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("json");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let result = ParseContent::Alternative(
-                                    Box::new(parser.parse_value()?),
-                                );
-                                let result = {
-                                    {
-                                        let mut __pgen_obj = serde_json::Map::new();
-                                        __pgen_obj
-                                            .insert(
-                                                "type".to_string(),
-                                                serde_json::Value::String("json".to_string()),
-                                            );
-                                        __pgen_obj
-                                            .insert(
-                                                "value".to_string(),
-                                                {
-                                                    let __pgen_content = {
-                                                        match &result {
-                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                elements[0usize].content.clone()
-                                                            }
-                                                            ParseContent::Quantified(
-                                                                elements,
-                                                                _,
-                                                            ) if !elements.is_empty() => {
-                                                                elements[0usize].content.clone()
-                                                            }
-                                                            ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other.clone(),
-                                                        }
-                                                    };
-                                                    __pgen_content.to_json_value()
-                                                },
-                                            );
-                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                    }
-                                };
-                                let end_pos = parser.position;
-                                parser
-                                    .record_coverage_target_event(
-                                        "json",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_JSON,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("json");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let result = ParseContent::Alternative(
+                            Box::new(parser.parse_value()?),
+                        );
+                        let result = {
+                            {
+                                let mut __pgen_obj = serde_json::Map::new();
+                                __pgen_obj
+                                    .insert(
+                                        "type".to_string(),
+                                        serde_json::Value::String("json".to_string()),
                                     );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "json",
-                                        "rule.json",
+                                __pgen_obj
+                                    .insert(
+                                        "value".to_string(),
+                                        {
+                                            let __pgen_content = {
+                                                match &result {
+                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                        elements[0usize].content.clone()
+                                                    }
+                                                    ParseContent::Quantified(
+                                                        elements,
+                                                        _,
+                                                    ) if !elements.is_empty() => {
+                                                        elements[0usize].content.clone()
+                                                    }
+                                                    ParseContent::Alternative(node) => node.content.clone(),
+                                                    other => other.clone(),
+                                                }
+                                            };
+                                            __pgen_content.to_json_value()
+                                        },
                                     );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "json",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
-                                    );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "json",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                                ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                            }
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "json",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "json",
+                                "rule.json",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "json",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "json",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
@@ -1036,1585 +1031,1578 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("value", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "value",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_VALUE,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("value");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let parse_start = parser.position;
-                                let mut best_content: Option<ParseContent<'input>> = None;
-                                let mut best_raw_content: Option<ParseContent<'input>> = None;
-                                let mut best_end = parse_start;
-                                let mut best_priority: i64 = i64::MIN;
-                                let mut best_branch_index: usize = 0usize;
-                                let mut best_branch = 0usize;
-                                let mut nonassoc_tie = false;
-                                let mut result = ParseContent::Sequence(Vec::new());
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "value",
-                                        "rule.value",
-                                    );
-                                let deterministic_partition_offset = if deterministic_partition_effective_enabled {
-                                    parser
-                                        .deterministic_partition_offset_runtime(
-                                            &deterministic_partition_effective_group,
-                                            7usize,
-                                        )
-                                } else {
-                                    0usize
-                                };
-                                let mut evaluation_order: Vec<usize> = (0..7usize)
-                                    .collect();
-                                if deterministic_partition_effective_enabled && 7usize > 1
-                                    && deterministic_partition_offset > 0
-                                {
-                                    evaluation_order
-                                        .rotate_left(deterministic_partition_offset);
-                                }
-                                for branch_index in evaluation_order {
-                                    match branch_index {
-                                        0usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        1usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let result = ParseContent::Alternative(
-                                                            Box::new(parser.parse_object()?),
-                                                        );
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        1usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 0usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            match &content {
-                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                    elements[0usize].content.clone()
-                                                                }
-                                                                ParseContent::Quantified(
-                                                                    elements,
-                                                                    _,
-                                                                ) if !elements.is_empty() => {
-                                                                    elements[0usize].content.clone()
-                                                                }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other.clone(),
-                                                            }
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("value")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "value",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 1usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    1usize, 7usize, "value", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_VALUE,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("value");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let parse_start = parser.position;
+                        let mut best_content: Option<ParseContent<'input>> = None;
+                        let mut best_raw_content: Option<ParseContent<'input>> = None;
+                        let mut best_end = parse_start;
+                        let mut best_priority: i64 = i64::MIN;
+                        let mut best_branch_index: usize = 0usize;
+                        let mut best_branch = 0usize;
+                        let mut nonassoc_tie = false;
+                        let mut result = ParseContent::Sequence(Vec::new());
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "value",
+                                "rule.value",
+                            );
+                        let deterministic_partition_offset = if deterministic_partition_effective_enabled {
+                            parser
+                                .deterministic_partition_offset_runtime(
+                                    &deterministic_partition_effective_group,
+                                    7usize,
+                                )
+                        } else {
+                            0usize
+                        };
+                        let mut evaluation_order: Vec<usize> = (0..7usize).collect();
+                        if deterministic_partition_effective_enabled && 7usize > 1
+                            && deterministic_partition_offset > 0
+                        {
+                            evaluation_order.rotate_left(deterministic_partition_offset);
+                        }
+                        for branch_index in evaluation_order {
+                            match branch_index {
+                                0usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 1usize, 7usize, "value", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        1usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        2usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let result = ParseContent::Alternative(
-                                                            Box::new(parser.parse_array()?),
-                                                        );
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        2usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 1usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            match &content {
-                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                    elements[0usize].content.clone()
-                                                                }
-                                                                ParseContent::Quantified(
-                                                                    elements,
-                                                                    _,
-                                                                ) if !elements.is_empty() => {
-                                                                    elements[0usize].content.clone()
-                                                                }
-                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                other => other.clone(),
-                                                            }
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("value")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "value",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 2usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    2usize, 7usize, "value", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                let result = ParseContent::Alternative(
+                                                    Box::new(parser.parse_object()?),
+                                                );
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                1usize, 7usize, "value", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 0usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    match &content {
+                                                        ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                            elements[0usize].content.clone()
+                                                        }
+                                                        ParseContent::Quantified(
+                                                            elements,
+                                                            _,
+                                                        ) if !elements.is_empty() => {
+                                                            elements[0usize].content.clone()
+                                                        }
+                                                        ParseContent::Alternative(node) => node.content.clone(),
+                                                        other => other.clone(),
+                                                    }
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("value")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "value",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 1usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            1usize, 7usize, "value", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        1usize, 7usize, "value", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                1usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 2usize, 7usize, "value", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        2usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        3usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let result = ParseContent::Alternative(
-                                                            Box::new(parser.parse_string()?),
-                                                        );
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        3usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 2usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("string".to_string()),
-                                                                );
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "value".to_string(),
-                                                                    {
-                                                                        let __pgen_content = {
-                                                                            match &content {
-                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                                    elements[0usize].content.clone()
-                                                                                }
-                                                                                ParseContent::Quantified(
-                                                                                    elements,
-                                                                                    _,
-                                                                                ) if !elements.is_empty() => {
-                                                                                    elements[0usize].content.clone()
-                                                                                }
-                                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other.clone(),
-                                                                            }
-                                                                        };
-                                                                        __pgen_content.to_json_value()
-                                                                    },
-                                                                );
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("value")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "value",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 3usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    3usize, 7usize, "value", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                let result = ParseContent::Alternative(
+                                                    Box::new(parser.parse_array()?),
+                                                );
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                2usize, 7usize, "value", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 1usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    match &content {
+                                                        ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                            elements[0usize].content.clone()
+                                                        }
+                                                        ParseContent::Quantified(
+                                                            elements,
+                                                            _,
+                                                        ) if !elements.is_empty() => {
+                                                            elements[0usize].content.clone()
+                                                        }
+                                                        ParseContent::Alternative(node) => node.content.clone(),
+                                                        other => other.clone(),
+                                                    }
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("value")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "value",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 2usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            2usize, 7usize, "value", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        2usize, 7usize, "value", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                2usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 3usize, 7usize, "value", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        3usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        4usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let result = ParseContent::Alternative(
-                                                            Box::new(parser.parse_number()?),
-                                                        );
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        4usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 3usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("number".to_string()),
-                                                                );
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "value".to_string(),
-                                                                    {
-                                                                        let __pgen_content = {
-                                                                            match &content {
-                                                                                ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                                    elements[0usize].content.clone()
-                                                                                }
-                                                                                ParseContent::Quantified(
-                                                                                    elements,
-                                                                                    _,
-                                                                                ) if !elements.is_empty() => {
-                                                                                    elements[0usize].content.clone()
-                                                                                }
-                                                                                ParseContent::Alternative(node) => node.content.clone(),
-                                                                                other => other.clone(),
-                                                                            }
-                                                                        };
-                                                                        __pgen_content.to_json_value()
-                                                                    },
-                                                                );
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("value")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "value",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 4usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    4usize, 7usize, "value", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                let result = ParseContent::Alternative(
+                                                    Box::new(parser.parse_string()?),
+                                                );
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                3usize, 7usize, "value", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 2usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("string".to_string()),
+                                                        );
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "value".to_string(),
+                                                            {
+                                                                let __pgen_content = {
+                                                                    match &content {
+                                                                        ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                            elements[0usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Quantified(
+                                                                            elements,
+                                                                            _,
+                                                                        ) if !elements.is_empty() => {
+                                                                            elements[0usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Alternative(node) => node.content.clone(),
+                                                                        other => other.clone(),
+                                                                    }
+                                                                };
+                                                                __pgen_content.to_json_value()
+                                                            },
+                                                        );
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("value")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "value",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 3usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            3usize, 7usize, "value", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        3usize, 7usize, "value", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                3usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 4usize, 7usize, "value", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        4usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        5usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let matched_str = parser.match_regex("\\s*true\\s*", true)?;
-                                                        let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        5usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 4usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("boolean".to_string()),
-                                                                );
-                                                            __pgen_obj
-                                                                .insert("value".to_string(), serde_json::Value::Bool(true));
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("value")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "value",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 5usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    5usize, 7usize, "value", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                let result = ParseContent::Alternative(
+                                                    Box::new(parser.parse_number()?),
+                                                );
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                4usize, 7usize, "value", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 3usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("number".to_string()),
+                                                        );
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "value".to_string(),
+                                                            {
+                                                                let __pgen_content = {
+                                                                    match &content {
+                                                                        ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                            elements[0usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Quantified(
+                                                                            elements,
+                                                                            _,
+                                                                        ) if !elements.is_empty() => {
+                                                                            elements[0usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Alternative(node) => node.content.clone(),
+                                                                        other => other.clone(),
+                                                                    }
+                                                                };
+                                                                __pgen_content.to_json_value()
+                                                            },
+                                                        );
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("value")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "value",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 4usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            4usize, 7usize, "value", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        4usize, 7usize, "value", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                4usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 5usize, 7usize, "value", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        5usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        6usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let matched_str = parser
-                                                            .match_regex("\\s*false\\s*", true)?;
-                                                        let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        6usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 5usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("boolean".to_string()),
-                                                                );
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "value".to_string(),
-                                                                    serde_json::Value::Bool(false),
-                                                                );
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("value")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "value",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 6usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    6usize, 7usize, "value", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                let matched_str = parser.match_regex("\\s*true\\s*", true)?;
+                                                let result = ParseContent::Terminal(matched_str);
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                5usize, 7usize, "value", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 4usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("boolean".to_string()),
+                                                        );
+                                                    __pgen_obj
+                                                        .insert("value".to_string(), serde_json::Value::Bool(true));
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("value")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "value",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 5usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            5usize, 7usize, "value", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        5usize, 7usize, "value", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                5usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 6usize, 7usize, "value", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        6usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        7usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let matched_str = parser.match_regex("\\s*null\\s*", true)?;
-                                                        let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        7usize, 7usize, "value", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 6usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("null".to_string()),
-                                                                );
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("value")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "value",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 7usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    7usize, 7usize, "value", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                let matched_str = parser
+                                                    .match_regex("\\s*false\\s*", true)?;
+                                                let result = ParseContent::Terminal(matched_str);
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                6usize, 7usize, "value", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 5usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("boolean".to_string()),
+                                                        );
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "value".to_string(),
+                                                            serde_json::Value::Bool(false),
+                                                        );
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("value")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "value",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 6usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            6usize, 7usize, "value", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        6usize, 7usize, "value", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                6usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 7usize, 7usize, "value", parser.position
                                                             ),
                                                         );
                                                 }
+                                                let matched_str = parser.match_regex("\\s*null\\s*", true)?;
+                                                let result = ParseContent::Terminal(matched_str);
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                7usize, 7usize, "value", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 6usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("null".to_string()),
+                                                        );
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("value")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "value",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
                                             }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 7usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            7usize, 7usize, "value", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        7usize, 7usize, "value", parser.position
+                                                    ),
+                                                );
                                         }
-                                        _ => {}
                                     }
                                 }
-                                if nonassoc_tie {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                } else if let Some(content) = best_content {
-                                    parser.position = best_end;
-                                    semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger_enabled {
-                                        parser
-                                            .logger
-                                            .log_info(
-                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                0,
-                                                &format!(
-                                                    "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                    "value", best_branch, 7usize, best_end
-                                                    .saturating_sub(parse_start), best_priority, "left",
-                                                    "longest_match"
-                                                ),
-                                            );
-                                    }
-                                    result = content;
-                                    semantic_raw_content = best_raw_content;
-                                } else {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                };
-                                let end_pos = parser.position;
+                                _ => {}
+                            }
+                        }
+                        if nonassoc_tie {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        } else if let Some(content) = best_content {
+                            parser.position = best_end;
+                            semantic_selected_branch_index = Some(best_branch);
+                            if parser.logger_enabled {
                                 parser
-                                    .record_coverage_target_event(
-                                        "value",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
+                                    .logger
+                                    .log_info(
+                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                        0,
+                                        &format!(
+                                            "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
+                                            "value", best_branch, 7usize, best_end
+                                            .saturating_sub(parse_start), best_priority, "left",
+                                            "longest_match"
+                                        ),
                                     );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "value",
-                                        "rule.value",
-                                    );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "value",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
-                                    );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "value",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                            }
+                            result = content;
+                            semantic_raw_content = best_raw_content;
+                        } else {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "value",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "value",
+                                "rule.value",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "value",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "value",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
@@ -2740,603 +2728,596 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("object", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "object",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_OBJECT,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("object");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let parse_start = parser.position;
-                                let mut best_content: Option<ParseContent<'input>> = None;
-                                let mut best_raw_content: Option<ParseContent<'input>> = None;
-                                let mut best_end = parse_start;
-                                let mut best_priority: i64 = i64::MIN;
-                                let mut best_branch_index: usize = 0usize;
-                                let mut best_branch = 0usize;
-                                let mut nonassoc_tie = false;
-                                let mut result = ParseContent::Sequence(Vec::new());
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "object",
-                                        "rule.object",
-                                    );
-                                let deterministic_partition_offset = if deterministic_partition_effective_enabled {
-                                    parser
-                                        .deterministic_partition_offset_runtime(
-                                            &deterministic_partition_effective_group,
-                                            2usize,
-                                        )
-                                } else {
-                                    0usize
-                                };
-                                let mut evaluation_order: Vec<usize> = (0..2usize)
-                                    .collect();
-                                if deterministic_partition_effective_enabled && 2usize > 1
-                                    && deterministic_partition_offset > 0
-                                {
-                                    evaluation_order
-                                        .rotate_left(deterministic_partition_offset);
-                                }
-                                for branch_index in evaluation_order {
-                                    match branch_index {
-                                        0usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        1usize, 2usize, "object", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let matched_str = parser
-                                                            .match_regex("\\s*\\{\\s*\\}\\s*", true)?;
-                                                        let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        1usize, 2usize, "object", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 0usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "members".to_string(),
-                                                                    {
-                                                                        let __pgen_content = {
-                                                                            let mut array_elements = Vec::new();
-                                                                            ParseContent::Sequence(array_elements)
-                                                                        };
-                                                                        __pgen_content.to_json_value()
-                                                                    },
-                                                                );
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("object".to_string()),
-                                                                );
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("object")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "object",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 1usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    1usize, 2usize, "object", blocked_branch_predicate
-                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_OBJECT,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("object");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let parse_start = parser.position;
+                        let mut best_content: Option<ParseContent<'input>> = None;
+                        let mut best_raw_content: Option<ParseContent<'input>> = None;
+                        let mut best_end = parse_start;
+                        let mut best_priority: i64 = i64::MIN;
+                        let mut best_branch_index: usize = 0usize;
+                        let mut best_branch = 0usize;
+                        let mut nonassoc_tie = false;
+                        let mut result = ParseContent::Sequence(Vec::new());
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "object",
+                                "rule.object",
+                            );
+                        let deterministic_partition_offset = if deterministic_partition_effective_enabled {
+                            parser
+                                .deterministic_partition_offset_runtime(
+                                    &deterministic_partition_effective_group,
+                                    2usize,
+                                )
+                        } else {
+                            0usize
+                        };
+                        let mut evaluation_order: Vec<usize> = (0..2usize).collect();
+                        if deterministic_partition_effective_enabled && 2usize > 1
+                            && deterministic_partition_offset > 0
+                        {
+                            evaluation_order.rotate_left(deterministic_partition_offset);
+                        }
+                        for branch_index in evaluation_order {
+                            match branch_index {
+                                0usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 1usize, 2usize, "object", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        1usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        2usize, 2usize, "object", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let mut sequence_elements = Vec::with_capacity(3usize);
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let matched_str = parser.match_regex("\\s*\\{\\s*", true)?;
-                                                                let result = ParseContent::Terminal(matched_str);
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_0",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let result = ParseContent::Alternative(
-                                                                    Box::new(parser.parse_members()?),
-                                                                );
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_1",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let matched_str = parser.match_regex("\\s*\\}\\s*", true)?;
-                                                                let result = ParseContent::Terminal(matched_str);
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_2",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        2usize, 2usize, "object", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 1usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "members".to_string(),
-                                                                    {
-                                                                        let __pgen_content = {
-                                                                            match &content {
-                                                                                ParseContent::Sequence(
-                                                                                    elements,
-                                                                                ) if elements.len() > 1usize => {
-                                                                                    elements[1usize].content.clone()
-                                                                                }
-                                                                                ParseContent::Quantified(
-                                                                                    elements,
-                                                                                    _,
-                                                                                ) if elements.len() > 1usize => {
-                                                                                    elements[1usize].content.clone()
-                                                                                }
-                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
-                                                                            }
-                                                                        };
-                                                                        __pgen_content.to_json_value()
-                                                                    },
-                                                                );
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("object".to_string()),
-                                                                );
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("object")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "object",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 2usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    2usize, 2usize, "object", blocked_branch_predicate
-                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                let matched_str = parser
+                                                    .match_regex("\\s*\\{\\s*\\}\\s*", true)?;
+                                                let result = ParseContent::Terminal(matched_str);
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                1usize, 2usize, "object", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 0usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "members".to_string(),
+                                                            {
+                                                                let __pgen_content = {
+                                                                    let mut array_elements = Vec::new();
+                                                                    ParseContent::Sequence(array_elements)
+                                                                };
+                                                                __pgen_content.to_json_value()
+                                                            },
+                                                        );
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("object".to_string()),
+                                                        );
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("object")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "object",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 1usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            1usize, 2usize, "object", blocked_branch_predicate
+                                                            .as_deref().unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        1usize, 2usize, "object", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                1usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 2usize, 2usize, "object", parser.position
                                                             ),
                                                         );
                                                 }
+                                                let mut sequence_elements = Vec::with_capacity(3usize);
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let matched_str = parser.match_regex("\\s*\\{\\s*", true)?;
+                                                        let result = ParseContent::Terminal(matched_str);
+                                                        result
+                                                    };
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_0",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let result = ParseContent::Alternative(
+                                                            Box::new(parser.parse_members()?),
+                                                        );
+                                                        result
+                                                    };
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_1",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let matched_str = parser.match_regex("\\s*\\}\\s*", true)?;
+                                                        let result = ParseContent::Terminal(matched_str);
+                                                        result
+                                                    };
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_2",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                let result = ParseContent::Sequence(sequence_elements);
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                2usize, 2usize, "object", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 1usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "members".to_string(),
+                                                            {
+                                                                let __pgen_content = {
+                                                                    match &content {
+                                                                        ParseContent::Sequence(
+                                                                            elements,
+                                                                        ) if elements.len() > 1usize => {
+                                                                            elements[1usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Quantified(
+                                                                            elements,
+                                                                            _,
+                                                                        ) if elements.len() > 1usize => {
+                                                                            elements[1usize].content.clone()
+                                                                        }
+                                                                        _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                    }
+                                                                };
+                                                                __pgen_content.to_json_value()
+                                                            },
+                                                        );
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("object".to_string()),
+                                                        );
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("object")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "object",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
                                             }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 2usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            2usize, 2usize, "object", blocked_branch_predicate
+                                                            .as_deref().unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        2usize, 2usize, "object", parser.position
+                                                    ),
+                                                );
                                         }
-                                        _ => {}
                                     }
                                 }
-                                if nonassoc_tie {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                } else if let Some(content) = best_content {
-                                    parser.position = best_end;
-                                    semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger_enabled {
-                                        parser
-                                            .logger
-                                            .log_info(
-                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                0,
-                                                &format!(
-                                                    "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                    "object", best_branch, 2usize, best_end
-                                                    .saturating_sub(parse_start), best_priority, "left",
-                                                    "longest_match"
-                                                ),
-                                            );
-                                    }
-                                    result = content;
-                                    semantic_raw_content = best_raw_content;
-                                } else {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                };
-                                let end_pos = parser.position;
+                                _ => {}
+                            }
+                        }
+                        if nonassoc_tie {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        } else if let Some(content) = best_content {
+                            parser.position = best_end;
+                            semantic_selected_branch_index = Some(best_branch);
+                            if parser.logger_enabled {
                                 parser
-                                    .record_coverage_target_event(
-                                        "object",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
+                                    .logger
+                                    .log_info(
+                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                        0,
+                                        &format!(
+                                            "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
+                                            "object", best_branch, 2usize, best_end
+                                            .saturating_sub(parse_start), best_priority, "left",
+                                            "longest_match"
+                                        ),
                                     );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "object",
-                                        "rule.object",
-                                    );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "object",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
-                                    );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "object",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                            }
+                            result = content;
+                            semantic_raw_content = best_raw_content;
+                        } else {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "object",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "object",
+                                "rule.object",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "object",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "object",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
@@ -3462,635 +3443,628 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("members", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "members",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_MEMBERS,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("members");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let parse_start = parser.position;
-                                let mut best_content: Option<ParseContent<'input>> = None;
-                                let mut best_raw_content: Option<ParseContent<'input>> = None;
-                                let mut best_end = parse_start;
-                                let mut best_priority: i64 = i64::MIN;
-                                let mut best_branch_index: usize = 0usize;
-                                let mut best_branch = 0usize;
-                                let mut nonassoc_tie = false;
-                                let mut result = ParseContent::Sequence(Vec::new());
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "members",
-                                        "rule.members",
-                                    );
-                                let deterministic_partition_offset = if deterministic_partition_effective_enabled {
-                                    parser
-                                        .deterministic_partition_offset_runtime(
-                                            &deterministic_partition_effective_group,
-                                            2usize,
-                                        )
-                                } else {
-                                    0usize
-                                };
-                                let mut evaluation_order: Vec<usize> = (0..2usize)
-                                    .collect();
-                                if deterministic_partition_effective_enabled && 2usize > 1
-                                    && deterministic_partition_offset > 0
-                                {
-                                    evaluation_order
-                                        .rotate_left(deterministic_partition_offset);
-                                }
-                                for branch_index in evaluation_order {
-                                    match branch_index {
-                                        0usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        1usize, 2usize, "members", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let mut sequence_elements = Vec::with_capacity(3usize);
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let result = ParseContent::Alternative(
-                                                                    Box::new(parser.parse_pair()?),
-                                                                );
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_0",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let matched_str = parser.match_regex("\\s*,\\s*", true)?;
-                                                                let result = ParseContent::Terminal(matched_str);
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_1",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let result = ParseContent::Alternative(
-                                                                    Box::new(parser.parse_members()?),
-                                                                );
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_2",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        1usize, 2usize, "members", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 0usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut array_elements = Vec::new();
-                                                            array_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_0",
-                                                                    content: {
-                                                                        match &content {
-                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                                elements[0usize].content.clone()
-                                                                            }
-                                                                            ParseContent::Quantified(
-                                                                                elements,
-                                                                                _,
-                                                                            ) if !elements.is_empty() => {
-                                                                                elements[0usize].content.clone()
-                                                                            }
-                                                                            ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other.clone(),
-                                                                        }
-                                                                    },
-                                                                    span: 0..0,
-                                                                });
-                                                            match {
-                                                                match &content {
-                                                                    ParseContent::Sequence(
-                                                                        elements,
-                                                                    ) if elements.len() > 2usize => {
-                                                                        elements[2usize].content.clone()
-                                                                    }
-                                                                    ParseContent::Quantified(
-                                                                        elements,
-                                                                        _,
-                                                                    ) if elements.len() > 2usize => {
-                                                                        elements[2usize].content.clone()
-                                                                    }
-                                                                    _ => ParseContent::Terminal("<invalid_sequence_access>"),
-                                                                }
-                                                            } {
-                                                                ParseContent::Sequence(nodes) => {
-                                                                    for node in nodes {
-                                                                        array_elements.push(node);
-                                                                    }
-                                                                }
-                                                                ParseContent::Quantified(nodes, _) => {
-                                                                    for node in nodes {
-                                                                        array_elements.push(node);
-                                                                    }
-                                                                }
-                                                                other => {
-                                                                    array_elements
-                                                                        .push(ParseNode {
-                                                                            rule_name: "spread_element",
-                                                                            content: other,
-                                                                            span: 0..0,
-                                                                        });
-                                                                }
-                                                            }
-                                                            ParseContent::Sequence(array_elements)
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("members")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "members",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 1usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    1usize, 2usize, "members", blocked_branch_predicate
-                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_MEMBERS,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("members");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let parse_start = parser.position;
+                        let mut best_content: Option<ParseContent<'input>> = None;
+                        let mut best_raw_content: Option<ParseContent<'input>> = None;
+                        let mut best_end = parse_start;
+                        let mut best_priority: i64 = i64::MIN;
+                        let mut best_branch_index: usize = 0usize;
+                        let mut best_branch = 0usize;
+                        let mut nonassoc_tie = false;
+                        let mut result = ParseContent::Sequence(Vec::new());
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "members",
+                                "rule.members",
+                            );
+                        let deterministic_partition_offset = if deterministic_partition_effective_enabled {
+                            parser
+                                .deterministic_partition_offset_runtime(
+                                    &deterministic_partition_effective_group,
+                                    2usize,
+                                )
+                        } else {
+                            0usize
+                        };
+                        let mut evaluation_order: Vec<usize> = (0..2usize).collect();
+                        if deterministic_partition_effective_enabled && 2usize > 1
+                            && deterministic_partition_offset > 0
+                        {
+                            evaluation_order.rotate_left(deterministic_partition_offset);
+                        }
+                        for branch_index in evaluation_order {
+                            match branch_index {
+                                0usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 1usize, 2usize, "members", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        1usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        2usize, 2usize, "members", parser.position
-                                                                    ),
-                                                                );
-                                                        }
+                                                let mut sequence_elements = Vec::with_capacity(3usize);
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_pair()?),
                                                         );
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        2usize, 2usize, "members", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
+                                                        result
+                                                    };
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_0",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
                                                 {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 1usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut array_elements = Vec::new();
-                                                            array_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_0",
-                                                                    content: {
-                                                                        match &content {
-                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                                elements[0usize].content.clone()
-                                                                            }
-                                                                            ParseContent::Quantified(
-                                                                                elements,
-                                                                                _,
-                                                                            ) if !elements.is_empty() => {
-                                                                                elements[0usize].content.clone()
-                                                                            }
-                                                                            ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other.clone(),
-                                                                        }
-                                                                    },
-                                                                    span: 0..0,
-                                                                });
-                                                            ParseContent::Sequence(array_elements)
-                                                        }
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let matched_str = parser.match_regex("\\s*,\\s*", true)?;
+                                                        let result = ParseContent::Terminal(matched_str);
+                                                        result
                                                     };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("members")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "members",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_1",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let result = ParseContent::Alternative(
+                                                            Box::new(parser.parse_members()?),
+                                                        );
+                                                        result
                                                     };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 2usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    2usize, 2usize, "members", blocked_branch_predicate
-                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_2",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                let result = ParseContent::Sequence(sequence_elements);
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                1usize, 2usize, "members", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 0usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut array_elements = Vec::new();
+                                                    array_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_0",
+                                                            content: {
+                                                                match &content {
+                                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                        elements[0usize].content.clone()
+                                                                    }
+                                                                    ParseContent::Quantified(
+                                                                        elements,
+                                                                        _,
+                                                                    ) if !elements.is_empty() => {
+                                                                        elements[0usize].content.clone()
+                                                                    }
+                                                                    ParseContent::Alternative(node) => node.content.clone(),
+                                                                    other => other.clone(),
+                                                                }
+                                                            },
+                                                            span: 0..0,
+                                                        });
+                                                    match {
+                                                        match &content {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 2usize => {
+                                                                elements[2usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 2usize => {
+                                                                elements[2usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    } {
+                                                        ParseContent::Sequence(nodes) => {
+                                                            for node in nodes {
+                                                                array_elements.push(node);
+                                                            }
+                                                        }
+                                                        ParseContent::Quantified(nodes, _) => {
+                                                            for node in nodes {
+                                                                array_elements.push(node);
+                                                            }
+                                                        }
+                                                        other => {
+                                                            array_elements
+                                                                .push(ParseNode {
+                                                                    rule_name: "spread_element",
+                                                                    content: other,
+                                                                    span: 0..0,
+                                                                });
+                                                        }
+                                                    }
+                                                    ParseContent::Sequence(array_elements)
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("members")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "members",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 1usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            1usize, 2usize, "members", blocked_branch_predicate
+                                                            .as_deref().unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        1usize, 2usize, "members", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                1usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 2usize, 2usize, "members", parser.position
                                                             ),
                                                         );
                                                 }
+                                                let result = ParseContent::Alternative(
+                                                    Box::new(parser.parse_pair()?),
+                                                );
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                2usize, 2usize, "members", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 1usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut array_elements = Vec::new();
+                                                    array_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_0",
+                                                            content: {
+                                                                match &content {
+                                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                        elements[0usize].content.clone()
+                                                                    }
+                                                                    ParseContent::Quantified(
+                                                                        elements,
+                                                                        _,
+                                                                    ) if !elements.is_empty() => {
+                                                                        elements[0usize].content.clone()
+                                                                    }
+                                                                    ParseContent::Alternative(node) => node.content.clone(),
+                                                                    other => other.clone(),
+                                                                }
+                                                            },
+                                                            span: 0..0,
+                                                        });
+                                                    ParseContent::Sequence(array_elements)
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("members")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "members",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
                                             }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 2usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            2usize, 2usize, "members", blocked_branch_predicate
+                                                            .as_deref().unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        2usize, 2usize, "members", parser.position
+                                                    ),
+                                                );
                                         }
-                                        _ => {}
                                     }
                                 }
-                                if nonassoc_tie {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                } else if let Some(content) = best_content {
-                                    parser.position = best_end;
-                                    semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger_enabled {
-                                        parser
-                                            .logger
-                                            .log_info(
-                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                0,
-                                                &format!(
-                                                    "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                    "members", best_branch, 2usize, best_end
-                                                    .saturating_sub(parse_start), best_priority, "left",
-                                                    "longest_match"
-                                                ),
-                                            );
-                                    }
-                                    result = content;
-                                    semantic_raw_content = best_raw_content;
-                                } else {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                };
-                                let end_pos = parser.position;
+                                _ => {}
+                            }
+                        }
+                        if nonassoc_tie {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        } else if let Some(content) = best_content {
+                            parser.position = best_end;
+                            semantic_selected_branch_index = Some(best_branch);
+                            if parser.logger_enabled {
                                 parser
-                                    .record_coverage_target_event(
-                                        "members",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
+                                    .logger
+                                    .log_info(
+                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                        0,
+                                        &format!(
+                                            "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
+                                            "members", best_branch, 2usize, best_end
+                                            .saturating_sub(parse_start), best_priority, "left",
+                                            "longest_match"
+                                        ),
                                     );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "members",
-                                        "rule.members",
-                                    );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "members",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
-                                    );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "members",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                            }
+                            result = content;
+                            semantic_raw_content = best_raw_content;
+                        } else {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "members",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "members",
+                                "rule.members",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "members",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "members",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
@@ -4216,163 +4190,158 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("pair", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "pair",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_PAIR,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("pair");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let mut sequence_elements = Vec::with_capacity(3usize);
-                                {
-                                    let element_start = parser.position;
-                                    let element_content = {
-                                        let result = ParseContent::Alternative(
-                                            Box::new(parser.parse_string()?),
-                                        );
-                                        result
-                                    };
-                                    let element_end = parser.position;
-                                    sequence_elements
-                                        .push(ParseNode {
-                                            rule_name: "element_0",
-                                            content: element_content,
-                                            span: element_start..element_end,
-                                        });
-                                }
-                                {
-                                    let element_start = parser.position;
-                                    let element_content = {
-                                        let matched_str = parser.match_regex("\\s*:\\s*", true)?;
-                                        let result = ParseContent::Terminal(matched_str);
-                                        result
-                                    };
-                                    let element_end = parser.position;
-                                    sequence_elements
-                                        .push(ParseNode {
-                                            rule_name: "element_1",
-                                            content: element_content,
-                                            span: element_start..element_end,
-                                        });
-                                }
-                                {
-                                    let element_start = parser.position;
-                                    let element_content = {
-                                        let result = ParseContent::Alternative(
-                                            Box::new(parser.parse_value()?),
-                                        );
-                                        result
-                                    };
-                                    let element_end = parser.position;
-                                    sequence_elements
-                                        .push(ParseNode {
-                                            rule_name: "element_2",
-                                            content: element_content,
-                                            span: element_start..element_end,
-                                        });
-                                }
-                                let result = ParseContent::Sequence(sequence_elements);
-                                let result = {
-                                    {
-                                        let mut __pgen_obj = serde_json::Map::new();
-                                        __pgen_obj
-                                            .insert(
-                                                "key".to_string(),
-                                                {
-                                                    let __pgen_content = {
-                                                        match &result {
-                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                elements[0usize].content.clone()
-                                                            }
-                                                            ParseContent::Quantified(
-                                                                elements,
-                                                                _,
-                                                            ) if !elements.is_empty() => {
-                                                                elements[0usize].content.clone()
-                                                            }
-                                                            ParseContent::Alternative(node) => node.content.clone(),
-                                                            other => other.clone(),
-                                                        }
-                                                    };
-                                                    __pgen_content.to_json_value()
-                                                },
-                                            );
-                                        __pgen_obj
-                                            .insert(
-                                                "type".to_string(),
-                                                serde_json::Value::String("pair".to_string()),
-                                            );
-                                        __pgen_obj
-                                            .insert(
-                                                "value".to_string(),
-                                                {
-                                                    let __pgen_content = {
-                                                        match &result {
-                                                            ParseContent::Sequence(
-                                                                elements,
-                                                            ) if elements.len() > 2usize => {
-                                                                elements[2usize].content.clone()
-                                                            }
-                                                            ParseContent::Quantified(
-                                                                elements,
-                                                                _,
-                                                            ) if elements.len() > 2usize => {
-                                                                elements[2usize].content.clone()
-                                                            }
-                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
-                                                        }
-                                                    };
-                                                    __pgen_content.to_json_value()
-                                                },
-                                            );
-                                        ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                    }
-                                };
-                                let end_pos = parser.position;
-                                parser
-                                    .record_coverage_target_event(
-                                        "pair",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_PAIR,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("pair");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let mut sequence_elements = Vec::with_capacity(3usize);
+                        {
+                            let element_start = parser.position;
+                            let element_content = {
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_string()?),
+                                );
+                                result
+                            };
+                            let element_end = parser.position;
+                            sequence_elements
+                                .push(ParseNode {
+                                    rule_name: "element_0",
+                                    content: element_content,
+                                    span: element_start..element_end,
+                                });
+                        }
+                        {
+                            let element_start = parser.position;
+                            let element_content = {
+                                let matched_str = parser.match_regex("\\s*:\\s*", true)?;
+                                let result = ParseContent::Terminal(matched_str);
+                                result
+                            };
+                            let element_end = parser.position;
+                            sequence_elements
+                                .push(ParseNode {
+                                    rule_name: "element_1",
+                                    content: element_content,
+                                    span: element_start..element_end,
+                                });
+                        }
+                        {
+                            let element_start = parser.position;
+                            let element_content = {
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_value()?),
+                                );
+                                result
+                            };
+                            let element_end = parser.position;
+                            sequence_elements
+                                .push(ParseNode {
+                                    rule_name: "element_2",
+                                    content: element_content,
+                                    span: element_start..element_end,
+                                });
+                        }
+                        let result = ParseContent::Sequence(sequence_elements);
+                        let result = {
+                            {
+                                let mut __pgen_obj = serde_json::Map::new();
+                                __pgen_obj
+                                    .insert(
+                                        "key".to_string(),
+                                        {
+                                            let __pgen_content = {
+                                                match &result {
+                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                        elements[0usize].content.clone()
+                                                    }
+                                                    ParseContent::Quantified(
+                                                        elements,
+                                                        _,
+                                                    ) if !elements.is_empty() => {
+                                                        elements[0usize].content.clone()
+                                                    }
+                                                    ParseContent::Alternative(node) => node.content.clone(),
+                                                    other => other.clone(),
+                                                }
+                                            };
+                                            __pgen_content.to_json_value()
+                                        },
                                     );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "pair",
-                                        "rule.pair",
+                                __pgen_obj
+                                    .insert(
+                                        "type".to_string(),
+                                        serde_json::Value::String("pair".to_string()),
                                     );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "pair",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
+                                __pgen_obj
+                                    .insert(
+                                        "value".to_string(),
+                                        {
+                                            let __pgen_content = {
+                                                match &result {
+                                                    ParseContent::Sequence(
+                                                        elements,
+                                                    ) if elements.len() > 2usize => {
+                                                        elements[2usize].content.clone()
+                                                    }
+                                                    ParseContent::Quantified(
+                                                        elements,
+                                                        _,
+                                                    ) if elements.len() > 2usize => {
+                                                        elements[2usize].content.clone()
+                                                    }
+                                                    _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                }
+                                            };
+                                            __pgen_content.to_json_value()
+                                        },
                                     );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "pair",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                                ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                            }
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "pair",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "pair",
+                                "rule.pair",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "pair",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "pair",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
@@ -4497,603 +4466,596 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("array", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "array",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_ARRAY,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("array");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let parse_start = parser.position;
-                                let mut best_content: Option<ParseContent<'input>> = None;
-                                let mut best_raw_content: Option<ParseContent<'input>> = None;
-                                let mut best_end = parse_start;
-                                let mut best_priority: i64 = i64::MIN;
-                                let mut best_branch_index: usize = 0usize;
-                                let mut best_branch = 0usize;
-                                let mut nonassoc_tie = false;
-                                let mut result = ParseContent::Sequence(Vec::new());
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "array",
-                                        "rule.array",
-                                    );
-                                let deterministic_partition_offset = if deterministic_partition_effective_enabled {
-                                    parser
-                                        .deterministic_partition_offset_runtime(
-                                            &deterministic_partition_effective_group,
-                                            2usize,
-                                        )
-                                } else {
-                                    0usize
-                                };
-                                let mut evaluation_order: Vec<usize> = (0..2usize)
-                                    .collect();
-                                if deterministic_partition_effective_enabled && 2usize > 1
-                                    && deterministic_partition_offset > 0
-                                {
-                                    evaluation_order
-                                        .rotate_left(deterministic_partition_offset);
-                                }
-                                for branch_index in evaluation_order {
-                                    match branch_index {
-                                        0usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        1usize, 2usize, "array", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let matched_str = parser
-                                                            .match_regex("\\s*\\[\\s*\\]\\s*", true)?;
-                                                        let result = ParseContent::Terminal(matched_str);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        1usize, 2usize, "array", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 0usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "elements".to_string(),
-                                                                    {
-                                                                        let __pgen_content = {
-                                                                            let mut array_elements = Vec::new();
-                                                                            ParseContent::Sequence(array_elements)
-                                                                        };
-                                                                        __pgen_content.to_json_value()
-                                                                    },
-                                                                );
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("array".to_string()),
-                                                                );
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("array")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "array",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 1usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    1usize, 2usize, "array", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_ARRAY,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("array");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let parse_start = parser.position;
+                        let mut best_content: Option<ParseContent<'input>> = None;
+                        let mut best_raw_content: Option<ParseContent<'input>> = None;
+                        let mut best_end = parse_start;
+                        let mut best_priority: i64 = i64::MIN;
+                        let mut best_branch_index: usize = 0usize;
+                        let mut best_branch = 0usize;
+                        let mut nonassoc_tie = false;
+                        let mut result = ParseContent::Sequence(Vec::new());
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "array",
+                                "rule.array",
+                            );
+                        let deterministic_partition_offset = if deterministic_partition_effective_enabled {
+                            parser
+                                .deterministic_partition_offset_runtime(
+                                    &deterministic_partition_effective_group,
+                                    2usize,
+                                )
+                        } else {
+                            0usize
+                        };
+                        let mut evaluation_order: Vec<usize> = (0..2usize).collect();
+                        if deterministic_partition_effective_enabled && 2usize > 1
+                            && deterministic_partition_offset > 0
+                        {
+                            evaluation_order.rotate_left(deterministic_partition_offset);
+                        }
+                        for branch_index in evaluation_order {
+                            match branch_index {
+                                0usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 1usize, 2usize, "array", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        1usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        2usize, 2usize, "array", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let mut sequence_elements = Vec::with_capacity(3usize);
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let matched_str = parser.match_regex("\\s*\\[\\s*", true)?;
-                                                                let result = ParseContent::Terminal(matched_str);
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_0",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let result = ParseContent::Alternative(
-                                                                    Box::new(parser.parse_elements()?),
-                                                                );
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_1",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let matched_str = parser.match_regex("\\s*\\]\\s*", true)?;
-                                                                let result = ParseContent::Terminal(matched_str);
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_2",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        2usize, 2usize, "array", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 1usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut __pgen_obj = serde_json::Map::new();
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "elements".to_string(),
-                                                                    {
-                                                                        let __pgen_content = {
-                                                                            match &content {
-                                                                                ParseContent::Sequence(
-                                                                                    elements,
-                                                                                ) if elements.len() > 1usize => {
-                                                                                    elements[1usize].content.clone()
-                                                                                }
-                                                                                ParseContent::Quantified(
-                                                                                    elements,
-                                                                                    _,
-                                                                                ) if elements.len() > 1usize => {
-                                                                                    elements[1usize].content.clone()
-                                                                                }
-                                                                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
-                                                                            }
-                                                                        };
-                                                                        __pgen_content.to_json_value()
-                                                                    },
-                                                                );
-                                                            __pgen_obj
-                                                                .insert(
-                                                                    "type".to_string(),
-                                                                    serde_json::Value::String("array".to_string()),
-                                                                );
-                                                            ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("array")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "array",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 2usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    2usize, 2usize, "array", blocked_branch_predicate.as_deref()
-                                                                    .unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                let matched_str = parser
+                                                    .match_regex("\\s*\\[\\s*\\]\\s*", true)?;
+                                                let result = ParseContent::Terminal(matched_str);
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                1usize, 2usize, "array", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 0usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "elements".to_string(),
+                                                            {
+                                                                let __pgen_content = {
+                                                                    let mut array_elements = Vec::new();
+                                                                    ParseContent::Sequence(array_elements)
+                                                                };
+                                                                __pgen_content.to_json_value()
+                                                            },
+                                                        );
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("array".to_string()),
+                                                        );
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("array")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "array",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 1usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            1usize, 2usize, "array", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        1usize, 2usize, "array", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                1usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 2usize, 2usize, "array", parser.position
                                                             ),
                                                         );
                                                 }
+                                                let mut sequence_elements = Vec::with_capacity(3usize);
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let matched_str = parser.match_regex("\\s*\\[\\s*", true)?;
+                                                        let result = ParseContent::Terminal(matched_str);
+                                                        result
+                                                    };
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_0",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let result = ParseContent::Alternative(
+                                                            Box::new(parser.parse_elements()?),
+                                                        );
+                                                        result
+                                                    };
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_1",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let matched_str = parser.match_regex("\\s*\\]\\s*", true)?;
+                                                        let result = ParseContent::Terminal(matched_str);
+                                                        result
+                                                    };
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_2",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                let result = ParseContent::Sequence(sequence_elements);
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                2usize, 2usize, "array", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 1usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut __pgen_obj = serde_json::Map::new();
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "elements".to_string(),
+                                                            {
+                                                                let __pgen_content = {
+                                                                    match &content {
+                                                                        ParseContent::Sequence(
+                                                                            elements,
+                                                                        ) if elements.len() > 1usize => {
+                                                                            elements[1usize].content.clone()
+                                                                        }
+                                                                        ParseContent::Quantified(
+                                                                            elements,
+                                                                            _,
+                                                                        ) if elements.len() > 1usize => {
+                                                                            elements[1usize].content.clone()
+                                                                        }
+                                                                        _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                                    }
+                                                                };
+                                                                __pgen_content.to_json_value()
+                                                            },
+                                                        );
+                                                    __pgen_obj
+                                                        .insert(
+                                                            "type".to_string(),
+                                                            serde_json::Value::String("array".to_string()),
+                                                        );
+                                                    ParseContent::Json(serde_json::Value::Object(__pgen_obj))
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("array")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "array",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
                                             }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 2usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            2usize, 2usize, "array", blocked_branch_predicate.as_deref()
+                                                            .unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        2usize, 2usize, "array", parser.position
+                                                    ),
+                                                );
                                         }
-                                        _ => {}
                                     }
                                 }
-                                if nonassoc_tie {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                } else if let Some(content) = best_content {
-                                    parser.position = best_end;
-                                    semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger_enabled {
-                                        parser
-                                            .logger
-                                            .log_info(
-                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                0,
-                                                &format!(
-                                                    "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                    "array", best_branch, 2usize, best_end
-                                                    .saturating_sub(parse_start), best_priority, "left",
-                                                    "longest_match"
-                                                ),
-                                            );
-                                    }
-                                    result = content;
-                                    semantic_raw_content = best_raw_content;
-                                } else {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                };
-                                let end_pos = parser.position;
+                                _ => {}
+                            }
+                        }
+                        if nonassoc_tie {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        } else if let Some(content) = best_content {
+                            parser.position = best_end;
+                            semantic_selected_branch_index = Some(best_branch);
+                            if parser.logger_enabled {
                                 parser
-                                    .record_coverage_target_event(
-                                        "array",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
+                                    .logger
+                                    .log_info(
+                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                        0,
+                                        &format!(
+                                            "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
+                                            "array", best_branch, 2usize, best_end
+                                            .saturating_sub(parse_start), best_priority, "left",
+                                            "longest_match"
+                                        ),
                                     );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "array",
-                                        "rule.array",
-                                    );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "array",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
-                                    );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "array",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                            }
+                            result = content;
+                            semantic_raw_content = best_raw_content;
+                        } else {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "array",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "array",
+                                "rule.array",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "array",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "array",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
@@ -5219,635 +5181,628 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("elements", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "elements",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_ELEMENTS,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("elements");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let parse_start = parser.position;
-                                let mut best_content: Option<ParseContent<'input>> = None;
-                                let mut best_raw_content: Option<ParseContent<'input>> = None;
-                                let mut best_end = parse_start;
-                                let mut best_priority: i64 = i64::MIN;
-                                let mut best_branch_index: usize = 0usize;
-                                let mut best_branch = 0usize;
-                                let mut nonassoc_tie = false;
-                                let mut result = ParseContent::Sequence(Vec::new());
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "elements",
-                                        "rule.elements",
-                                    );
-                                let deterministic_partition_offset = if deterministic_partition_effective_enabled {
-                                    parser
-                                        .deterministic_partition_offset_runtime(
-                                            &deterministic_partition_effective_group,
-                                            2usize,
-                                        )
-                                } else {
-                                    0usize
-                                };
-                                let mut evaluation_order: Vec<usize> = (0..2usize)
-                                    .collect();
-                                if deterministic_partition_effective_enabled && 2usize > 1
-                                    && deterministic_partition_offset > 0
-                                {
-                                    evaluation_order
-                                        .rotate_left(deterministic_partition_offset);
-                                }
-                                for branch_index in evaluation_order {
-                                    match branch_index {
-                                        0usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        1usize, 2usize, "elements", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        let mut sequence_elements = Vec::with_capacity(3usize);
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let result = ParseContent::Alternative(
-                                                                    Box::new(parser.parse_value()?),
-                                                                );
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_0",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let matched_str = parser.match_regex("\\s*,\\s*", true)?;
-                                                                let result = ParseContent::Terminal(matched_str);
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_1",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        {
-                                                            let element_start = parser.position;
-                                                            let element_content = {
-                                                                let result = ParseContent::Alternative(
-                                                                    Box::new(parser.parse_elements()?),
-                                                                );
-                                                                result
-                                                            };
-                                                            let element_end = parser.position;
-                                                            sequence_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_2",
-                                                                    content: element_content,
-                                                                    span: element_start..element_end,
-                                                                });
-                                                        }
-                                                        let result = ParseContent::Sequence(sequence_elements);
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        1usize, 2usize, "elements", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
-                                                {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 0usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut array_elements = Vec::new();
-                                                            array_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_0",
-                                                                    content: {
-                                                                        match &content {
-                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                                elements[0usize].content.clone()
-                                                                            }
-                                                                            ParseContent::Quantified(
-                                                                                elements,
-                                                                                _,
-                                                                            ) if !elements.is_empty() => {
-                                                                                elements[0usize].content.clone()
-                                                                            }
-                                                                            ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other.clone(),
-                                                                        }
-                                                                    },
-                                                                    span: 0..0,
-                                                                });
-                                                            match {
-                                                                match &content {
-                                                                    ParseContent::Sequence(
-                                                                        elements,
-                                                                    ) if elements.len() > 2usize => {
-                                                                        elements[2usize].content.clone()
-                                                                    }
-                                                                    ParseContent::Quantified(
-                                                                        elements,
-                                                                        _,
-                                                                    ) if elements.len() > 2usize => {
-                                                                        elements[2usize].content.clone()
-                                                                    }
-                                                                    _ => ParseContent::Terminal("<invalid_sequence_access>"),
-                                                                }
-                                                            } {
-                                                                ParseContent::Sequence(nodes) => {
-                                                                    for node in nodes {
-                                                                        array_elements.push(node);
-                                                                    }
-                                                                }
-                                                                ParseContent::Quantified(nodes, _) => {
-                                                                    for node in nodes {
-                                                                        array_elements.push(node);
-                                                                    }
-                                                                }
-                                                                other => {
-                                                                    array_elements
-                                                                        .push(ParseNode {
-                                                                            rule_name: "spread_element",
-                                                                            content: other,
-                                                                            span: 0..0,
-                                                                        });
-                                                                }
-                                                            }
-                                                            ParseContent::Sequence(array_elements)
-                                                        }
-                                                    };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("elements")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "elements",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
-                                                    };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 1usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    1usize, 2usize, "elements", blocked_branch_predicate
-                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_ELEMENTS,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("elements");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let parse_start = parser.position;
+                        let mut best_content: Option<ParseContent<'input>> = None;
+                        let mut best_raw_content: Option<ParseContent<'input>> = None;
+                        let mut best_end = parse_start;
+                        let mut best_priority: i64 = i64::MIN;
+                        let mut best_branch_index: usize = 0usize;
+                        let mut best_branch = 0usize;
+                        let mut nonassoc_tie = false;
+                        let mut result = ParseContent::Sequence(Vec::new());
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "elements",
+                                "rule.elements",
+                            );
+                        let deterministic_partition_offset = if deterministic_partition_effective_enabled {
+                            parser
+                                .deterministic_partition_offset_runtime(
+                                    &deterministic_partition_effective_group,
+                                    2usize,
+                                )
+                        } else {
+                            0usize
+                        };
+                        let mut evaluation_order: Vec<usize> = (0..2usize).collect();
+                        if deterministic_partition_effective_enabled && 2usize > 1
+                            && deterministic_partition_offset > 0
+                        {
+                            evaluation_order.rotate_left(deterministic_partition_offset);
+                        }
+                        for branch_index in evaluation_order {
+                            match branch_index {
+                                0usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 1usize, 2usize, "elements", parser.position
                                                             ),
                                                         );
                                                 }
-                                            }
-                                        }
-                                        1usize => {
-                                            if "longest_match" == "ordered" && best_content.is_some()
-                                            {} else {
-                                                parser.position = parse_start;
-                                                if let Some(content) = parser
-                                                    .try_parse(|p| {
-                                                        let parser = p;
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        2usize, 2usize, "elements", parser.position
-                                                                    ),
-                                                                );
-                                                        }
+                                                let mut sequence_elements = Vec::with_capacity(3usize);
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
                                                         let result = ParseContent::Alternative(
                                                             Box::new(parser.parse_value()?),
                                                         );
-                                                        if parser.logger_enabled {
-                                                            parser
-                                                                .logger
-                                                                .log_info(
-                                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                    0,
-                                                                    &format!(
-                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        2usize, 2usize, "elements", parser.position
-                                                                    ),
-                                                                );
-                                                        }
-                                                        Ok(result)
-                                                    })
+                                                        result
+                                                    };
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_0",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
                                                 {
-                                                    let candidate_end = parser.position;
-                                                    parser.position = parse_start;
-                                                    let candidate_priority: i64 = 0i64;
-                                                    let current_branch_index: usize = 1usize;
-                                                    let raw_content = content;
-                                                    let transformed = {
-                                                        let content = raw_content.clone();
-                                                        {
-                                                            let mut array_elements = Vec::new();
-                                                            array_elements
-                                                                .push(ParseNode {
-                                                                    rule_name: "element_0",
-                                                                    content: {
-                                                                        match &content {
-                                                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                                                elements[0usize].content.clone()
-                                                                            }
-                                                                            ParseContent::Quantified(
-                                                                                elements,
-                                                                                _,
-                                                                            ) if !elements.is_empty() => {
-                                                                                elements[0usize].content.clone()
-                                                                            }
-                                                                            ParseContent::Alternative(node) => node.content.clone(),
-                                                                            other => other.clone(),
-                                                                        }
-                                                                    },
-                                                                    span: 0..0,
-                                                                });
-                                                            ParseContent::Sequence(array_elements)
-                                                        }
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let matched_str = parser.match_regex("\\s*,\\s*", true)?;
+                                                        let result = ParseContent::Terminal(matched_str);
+                                                        result
                                                     };
-                                                    let mut branch_predicate_blocked = false;
-                                                    let mut blocked_branch_predicate: Option<String> = None;
-                                                    for directive in parser
-                                                        .semantic_runtime_annotations
-                                                        .branch_predicates_for_rule("elements")
-                                                        .chain(
-                                                            parser
-                                                                .semantic_runtime_annotations
-                                                                .branch_predicates_for_rule_branch(
-                                                                    "elements",
-                                                                    current_branch_index,
-                                                                ),
-                                                        )
-                                                    {
-                                                        match directive {
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                spec,
-                                                            ) if spec.phase
-                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
-                                                                let Some(resolved_spec) = parser
-                                                                    .try_resolve_semantic_predicate_spec_against_content(
-                                                                        spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )? else {
-                                                                    blocked_branch_predicate = Some(
-                                                                        parser.semantic_predicate_debug_label(spec),
-                                                                    );
-                                                                    branch_predicate_blocked = true;
-                                                                    break;
-                                                                };
-                                                                match parser
-                                                                    .semantic_runtime_state
-                                                                    .evaluate_content_aware_predicate(
-                                                                        &resolved_spec,
-                                                                        &raw_content,
-                                                                        &transformed,
-                                                                    )
-                                                                {
-                                                                    Some(true) => {}
-                                                                    Some(false) => {
-                                                                        blocked_branch_predicate = Some(
-                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
-                                                                        );
-                                                                        branch_predicate_blocked = true;
-                                                                        break;
-                                                                    }
-                                                                    None => {}
-                                                                }
-                                                            }
-                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
-                                                                _,
-                                                            )
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
-                                                                _,
-                                                            ) => {}
-                                                        }
-                                                    }
-                                                    let should_take = if branch_predicate_blocked {
-                                                        false
-                                                    } else if "longest_match" == "ordered" {
-                                                        best_content.is_none()
-                                                    } else if "longest_match" == "priority_first" {
-                                                        if best_content.is_none() {
-                                                            true
-                                                        } else if candidate_priority > best_priority {
-                                                            true
-                                                        } else if candidate_priority < best_priority {
-                                                            false
-                                                        } else if candidate_end > best_end {
-                                                            true
-                                                        } else if candidate_end < best_end {
-                                                            false
-                                                        } else {
-                                                            match "left" {
-                                                                "right" => current_branch_index > best_branch_index,
-                                                                "nonassoc" => {
-                                                                    if current_branch_index != best_branch_index {
-                                                                        nonassoc_tie = true;
-                                                                    }
-                                                                    false
-                                                                }
-                                                                _ => false,
-                                                            }
-                                                        }
-                                                    } else if best_content.is_none() {
-                                                        true
-                                                    } else if candidate_end > best_end {
-                                                        true
-                                                    } else if candidate_end < best_end {
-                                                        false
-                                                    } else if candidate_priority > best_priority {
-                                                        true
-                                                    } else if candidate_priority < best_priority {
-                                                        false
-                                                    } else {
-                                                        match "left" {
-                                                            "right" => current_branch_index > best_branch_index,
-                                                            "nonassoc" => {
-                                                                if current_branch_index != best_branch_index {
-                                                                    nonassoc_tie = true;
-                                                                }
-                                                                false
-                                                            }
-                                                            _ => false,
-                                                        }
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_1",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                {
+                                                    let element_start = parser.position;
+                                                    let element_content = {
+                                                        let result = ParseContent::Alternative(
+                                                            Box::new(parser.parse_elements()?),
+                                                        );
+                                                        result
                                                     };
-                                                    if should_take {
-                                                        best_end = candidate_end;
-                                                        best_priority = candidate_priority;
-                                                        best_branch_index = current_branch_index;
-                                                        best_branch = 2usize;
-                                                        if semantic_capture_raw_for_post {
-                                                            best_raw_content = Some(raw_content.clone());
-                                                        }
-                                                        best_content = Some(transformed);
-                                                    } else if branch_predicate_blocked && parser.logger_enabled
-                                                    {
-                                                        parser
-                                                            .logger
-                                                            .log_info(
-                                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                                0,
-                                                                &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
-                                                                    2usize, 2usize, "elements", blocked_branch_predicate
-                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
-                                                                ),
-                                                            );
-                                                    }
-                                                } else if parser.logger_enabled {
+                                                    let element_end = parser.position;
+                                                    sequence_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_2",
+                                                            content: element_content,
+                                                            span: element_start..element_end,
+                                                        });
+                                                }
+                                                let result = ParseContent::Sequence(sequence_elements);
+                                                if parser.logger_enabled {
                                                     parser
                                                         .logger
                                                         .log_info(
                                                             "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
                                                             0,
                                                             &format!(
-                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                1usize, 2usize, "elements", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 0usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut array_elements = Vec::new();
+                                                    array_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_0",
+                                                            content: {
+                                                                match &content {
+                                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                        elements[0usize].content.clone()
+                                                                    }
+                                                                    ParseContent::Quantified(
+                                                                        elements,
+                                                                        _,
+                                                                    ) if !elements.is_empty() => {
+                                                                        elements[0usize].content.clone()
+                                                                    }
+                                                                    ParseContent::Alternative(node) => node.content.clone(),
+                                                                    other => other.clone(),
+                                                                }
+                                                            },
+                                                            span: 0..0,
+                                                        });
+                                                    match {
+                                                        match &content {
+                                                            ParseContent::Sequence(
+                                                                elements,
+                                                            ) if elements.len() > 2usize => {
+                                                                elements[2usize].content.clone()
+                                                            }
+                                                            ParseContent::Quantified(
+                                                                elements,
+                                                                _,
+                                                            ) if elements.len() > 2usize => {
+                                                                elements[2usize].content.clone()
+                                                            }
+                                                            _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                                        }
+                                                    } {
+                                                        ParseContent::Sequence(nodes) => {
+                                                            for node in nodes {
+                                                                array_elements.push(node);
+                                                            }
+                                                        }
+                                                        ParseContent::Quantified(nodes, _) => {
+                                                            for node in nodes {
+                                                                array_elements.push(node);
+                                                            }
+                                                        }
+                                                        other => {
+                                                            array_elements
+                                                                .push(ParseNode {
+                                                                    rule_name: "spread_element",
+                                                                    content: other,
+                                                                    span: 0..0,
+                                                                });
+                                                        }
+                                                    }
+                                                    ParseContent::Sequence(array_elements)
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("elements")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "elements",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
+                                            }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 1usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            1usize, 2usize, "elements", blocked_branch_predicate
+                                                            .as_deref().unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        1usize, 2usize, "elements", parser.position
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                }
+                                1usize => {
+                                    if "longest_match" == "ordered" && best_content.is_some()
+                                    {} else {
+                                        parser.position = parse_start;
+                                        if let Some(content) = parser
+                                            .try_parse(|p| {
+                                                let parser = p;
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
                                                                 2usize, 2usize, "elements", parser.position
                                                             ),
                                                         );
                                                 }
+                                                let result = ParseContent::Alternative(
+                                                    Box::new(parser.parse_value()?),
+                                                );
+                                                if parser.logger_enabled {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                            0,
+                                                            &format!(
+                                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                2usize, 2usize, "elements", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                                Ok(result)
+                                            })
+                                        {
+                                            let candidate_end = parser.position;
+                                            parser.position = parse_start;
+                                            let candidate_priority: i64 = 0i64;
+                                            let current_branch_index: usize = 1usize;
+                                            let raw_content = content;
+                                            let transformed = {
+                                                let content = raw_content.clone();
+                                                {
+                                                    let mut array_elements = Vec::new();
+                                                    array_elements
+                                                        .push(ParseNode {
+                                                            rule_name: "element_0",
+                                                            content: {
+                                                                match &content {
+                                                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                                                        elements[0usize].content.clone()
+                                                                    }
+                                                                    ParseContent::Quantified(
+                                                                        elements,
+                                                                        _,
+                                                                    ) if !elements.is_empty() => {
+                                                                        elements[0usize].content.clone()
+                                                                    }
+                                                                    ParseContent::Alternative(node) => node.content.clone(),
+                                                                    other => other.clone(),
+                                                                }
+                                                            },
+                                                            span: 0..0,
+                                                        });
+                                                    ParseContent::Sequence(array_elements)
+                                                }
+                                            };
+                                            let mut branch_predicate_blocked = false;
+                                            let mut blocked_branch_predicate: Option<String> = None;
+                                            for directive in parser
+                                                .semantic_runtime_annotations
+                                                .branch_predicates_for_rule("elements")
+                                                .chain(
+                                                    parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule_branch(
+                                                            "elements",
+                                                            current_branch_index,
+                                                        ),
+                                                )
+                                            {
+                                                match directive {
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        spec,
+                                                    ) if spec.phase
+                                                        == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                        let Some(resolved_spec) = parser
+                                                            .try_resolve_semantic_predicate_spec_against_content(
+                                                                spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )? else {
+                                                            blocked_branch_predicate = Some(
+                                                                parser.semantic_predicate_debug_label(spec),
+                                                            );
+                                                            branch_predicate_blocked = true;
+                                                            break;
+                                                        };
+                                                        match parser
+                                                            .semantic_runtime_state
+                                                            .evaluate_content_aware_predicate(
+                                                                &resolved_spec,
+                                                                &raw_content,
+                                                                &transformed,
+                                                            )
+                                                        {
+                                                            Some(true) => {}
+                                                            Some(false) => {
+                                                                blocked_branch_predicate = Some(
+                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                );
+                                                                branch_predicate_blocked = true;
+                                                                break;
+                                                            }
+                                                            None => {}
+                                                        }
+                                                    }
+                                                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                        _,
+                                                    )
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                    | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                        _,
+                                                    ) => {}
+                                                }
                                             }
+                                            let should_take = if branch_predicate_blocked {
+                                                false
+                                            } else if "longest_match" == "ordered" {
+                                                best_content.is_none()
+                                            } else if "longest_match" == "priority_first" {
+                                                if best_content.is_none() {
+                                                    true
+                                                } else if candidate_priority > best_priority {
+                                                    true
+                                                } else if candidate_priority < best_priority {
+                                                    false
+                                                } else if candidate_end > best_end {
+                                                    true
+                                                } else if candidate_end < best_end {
+                                                    false
+                                                } else {
+                                                    match "left" {
+                                                        "right" => current_branch_index > best_branch_index,
+                                                        "nonassoc" => {
+                                                            if current_branch_index != best_branch_index {
+                                                                nonassoc_tie = true;
+                                                            }
+                                                            false
+                                                        }
+                                                        _ => false,
+                                                    }
+                                                }
+                                            } else if best_content.is_none() {
+                                                true
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            };
+                                            if should_take {
+                                                best_end = candidate_end;
+                                                best_priority = candidate_priority;
+                                                best_branch_index = current_branch_index;
+                                                best_branch = 2usize;
+                                                if semantic_capture_raw_for_post {
+                                                    best_raw_content = Some(raw_content.clone());
+                                                }
+                                                best_content = Some(transformed);
+                                            } else if branch_predicate_blocked && parser.logger_enabled
+                                            {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                            2usize, 2usize, "elements", blocked_branch_predicate
+                                                            .as_deref().unwrap_or("<unknown>"), candidate_end
+                                                        ),
+                                                    );
+                                            }
+                                        } else if parser.logger_enabled {
+                                            parser
+                                                .logger
+                                                .log_info(
+                                                    "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                                    0,
+                                                    &format!(
+                                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                        2usize, 2usize, "elements", parser.position
+                                                    ),
+                                                );
                                         }
-                                        _ => {}
                                     }
                                 }
-                                if nonassoc_tie {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                } else if let Some(content) = best_content {
-                                    parser.position = best_end;
-                                    semantic_selected_branch_index = Some(best_branch);
-                                    if parser.logger_enabled {
-                                        parser
-                                            .logger
-                                            .log_info(
-                                                "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
-                                                0,
-                                                &format!(
-                                                    "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                    "elements", best_branch, 2usize, best_end
-                                                    .saturating_sub(parse_start), best_priority, "left",
-                                                    "longest_match"
-                                                ),
-                                            );
-                                    }
-                                    result = content;
-                                    semantic_raw_content = best_raw_content;
-                                } else {
-                                    return Err(ParseError::Backtrack {
-                                        position: parse_start,
-                                    });
-                                };
-                                let end_pos = parser.position;
+                                _ => {}
+                            }
+                        }
+                        if nonassoc_tie {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        } else if let Some(content) = best_content {
+                            parser.position = best_end;
+                            semantic_selected_branch_index = Some(best_branch);
+                            if parser.logger_enabled {
                                 parser
-                                    .record_coverage_target_event(
-                                        "elements",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
+                                    .logger
+                                    .log_info(
+                                        "/Users/richarddje/Documents/github/pgen/generated/json_parser.rs",
+                                        0,
+                                        &format!(
+                                            "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
+                                            "elements", best_branch, 2usize, best_end
+                                            .saturating_sub(parse_start), best_priority, "left",
+                                            "longest_match"
+                                        ),
                                     );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "elements",
-                                        "rule.elements",
-                                    );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "elements",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
-                                    );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "elements",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                            }
+                            result = content;
+                            semantic_raw_content = best_raw_content;
+                        } else {
+                            return Err(ParseError::Backtrack {
+                                position: parse_start,
+                            });
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "elements",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "elements",
+                                "rule.elements",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "elements",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "elements",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
@@ -5973,78 +5928,73 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("string", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "string",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_STRING,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("string");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let matched_str = parser
-                                    .match_regex("\\s*\"[^\"]*\"\\s*", true)?;
-                                let result = ParseContent::Terminal(matched_str);
-                                let result = {
-                                    {
-                                        match &result {
-                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                elements[0usize].content.clone()
-                                            }
-                                            ParseContent::Quantified(
-                                                elements,
-                                                _,
-                                            ) if !elements.is_empty() => {
-                                                elements[0usize].content.clone()
-                                            }
-                                            ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other.clone(),
-                                        }
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_STRING,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("string");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let matched_str = parser
+                            .match_regex("\\s*\"[^\"]*\"\\s*", true)?;
+                        let result = ParseContent::Terminal(matched_str);
+                        let result = {
+                            {
+                                match &result {
+                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                        elements[0usize].content.clone()
                                     }
-                                };
-                                let end_pos = parser.position;
-                                parser
-                                    .record_coverage_target_event(
-                                        "string",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
-                                    );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "string",
-                                        "rule.string",
-                                    );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "string",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
-                                    );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "string",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                                    ParseContent::Quantified(
+                                        elements,
+                                        _,
+                                    ) if !elements.is_empty() => {
+                                        elements[0usize].content.clone()
+                                    }
+                                    ParseContent::Alternative(node) => node.content.clone(),
+                                    other => other.clone(),
+                                }
+                            }
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "string",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "string",
+                                "rule.string",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "string",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "string",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
@@ -6170,78 +6120,73 @@ impl<'input> JsonParser<'input> {
         }
         self.recursion_guard.enter("number", position);
         let start_pos = self.position;
-        let result = self
-            .with_semantic_runtime_rule_transaction(
-                "number",
-                |parser| {
-                    parser
-                        .memoized_call(
-                            Self::RULE_NUMBER,
-                            |parser| {
-                                let semantic_capture_raw_for_post = parser
-                                    .semantic_runtime_annotations
-                                    .needs_raw_post_capture_for_rule("number");
-                                let mut semantic_selected_branch_index: Option<usize> = None;
-                                let mut semantic_raw_content: Option<
-                                    ParseContent<'input>,
-                                > = None;
-                                let matched_str = parser
-                                    .match_regex("\\s*-?[0-9]+(\\.[0-9]+)?\\s*", true)?;
-                                let result = ParseContent::Terminal(matched_str);
-                                let result = {
-                                    {
-                                        match &result {
-                                            ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                                elements[0usize].content.clone()
-                                            }
-                                            ParseContent::Quantified(
-                                                elements,
-                                                _,
-                                            ) if !elements.is_empty() => {
-                                                elements[0usize].content.clone()
-                                            }
-                                            ParseContent::Alternative(node) => node.content.clone(),
-                                            other => other.clone(),
-                                        }
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = parser
+                .memoized_call(
+                    Self::RULE_NUMBER,
+                    |parser| {
+                        let semantic_capture_raw_for_post = parser
+                            .semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule("number");
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
+                        let matched_str = parser
+                            .match_regex("\\s*-?[0-9]+(\\.[0-9]+)?\\s*", true)?;
+                        let result = ParseContent::Terminal(matched_str);
+                        let result = {
+                            {
+                                match &result {
+                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                        elements[0usize].content.clone()
                                     }
-                                };
-                                let end_pos = parser.position;
-                                parser
-                                    .record_coverage_target_event(
-                                        "number",
-                                        start_pos,
-                                        end_pos,
-                                        semantic_selected_branch_index,
-                                        0u64,
-                                        false,
-                                    );
-                                let deterministic_partition_effective_enabled = parser
-                                    .effective_deterministic_partition_enabled(false);
-                                let deterministic_partition_effective_group = parser
-                                    .effective_deterministic_partition_group(
-                                        "number",
-                                        "rule.number",
-                                    );
-                                parser
-                                    .record_deterministic_partition_event(
-                                        "number",
-                                        start_pos,
-                                        end_pos,
-                                        deterministic_partition_effective_enabled,
-                                        &deterministic_partition_effective_group,
-                                    );
-                                Ok((
-                                    ParseNode {
-                                        rule_name: "number",
-                                        content: result,
-                                        span: start_pos..end_pos,
-                                    },
-                                    semantic_raw_content,
-                                ))
+                                    ParseContent::Quantified(
+                                        elements,
+                                        _,
+                                    ) if !elements.is_empty() => {
+                                        elements[0usize].content.clone()
+                                    }
+                                    ParseContent::Alternative(node) => node.content.clone(),
+                                    other => other.clone(),
+                                }
+                            }
+                        };
+                        let end_pos = parser.position;
+                        parser
+                            .record_coverage_target_event(
+                                "number",
+                                start_pos,
+                                end_pos,
+                                semantic_selected_branch_index,
+                                0u64,
+                                false,
+                            );
+                        let deterministic_partition_effective_enabled = parser
+                            .effective_deterministic_partition_enabled(false);
+                        let deterministic_partition_effective_group = parser
+                            .effective_deterministic_partition_group(
+                                "number",
+                                "rule.number",
+                            );
+                        parser
+                            .record_deterministic_partition_event(
+                                "number",
+                                start_pos,
+                                end_pos,
+                                deterministic_partition_effective_enabled,
+                                &deterministic_partition_effective_group,
+                            );
+                        Ok((
+                            ParseNode {
+                                rule_name: "number",
+                                content: result,
+                                span: start_pos..end_pos,
                             },
-                        )
-                },
-            );
+                            semantic_raw_content,
+                        ))
+                    },
+                );
+            inner_result.map(|(node, _raw)| node)
+        })(self);
         self.recursion_guard.exit();
         match &result {
             Ok(node) => {
