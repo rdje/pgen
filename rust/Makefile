@@ -70,13 +70,6 @@ AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
 # Tools
 RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion
 RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion
-# Phase 2 M3 stage 6: regex parser regen with `--inline-annotations` so the
-# typed `parse_<rule>_typed` methods land alongside the legacy `parse_<rule>`
-# entries. Stages 1-5 emit shape-typed bodies for ~74% of regex grammar rules
-# (Atom, Sequence, Or with Atom alternatives, Quantified ?/*/+ over Atom);
-# the rest fall back to the stage-1 wrapper (legacy + `serde_json::to_value`)
-# pending stages 4b (per-branch annotations) and 5b (composite shapes).
-RUST_GENERATOR_INLINE_ANNOTATIONS = $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion --inline-annotations
 RUST_FRONTEND_TO_JSON = $(RUST_EBNF_FRONTEND_BIN)
 
 # Default target
@@ -470,23 +463,6 @@ regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
 	@echo "✅ Generated: $(REGEX_PARSER)"
 	@echo "✅ Regex parser generated successfully!"
-
-# Phase 2 M3 stage 6 entry point. Generates the regex parser with the
-# `--inline-annotations` flag so the per-rule `parse_<rule>_typed`
-# methods land alongside the legacy emit. Used to measure the typed
-# path (`parse_full_regex_typed`) for perf benefit. Default
-# `regex_parser` target stays on legacy emit until M3 stage 4b
-# (annotation-aware typed emit) closes the perf gap on the regex
-# grammar — the current ~74% shape-typed coverage is dominated by
-# annotated leaf-and-spine rules that fall back through legacy +
-# serde_json::to_value, so the typed path measures ~1.0× legacy on
-# this corpus until 4b lands.
-.PHONY: regex_parser_typed
-regex_parser_typed: $(REGEX_JSON) $(RUST_AST_PIPELINE)
-	@echo "🚀 Generating regex parser with Phase 2 M3 typed methods..."
-	@mkdir -p $(GENERATED_DIR)
-	$(RUST_GENERATOR_INLINE_ANNOTATIONS) $(REGEX_JSON) -o $(REGEX_PARSER)
-	@echo "✅ Generated typed-emit regex parser at: $(REGEX_PARSER)"
 
 # Convenience aliases for easier typing
 .PHONY: return_parser

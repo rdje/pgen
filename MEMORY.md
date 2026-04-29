@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-5b-generic-shape-composer-typed-path-delivers-perf-benefit)
+Last updated: 2026-04-29 (+0200, task: roll-back-phase-2-m3-restore-parser-agnostic-rust-ast-pipeline)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,88 +8,38 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Phase 2 M3 stage 5b landed: generic shape composer in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_value_expr(ast_node, rule_name, receiver)` handles every non-annotated `ASTNode` shape recursively (Atom + Sequence + Or + Quantified + Lookahead). Stages 2-5's per-shape body emitters are subsumed; the dispatcher routes non-annotated rules through the composer. Stage 4b's element emitter also dispatches through it.
-- **Coverage 174/194 = 90%** on the regex grammar (was 147 after 4b). The remaining 20 fallbacks are annotated rules with shapes 4b doesn't model (`flatten($1)`, `$1 != null`) plus rare `Lookahead`.
-- **HUGE PERF WIN.** Typed path on the 8-pattern bug corpus (release, M4 Pro, mimalloc, --warmup 200 --samples 5000):
-  - literal_simple **2.7µs (5.62×)** ✓ / digit_sequence **27.1µs (1.38×)** ✓ / alternation **7.2µs (4.99×)** ✓ / capture_groups **41.5µs (1.55×)** ✓ / url_simple **13.2µs (2.48×)** ✓ / email_basic **35.4µs (1.50×)** ✓
-  - character_class 101.0µs (0.86×) ✗ — REGRESSION because `class_body`'s `flatten($1)` annotation falls back
-  - anchor_complex **58.5µs (1.74×)** ✗ but only 8.5µs over PRIMARY
-- **6/8 patterns under PRIMARY 50µs via typed entry** (was 4/8 on legacy at HEAD; was 0/8 at bug-baseline). GeoMean 2.05× speedup.
-- Default `make regex_parser` still uses legacy emit; tracked `generated/regex_parser.rs` byte-unchanged. Typed path opt-in via `make regex_parser_typed`.
-- Validation: 488 lib tests pass, clippy strict source pass.
+- **Phase 2 M3 fully rolled back.** The Rust AST pipeline is restored to the post-Optim-#16 state. Owner's standing rule was violated by Phase 2 M3: stages 4b / 4c / 5b put parser-specific reasoning inside `ast_based_generator.rs`, and the typed-emit codegen produced parser bodies that bypass `with_semantic_runtime_rule_transaction` — meaning regenerating SV / VHDL with `--inline-annotations` would silently break their predicates / fact emission. Even though tracked SV / VHDL parsers were unaffected on disk, the latent risk was in the pipeline. The owner's rule covers latent risk.
+- Reverted commits: `139d52b` (5b), `a25c71a` (4b), `b3b154f` (6+7), `b6d7f28` (5), `0d8518a` (4), `1381e9b` (3), `b091590` (2), `4431cae` (1), `28bf848` (formal scoping doc-only). Stage 4c (`1374ff2`) and its earlier revert (`3c4f127`) cancel out. Differential-gate scaffolding (uncommitted) discarded.
+- **`git diff 5cd7219 -- rust/src/ast_pipeline/ast_based_generator.rs rust/src/bin/regex_perf_probe.rs rust/Cargo.toml rust/Makefile` is empty** — pipeline source is byte-identical to post-Optim-#16. Tracked parsers byte-unchanged. 488 lib tests pass. clippy strict source pass.
 
-### Stage 4c plan (close character_class regression)
-- Extend `generate_typed_annotation_value_expr` to handle `UnifiedReturnAST::Identifier { name }` as a built-in function call (`flatten`, `extract_*`, etc. — the unified semantic AST has these). Closes the `class_body` rule's stage-1 fallback so character_class fully types and beats legacy.
+### Path forward (owner-directed; design first, code second)
+- Build a **generic extensibility mechanism** in the pipeline that retrieves parser-specific handlers by EBNF grammar name (e.g. `foolang.ebnf` → look up `foolang` handlers). The mechanism itself is parser-agnostic; default behavior runs when no handler is registered.
+- Re-implement the regex perf work as a regex-specific **handler living outside the pipeline**. The handler will preserve `with_semantic_runtime_rule_transaction` and `memoized_call` semantics so semantic side-effects fire correctly.
+- Before claiming PGEN-RGX-0073 closure, a maintained **differential gate** must prove byte-equivalent JSON between typed and legacy paths across the bug corpus. The previous attempt's typed output was NOT byte-equivalent (M2 gate caught this divergence before being discarded with the rest of the rollback).
+- Owner's principles going forward:
+  - Any change to `rust/src/ast_pipeline/` is parser-agnostic — no grammar names, no "this grammar is safe" reasoning baked in.
+  - PGEN-RGX-0073 must not be fixed in a way that risks breaking SV / VHDL or any other parser.
+  - Parser-specific code lives in a separate module / crate that registers itself with the pipeline's extensibility mechanism.
 
-### Stage 4d plan (close anchor_complex over-50)
-- Extend annotation support to comparison expressions (`$1 != null`, etc.) for the few remaining annotated rules. Profile anchor_complex parse tree to identify which fallbacks are still hit; type those.
-
-### Phase 2 M3 stage 4b (previous slice) — annotation-aware typed emit
-- Phase 2 M3 stage 4b landed: annotation-aware typed emit. New `generate_typed_annotated_body` + `generate_typed_annotation_value_expr` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) handle rules with explicit `return_scalar` / `return_object` / `return_array` annotations. Body shape support: Sequence (N elements), Atom (1 element), Quantified at top (1 element with `?`/`*`/`+` over Atom). Annotation shape support: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, Object (recursive), Array, Passthrough. PropertyAccess / ArrayAccess / Spread / QuantifiedExtraction defer.
-- 147/194 shape-typed bodies (was 144). 3 more annotated rules (regex, pattern, piece) join the typed path.
-- **Honest perf result: typed is 0.94× geomean — ~6% SLOWER than legacy.** Reason: `parse_alternation_typed` (Sequence with Quantified-*-Sequence inner — composite shape) still falls back to legacy + serde_json::to_value. The annotation-transform work in regex/pattern/piece sits on top of that without removing any legacy work — strictly more cost.
-- **Stage 5b (generic shape composer) is REQUIRED for the typed path to deliver any perf benefit.** Until it lands, the typed path is a net regression on the regex grammar.
-- Default `make regex_parser` target still uses legacy emit; tracked `generated/regex_parser.rs` is byte-unchanged. The typed path is opt-in via `make regex_parser_typed` for measurement only.
-- Validation: 488 lib tests pass, clippy strict source pass, build clean.
-
-### Stage 5b plan (next slice — REQUIRED for perf)
-Implement generic `generate_typed_value_expr(ast_node, rule_name, receiver)` that handles any non-annotated `ASTNode` shape recursively. Refactor stages 2-5 to dispatch through it (or recurse into it for non-Atom inners). Composite-shape support — Quantified-`*` over Sequence (the regex `alternation` rule), Or with Sequence alternatives, Sequence with non-Atom Quantified children — completes the typed chain so `parse_full_regex_typed` doesn't fall back through legacy + serialize.
-
-### Phase 2 M3 stages 6+7 (previous slice, kept) — typed-path wiring + perf measurement
-- Phase 2 M3 stages 6+7 landed: typed-path wiring + perf measurement. Adds `make regex_parser_typed` target (regenerates with `--inline-annotations`) and `phase_2_typed_emit_probe` Cargo feature that exposes a typed measurement column in `regex_perf_probe`. Default `make regex_parser` and default cargo build are byte-unchanged; tracked `generated/regex_parser.rs` stays on legacy emit.
-- Loosened the typed-emit dispatcher gate to only block rules with **explicit non-`None`** branch return annotations (was: any `branch_return_annotations.contains_key`). Implicit `-> $1` defaults are identity-passthrough and match the typed emit semantically, so they should not gate.
-- **Result on the 8-pattern bug corpus: typed = ~1.0× legacy. No perf gain at this stage.** Annotated rules at the top of the parse (`regex`, `pattern`, `piece` — three of the eight `@semantic_value`/`return_*`-annotated rules) all fall back through `legacy + serde_json::to_value`, so the typed path does the same legacy parse work and adds the serialization step on top. The deeper-tree typed methods never execute because their parents are stage-1 fallback.
-- **Path forward = stage 4b (annotation-aware typed emit).** For each annotated rule, generate a typed body that applies the annotation transform directly to typed sub-values (`piece`'s `{type: "piece", atom: $1, quantifier: $2}` becomes `Value::Object` built directly from `parse_atom_typed()`/`parse_quantifier_typed()` results). Then stage 5b adds the generic shape composer for non-Atom inners. Both unblock the perf benefit.
-
-### Phase 2 M3 stage 4b / 5b / 6 (re-entry) / 7 (re-entry) plan (next session)
-- **Stage 4b**: annotation-aware typed emit. Per `return_object` / `return_array` / `return_scalar` annotation, build the typed `Value::Object` / `Value::Array` / etc. directly from typed sub-values. Reuses the post-parse transform's structure but operates on `serde_json::Value` instead of `ParseContent`.
-- **Stage 5b**: generic `generate_typed_value_expr(ast_node, rule_name, receiver)` handling any non-annotated ASTNode shape recursively. Refactor stages 2-5 to dispatch through it.
-- **Stage 6 (re-entry)**: once 4b + 5b deliver typed emit on the hot path, regenerate tracked `generated/regex_parser.rs` via `make regex_parser_typed` and decide whether to flip the default `regex_parser` target.
-- **Stage 7 (re-entry)**: re-measure with the new typed parser. Expected 30-60% reduction on `anchor_complex` / `character_class`. PGEN-RGX-0073 PRIMARY <50µs across all 8 patterns expected to fall here.
-
-### 100k-sample handoff baseline (legacy emit at HEAD = `5cd7219`, unchanged through stage 6+7)
-- literal_simple 15.4 ✓ / digit_sequence 41.3 ✓ / alternation 37.2 ✓ / url_simple 33.8 ✓
-- email_basic 54.5 ✗ (-8%) / capture_groups 66.5 ✗ (-25%) / character_class 93.5 ✗ (-46%) / anchor_complex 105.0 ✗ (-52%)
-
-### Validation at HEAD
-- `cargo build --features generated_parsers` clean.
-- `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored.
-- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` strict source lint pass.
-
-### 100 000-sample baseline at HEAD = `5cd7219` (Optim #15+#16, unchanged by this commit). Release, M4 Pro, mimalloc, --warmup 1000:
-  - literal_simple 15.4 ✓ / digit_sequence 41.3 ✓ / alternation 37.2 ✓ / url_simple 33.8 ✓
-  - email_basic 54.5 ✗ (4.5µs / -8%) / capture_groups 66.5 ✗ (-25%) / character_class 93.5 ✗ (-46%) / anchor_complex 105.0 ✗ (-52%)
-- 4/8 patterns under PRIMARY 50µs. The remaining gap is too large for stacked grammar-agnostic micro-optims (Optim #17 = elide `needs_raw_post_capture_for_rule` HashMap probe → measured at 1-5%, within run-to-run variance, not committed).
-- **Phase 2 M3 is the formally scoped next slice**. The M0/M1 design is in place (commit `4450b93` added the `--inline-annotations` flag and the `parse_full_<entry>_typed` skeleton; the typed body today is just `parse_full_<entry>` + `serde_json::to_value`). M3 makes the typed methods truly skip the generic `ParseNode` tree by emitting `serde_json::Value` directly per the rule's annotation.
-
-### Phase 2 M3 implementation plan (next session)
-1. Per-rule typed emit. For each rule, generate a `parse_<rule>_typed` method that mirrors the legacy `parse_<rule>` body BUT builds `serde_json::Value` directly:
-   - Non-annotated rules: return `serde_json::Value::String(self.input[start..end].to_string())` after the body parses successfully.
-   - Annotated rules: apply the `@semantic_value` / return-annotation transform during parse, returning the resulting `Value` object.
-2. Composition rule. Sequence/quantified bodies build `Value::Array(vec![child_typed_results])`; alternation just returns the matched branch's typed value; literals/regex matches return `Value::String(matched_text)`.
-3. Public API. `parse_full_regex_typed()` already returns `ParseResult<serde_json::Value>` from M1. Keep that signature; only the body changes. RGX integration gets a new entry point alongside the legacy `parse_full_regex` (no contract break).
-4. Differential validation (M2). Add a regression test that for every `regex_v1` and `return_annotation` corpus sample, `parse_full_<entry>_typed` returns byte-equivalent JSON to `serde_json::to_value(parse_full_<entry>?)`. Wire under `make -C rust SHELL=/bin/bash phase2_typed_emit_differential_gate`.
-5. Perf measurement (M4). Re-run the 8-pattern bug corpus calling `parse_full_regex_typed`. Expected: 30-60% reduction on `anchor_complex` / `character_class` because the entire `ParseNode` + `Vec<ParseNode>` allocation chain is gone.
-6. RGX coordination + integration contract bump (M5). Once perf delta confirms, regex_parser_integration_contract `1.1.31 → 1.2.0` with the typed entry point; coordinate with RGX repo.
-7. Migrate remaining grammars one-by-one (M6) and retire the post-parse transform (M7-M8).
-
-### Validation at HEAD
-- `cargo build --release --features generated_parsers,mimalloc_perf` clean.
-- `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored.
-- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` strict source lint pass.
-
-### Working-tree leftovers (still intentionally not staged)
-The 3 noise parsers from earlier regen passes (`return_annotation_parser.rs`, `semantic_annotation_parser.rs`, `systemverilog_parser.rs`) plus `regex.json` / `return_annotation.json` timestamp diffs and `semantic_annotation*.json` substantive diffs from a prior EBNF-frontend fix. Tracked as separate codegen-determinism follow-up; not part of the perf campaign.
-
-### Open follow-ups (priority order, post-Phase-2)
-1. **Phase 2 M3** — see plan above. Multi-commit slice.
-2. **Slim ParseNode**: SmallVec analysis showed ParseNode size growth (Vec=24→SmallVec[T;4]=4*sizeof(T)+24); not a clear win unless paired with Box indirection that defeats the inline-storage benefit. Re-evaluate after Phase 2.
-3. **`Rc<ParseNode>` in memo**: ~10% saving on the 38 retained-memo recursive rules. Bounded scope; defer until Phase 2 perf is measured (may make this irrelevant).
-4. **Profile-guided** — samply with `RUSTFLAGS="-C debuginfo=2 -C strip=none"` on the release binary. Confirmed builds cleanly; previous attempts didn't resolve symbols (samply default symbolicator may need `--syms` sidecar).
-5. Codegen determinism (`directives_by_rule`, `wrapper_specs` HashMap iteration → BTreeMap/sorted).
-6. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
-7. `ebnf` regen.
-8. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+## Older Session Note (post-Optim-#16, the state we're now back at)
+- Optim #15+#16 (PGEN-RGX-0073 campaign): two stacked codegen changes in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs); both parser-agnostic.
+  - **#15**: elide `record_coverage_target_event` when `coverage_target_weight == 0`; full elision of `record_deterministic_partition_event` when no `@deterministic_partition`; lazy `effective_deterministic_partition_group` allocation when annotated.
+  - **#16**: codegen-side recursive-rule analysis (`compute_recursive_rules`); for non-recursive rules, skip `recursion_guard.check_cycle` AND `memoized_call` wrapper entirely. Push/pop on `parse_stack` is kept so error messages keep an accurate rule frame.
+- Effect on [generated/regex_parser.rs](generated/regex_parser.rs): coverage event 194→0, partition event 194→0, `check_cycle` 194→23 (recursive only), `memoized_call` 194→39 (recursive only). Wrapper count from Optim #14 already at 21.
+- Perf (release, 5000/200, M4 Pro, mimalloc): 7/8 patterns improved 11-19%; `character_class` regressed 5% (likely I-cache shift). 4/8 under PRIMARY 50µs. `email_basic` is now 4.7µs over the line.
+  - literal_simple 14.5 ✓ / digit_sequence 38.5 ✓ / character_class 88.4 ✗ (-43%) / alternation 38.2 ✓ / capture_groups 66.4 ✗ (-25%) / url_simple 34.3 ✓ / email_basic 54.7 ✗ (-9%) / anchor_complex 105.5 ✗ (-52%)
+- The remaining gap (especially anchor_complex at -52%) is too large for stacked grammar-agnostic micro-optims. Biggest remaining cost class is `ParseNode` tree allocation: every successful rule entry builds a `ParseNode` with `Vec<ParseNode>` content (heap allocation per non-leaf node). Phase 2 inline annotation application is the architectural fix.
+- Validation: `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored; `cargo build --release --features generated_parsers,mimalloc_perf` clean; clippy strict source pass.
+- Working-tree leftovers (intentionally not staged): the 3 noise parsers from prior regen plus `regex.json` / `return_annotation.json` timestamp diffs and `semantic_annotation*.json` substantive diffs from a prior EBNF-frontend fix. Tracked as separate follow-ups.
+- **Open follow-ups** (priority order):
+  1. **Phase 2 inline annotation application** (logged as task #30) — eliminate generic `ParseNode` tree allocation; rule methods emit shape-typed output directly. Biggest plausible single win for `anchor_complex` and `character_class`.
+  2. **Slim ParseNode**: arena allocation OR `SmallVec` inline storage for `ParseContent::Sequence`/`Quantified`; reduces heap pressure even before Phase 2 lands.
+  3. **`Rc<ParseNode>` in memo**: lazy-clone for the recursive rules that retain `memoized_call`; the current `node.clone()` on every memo INSERT is ~10% of remaining recursive-rule overhead.
+  4. **Profile-guided** — run samply on `character_class`, `capture_groups`, `email_basic`, `anchor_complex`; pinpoint the remaining hot frames.
+  5. Codegen determinism (`directives_by_rule`, `wrapper_specs` HashMap iteration → BTreeMap/sorted).
+  6. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
+  7. `ebnf` regen.
+  8. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
 
 ## Prior Session Note
 - Optim #14 (PGEN-RGX-0073 campaign): per-rule generalization of Optim #13's grammar-level elision gate. New helper `AstBasedGenerator::rule_has_no_semantic_annotations(rule_name)` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs); checks whether THIS rule has any direct, branch-local, or mid-sequence semantic annotation, not the whole grammar.

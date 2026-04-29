@@ -96,13 +96,6 @@ bootstrap = []
 generated_parsers = []
 ebnf_dual_run = []
 mimalloc_perf = ["dep:mimalloc"]
-# Phase 2 M3 stage 7: typed-path perf measurement. Enables the
-# `parse_full_regex_typed` measurement column in `regex_perf_probe`.
-# Requires the regex parser to have been regenerated with
-# `--inline-annotations` (`make regex_parser_typed`); without that,
-# `parse_full_regex_typed` does not exist and the probe will not
-# compile.
-phase_2_typed_emit_probe = ["generated_parsers"]
 
 [dev-dependencies]
 serde_json = "1.0"
