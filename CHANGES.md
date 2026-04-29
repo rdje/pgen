@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 stage 5b: generic shape composer — typed path delivers 1.4-5.6× speedups; 6/8 patterns under PRIMARY 50µs via typed entry
+### Achievement Summary
+**This is the slice that closes the typed-path perf benefit.** Adds a generic `generate_typed_value_expr(ast_node, rule_name, receiver)` composer that handles every non-annotated `ASTNode` shape recursively. Stages 2-5's per-shape body emitters are subsumed: the dispatcher now routes non-annotated rules through the composer with `quote!{self}` as the receiver, then wraps in `Ok(...)`. Stage 4b's annotated-element emitter is also simplified to dispatch through the composer.
+
+The architectural significance: composite shapes (Sequence with `Quantified-*-Sequence` inner — e.g. the regex `alternation` rule's `('|' alternative)*`, Or with Sequence alternatives, Sequence with non-Atom Quantified children) now reach the typed path. Until this slice, those rules fell back to legacy + `serde_json::to_value`, which broke the typed chain anywhere they appeared.
+
+### Coverage on the regex parser
+| typed body class      | stage 4b | stage 5b |
+|-----------------------|----------|----------|
+| Shape-typed (composer) | 147      | **174**  |
+| Stage-1 fallback       | 47       | 20       |
+
+174/194 = **90% coverage**. The remaining 20 stage-1 fallbacks are annotated rules whose annotation forms stage 4b doesn't yet model (`flatten($1)`, `$1 != null` comparison, etc. — function-call / comparison shapes that aren't in the unified return AST's primitive set) plus the rare `Lookahead` rule.
+
+### Perf delta on the 8-pattern bug corpus
+Release, M4 Pro, mimalloc, --warmup 200, --samples 5000:
+
+| pattern         | legacy p50 | typed p50 | ratio (legacy/typed) | <50µs? |
+|-----------------|------------|-----------|----------------------|--------|
+| literal_simple  | 15.2µs     | **2.7µs** | **5.62×**            | ✓      |
+| digit_sequence  | 37.4µs     | 27.1µs    | 1.38×                | ✓      |
+| character_class | 86.8µs     | 101.0µs   | 0.86×                | ✗ -102% |
+| alternation     | 35.7µs     | **7.2µs** | **4.99×**            | ✓      |
+| capture_groups  | 64.4µs     | 41.5µs    | 1.55×                | ✓      |
+| url_simple      | 32.7µs     | 13.2µs    | 2.48×                | ✓      |
+| email_basic     | 53.0µs     | 35.4µs    | 1.50×                | ✓      |
+| anchor_complex  | 102.0µs    | 58.5µs    | 1.74×                | ✗ -17% |
+
+**GeoMean 2.05× speedup. 6/8 patterns under PRIMARY 50µs via typed entry** (was 4/8 on legacy at HEAD; was 0/8 at the bug-baseline). Three patterns are dramatically faster: `literal_simple` 5.62×, `alternation` 4.99×, `url_simple` 2.48×. The architectural reason is clear: every fully-typed-chain rule is now a sequence of `match_string` / `match_regex` / `parse_<inner>_typed()` calls that build `Vec<serde_json::Value>` directly, with no `ParseNode` allocation, no per-rule wrapper, no `Vec<ParseNode>` for sequences.
+
+### Why two patterns are still over 50µs
+- `character_class`: `class_body` rule has annotation `flatten($1)` (`UnifiedReturnAST::Identifier{name: "flatten"}` applied to `PositionalRef`), which stage 4b's annotation-shape support doesn't yet model — falls back to stage-1, which is now even worse than legacy because it pays serialization on top of legacy parse. **Result: typed regressed character_class from 86.8µs to 101.0µs.**
+- `anchor_complex`: 58.5µs is 17% over PRIMARY but still 1.74× faster than legacy. The remaining gap likely comes from one or two annotated rules in its parse tree falling back. Profiling would pinpoint exactly which.
+
+### Path to closing 8/8 PRIMARY
+- **Stage 4c**: extend `generate_typed_annotation_value_expr` to handle `Identifier{name}` as a function-call form (`flatten`, `extract_*`, etc. — the unified semantic AST has these as built-ins). Closes `character_class` regression by typing the `flatten($1)` annotation directly instead of falling back through legacy + serialize.
+- **Stage 4d**: extend the annotation-shape support to comparison expressions (`$1 != null`, etc. — these need a typed boolean) for the few remaining annotated rules. Pushes the rest of the regex grammar to fully typed.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds `generate_typed_value_expr` composer + helper emitters (`_v2` Sequence, Or, Quantified). `generate_typed_node_body` dispatcher now uses the composer for non-annotated shapes. `generate_typed_annotated_element_expr` simplified to dispatch through the composer.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: `make regex_parser_typed` regenerates with 174 shape-typed bodies + 20 stage-1 fallbacks; perf shows 1.38-5.62× speedup for 7 of 8 patterns; 6 of 8 under PRIMARY 50µs via typed entry.
+
 ## 2026-04-29 - Phase 2 M3 stage 4b: annotation-aware typed emit (codegen capability landed; perf regression alone, needs stage 5b to unlock)
 ### Achievement Summary
 Adds shape-typed body emit for rules with explicit return annotations (`return_scalar`, `return_object`, `return_array`). New helpers in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):

@@ -1,4 +1,95 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Phase 2 M3 stage 5b: generic shape composer — typed path delivers 1.4-5.6× speedups; 6/8 patterns under PRIMARY 50µs
+
+### What landed
+The slice that closes the typed-path perf benefit. New generic composer in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+```rust
+fn generate_typed_value_expr(
+    &self,
+    ast_node: &ASTNode,
+    rule_name: &str,
+    receiver: TokenStream,
+) -> Option<TokenStream> {
+    match ast_node {
+        ASTNode::Atom { value } => self.generate_typed_atom_value_expr(value, rule_name, receiver),
+        ASTNode::Sequence { elements } => self.generate_typed_sequence_value_expr_v2(elements, rule_name, receiver),
+        ASTNode::Or { alternatives } => self.generate_typed_or_value_expr(alternatives, rule_name, receiver),
+        ASTNode::Quantified { element, quantifier } => self.generate_typed_quantified_value_expr(element, quantifier, rule_name, receiver),
+        ASTNode::Lookahead { .. } => None,
+    }
+}
+```
+
+Each shape-specific helper recurses through the composer for inner shapes:
+- **Sequence**: builds `Vec<Value>`. For `?-Quantified` children, wraps in `try_parse(|p| { let parser = p; Ok(<inner via composer with parser receiver>) })` and falls back to `Value::Null`. For other children, calls the composer with the same receiver.
+- **Or**: emits a labeled block `'pgen_or_block:` containing one `try_parse` per alternative; first success breaks with the value, full failure `return Err(Backtrack)`.
+- **Quantified**: `?` returns value-or-Null; `*` builds `Value::Array` via `while let Some(v) = ... try_parse(...)`; `+` requires first match (no `try_parse`) then loops.
+
+Stages 2-5's per-shape body emitters are now dead code. The dispatcher (`generate_typed_node_body`) routes non-annotated rules through `generate_typed_value_expr` with `quote!{self}` as the receiver, then wraps in `Ok(...)`. Stage 4b's `generate_typed_annotated_element_expr` is also simplified to a one-line dispatch through the composer.
+
+### Architectural significance
+Composite shapes — `Sequence` with `Quantified-*-Sequence` inner (e.g. the regex `alternation` rule's `('|' alternative)*`), `Or` with `Sequence` alternatives, `Sequence` with non-`Atom` `Quantified` children — now reach the typed path. Until this slice, those rules fell back to legacy + `serde_json::to_value`, which broke the typed chain anywhere they appeared. After 5b the typed chain is unbroken from `parse_full_regex_typed` to leaves for ~90% of rules.
+
+### Coverage on the regex parser
+
+| typed body class      | stage 4b | stage 5b |
+|-----------------------|----------|----------|
+| Shape-typed (composer) | 147      | **174**  |
+| Stage-1 fallback       | 47       | 20       |
+
+174/194 = **90% coverage**. The 20 remaining fallbacks are annotated rules whose annotation forms stage 4b doesn't yet model — `flatten($1)` (function-call), `$1 != null` (comparison), etc. — plus a rare `Lookahead` rule.
+
+### Perf delta on the 8-pattern bug corpus
+Release, M4 Pro, mimalloc, --warmup 200, --samples 5000:
+
+| pattern         | legacy p50 | typed p50 | ratio (legacy/typed) | <50µs?   |
+|-----------------|------------|-----------|----------------------|----------|
+| literal_simple  | 15.2µs     | **2.7µs** | **5.62×**            | ✓        |
+| digit_sequence  | 37.4µs     | 27.1µs    | 1.38×                | ✓        |
+| character_class | 86.8µs     | 101.0µs   | 0.86×                | ✗ (-102%) |
+| alternation     | 35.7µs     | **7.2µs** | **4.99×**            | ✓        |
+| capture_groups  | 64.4µs     | 41.5µs    | 1.55×                | ✓        |
+| url_simple      | 32.7µs     | 13.2µs    | 2.48×                | ✓        |
+| email_basic     | 53.0µs     | 35.4µs    | 1.50×                | ✓        |
+| anchor_complex  | 102.0µs    | 58.5µs    | 1.74×                | ✗ (-17%) |
+
+**GeoMean 2.05× speedup. 6/8 patterns under PRIMARY 50µs via typed entry.**
+
+### Why the typed path is so much faster
+For a fully typed-chain rule (e.g. `literal_simple` parses through `parse_full_regex_typed → parse_regex_typed → parse_pattern_typed → parse_alternation_typed → parse_alternative_typed → parse_concatenation_typed → parse_piece_typed → parse_atom_typed → parse_literal_typed`), every method:
+- Calls `match_string` / `match_regex` directly or dispatches to the inner typed method.
+- Builds `Value::String` / `Value::Array` / `Value::Object` directly.
+- Allocates only the `Vec<Value>` / `Map<String, Value>` actually needed for the result.
+
+Compare to the legacy path:
+- Each method builds a `ParseNode { rule_name, content, span }`.
+- `ParseContent::Sequence(Vec<ParseNode>)` allocates per non-leaf node.
+- Per-element wrapper `ParseNode { rule_name: "element_N", content: ParseContent::Alternative(Box::new(inner)), span }` allocates once per element (Vec push + Box alloc + ParseNode struct).
+- `ParseContent::Alternative(Box<ParseNode>)` adds an extra Box per rule reference.
+- Post-parse return-annotation transforms walk the entire tree to build `Value::Object` / `Value::Array` shapes.
+
+The typed path skips the entire intermediate tree.
+
+### Why two patterns are still over PRIMARY 50µs
+- **`character_class`**: regressed from 86.8µs (legacy) to 101.0µs (typed) because the `class_body` rule has annotation `flatten($1)` — a function-call shape stage 4b's annotation emit doesn't model. The rule falls back to stage-1 (legacy + serialize), and the typed path above pays additional clone overhead on the way down. Stage 4c (handle `Identifier` annotation form as built-in function calls) closes this.
+- **`anchor_complex`**: 58.5µs is 8.5µs over PRIMARY but still 1.74× faster than legacy. Likely one or two annotated rules in its parse tree are still falling back — profiling would identify which. Stage 4d (extend annotation support to comparison expressions) likely closes it.
+
+### Path to 8/8 PRIMARY
+- **Stage 4c**: extend `generate_typed_annotation_value_expr` to handle `UnifiedReturnAST::Identifier { name }` as a built-in function call (`flatten` for arrays, `extract_*` for sub-extraction, etc.). Direct typed implementations.
+- **Stage 4d**: extend annotation support to comparison/conditional shapes (`$1 != null`, etc.) where applicable.
+- **Stage 6 (re-entry)**: once 4c+4d push fallbacks to ~zero, regenerate tracked `generated/regex_parser.rs` via `make regex_parser_typed` and decide whether to flip the default `regex_parser` target.
+- **M5**: bump `regex_parser_integration_contract` `1.1.31 → 1.2.0` with the typed entry point, coordinated with the RGX repo.
+
+### Files in this commit
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds the composer plus `_v2` Sequence emitter, Or value emitter, Quantified value emitter; dispatcher uses the composer; annotated-element emitter simplified to dispatch through the composer.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: `make regex_parser_typed` regenerates with 174 shape-typed bodies + 20 stage-1 fallbacks; perf shows 1.38-5.62× speedup for 7 of 8 patterns; 6 of 8 under PRIMARY 50µs via typed entry.
+
 ## 2026-04-29 - Phase 2 M3 stage 4b: annotation-aware typed emit (codegen capability, perf regression alone)
 
 ### What landed

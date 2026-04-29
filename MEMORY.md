@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-4b-annotation-aware-typed-emit)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-5b-generic-shape-composer-typed-path-delivers-perf-benefit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,23 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Phase 2 M3 stage 5b landed: generic shape composer in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_value_expr(ast_node, rule_name, receiver)` handles every non-annotated `ASTNode` shape recursively (Atom + Sequence + Or + Quantified + Lookahead). Stages 2-5's per-shape body emitters are subsumed; the dispatcher routes non-annotated rules through the composer. Stage 4b's element emitter also dispatches through it.
+- **Coverage 174/194 = 90%** on the regex grammar (was 147 after 4b). The remaining 20 fallbacks are annotated rules with shapes 4b doesn't model (`flatten($1)`, `$1 != null`) plus rare `Lookahead`.
+- **HUGE PERF WIN.** Typed path on the 8-pattern bug corpus (release, M4 Pro, mimalloc, --warmup 200 --samples 5000):
+  - literal_simple **2.7µs (5.62×)** ✓ / digit_sequence **27.1µs (1.38×)** ✓ / alternation **7.2µs (4.99×)** ✓ / capture_groups **41.5µs (1.55×)** ✓ / url_simple **13.2µs (2.48×)** ✓ / email_basic **35.4µs (1.50×)** ✓
+  - character_class 101.0µs (0.86×) ✗ — REGRESSION because `class_body`'s `flatten($1)` annotation falls back
+  - anchor_complex **58.5µs (1.74×)** ✗ but only 8.5µs over PRIMARY
+- **6/8 patterns under PRIMARY 50µs via typed entry** (was 4/8 on legacy at HEAD; was 0/8 at bug-baseline). GeoMean 2.05× speedup.
+- Default `make regex_parser` still uses legacy emit; tracked `generated/regex_parser.rs` byte-unchanged. Typed path opt-in via `make regex_parser_typed`.
+- Validation: 488 lib tests pass, clippy strict source pass.
+
+### Stage 4c plan (close character_class regression)
+- Extend `generate_typed_annotation_value_expr` to handle `UnifiedReturnAST::Identifier { name }` as a built-in function call (`flatten`, `extract_*`, etc. — the unified semantic AST has these). Closes the `class_body` rule's stage-1 fallback so character_class fully types and beats legacy.
+
+### Stage 4d plan (close anchor_complex over-50)
+- Extend annotation support to comparison expressions (`$1 != null`, etc.) for the few remaining annotated rules. Profile anchor_complex parse tree to identify which fallbacks are still hit; type those.
+
+### Phase 2 M3 stage 4b (previous slice) — annotation-aware typed emit
 - Phase 2 M3 stage 4b landed: annotation-aware typed emit. New `generate_typed_annotated_body` + `generate_typed_annotation_value_expr` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) handle rules with explicit `return_scalar` / `return_object` / `return_array` annotations. Body shape support: Sequence (N elements), Atom (1 element), Quantified at top (1 element with `?`/`*`/`+` over Atom). Annotation shape support: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, Object (recursive), Array, Passthrough. PropertyAccess / ArrayAccess / Spread / QuantifiedExtraction defer.
 - 147/194 shape-typed bodies (was 144). 3 more annotated rules (regex, pattern, piece) join the typed path.
 - **Honest perf result: typed is 0.94× geomean — ~6% SLOWER than legacy.** Reason: `parse_alternation_typed` (Sequence with Quantified-*-Sequence inner — composite shape) still falls back to legacy + serde_json::to_value. The annotation-transform work in regex/pattern/piece sits on top of that without removing any legacy work — strictly more cost.

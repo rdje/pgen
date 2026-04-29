@@ -743,19 +743,204 @@ impl AstBasedGenerator {
             return self.generate_typed_annotated_body(ast_node, rule_name);
         }
 
+        // Phase 2 M3 stage 5b: route non-annotated rules through the
+        // generic `generate_typed_value_expr` composer. The composer
+        // handles all five `ASTNode` shapes and recursively composes
+        // for nested non-Atom inners — the per-shape body emitters
+        // from stages 2-5 are now subsumed. `Lookahead` returns `None`
+        // from the composer and falls back to the stage-1 wrapper.
+        let expr = self.generate_typed_value_expr(ast_node, rule_name, quote! { self })?;
+        Some(quote! { Ok(#expr) })
+    }
+
+    /// Phase 2 M3 stage 5b: generic shape composer. Returns a
+    /// `serde_json::Value`-producing expression for any non-annotated
+    /// `ASTNode` shape, recursing into nested shapes. The `receiver`
+    /// parameter is the parser receiver used inside the expression
+    /// (`self` at top-level method bodies; `parser` inside `try_parse`
+    /// closures, matching the legacy `let parser = p;` shadowing
+    /// convention).
+    ///
+    /// This unifies the per-shape stages 2-5 emitters and unlocks
+    /// composite shapes (Quantified-* over Sequence, Or with Sequence
+    /// alternatives, Sequence with non-Atom Quantified children) by
+    /// delegating to itself for inner shapes. `Lookahead` returns
+    /// `None` for now — it's rare at the rule-body level and needs
+    /// separate semantics.
+    fn generate_typed_value_expr(
+        &self,
+        ast_node: &ASTNode,
+        rule_name: &str,
+        receiver: TokenStream,
+    ) -> Option<TokenStream> {
         match ast_node {
-            ASTNode::Atom { value } => self.generate_typed_atom_body(value, rule_name),
+            ASTNode::Atom { value } => {
+                self.generate_typed_atom_value_expr(value, rule_name, receiver)
+            }
             ASTNode::Sequence { elements } => {
-                self.generate_typed_sequence_body(elements, rule_name)
+                self.generate_typed_sequence_value_expr_v2(elements, rule_name, receiver)
             }
             ASTNode::Or { alternatives } => {
-                self.generate_typed_or_body(alternatives, rule_name)
+                self.generate_typed_or_value_expr(alternatives, rule_name, receiver)
             }
-            ASTNode::Quantified { element, quantifier } => {
-                self.generate_typed_quantified_body(element, quantifier, rule_name)
+            ASTNode::Quantified { element, quantifier } => self
+                .generate_typed_quantified_value_expr(
+                    element,
+                    quantifier,
+                    rule_name,
+                    receiver,
+                ),
+            ASTNode::Lookahead { .. } => None,
+        }
+    }
+
+    /// Stage 5b helper. Sequence value-expression emitter that
+    /// recurses into the composer for non-Atom children. Produces a
+    /// block expression yielding `Value::Array(child_typed_values)`.
+    /// Optional `?-Quantified` children are wrapped in `try_parse` and
+    /// produce `Value::Null` on miss; required children short-circuit
+    /// via `?` if their typed expression fails.
+    fn generate_typed_sequence_value_expr_v2(
+        &self,
+        elements: &[ASTNode],
+        rule_name: &str,
+        receiver: TokenStream,
+    ) -> Option<TokenStream> {
+        let count = elements.len();
+        let mut pushes: Vec<TokenStream> = Vec::with_capacity(count);
+        for elem in elements {
+            let push = match elem {
+                ASTNode::Quantified { element: inner, quantifier } if quantifier == "?" => {
+                    let inner_expr =
+                        self.generate_typed_value_expr(inner, rule_name, quote! { parser })?;
+                    quote! {
+                        let __pgen_oe = if let Some(v) = #receiver.try_parse(|p| {
+                            let parser = p;
+                            Ok::<serde_json::Value, ParseError>(#inner_expr)
+                        }) {
+                            v
+                        } else {
+                            serde_json::Value::Null
+                        };
+                        __pgen_seq_elements.push(__pgen_oe);
+                    }
+                }
+                _ => {
+                    let elem_expr =
+                        self.generate_typed_value_expr(elem, rule_name, receiver.clone())?;
+                    quote! {
+                        __pgen_seq_elements.push(#elem_expr);
+                    }
+                }
+            };
+            pushes.push(push);
+        }
+        Some(quote! {
+            {
+                let mut __pgen_seq_elements: Vec<serde_json::Value> =
+                    Vec::with_capacity(#count);
+                #(#pushes)*
+                serde_json::Value::Array(__pgen_seq_elements)
             }
-            // `Lookahead` is rare at rule-body level and is deferred to a
-            // separate slice once a real grammar use case surfaces.
+        })
+    }
+
+    /// Stage 5b helper. Or value-expression emitter. Tries each
+    /// alternative inside `try_parse(|p| { let parser = p; … })`; the
+    /// first alternative whose typed expression succeeds yields its
+    /// value via `break`. If every alternative fails, the expression
+    /// returns `ParseError::Backtrack { position }` from the enclosing
+    /// function/closure — that's the same semantics PEG alternation
+    /// has when no branch matches.
+    fn generate_typed_or_value_expr(
+        &self,
+        alternatives: &[ASTNode],
+        rule_name: &str,
+        receiver: TokenStream,
+    ) -> Option<TokenStream> {
+        let mut tries: Vec<TokenStream> = Vec::with_capacity(alternatives.len());
+        for alt in alternatives {
+            let alt_expr =
+                self.generate_typed_value_expr(alt, rule_name, quote! { parser })?;
+            tries.push(quote! {
+                if let Some(__pgen_av) = #receiver.try_parse(|p| {
+                    let parser = p;
+                    Ok::<serde_json::Value, ParseError>(#alt_expr)
+                }) {
+                    break 'pgen_or_block __pgen_av;
+                }
+            });
+        }
+        Some(quote! {
+            'pgen_or_block: {
+                #(#tries)*
+                return Err(ParseError::Backtrack {
+                    position: #receiver.position,
+                });
+            }
+        })
+    }
+
+    /// Stage 5b helper. Quantified value-expression emitter for `?`,
+    /// `*`, `+` (over any inner shape via the composer). `{n,m}` and
+    /// other quantifier forms return `None`.
+    fn generate_typed_quantified_value_expr(
+        &self,
+        element: &ASTNode,
+        quantifier: &str,
+        rule_name: &str,
+        receiver: TokenStream,
+    ) -> Option<TokenStream> {
+        match quantifier {
+            "?" => {
+                let inner =
+                    self.generate_typed_value_expr(element, rule_name, quote! { parser })?;
+                Some(quote! {
+                    if let Some(__pgen_qv) = #receiver.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#inner)
+                    }) {
+                        __pgen_qv
+                    } else {
+                        serde_json::Value::Null
+                    }
+                })
+            }
+            "*" => {
+                let inner =
+                    self.generate_typed_value_expr(element, rule_name, quote! { parser })?;
+                Some(quote! {
+                    {
+                        let mut __pgen_qe: Vec<serde_json::Value> = Vec::new();
+                        while let Some(v) = #receiver.try_parse(|p| {
+                            let parser = p;
+                            Ok::<serde_json::Value, ParseError>(#inner)
+                        }) {
+                            __pgen_qe.push(v);
+                        }
+                        serde_json::Value::Array(__pgen_qe)
+                    }
+                })
+            }
+            "+" => {
+                let inner_first =
+                    self.generate_typed_value_expr(element, rule_name, receiver.clone())?;
+                let inner_loop =
+                    self.generate_typed_value_expr(element, rule_name, quote! { parser })?;
+                Some(quote! {
+                    {
+                        let mut __pgen_qe: Vec<serde_json::Value> = Vec::new();
+                        __pgen_qe.push(#inner_first);
+                        while let Some(v) = #receiver.try_parse(|p| {
+                            let parser = p;
+                            Ok::<serde_json::Value, ParseError>(#inner_loop)
+                        }) {
+                            __pgen_qe.push(v);
+                        }
+                        serde_json::Value::Array(__pgen_qe)
+                    }
+                })
+            }
             _ => None,
         }
     }
@@ -839,96 +1024,15 @@ impl AstBasedGenerator {
     /// Per-element typed expression for stage 4b parse phase. Returns
     /// an expression of type `serde_json::Value` (or `?`-propagating
     /// to `ParseError`). Each element corresponds to one positional
-    /// `$N` slot.
+    /// `$N` slot. Stage 5b: dispatches through the generic
+    /// `generate_typed_value_expr` composer, so any inner shape (Atom,
+    /// Sequence, Or, Quantified) is handled.
     fn generate_typed_annotated_element_expr(
         &self,
         element: &ASTNode,
         rule_name: &str,
     ) -> Option<TokenStream> {
-        match element {
-            ASTNode::Atom { value } => {
-                self.generate_typed_atom_value_expr(value, rule_name, quote! { self })
-            }
-            ASTNode::Quantified { element: inner, quantifier } if quantifier == "?" => {
-                let inner_expr = self.generate_typed_annotated_element_expr_with_receiver(
-                    inner,
-                    rule_name,
-                    quote! { parser },
-                )?;
-                Some(quote! {
-                    if let Some(__pgen_qv) = self.try_parse(|p| {
-                        let parser = p;
-                        Ok::<serde_json::Value, ParseError>(#inner_expr)
-                    }) { __pgen_qv } else { serde_json::Value::Null }
-                })
-            }
-            ASTNode::Quantified { element: inner, quantifier } if quantifier == "*" => {
-                let inner_expr = self.generate_typed_annotated_element_expr_with_receiver(
-                    inner,
-                    rule_name,
-                    quote! { parser },
-                )?;
-                Some(quote! {
-                    {
-                        let mut __pgen_qe: Vec<serde_json::Value> = Vec::new();
-                        while let Some(v) = self.try_parse(|p| {
-                            let parser = p;
-                            Ok::<serde_json::Value, ParseError>(#inner_expr)
-                        }) {
-                            __pgen_qe.push(v);
-                        }
-                        serde_json::Value::Array(__pgen_qe)
-                    }
-                })
-            }
-            ASTNode::Quantified { element: inner, quantifier } if quantifier == "+" => {
-                let inner_expr_self = self.generate_typed_annotated_element_expr_with_receiver(
-                    inner,
-                    rule_name,
-                    quote! { self },
-                )?;
-                let inner_expr_parser = self.generate_typed_annotated_element_expr_with_receiver(
-                    inner,
-                    rule_name,
-                    quote! { parser },
-                )?;
-                Some(quote! {
-                    {
-                        let mut __pgen_qe: Vec<serde_json::Value> = Vec::new();
-                        __pgen_qe.push(#inner_expr_self);
-                        while let Some(v) = self.try_parse(|p| {
-                            let parser = p;
-                            Ok::<serde_json::Value, ParseError>(#inner_expr_parser)
-                        }) {
-                            __pgen_qe.push(v);
-                        }
-                        serde_json::Value::Array(__pgen_qe)
-                    }
-                })
-            }
-            // Other shapes — defer (Or, Sequence inside a Sequence
-            // element, Lookahead, etc.).
-            _ => None,
-        }
-    }
-
-    /// Like `generate_typed_annotated_element_expr` but lets the caller
-    /// supply the receiver (`self` at top-level, `parser` inside
-    /// `try_parse` closures). Used by the `?`/`*`/`+` quantified arms
-    /// of `generate_typed_annotated_element_expr` when recursing into
-    /// the inner element.
-    fn generate_typed_annotated_element_expr_with_receiver(
-        &self,
-        element: &ASTNode,
-        rule_name: &str,
-        receiver: TokenStream,
-    ) -> Option<TokenStream> {
-        match element {
-            ASTNode::Atom { value } => {
-                self.generate_typed_atom_value_expr(value, rule_name, receiver)
-            }
-            _ => None,
-        }
+        self.generate_typed_value_expr(element, rule_name, quote! { self })
     }
 
     /// Stage 4b build-phase emitter. Walks the parsed return-annotation
