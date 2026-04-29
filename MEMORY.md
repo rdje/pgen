@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: roll-back-phase-2-m3-restore-parser-agnostic-rust-ast-pipeline)
+Last updated: 2026-04-29 (+0200, task: slice-1-parser-agnostic-extensibility-mechanism-in-ast-pipeline)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- **Phase 2 M3 fully rolled back.** The Rust AST pipeline is restored to the post-Optim-#16 state. Owner's standing rule was violated by Phase 2 M3: stages 4b / 4c / 5b put parser-specific reasoning inside `ast_based_generator.rs`, and the typed-emit codegen produced parser bodies that bypass `with_semantic_runtime_rule_transaction` — meaning regenerating SV / VHDL with `--inline-annotations` would silently break their predicates / fact emission. Even though tracked SV / VHDL parsers were unaffected on disk, the latent risk was in the pipeline. The owner's rule covers latent risk.
+- **Slice 1 of the redesign landed.** Added a parser-agnostic extensibility mechanism inside the Rust AST pipeline at [rust/src/ast_pipeline/parser_hooks.rs](rust/src/ast_pipeline/parser_hooks.rs): `ParserHooks` trait + `ParserHookRegistry` keyed on EBNF grammar name + `ParserImplContext`. `AstBasedGenerator` carries an optional `parser_hook_registry`; after the legacy parser impl block, the pipeline asks the registry whether a handler is registered for the grammar currently being processed and appends `extend_parser_impl` output if so. The pipeline never names a specific grammar.
+- **Verified byte-identical output:** `make regex_parser` SHA256 = `88d3e04fe1ffde36b3056debcd25ca450167d203a4b071aaeb2f87dffcfc7d07` (matches pre-abstraction baseline). `git diff` empty against tracked `generated/regex_parser.rs`. SV / VHDL / annotation / RTL parsers byte-unchanged.
+- 491 lib tests pass (was 488; +3 from new parser_hooks module). clippy strict source pass. Build clean.
+- **No parser-specific code anywhere yet.** Next slice writes the regex hook in `rust/src/parser_hooks/regex.rs` (outside the pipeline). The hook will preserve `with_semantic_runtime_rule_transaction` and `memoized_call` semantics. The M2 differential gate lands alongside the regex hook to prove byte-equivalent JSON before any closure claim.
+- Registration of hooks happens at the binary boundary (e.g. `rust/src/bin/pgen_ast.rs`) — NEVER inside the pipeline.
+
+### Earlier in this session — Phase 2 M3 fully rolled back. The Rust AST pipeline is restored to the post-Optim-#16 state. Owner's standing rule was violated by Phase 2 M3: stages 4b / 4c / 5b put parser-specific reasoning inside `ast_based_generator.rs`, and the typed-emit codegen produced parser bodies that bypass `with_semantic_runtime_rule_transaction` — meaning regenerating SV / VHDL with `--inline-annotations` would silently break their predicates / fact emission. Even though tracked SV / VHDL parsers were unaffected on disk, the latent risk was in the pipeline. The owner's rule covers latent risk.
 - Reverted commits: `139d52b` (5b), `a25c71a` (4b), `b3b154f` (6+7), `b6d7f28` (5), `0d8518a` (4), `1381e9b` (3), `b091590` (2), `4431cae` (1), `28bf848` (formal scoping doc-only). Stage 4c (`1374ff2`) and its earlier revert (`3c4f127`) cancel out. Differential-gate scaffolding (uncommitted) discarded.
 - **`git diff 5cd7219 -- rust/src/ast_pipeline/ast_based_generator.rs rust/src/bin/regex_perf_probe.rs rust/Cargo.toml rust/Makefile` is empty** — pipeline source is byte-identical to post-Optim-#16. Tracked parsers byte-unchanged. 488 lib tests pass. clippy strict source pass.
 

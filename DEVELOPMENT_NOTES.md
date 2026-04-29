@@ -1,4 +1,107 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Slice 1: parser-agnostic extensibility mechanism in the Rust AST pipeline
+
+### What landed
+[rust/src/ast_pipeline/parser_hooks.rs](rust/src/ast_pipeline/parser_hooks.rs) — new module containing the abstraction that lets parser-specific code (which lives outside `rust/src/ast_pipeline/`) register handlers for particular pipeline phases. The pipeline retrieves handlers by EBNF grammar name; default behavior runs when no handler is registered.
+
+### Trait and registry shape
+
+```rust
+pub trait ParserHooks: Send + Sync {
+    fn grammar_name(&self) -> &'static str;
+    fn extend_parser_impl(&self, _ctx: &ParserImplContext<'_>) -> Option<TokenStream> { None }
+}
+
+#[derive(Default)]
+pub struct ParserHookRegistry {
+    hooks: HashMap<String, Box<dyn ParserHooks>>,
+}
+
+pub struct ParserImplContext<'a> {
+    pub grammar_name: &'a str,
+    pub parser_name: &'a Ident,
+    pub grammar_tree: &'a HashMap<String, ASTNode>,
+    pub rule_order: &'a [String],
+    pub entry_rule: &'a str,
+    pub annotations: Option<&'a Annotations>,
+    pub filename: &'a str,
+}
+```
+
+All hook methods have default no-op implementations. New hook phases can be added without breaking existing handlers — they inherit the default and simply opt out of phases they don't need.
+
+### Pipeline integration
+
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+```rust
+pub struct AstBasedGenerator {
+    // ... existing fields ...
+    pub parser_hook_registry: Option<ParserHookRegistry>,
+}
+```
+
+After the legacy parser impl block is generated, the pipeline asks the registry whether a handler is registered for the grammar currently being processed:
+
+```rust
+let extension_impl = if let Some(registry) = &self.parser_hook_registry {
+    if let Some(hooks) = registry.get(&self.grammar_name) {
+        let ctx = ParserImplContext { /* ... */ };
+        hooks.extend_parser_impl(&ctx).unwrap_or_else(TokenStream::new)
+    } else {
+        TokenStream::new()
+    }
+} else {
+    TokenStream::new()
+};
+```
+
+When `parser_hook_registry` is `None` (default) OR no handler is registered for `grammar_name`, `extension_impl` is empty and the emitted parser is byte-identical to the pre-registry baseline.
+
+The pipeline NEVER names a specific grammar in code. It forwards the runtime grammar name (already stored as `self.grammar_name`) to the registry's `get` method. The registry returns `Option<&dyn ParserHooks>` opaquely.
+
+### Load-bearing property: byte-identity verification
+
+After landing the abstraction, regenerated tracked parsers must produce byte-identical output to before. Verification:
+
+```
+$ make -C rust SHELL=/bin/bash regex_parser
+$ shasum -a 256 generated/regex_parser.rs
+88d3e04fe1ffde36b3056debcd25ca450167d203a4b071aaeb2f87dffcfc7d07  generated/regex_parser.rs
+$ # baseline (captured before this commit):
+88d3e04fe1ffde36b3056debcd25ca450167d203a4b071aaeb2f87dffcfc7d07  generated/regex_parser.rs
+$ git diff -- generated/regex_parser.rs
+(empty)
+```
+
+Match. The abstraction has not introduced parser-specific behavior. SV / VHDL / annotation / RTL parsers are unaffected for the same reason — no handler is registered for any of them, so the pipeline's default emit path runs unchanged.
+
+### Why the trait has only one method today
+The simplest hook surface that supports the regex perf use case (parallel typed entry-point methods) is the `extend_parser_impl` extension. As more grammars or use cases need different hook phases, the trait grows — each new method has a default no-op implementation, so existing handlers don't break. Examples I anticipate but haven't added:
+- `pre_codegen_rule(ctx) -> Option<RuleTransform>` for parser-specific rule rewrites.
+- `override_emit_rule_method(ctx) -> Option<TokenStream>` for replacing a rule's emit entirely.
+- `extend_imports(ctx) -> Option<TokenStream>` for adding `use` statements the handler's code needs.
+
+These don't belong in this slice; they get added when a real handler needs them.
+
+### What this slice does NOT do
+- No regex-specific code. None.
+- No typed-emit infrastructure. None.
+- No differential gate. (Lands with the regex hook, slice 2.)
+- No `--inline-annotations` flag changes. (The flag is from the M1 skeleton that pre-dates this rollback work; it's still parser-agnostic and stays as-is.)
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 491 passed / 0 failed / 21 ignored (was 488; +3 from the new module's tests).
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Regex parser regen byte-identical to baseline (SHA256 match).
+- Tracked SV / VHDL / annotation / RTL parsers byte-unchanged.
+
+### Files
+- [rust/src/ast_pipeline/parser_hooks.rs](rust/src/ast_pipeline/parser_hooks.rs) — new (~180 lines + 3 tests).
+- [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) — module declaration + re-exports.
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — registry field on `AstBasedGenerator`, registry lookup at the parser-impl emit site, struct-literal updates at test sites.
+
 ## 2026-04-29 - Roll back Phase 2 M3 — parser-specific code does not belong in the Rust AST pipeline
 
 ### Why this entry exists

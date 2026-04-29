@@ -3409,6 +3409,7 @@ pub mod ast_generator_direct;
 pub mod ast_return_transform;
 pub mod grouped_quantifier_parser;
 pub mod mutual_recursion_handler;
+pub mod parser_hooks;
 pub mod return_annotation_handler;
 pub mod semantic_directive_registry;
 pub mod semantic_runtime;
@@ -3446,5 +3447,6 @@ pub use semantic_runtime::{
 pub use semantic_transform::{
     CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,
 };
+pub use parser_hooks::{ParserHookRegistry, ParserHooks, ParserImplContext};
 pub use unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 pub use unified_semantic_ast::{UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue};

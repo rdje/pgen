@@ -4,17 +4,18 @@
 
 use super::Logger;
 use crate::ast_pipeline::{
-    ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
-    SemanticBranchPolicy, SemanticRuntimeDirective, SemanticRuntimeValue, SemanticScopeKind,
-    SemanticTokenClass, SemanticValueConstraints, TokenValue, UnifiedSemanticAST,
-    UnifiedSemanticProperty, UnifiedSemanticValue, ast_return_transform::AstReturnTransformer,
-    compile_semantic_runtime_annotations, extract_semantic_directive, normalize_semantic_scalar,
-    parse_canonical_transform_expression, parse_semantic_bool, parse_semantic_branch_priorities,
-    parse_semantic_charset, parse_semantic_constraint_expression,
-    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
-    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
-    parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_pattern,
-    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
+    ASTNode, ASTValue, Annotations, BranchAnnotation, ParserHookRegistry, ParserImplContext,
+    SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy, SemanticRuntimeDirective,
+    SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
+    TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
+    ast_return_transform::AstReturnTransformer, compile_semantic_runtime_annotations,
+    extract_semantic_directive, normalize_semantic_scalar, parse_canonical_transform_expression,
+    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
+    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
+    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
+    parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
+    parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_string_list,
+    parse_semantic_token_class,
 };
 use anyhow::Result;
 use prettyplease;
@@ -48,6 +49,21 @@ pub struct AstBasedGenerator {
     /// replaces the body with truly inline shape-emit logic per the rule's return
     /// annotation. Default false: generator emit is unchanged from prior behavior.
     pub inline_annotations: bool,
+    /// Optional registry of parser-specific hook handlers. The pipeline
+    /// queries this registry by EBNF grammar name at extension points
+    /// (currently: after the legacy parser impl block is emitted, the
+    /// pipeline asks the registry whether anyone wants to append
+    /// additional impl items). When `None` or when no handler is
+    /// registered for `grammar_name`, the pipeline falls through to its
+    /// default emit and the generated parser is byte-identical to the
+    /// pre-registry baseline.
+    ///
+    /// **The registry contract is parser-agnostic.** This field's name,
+    /// type, and value MUST NOT carry any reasoning about which
+    /// grammars are "safe" or "unsafe" to extend; the registry is just
+    /// an opaque dispatch table. Parser-specific code lives outside
+    /// `rust/src/ast_pipeline/`.
+    pub parser_hook_registry: Option<ParserHookRegistry>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -169,6 +185,7 @@ impl AstBasedGenerator {
             branch_return_annotations: HashMap::new(),
             enable_debug: true,
             inline_annotations: false,
+            parser_hook_registry: None,
         }
     }
 
@@ -312,6 +329,36 @@ impl AstBasedGenerator {
             TokenStream::new()
         };
 
+        // Parser-agnostic extension point: ask the parser-hook registry
+        // (if any) whether a handler is registered for this grammar
+        // name and wants to append additional impl items. The pipeline
+        // never names a specific grammar; it only forwards the
+        // grammar name to the registry's lookup. When no registry is
+        // configured, or no handler is registered for this grammar,
+        // `extension_impl` is empty and the emitted parser is
+        // byte-identical to the pre-registry baseline. See
+        // [`crate::ast_pipeline::parser_hooks`] for the contract.
+        let extension_impl = if let Some(registry) = &self.parser_hook_registry {
+            if let Some(hooks) = registry.get(&self.grammar_name) {
+                let ctx = ParserImplContext {
+                    grammar_name: self.grammar_name.as_str(),
+                    parser_name: &parser_name,
+                    grammar_tree,
+                    rule_order,
+                    entry_rule: entry_rule.as_str(),
+                    annotations: self.annotations.as_ref(),
+                    filename,
+                };
+                hooks
+                    .extend_parser_impl(&ctx)
+                    .unwrap_or_else(TokenStream::new)
+            } else {
+                TokenStream::new()
+            }
+        } else {
+            TokenStream::new()
+        };
+
         // Combine everything
         let result = quote! {
             #imports
@@ -319,6 +366,7 @@ impl AstBasedGenerator {
             #parser_struct
             #parser_impl
             #typed_parser_impl
+            #extension_impl
             #tests
         };
 
@@ -5420,6 +5468,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         }
     }
 
@@ -5449,6 +5498,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         }
     }
 
@@ -5496,6 +5546,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         }
     }
 
@@ -5592,6 +5643,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         }
     }
 
@@ -5654,6 +5706,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         }
     }
 
@@ -5830,6 +5883,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let logic = generator
@@ -6451,6 +6505,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         assert_eq!(
@@ -6480,6 +6535,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
@@ -6506,6 +6562,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         assert_eq!(
@@ -6567,6 +6624,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let (
@@ -6638,6 +6696,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let logic = generator
@@ -6693,6 +6752,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let logic = generator
@@ -6717,6 +6777,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator.generate_types().to_string();
@@ -6742,6 +6803,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator.generate_parse_method("start").to_string();
@@ -6782,6 +6844,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator
@@ -6836,6 +6899,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let policy = generator.rule_coverage_target_policy("stmt");
@@ -6853,6 +6917,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -6914,6 +6979,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let method = generator
@@ -6953,6 +7019,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator
@@ -7006,6 +7073,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let policy = generator.rule_negative_case_policy("stmt");
@@ -7023,6 +7091,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -7079,6 +7148,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let method = generator
@@ -7115,6 +7185,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator
@@ -7162,6 +7233,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let policy = generator.rule_deterministic_partition_policy("stmt");
@@ -7179,6 +7251,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -7250,6 +7323,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let method = generator
@@ -7285,6 +7359,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator
@@ -7351,6 +7426,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let logic = generator
@@ -7384,6 +7460,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator
@@ -7425,6 +7502,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         assert_eq!(
@@ -7463,6 +7541,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         assert_eq!(
@@ -7501,6 +7580,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let logic = generator
@@ -7555,6 +7635,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let logic = generator
@@ -7600,6 +7681,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let logic = generator
@@ -7649,6 +7731,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -7692,6 +7775,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -7741,6 +7825,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let method = generator
@@ -7782,6 +7867,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator
@@ -7814,6 +7900,7 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             inline_annotations: false,
             enable_debug: false,
+            parser_hook_registry: None,
         };
 
         let rendered = generator
