@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-6-and-7-typed-path-wiring-and-perf-measurement)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-4b-annotation-aware-typed-emit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,17 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Phase 2 M3 stage 4b landed: annotation-aware typed emit. New `generate_typed_annotated_body` + `generate_typed_annotation_value_expr` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) handle rules with explicit `return_scalar` / `return_object` / `return_array` annotations. Body shape support: Sequence (N elements), Atom (1 element), Quantified at top (1 element with `?`/`*`/`+` over Atom). Annotation shape support: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, Object (recursive), Array, Passthrough. PropertyAccess / ArrayAccess / Spread / QuantifiedExtraction defer.
+- 147/194 shape-typed bodies (was 144). 3 more annotated rules (regex, pattern, piece) join the typed path.
+- **Honest perf result: typed is 0.94× geomean — ~6% SLOWER than legacy.** Reason: `parse_alternation_typed` (Sequence with Quantified-*-Sequence inner — composite shape) still falls back to legacy + serde_json::to_value. The annotation-transform work in regex/pattern/piece sits on top of that without removing any legacy work — strictly more cost.
+- **Stage 5b (generic shape composer) is REQUIRED for the typed path to deliver any perf benefit.** Until it lands, the typed path is a net regression on the regex grammar.
+- Default `make regex_parser` target still uses legacy emit; tracked `generated/regex_parser.rs` is byte-unchanged. The typed path is opt-in via `make regex_parser_typed` for measurement only.
+- Validation: 488 lib tests pass, clippy strict source pass, build clean.
+
+### Stage 5b plan (next slice — REQUIRED for perf)
+Implement generic `generate_typed_value_expr(ast_node, rule_name, receiver)` that handles any non-annotated `ASTNode` shape recursively. Refactor stages 2-5 to dispatch through it (or recurse into it for non-Atom inners). Composite-shape support — Quantified-`*` over Sequence (the regex `alternation` rule), Or with Sequence alternatives, Sequence with non-Atom Quantified children — completes the typed chain so `parse_full_regex_typed` doesn't fall back through legacy + serialize.
+
+### Phase 2 M3 stages 6+7 (previous slice, kept) — typed-path wiring + perf measurement
 - Phase 2 M3 stages 6+7 landed: typed-path wiring + perf measurement. Adds `make regex_parser_typed` target (regenerates with `--inline-annotations`) and `phase_2_typed_emit_probe` Cargo feature that exposes a typed measurement column in `regex_perf_probe`. Default `make regex_parser` and default cargo build are byte-unchanged; tracked `generated/regex_parser.rs` stays on legacy emit.
 - Loosened the typed-emit dispatcher gate to only block rules with **explicit non-`None`** branch return annotations (was: any `branch_return_annotations.contains_key`). Implicit `-> $1` defaults are identity-passthrough and match the typed emit semantically, so they should not gate.
 - **Result on the 8-pattern bug corpus: typed = ~1.0× legacy. No perf gain at this stage.** Annotated rules at the top of the parse (`regex`, `pattern`, `piece` — three of the eight `@semantic_value`/`return_*`-annotated rules) all fall back through `legacy + serde_json::to_value`, so the typed path does the same legacy parse work and adds the serialization step on top. The deeper-tree typed methods never execute because their parents are stage-1 fallback.

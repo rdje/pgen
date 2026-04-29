@@ -1,4 +1,93 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 stage 4b: annotation-aware typed emit (codegen capability landed; perf regression alone, needs stage 5b to unlock)
+### Achievement Summary
+Adds shape-typed body emit for rules with explicit return annotations (`return_scalar`, `return_object`, `return_array`). New helpers in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+- `generate_typed_annotated_body(ast_node, rule_name)` — entry point; resolves the rule's branch-0 annotation, parses each top-level body element into `__pgen_v<i>` locals, then walks the parsed annotation AST to build a `serde_json::Value` directly.
+- `generate_typed_annotated_element_expr(element, rule_name)` and a `_with_receiver` variant — emit the per-element typed expression. Handles `Atom`, `?-Quantified Atom`, `*-Quantified Atom`, `+-Quantified Atom`.
+- `generate_typed_annotation_value_expr(ast, num_elements)` — walks `UnifiedReturnAST` and emits `Value`-building code for `PositionalRef`, `StringLiteral`, `NumberLiteral`, `BooleanLiteral`, `Object`, `Array`, and `Passthrough`. `PropertyAccess` / `ArrayAccess` / `Spread` / `QuantifiedExtraction` defer (return None → stage-1 fallback).
+
+Sample annotated typed body produced for the regex `piece` rule with annotation `{type: "piece", atom: $1, quantifier: $2}`:
+
+```rust
+pub fn parse_piece_typed(&mut self) -> ParseResult<serde_json::Value> {
+    let __pgen_v1: serde_json::Value = self.parse_atom_typed()?;
+    let __pgen_v2: serde_json::Value = if let Some(__pgen_qv) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_quantifier_typed()?)
+    }) { __pgen_qv } else { serde_json::Value::Null };
+    Ok({
+        let mut __pgen_obj = serde_json::Map::new();
+        __pgen_obj.insert("atom".to_string(), __pgen_v1.clone());
+        __pgen_obj.insert("quantifier".to_string(), __pgen_v2.clone());
+        __pgen_obj.insert("type".to_string(), serde_json::Value::String("piece".to_string()));
+        serde_json::Value::Object(__pgen_obj)
+    })
+}
+```
+
+Same shape the legacy post-parse transform produces today, but built directly on the typed path with no `ParseNode` round-trip.
+
+### Effect on the regex parser
+
+| typed body class                                    | stage 5 | stage 4b |
+|-----------------------------------------------------|---------|----------|
+| Shape-typed (Atom/Sequence/Or/Quantified/Annotated) | 144     | **147**  |
+| Stage-1 fallback                                    | 50      | 47       |
+| Total                                               | 194     | 194      |
+
+3 more annotated rules (regex, pattern, piece) join the typed path at this commit. The other annotated rules' annotations use shapes stage 4b doesn't yet cover (e.g. `flatten($1)` is a function-call form, `$1 != null` is a comparison) — those defer.
+
+### Honest perf result: stage 4b alone is a regression
+Release, M4 Pro, mimalloc, --warmup 200 --samples 5000, typed path:
+
+| pattern         | typed p50 | ratio (legacy/typed) |
+|-----------------|-----------|----------------------|
+| literal_simple  | 16.3µs    | 0.87×                |
+| digit_sequence  | 39.9µs    | 0.96×                |
+| character_class | 88.8µs    | 0.98×                |
+| alternation     | 44.5µs    | 0.83×                |
+| capture_groups  | 67.0µs    | 0.98×                |
+| url_simple      | 35.8µs    | 0.94×                |
+| email_basic     | 56.3µs    | 0.97×                |
+| anchor_complex  | 106.4µs   | 0.99×                |
+
+GeoMean ~0.94× (typed is **slower than legacy** by ~6%).
+
+### Why it's a regression
+Tracing `parse_full_regex_typed`'s call graph after stage 4b:
+
+```
+parse_full_regex_typed
+  → parse_regex_typed (TYPED via 4b: parses pattern? + builds {type, pattern} object)
+    → parse_pattern_typed (TYPED via 4b: $1 passthrough)
+      → parse_alternation_typed (STAGE-1 FALLBACK — Sequence with Quantified-*-Sequence inner)
+        → parse_alternation (LEGACY)
+          → builds full ParseNode tree (the actual parse work happens here)
+        → serde_json::to_value(&node) — extra serialization
+    → annotation transform: Value::Object built from the serialized tree's clone
+  → annotation transform: Value::Object built from the serialized tree's clone
+```
+
+The work above `parse_alternation_typed` is now typed, but `parse_alternation_typed` still falls back to legacy + serialization (which builds the full `ParseNode` tree the typed path was supposed to avoid). Stage 4b adds annotation-transform work on top of the legacy work — strictly more cost — without removing any legacy work.
+
+### Path forward — stage 5b is REQUIRED for any perf benefit
+Stage 5b adds the generic shape composer that handles non-Atom inners inside Sequence / Or / Quantified. That makes `parse_alternation_typed` truly typed (the `('|' alternative)*` becomes a typed loop building `Vec<Value>`), eliminating the legacy + serialization step.
+
+Until 5b lands, the typed path is a net regression on the regex grammar. The default `make regex_parser` target still uses legacy emit, so tracked `generated/regex_parser.rs` is unaffected by this commit; only `make regex_parser_typed` exercises the typed path, and only when explicitly invoked for measurement.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds `generate_typed_annotated_body`, `generate_typed_annotated_element_expr`, `generate_typed_annotated_element_expr_with_receiver`, `generate_typed_annotation_value_expr`. Updates `generate_typed_node_body` dispatcher to route annotated rules through the new typed-annotated path. Adds `UnifiedReturnAST` to the imports.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: `make regex_parser_typed` regenerates with 147 shape-typed bodies (was 144) + 47 stage-1 fallbacks (was 50). Perf is regression vs legacy until stage 5b lands.
+
+### Stage 5b plan (next slice — REQUIRED for perf benefit)
+Implement a generic `generate_typed_value_expr(ast_node, rule_name, receiver)` that handles any non-annotated `ASTNode` shape recursively. Refactor stages 2-5's per-shape emitters to dispatch through it (or recurse into it for non-Atom inners). The composite-shape support — Quantified-`*` over Sequence (the regex `alternation` rule), Or with Sequence alternatives, etc. — pushes coverage above ~95% AND completes the chain so the typed entry point doesn't fall back through legacy + serialize.
+
 ## 2026-04-29 - Phase 2 M3 stage 6+7: typed-path wiring + perf measurement (typed = ~1.0× legacy at 74% coverage; stage 4b is the actual perf unlock)
 ### Achievement Summary
 This commit lands the wiring + measurement pieces of Phase 2 M3 and reports the honest perf result: at the current 74% shape-typed coverage, the typed entry-point measures **~1.0× legacy on the regex bug corpus** — neither faster nor slower. The annotated rules at the top of the regex parse (`regex`, `pattern`, `piece` — three of the eight rules with explicit `@semantic_value` / `return_*` annotations) all fall back to the stage-1 wrapper `legacy parse + serde_json::to_value(&node)`, which means the typed entry point does the same legacy parse work and adds the serialization step on top. Even though the deeper-tree typed methods (e.g. `parse_atom_typed`) bypass `ParseNode`, they're dominated by the upstream legacy path that's still being executed for the annotated spine.
