@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 6: port M3 stage 2 (typed Atom body emit) into the regex hook
+
+### What landed
+The rolled-back Phase 2 M3 stage-2 logic (commit `b091590`) re-homed in `rust/src/parser_hooks/regex.rs`. The hook's per-rule typed-method emit now dispatches through `generate_typed_node_body`: for non-annotated `ASTNode::Atom` rules, it returns shape-typed body code that bypasses `ParseNode` allocation; for everything else (annotated rules, other AST shapes), it returns `None` and the caller falls back to the slice-2 passthrough body.
+
+### Stage 2's actual perf footprint
+Slice 6 numbers vs slice 4:
+
+```
+pattern              slice 4 typed    slice 6 typed    delta
+literal_simple              34,417           37,916    +3,499
+digit_sequence              47,042           46,875      -167
+character_class            105,375          103,666    -1,709
+alternation                 49,167           47,459    -1,708
+capture_groups              83,292           83,000      -292
+url_simple                  42,333           43,167      +834
+email_basic                 63,833           65,083    +1,250
+anchor_complex             129,167          129,000      -167
+```
+
+Movement is within noise on every pattern. The reason matches M3's history: stage 2's typed-atom methods are emitted but never exercised on the hot path. Their callers — Sequence/Or/Quantified rules — still go through the passthrough body which calls *legacy* `parse_<rule>`. The legacy method builds the full `ParseNode` tree itself, never reaching the new typed-atom methods. Stage 2 emit is connecting infrastructure; the connecting tissue arrives in slice 7+ when Sequence/Or/Quantified emit start composing typed-atom values into typed Sequence/Array values via `parse_<inner>_typed` recursion.
+
+### Byte-equivalence verified
+The differential gate's 8/8 result confirms that for the 22 non-annotated regex grammar Atom rules where stage 2 fires, the typed body output matches `legacy.content.to_json_value()` byte-for-byte. The shape was verified via:
+- `quoted_string` Atom → typed emit produces `Value::String(matched)`. Legacy path builds `ParseContent::Terminal(matched_str)`, and `to_json_value()` for `Terminal` is exactly `Value::String((*s).to_string())`. Match.
+- `regex` Atom → same pattern; `match_regex` returns the matched substring → `Value::String(matched)`. Match.
+- `rule_reference` Atom → typed emit calls `parse_<inner>_typed()` which recurses. By induction (any rule's typed entry produces the shape `to_json_value()` would), match.
+
+### Helpers ported
+Three helpers added to the hook module:
+
+- `generate_typed_node_body(ast_node, rule_name, annotations) -> Option<TokenStream>` — the dispatcher. Currently only handles `ASTNode::Atom` for non-annotated rules. Slice 7+ extend the match to `Sequence`, `Or`, `Quantified`, `Lookahead`.
+- `generate_typed_atom_body(value, rule_name) -> Option<TokenStream>` — emits per-subtype body for `quoted_string`, `regex`, `rule_reference`. Returns `None` for unrecognized subtypes (caller falls back to passthrough).
+- `rule_has_no_semantic_annotations(rule_name, annotations) -> bool` — duplicated from the private generator-side helper. The hook needs this gating to avoid emitting shape-typed bodies for annotated rules whose annotation-applied shape requires the legacy semantic-runtime wrapper.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean (~9s incremental).
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: numbers above; no regression beyond noise.
+
+### What slice 7 does next
+Port M3 stage 3 (`1381e9b`): typed `ASTNode::Sequence` body emit. Concretely: for non-annotated Sequence rules, build `Value::Array(elements.iter().map(|e| element_typed(e)).collect())` directly, where each `element_typed` either dispatches through `generate_typed_node_body` (if a typed body is available) or falls back to legacy. This is where the hot-path typed-atom emit (stage 2) starts being exercised — Sequence rules call into their elements' typed entries, which for Atoms now build `Value::String` directly without `ParseNode` allocation.
+
 ## 2026-04-29 - Slice 5: stop tracking generated/* in git
 
 ### Context

@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-04-30 - Slice 6: port M3 stage 2 (typed Atom body emit) into the regex hook
+
+### What landed
+Stage 2 of the rolled-back Phase 2 M3 (`b091590`) re-homed inside `rust/src/parser_hooks/regex.rs`. For each non-annotated `ASTNode::Atom` rule with a `quoted_string`, `regex`, or `rule_reference` subtype, the hook now emits a shape-typed body that builds `serde_json::Value` directly — bypassing the legacy `ParseNode` allocation for that rule. Annotated rules and other AST shapes (`Sequence`, `Or`, `Quantified`, `Lookahead`) continue to fall back to the slice-2 passthrough body until subsequent slices port stages 3+.
+
+### Per-subtype emit
+- `quoted_string`: `match_string(literal)` → `Value::String(matched)`.
+- `regex`: `match_regex(pattern, skip_ws)` → `Value::String(matched)`.
+- `rule_reference`: `parse_<inner>_typed()` (recurses into the inner rule's typed entry).
+
+All three produce output byte-equivalent to what `ParseContent::Terminal(matched_str).to_json_value()` returns on the legacy path. The differential gate confirmed 8/8 byte-equivalent.
+
+### Helper functions ported
+- `generate_typed_node_body(ast_node, rule_name, annotations)`: dispatcher (Atom only today; Sequence/Or/Quantified added by subsequent slices).
+- `generate_typed_atom_body(value, rule_name)`: shape-typed body for the three Atom subtypes.
+- `rule_has_no_semantic_annotations(rule_name, annotations)`: replicated locally in the hook (the version on `AstBasedGenerator` is private to the pipeline crate).
+
+### Why M3 lived in the pipeline and we're putting it in the hook
+M3 lived in `rust/src/ast_pipeline/ast_based_generator.rs` and was rolled back in part because parser-specific reasoning leaked into the pipeline. The hook architecture (slices 1-3) gives the same logic a clean home: `rust/src/parser_hooks/regex.rs` only fires for the `regex` grammar (registry lookup by EBNF name), so SV / VHDL / annotation / RTL parsers cannot regress from this work — they never reach this code path. The slice-3 differential gate is the regression-lock that makes redoing M3 byte-equivalent (which M3 itself wasn't).
+
+### Slice 6 numbers (release, 1000 samples / 50 warmup, p50 ns)
+
+| pattern | slice 4 typed | slice 6 typed | delta |
+|---|---|---|---|
+| literal_simple | 34,417 | 37,916 | +3,499 |
+| digit_sequence | 47,042 | 46,875 | -167 |
+| character_class | 105,375 | 103,666 | -1,709 |
+| alternation | 49,167 | 47,459 | -1,708 |
+| capture_groups | 83,292 | 83,000 | -292 |
+| url_simple | 42,333 | 43,167 | +834 |
+| email_basic | 63,833 | 65,083 | +1,250 |
+| anchor_complex | 129,167 | 129,000 | -167 |
+
+Within noise on most patterns. **Expected per M3 history:** stage 2's typed-atom methods are emitted but never exercised on the hot path yet — their callers (Sequence/Or/Quantified rules) still go through the passthrough body which calls legacy `parse_<rule>` (which builds the full ParseNode tree, never reaching the new typed-atom methods). Stage 2 alone is connecting infrastructure; the connecting tissue arrives in slice 7+ as Sequence/Or/Quantified emit start calling into `parse_<inner>_typed`.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: numbers above; no regression beyond noise.
+
+### Files
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs): adds `generate_typed_node_body`, `generate_typed_atom_body`, `rule_has_no_semantic_annotations` helpers; per-rule typed-method emit now dispatches through the helper before falling back.
+
 ## 2026-04-29 - Slice 5: stop tracking generated/* in git
 
 ### Why
