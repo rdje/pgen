@@ -36,7 +36,7 @@
 //! ```
 //!
 //! The make target regenerates the regex parser with
-//! `--inline-annotations` so the hook's typed methods exist, builds
+//! `--enable-parser-hooks` so the hook's typed methods exist, builds
 //! and runs this binary against the bug-corpus patterns, then
 //! restores the tracked `generated/regex_parser.rs` to its legacy-
 //! emit baseline.

@@ -71,6 +71,18 @@ name = "regex_typed_differential_gate"
 path = "src/bin/regex_typed_differential_gate.rs"
 required-features = ["regex_typed_differential_gate"]
 
+[[bin]]
+# Slice 4 typed-path perf probe. Mirrors `regex_perf_probe` but calls
+# `parser.parse_regex_typed()` instead of `parser.parse_full_regex()`,
+# so subsequent shape-typed-emit optimization slices have a direct
+# apples-to-apples measurement target for the JSON-producing path.
+# Requires the regex parser to have been regenerated with the regex
+# hook registered; the maintained `regex_typed_perf_probe` make target
+# handles regen, build, run, and restore in one shot.
+name = "regex_typed_perf_probe"
+path = "src/bin/regex_typed_perf_probe.rs"
+required-features = ["regex_typed_perf_probe"]
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -112,10 +124,16 @@ mimalloc_perf = ["dep:mimalloc"]
 # `regex_typed_differential_gate` binary to reference
 # `parser.parse_regex_typed()`. The typed methods only exist when the
 # regex parser was regenerated with the regex hook registered (i.e.
-# under `--inline-annotations`); the maintained
+# under `--enable-parser-hooks`); the maintained
 # `make regex_typed_differential_gate` target handles regen + build +
 # run + restore so adopters don't have to wire it manually.
 regex_typed_differential_gate = ["generated_parsers"]
+# Slice 4 typed-path perf probe. Same shape as
+# `regex_typed_differential_gate` (the typed methods only exist when
+# the regex parser was regenerated with the regex hook registered).
+# The maintained `make regex_typed_perf_probe` target handles regen +
+# build + run + restore.
+regex_typed_perf_probe = ["generated_parsers"]
 
 [dev-dependencies]
 serde_json = "1.0"

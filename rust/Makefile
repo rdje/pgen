@@ -472,8 +472,11 @@ regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 # future shape-typed-emit optimization slices must keep green.
 #
 # Procedure:
-# 1. Regenerate `generated/regex_parser.rs` with `--inline-annotations`
-#    so the regex hook fires and emits per-rule typed methods.
+# 1. Regenerate `generated/regex_parser.rs` with `--enable-parser-hooks`
+#    so the regex hook fires and emits per-rule typed methods. (We do
+#    NOT pass `--emit-typed-entry-skeleton` because the gate doesn't
+#    depend on M1's pipeline-internal skeleton; see the flag-split
+#    rationale in the parser-hooks mdbook chapter.)
 # 2. Build and run the differential gate binary (gated by the
 #    `regex_typed_differential_gate` Cargo feature so default cargo
 #    builds don't try to reference `parse_<rule>_typed`).
@@ -485,8 +488,8 @@ regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 .PHONY: regex_typed_differential_gate
 regex_typed_differential_gate: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@echo "🔬 Slice 3 / M2 regex_typed_differential_gate"
-	@echo "   Step 1/3: regenerating regex parser with --inline-annotations"
-	$(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion --inline-annotations $(REGEX_JSON) -o $(REGEX_PARSER)
+	@echo "   Step 1/3: regenerating regex parser with --enable-parser-hooks"
+	$(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion --enable-parser-hooks $(REGEX_JSON) -o $(REGEX_PARSER)
 	@echo "   Step 2/3: building and running differential gate"
 	@cd $(RUST_DIR) && \
 	    cargo build --release \
@@ -502,6 +505,48 @@ regex_typed_differential_gate: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	    else \
 	        echo "❌ regex_typed_differential_gate FAILED (exit $$DIFF_RESULT)"; \
 	        exit $$DIFF_RESULT; \
+	    fi
+
+# Slice 4 typed-path perf probe. Mirrors `regex_perf_probe` but
+# measures `parser.parse_regex_typed()` instead of
+# `parser.parse_full_regex()`, so subsequent shape-typed-emit
+# optimization slices land with apples-to-apples numbers showing the
+# JSON-producing path's progression. Today's slice-2 passthrough hook
+# body delegates to legacy + `to_json_value()`, so this probe's
+# numbers will start strictly higher than the legacy probe — that is
+# the gap to close.
+#
+# Procedure mirrors the differential gate target:
+# 1. Regenerate `generated/regex_parser.rs` with `--enable-parser-hooks`
+#    so the regex hook fires and emits `parse_regex_typed`. (We do
+#    NOT pass `--emit-typed-entry-skeleton` — that's M1's pipeline-
+#    internal skeleton emit, an independent concern; see the flag-
+#    split rationale in the parser-hooks mdbook chapter.)
+# 2. Build and run the typed perf probe binary (gated by the
+#    `regex_typed_perf_probe` Cargo feature so default cargo builds
+#    don't try to reference `parse_regex_typed`).
+# 3. Restore tracked `generated/regex_parser.rs` to legacy emit so the
+#    working tree returns to its baseline regardless of run outcome.
+.PHONY: regex_typed_perf_probe
+regex_typed_perf_probe: $(REGEX_JSON) $(RUST_AST_PIPELINE)
+	@echo "📊 Slice 4 regex_typed_perf_probe (typed-path baseline)"
+	@echo "   Step 1/3: regenerating regex parser with --enable-parser-hooks"
+	$(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion --enable-parser-hooks $(REGEX_JSON) -o $(REGEX_PARSER)
+	@echo "   Step 2/3: building and running typed perf probe"
+	@cd $(RUST_DIR) && \
+	    cargo build --release \
+	        --features generated_parsers,regex_typed_perf_probe \
+	        --bin regex_typed_perf_probe \
+	    && ./target/release/regex_typed_perf_probe; \
+	    PROBE_RESULT=$$?; \
+	    cd ..; \
+	    echo "   Step 3/3: restoring tracked regex_parser.rs to legacy emit"; \
+	    git checkout HEAD -- generated/regex_parser.rs 2>/dev/null || true; \
+	    if [ $$PROBE_RESULT -eq 0 ]; then \
+	        echo "✅ regex_typed_perf_probe completed"; \
+	    else \
+	        echo "❌ regex_typed_perf_probe FAILED (exit $$PROBE_RESULT)"; \
+	        exit $$PROBE_RESULT; \
 	    fi
 
 # Convenience aliases for easier typing

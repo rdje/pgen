@@ -109,12 +109,12 @@ impl ParserHooks for RegexParserHooks {
         });
 
         // No `parse_full_<entry>_typed` from this hook. The pipeline's
-        // existing `--inline-annotations` flag already emits one
+        // existing `--emit-typed-entry-skeleton` flag already emits one
         // (parser-agnostic, in `ast_pipeline::ast_based_generator`'s M1
         // skeleton). Avoiding the duplicate name here keeps both
         // mechanisms compatible: when a downstream binary opts into
-        // both this hook and `--inline-annotations`, the parser ends
-        // up with M1's `parse_full_<entry>_typed` plus the per-rule
+        // both this hook and `--emit-typed-entry-skeleton`, the parser
+        // ends up with M1's `parse_full_<entry>_typed` plus the per-rule
         // typed methods this hook emits. They don't collide.
         //
         // Consumers that want a full-input entry that returns

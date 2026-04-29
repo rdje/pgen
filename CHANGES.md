@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-04-29 - Slice 4: typed-path perf probe + flag split + flag rename
+
+### Achievement Summary
+Slice 4 closes the parser-hook foundation by landing measurement infrastructure for the typed-path of the regex parser, plus two CLI surface cleanups that the conceptual ground work surfaced. Three pieces in one commit:
+
+1. **`regex_typed_perf_probe` binary** — sibling of `regex_perf_probe`, measures the JSON-producing path (`parser.parse_regex_typed()`) instead of the `ParseNode`-producing path (`parser.parse_full_regex()`). Same 8-pattern PGEN-RGX-0073 corpus, same warmup / sampling / statistics. Wrapped by maintained `make regex_typed_perf_probe` target (regen + build + run + restore). Provides apples-to-apples measurement for subsequent shape-typed-emit slices.
+
+2. **`--inline-annotations` → `--emit-typed-entry-skeleton` rename** — the old name implied the flag controlled "annotation support," but annotation support (`@predicate`, `@emit_fact`, `@semantic_value`, `-> {...}` return annotations) is *always-on* in the pipeline regardless of any flag. The flag actually toggles M1's typed entry-point skeleton emit only — a passthrough wrapper, not an inlining mechanism. The new name says exactly what it does. Field name on `AstBasedGenerator` and parameter name on `generate_parser_ast_based[_with_hooks]` renamed in lockstep.
+
+3. **`--enable-parser-hooks` flag** — previously, hook registration in `pgen_ast` piggybacked on `--inline-annotations`. That fused two unrelated concerns (M1 pipeline emit, a pipeline feature; vs hook registration, a binary-boundary policy). Splitting them keeps each switch single-purpose. The differential gate and the typed perf probe both pass `--enable-parser-hooks` only — neither depends on M1 emit.
+
+### Slice 4 baseline numbers (release, 1000 samples / 50 warmup)
+
+| pattern | legacy p50 (ns) | typed p50 (ns) | gap |
+|---|---|---|---|
+| literal_simple | 33,500 | 34,417 | +0.9µs |
+| digit_sequence | 46,417 | 47,042 | +0.6µs |
+| character_class | 104,000 | 105,375 | +1.4µs |
+| alternation | 47,416 | 49,167 | +1.8µs |
+| capture_groups | 82,250 | 83,292 | +1.0µs |
+| url_simple | 41,667 | 42,333 | +0.7µs |
+| email_basic | 62,917 | 63,833 | +0.9µs |
+| anchor_complex | 127,458 | 129,167 | +1.7µs |
+
+The typed path is 1-3% slower than the legacy path today — exactly the cost of one `to_json_value()` conversion in the hook's passthrough body. Future shape-typed-emit slices replace per-rule bodies with direct `serde_json::Value` construction (preserving `with_semantic_runtime_rule_transaction` + `memoized_call`), bringing typed numbers down toward — and eventually below — legacy.
+
+### Validation
+- Differential gate: 8/8 byte-equivalent after rename.
+- Typed perf probe: completes cleanly on all 8 patterns.
+- Legacy perf probe: numbers unchanged (the rename does not touch any code on the legacy `parse_full_regex` path).
+- Tracked `generated/regex_parser.rs` byte-unchanged.
+- Test `phase_2_m1_typed_entry_emits_only_when_emit_typed_entry_skeleton_flag_is_set` passes.
+
+### Files
+- [rust/src/bin/regex_typed_perf_probe.rs](rust/src/bin/regex_typed_perf_probe.rs) — new (~190 lines, mirrors `regex_perf_probe`).
+- [rust/Cargo.toml](rust/Cargo.toml) — `regex_typed_perf_probe` Cargo feature + `[[bin]]` block.
+- [rust/Makefile](rust/Makefile) — `regex_typed_perf_probe` make target; differential gate target + typed probe target now use `--enable-parser-hooks`.
+- [rust/src/main.rs](rust/src/main.rs) — `--inline-annotations` renamed to `--emit-typed-entry-skeleton`; new `--enable-parser-hooks` flag with split semantics.
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — field rename + ~50 init-site updates + test rename.
+- [rust/src/ast_pipeline/ast_generator_direct.rs](rust/src/ast_pipeline/ast_generator_direct.rs) — parameter rename on the public function signatures + caller.
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs) — comment refers to renamed flag.
+- [rust/src/bin/regex_typed_differential_gate.rs](rust/src/bin/regex_typed_differential_gate.rs) — module doc refers to renamed flag.
+- [docs/book/src/parser-hooks.md](docs/book/src/parser-hooks.md) — flag-split section + rename rationale.
+- [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md) — historical reference notes the rename.
+
 ## 2026-04-29 - Slice 3: M2 differential validation gate + parser-hooks mdbook chapter
 ### Achievement Summary
 Lands the regression-lock for the regex parser hook: a maintained make target that proves byte-equivalent JSON between hook-emitted typed methods and the legacy + `ParseContent::to_json_value()` reference path across the PGEN-RGX-0073 8-pattern bug corpus. By construction the slice-2 passthrough hook body passes; the gate is what keeps future shape-typed-emit optimization slices honest.

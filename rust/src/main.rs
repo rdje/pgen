@@ -87,14 +87,41 @@ struct Args {
     /// Generate high-performance Rust parser instead of JSON output
     #[arg(long)]
     generate_parser: bool,
-    /// (Phase 2 M1, off by default) When generating a parser, also emit
-    /// `parse_full_<entry>_typed` returning `ParseResult<serde_json::Value>` alongside
-    /// the existing `parse_full_<entry>` returning `ParseResult<ParseNode>`. M1 emits a
-    /// skeleton wrapper that parses then serializes the tree; M2 replaces the body with
-    /// truly inline shape-emit logic per the rule's return annotation. Default behavior
-    /// (without this flag) is unchanged.
+    /// (Phase 2 M1, off by default) When generating a parser, also emit a typed
+    /// entry-point skeleton — `parse_full_<entry>_typed` returning
+    /// `ParseResult<serde_json::Value>` alongside the existing
+    /// `parse_full_<entry>` returning `ParseResult<ParseNode>`. The skeleton body
+    /// is a passthrough wrapper (parse + `serde_json::to_value`); it does NOT
+    /// inline anything per-rule.
+    ///
+    /// This flag does NOT control "annotation support" — `@predicate`,
+    /// `@emit_fact`, `@semantic_value`, and `-> {...}` return annotations all
+    /// fire whether this flag is set or not (annotation support is always-on).
+    /// The flag was previously named `--inline-annotations`; the rename in
+    /// slice 4 reflects what the flag actually does. Per-rule shape-typed emit
+    /// (the original "inline" promise) is now delivered by parser hooks
+    /// per-grammar in `rust/src/parser_hooks/`, OUTSIDE the pipeline.
+    ///
+    /// This flag controls ONLY the pipeline-internal M1 skeleton emit. It does
+    /// NOT register any parser-specific hooks at the binary boundary; pass
+    /// `--enable-parser-hooks` for that. The two are independent: each can be
+    /// set without the other.
     #[arg(long)]
-    inline_annotations: bool,
+    emit_typed_entry_skeleton: bool,
+    /// (Slice 4, off by default) Register parser-specific hook handlers at the binary
+    /// boundary. Today the only registered hook is the regex grammar's
+    /// `pgen::parser_hooks::regex::RegexParserHooks`, which extends the generated regex
+    /// parser with per-rule `parse_<rule>_typed` methods returning
+    /// `ParseResult<serde_json::Value>`. Hooks live OUTSIDE `rust/src/ast_pipeline/` so
+    /// the pipeline itself stays parser-agnostic; this flag is the binary-boundary
+    /// switch that decides whether to actually register them. With no flag, the
+    /// pipeline's default emit runs unchanged for every grammar (byte-identical
+    /// baseline).
+    ///
+    /// Independent from `--emit-typed-entry-skeleton`: this flag does NOT cause M1
+    /// typed skeleton emit; pass `--emit-typed-entry-skeleton` separately for that.
+    #[arg(long)]
+    enable_parser_hooks: bool,
     /// Override the path where the pipeline emits its return-annotation inventory
     /// artifact alongside parser generation. The default is
     /// `<output-dir>/<grammar>_return_annotations.json` next to the parser output;
@@ -904,11 +931,17 @@ fn main() -> Result<()> {
         // Build the parser-hook registry at the binary boundary.
         // Parser-specific hook handlers live in `rust/src/parser_hooks/`
         // (OUTSIDE the AST pipeline) and are registered here only when
-        // the operator opts in via `--inline-annotations`. With no
+        // the operator opts in via `--enable-parser-hooks`. With no
         // registry passed, the pipeline's default emit runs unchanged
         // for every grammar, preserving byte-identical output for
         // every tracked parser.
-        let parser_hook_registry = if args.inline_annotations {
+        //
+        // Note: `--enable-parser-hooks` is independent from
+        // `--emit-typed-entry-skeleton`. The former controls binary-boundary
+        // hook registration (a binary concern); the latter controls
+        // M1's pipeline-internal typed skeleton emit (a pipeline
+        // concern). Each can be set without the other.
+        let parser_hook_registry = if args.enable_parser_hooks {
             let mut registry = pgen::ast_pipeline::ParserHookRegistry::new();
             registry.register(Box::new(pgen::parser_hooks::regex::RegexParserHooks));
             Some(registry)
@@ -924,7 +957,7 @@ fn main() -> Result<()> {
             &grammar.rule_order,
             grammar.annotations.as_ref(),
             output_rust.as_str(),
-            args.inline_annotations,
+            args.emit_typed_entry_skeleton,
             parser_hook_registry,
         )?;
         std::fs::write(&output_rust, parser_code)?;

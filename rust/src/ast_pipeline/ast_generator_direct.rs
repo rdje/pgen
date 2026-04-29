@@ -43,7 +43,7 @@ impl AstGeneratorIntegration {
             transformed_ast.metadata.annotations.as_ref(),
             &format!("{}_parser.rs", transformed_ast.grammar_name),
             // Phase 2 M1: this internal generator entry path keeps the legacy emit
-            // shape; --inline-annotations is only routed through the CLI binary path.
+            // shape; --emit-typed-entry-skeleton is only routed through the CLI binary path.
             false,
         )
     }
@@ -51,19 +51,22 @@ impl AstGeneratorIntegration {
 
 /// Direct function to generate parser using AST-based approach.
 ///
-/// `inline_annotations` is the Phase 2 M1 toggle. When false (default), the
-/// generator emits the existing parser shape unchanged. When true, the generator
-/// additionally emits `parse_full_<entry>_typed` returning
-/// `ParseResult<serde_json::Value>`. M1's typed method is a skeleton wrapper
-/// (parse + `serde_json::to_value`); M2 replaces the body with truly inline
-/// shape-emit logic per the rule's return annotation.
+/// `emit_typed_entry_skeleton` is the Phase 2 M1 toggle. When false (default),
+/// the generator emits the existing parser shape unchanged. When true, the
+/// generator additionally emits a passthrough skeleton `parse_full_<entry>_typed`
+/// returning `ParseResult<serde_json::Value>` (parse + `serde_json::to_value`).
+/// The flag does NOT control annotation support — `@predicate`, `@emit_fact`,
+/// `@semantic_value`, and `-> {...}` return annotations always fire. The
+/// per-rule "shape-typed emit" originally promised by the old `inline_annotations`
+/// name is now delivered by parser hooks per-grammar (see
+/// `rust/src/parser_hooks/`), outside the pipeline.
 pub fn generate_parser_ast_based(
     grammar_name: &str,
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
     annotations: Option<&Annotations>,
     filename: &str,
-    inline_annotations: bool,
+    emit_typed_entry_skeleton: bool,
 ) -> Result<String> {
     generate_parser_ast_based_with_hooks(
         grammar_name,
@@ -71,7 +74,7 @@ pub fn generate_parser_ast_based(
         rule_order,
         annotations,
         filename,
-        inline_annotations,
+        emit_typed_entry_skeleton,
         None,
     )
 }
@@ -89,7 +92,7 @@ pub fn generate_parser_ast_based_with_hooks(
     rule_order: &[String],
     annotations: Option<&Annotations>,
     filename: &str,
-    inline_annotations: bool,
+    emit_typed_entry_skeleton: bool,
     registry: Option<crate::ast_pipeline::ParserHookRegistry>,
 ) -> Result<String> {
     // The existing `AstBasedGenerator::new` interprets its argument
@@ -105,7 +108,7 @@ pub fn generate_parser_ast_based_with_hooks(
     // `ReturnAnnotationParser`. We preserve that contract here.
     let parser_name = snake_to_pascal(grammar_name);
     let mut generator = AstBasedGenerator::new(parser_name);
-    generator.inline_annotations = inline_annotations;
+    generator.emit_typed_entry_skeleton = emit_typed_entry_skeleton;
     // The pipeline's parser-hook registry is keyed on the canonical
     // EBNF grammar name (the snake_case stem). The generator's
     // `grammar_name` field carries the parser-type-name input above

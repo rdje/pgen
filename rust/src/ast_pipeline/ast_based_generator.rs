@@ -42,13 +42,19 @@ pub struct AstBasedGenerator {
     pub annotations: Option<Annotations>,
     pub branch_return_annotations: HashMap<String, Vec<Option<BranchAnnotation>>>,
     pub enable_debug: bool,
-    /// Phase 2 M1 toggle. When true, the generator emits `parse_full_<entry>_typed`
-    /// returning `ParseResult<serde_json::Value>` alongside the existing
-    /// `parse_full_<entry>` returning `ParseResult<ParseNode>`. The M1 typed method is
-    /// a skeleton wrapper around the legacy method + `serde_json::to_value`; M2
-    /// replaces the body with truly inline shape-emit logic per the rule's return
-    /// annotation. Default false: generator emit is unchanged from prior behavior.
-    pub inline_annotations: bool,
+    /// Phase 2 M1 toggle. When true, the generator emits a typed entry-point
+    /// skeleton — `parse_full_<entry>_typed` returning
+    /// `ParseResult<serde_json::Value>` alongside the existing
+    /// `parse_full_<entry>` returning `ParseResult<ParseNode>`. The skeleton
+    /// body is a passthrough wrapper around the legacy method + `serde_json::to_value`;
+    /// it does NOT inline anything per-rule and does NOT enable annotation support
+    /// (which is always-on regardless of this flag — `@predicate`, `@emit_fact`,
+    /// `@semantic_value`, and `-> {...}` return annotations all fire whether this
+    /// flag is set or not). The "inline shape-emit per return annotation" idea that
+    /// originally motivated the field's old name (`inline_annotations`) is now what
+    /// parser hooks deliver per-grammar in `rust/src/parser_hooks/`, OUTSIDE the
+    /// pipeline. Default false: generator emit is unchanged from prior behavior.
+    pub emit_typed_entry_skeleton: bool,
     /// Optional registry of parser-specific hook handlers. The pipeline
     /// queries this registry by EBNF grammar name at extension points
     /// (currently: after the legacy parser impl block is emitted, the
@@ -195,7 +201,7 @@ impl AstBasedGenerator {
             annotations: None,
             branch_return_annotations: HashMap::new(),
             enable_debug: true,
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
         }
@@ -334,8 +340,8 @@ impl AstBasedGenerator {
         eprintln!("        File: {}:{}", file!(), line!());
         eprintln!();
 
-        // Phase 2 M1: parallel typed parser impl, only emitted when --inline-annotations is set.
-        let typed_parser_impl = if self.inline_annotations {
+        // Phase 2 M1: parallel typed parser impl, only emitted when --emit-typed-entry-skeleton is set.
+        let typed_parser_impl = if self.emit_typed_entry_skeleton {
             self.generate_typed_parser_impl_skeleton(&parser_name, &entry_rule)
         } else {
             TokenStream::new()
@@ -5484,7 +5490,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -5515,7 +5521,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -5564,7 +5570,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -5662,7 +5668,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -5726,7 +5732,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -5904,7 +5910,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6098,9 +6104,9 @@ mod semantic_usage_tests {
     }
 
     #[test]
-    fn phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set() {
-        // Phase 2 M1 contract: when AstBasedGenerator.inline_annotations is true, the
-        // emitted parser carries `parse_full_<entry>_typed` returning
+    fn phase_2_m1_typed_entry_emits_only_when_emit_typed_entry_skeleton_flag_is_set() {
+        // Phase 2 M1 contract: when AstBasedGenerator.emit_typed_entry_skeleton is
+        // true, the emitted parser carries `parse_full_<entry>_typed` returning
         // `ParseResult<serde_json::Value>` alongside the existing
         // `parse_full_<entry>` returning `ParseResult<ParseNode>`. Default-off behavior
         // is byte-unchanged: no typed method appears.
@@ -6126,7 +6132,7 @@ mod semantic_usage_tests {
         // Flag on: legacy emit + parallel typed impl block.
         let mut generator_on = AstBasedGenerator::new("usage_test".to_string());
         generator_on.enable_debug = false;
-        generator_on.inline_annotations = true;
+        generator_on.emit_typed_entry_skeleton = true;
         let rendered_on = generator_on
             .generate_parser(&grammar_tree, &rule_order, "phase_2_m1.rs")
             .expect("flag-on parser generation should succeed");
@@ -6527,7 +6533,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6558,7 +6564,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6586,7 +6592,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6649,7 +6655,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6722,7 +6728,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6779,7 +6785,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6805,7 +6811,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6832,7 +6838,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6874,7 +6880,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6930,7 +6936,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -6949,7 +6955,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7012,7 +7018,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7053,7 +7059,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7108,7 +7114,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7127,7 +7133,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7185,7 +7191,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7223,7 +7229,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7272,7 +7278,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7291,7 +7297,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7364,7 +7370,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7401,7 +7407,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7469,7 +7475,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7504,7 +7510,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7547,7 +7553,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7587,7 +7593,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7627,7 +7633,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7683,7 +7689,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7730,7 +7736,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7781,7 +7787,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7826,7 +7832,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7877,7 +7883,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7920,7 +7926,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
@@ -7954,7 +7960,7 @@ mod semantic_usage_tests {
             logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
-            inline_annotations: false,
+            emit_typed_entry_skeleton: false,
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,

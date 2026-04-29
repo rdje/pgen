@@ -171,7 +171,7 @@ impl ParserHooks for FoolangParserHooks {
 Constraints on what your hook emits:
 
 - **Preserve semantic side-effects.** Any typed parse entry-point you emit must invoke the parser methods that fire `with_semantic_runtime_rule_transaction`, `memoized_call`, recursion-guard checks, predicate evaluation, fact emission, and any other runtime-state interactions. The simplest safe pattern is to delegate to the existing `parse_<rule>` method and post-process its result.
-- **Don't collide with the pipeline's emit.** The pipeline already emits `parse_<rule>`, `parse_full_<entry>`, helper methods, and (when `--inline-annotations` is set) the M1 skeleton's `parse_full_<entry>_typed`. Pick names that don't conflict.
+- **Don't collide with the pipeline's emit.** The pipeline already emits `parse_<rule>`, `parse_full_<entry>`, helper methods, and (when `--emit-typed-entry-skeleton` is set) the M1 skeleton's `parse_full_<entry>_typed`. Pick names that don't conflict.
 - **Be deterministic.** Iterate over `ctx.rule_order` (a slice with deterministic order) rather than `ctx.grammar_tree.keys()` (HashMap iteration order is non-deterministic). Determinism makes the generated parser file reproducible across builds.
 
 ### Step 3 — register at the binary boundary
@@ -190,14 +190,27 @@ let parser_code = pgen::ast_pipeline::ast_generator_direct::generate_parser_ast_
     rule_order,
     annotations,
     filename,
-    inline_annotations,
+    emit_typed_entry_skeleton,
     Some(registry),
 )?;
 ```
 
 When you don't want the hook to fire (e.g. default builds), just pass `None` as the registry. The pipeline's default emit path runs unchanged.
 
-The default `pgen_ast` binary (`rust/src/main.rs`) registers the `regex` hook only when `--inline-annotations` is set, so default `make regex_parser` continues to produce a byte-identical legacy parser. Other downstream binaries are free to wire hook registration however suits their workflow.
+The default `pgen_ast` binary (`rust/src/main.rs`) registers the `regex` hook only when `--enable-parser-hooks` is set, so default `make regex_parser` continues to produce a byte-identical legacy parser. Other downstream binaries are free to wire hook registration however suits their workflow.
+
+### Flag split: `--enable-parser-hooks` vs `--emit-typed-entry-skeleton`
+
+These two flags control independent things and either can be set without the other:
+
+| Flag | Controls | Lives in |
+|---|---|---|
+| `--emit-typed-entry-skeleton` | M1's typed entry-point skeleton (`parse_full_<entry>_typed`) inside the pipeline | Pipeline-internal, parser-agnostic |
+| `--enable-parser-hooks` | Whether the binary registers parser-specific hook handlers | Binary boundary, parser-aware |
+
+`--emit-typed-entry-skeleton` was previously named `--inline-annotations`. The old name was misleading — it implied the flag controlled "annotation support," but annotation support (`@predicate`, `@emit_fact`, `@semantic_value`, `-> {...}` return annotations) is *always-on* in the pipeline regardless of any flag. What the flag actually toggles is one specific deliverable: emit a typed entry-point method that returns `serde_json::Value`, with a body that's a passthrough wrapper (parse + `serde_json::to_value`). It does not inline anything per-rule. The per-rule shape-typed emit originally promised by the old name is now what parser hooks deliver per-grammar (slice 4+), outside the pipeline.
+
+The two flags were also fused into a single switch during slice 2 as an expedient. Splitting them keeps each switch single-purpose: hook registration is a binary-boundary policy decision (the pipeline doesn't care which CLI flag triggered it), and M1 emit is a pipeline feature (the binary doesn't care whether any hook is registered). The differential gate and the typed perf probe both pass `--enable-parser-hooks` only — they don't depend on M1 emit.
 
 ### Step 4 — add a differential gate (mandatory for typed-emit hooks)
 

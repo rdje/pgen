@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Slice 4: typed-path perf probe + flag split + flag rename
+
+### What landed
+Three pieces in one commit, all closing the parser-hook foundation:
+
+1. **`regex_typed_perf_probe`** measurement infrastructure. Apples-to-apples timing for `parser.parse_regex_typed()` (the JSON-producing path the hook emits) against the legacy `parse_full_regex()` baseline.
+2. **`--enable-parser-hooks` flag**, separated from `--inline-annotations`. Hook registration is a binary-boundary concern; M1 typed skeleton emit is a pipeline feature. Conflating them was a slice-2 expedient; the user surfaced the smell during slice 4 review.
+3. **`--inline-annotations` → `--emit-typed-entry-skeleton` rename**. The old name implied the flag controlled annotation support; in fact annotation support (`@predicate`, `@emit_fact`, `@semantic_value`, `-> {...}`) is always-on, and the flag toggles only the M1 typed-entry skeleton (a passthrough wrapper). The new name says what it does.
+
+### Side-by-side baseline (release, 1000 samples / 50 warmup, Apple M-series)
+
+```
+pattern              legacy p50 (ns)    typed p50 (ns)    gap
+literal_simple             33,500             34,417      +0.9µs (+2.7%)
+digit_sequence             46,417             47,042      +0.6µs (+1.3%)
+character_class           104,000            105,375      +1.4µs (+1.3%)
+alternation                47,416             49,167      +1.8µs (+3.7%)
+capture_groups             82,250             83,292      +1.0µs (+1.3%)
+url_simple                 41,667             42,333      +0.7µs (+1.6%)
+email_basic                62,917             63,833      +0.9µs (+1.5%)
+anchor_complex            127,458            129,167      +1.7µs (+1.3%)
+```
+
+The 1-3% gap is the cost of one `to_json_value()` conversion in the hook's passthrough body — exactly what's expected. Subsequent shape-typed-emit slices close this gap by replacing per-rule bodies with direct `serde_json::Value` construction (preserving `with_semantic_runtime_rule_transaction` + `memoized_call` semantics).
+
+### Conceptual clarification surfaced during slice 4 review
+
+Two flag-shape conversations during this slice exposed a long-standing naming smell. Documenting both for future reviewers:
+
+**Q: Is `--inline-annotations` what makes annotations work?** No. Annotation support is always-on. Every `@predicate`, `@emit_fact`, `@semantic_value`, and `-> {...}` already shapes how the generated `parse_<rule>` runs (predicate evaluation, fact emission, `with_semantic_runtime_rule_transaction`, `memoized_call`). The old `--inline-annotations` flag toggled only one specific deliverable: M1's `parse_full_<entry>_typed` skeleton, a passthrough wrapper. The rename to `--emit-typed-entry-skeleton` reflects this honestly.
+
+**Q: Why is hook registration tied to a flag at all?** To preserve byte-identical default regen. Without an opt-in switch, every regen of `generated/regex_parser.rs` would gain hook-emitted methods, changing the file. The flag is the opt-in switch; splitting it from `--emit-typed-entry-skeleton` keeps each switch single-purpose so hook registration policy and pipeline emit are no longer fused into one knob.
+
+### Validation
+- `make regex_typed_differential_gate`: ✅ 8/8 byte-equivalent (proves the rename didn't break the hook contract).
+- `make regex_typed_perf_probe`: ✅ runs on all 8 patterns, numbers above.
+- `cargo run --release --features generated_parsers --bin regex_perf_probe`: ✅ legacy numbers unchanged.
+- `cargo test --lib --features generated_parsers phase_2_m1_typed_entry_emits_only_when_emit_typed_entry_skeleton_flag_is_set`: ✅ passes.
+- Tracked `generated/regex_parser.rs` byte-unchanged (default `make regex_parser` still produces SHA256 `88d3e04fe1ffde36b3056debcd25ca450167d203a4b071aaeb2f87dffcfc7d07`).
+
+### What slice 5+ does next
+Replace specific rules' typed bodies in [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs) with shape-typed emit (build `serde_json::Value` directly without `ParseNode` allocation, while still wrapping in `with_semantic_runtime_rule_transaction` + `memoized_call`). Each slice (a) keeps the differential gate green, (b) measurably reduces the typed probe's numbers on the bug corpus relative to the slice 4 baseline above. Probable starting point: a connected subtree from `parse_regex_typed` down to a clean cut-off (entry trio: `regex` + `pattern` + `alternation`).
+
 ## 2026-04-29 - Slice 3: M2 differential validation gate + parser-hooks mdbook chapter
 
 ### What landed

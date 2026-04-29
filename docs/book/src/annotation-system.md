@@ -146,7 +146,7 @@ Phase 2 lands in two commits:
 1. Documentation retarget — replaces the wrong "post-parse" framing across the book chapter, live tracker, and continuity docs. No code or test changes.
 2. Code change — introduces the typed structured carrier, rewrites the affected codegen helpers, regenerates the affected tracked parsers, and adds a focused differential test that asserts byte-identical wire-JSON output for the existing return + semantic annotation contract corpora before and after the change.
 
-The earlier M1 commit (`4450b93`) remains useful: the `--inline-annotations` flag and the `parse_full_<entry>_typed` skeleton are the right seam for surfacing the typed value through the public API; only the Phase 2 narrative attached to that commit was wrong.
+The earlier M1 commit (`4450b93`) remains useful: the typed-entry-skeleton flag (originally `--inline-annotations`, renamed in slice 4 to `--emit-typed-entry-skeleton` for honesty about its scope) and the `parse_full_<entry>_typed` skeleton are the right seam for surfacing the typed value through the public API; only the Phase 2 narrative attached to that commit was wrong.
 
 ## Primary Source Docs
 
