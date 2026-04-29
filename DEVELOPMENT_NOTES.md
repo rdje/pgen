@@ -1,4 +1,86 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Phase 2 M3 formal scoping + Optim #17 measurement (not committed)
+
+### Why this entry exists
+After committing Optim #15+#16, the PGEN-RGX-0073 perf campaign reached the point where micro-optims hit diminishing returns. This entry (a) records the 100 000-sample handoff baseline, (b) explains why **Optim #17** (eliding the `needs_raw_post_capture_for_rule` HashMap probe for non-annotated rules) was scoped, implemented, measured, and reverted, and (c) lays out the Phase 2 M3 implementation plan for the next session.
+
+### 100 000-sample baseline at HEAD (Optim #15+#16)
+Release build, M4 Pro, mimalloc, --warmup 1000:
+
+| pattern         | min (µs) | p50 (µs) | mean (µs) | p99 (µs) | <50µs?  |
+|-----------------|----------|----------|-----------|----------|---------|
+| literal_simple  | 13.5     | 15.4     | 18.7      | 76.4     | yes     |
+| digit_sequence  | 36.8     | 41.3     | 47.7      | 169.5    | yes     |
+| character_class | 84.8     | 93.5     | 101.4     | 279.5    | -46%    |
+| alternation     | 35.3     | 37.2     | 38.6      | 74.8     | yes     |
+| capture_groups  | 63.2     | 66.5     | 71.6      | 179.7    | -25%    |
+| url_simple      | 31.8     | 33.8     | 34.7      | 55.8     | yes     |
+| email_basic     | 50.8     | 54.5     | 56.6      | 116.1    | -8%     |
+| anchor_complex  | 99.6     | 105.0    | 109.7     | 209.7    | -52%    |
+
+4/8 patterns under PRIMARY 50µs.
+
+### Optim #17: scoped, measured, reverted
+Implementation: replace the per-rule `let semantic_capture_raw_for_post = parser.semantic_runtime_annotations.needs_raw_post_capture_for_rule(rule_name);` HashMap probe with a `let semantic_capture_raw_for_post: bool = false;` literal for rules with no semantic annotations. The `if semantic_capture_raw_for_post` blocks emitted by `parse_logic` become dead and LLVM should eliminate them entirely.
+
+Measured (5000 samples / 200 warmup, three runs, averaged):
+
+| pattern         | Optim #15+#16 p50 | Optim #17 p50 | speedup |
+|-----------------|--------------------|----------------|---------|
+| literal_simple  | 14.5               | 13.9           | 1.04×   |
+| digit_sequence  | 38.5               | 37.8           | 1.02×   |
+| character_class | 88.4               | 87.4           | 1.01×   |
+| alternation     | 38.2               | 36.2           | 1.05×   |
+| capture_groups  | 66.4               | 64.6           | 1.03×   |
+| url_simple      | 34.3               | 33.0           | 1.04×   |
+| email_basic     | 54.7               | 53.9           | 1.01×   |
+| anchor_complex  | 105.5              | 102.8          | 1.03×   |
+
+GeoMean ~1.03×, well within run-to-run noise. The `needs_raw_post_capture_for_rule` HashMap is empty for non-annotated rules, so the probe was likely already mostly elided by LLVM. Reverted to keep codegen complexity below the empirical-gain threshold.
+
+### Why micro-optims have hit diminishing returns
+The remaining gap (-8% to -52%) is dominated by a single cost class that grammar-agnostic micro-optims cannot touch: **`ParseNode` tree allocation**. Every successful rule entry constructs a `ParseNode { rule_name, content, span }` and `ParseContent::Sequence`/`Quantified` carry `Vec<ParseNode>`, which heap-allocates per non-leaf node. For `anchor_complex` parsing ~50 chars, the resulting tree has 100+ nodes — that's 100+ heap allocations purely to build an intermediate tree that the consumer immediately walks.
+
+Three architectural directions plausibly close the gap; only the first directly attacks the root cause flagged in the original bug report:
+
+1. **Phase 2 M3** — eliminate the `ParseNode` tree by emitting `serde_json::Value` directly per the rule's annotation. Architectural fix; multi-day, multi-commit slice.
+2. **Slim ParseNode**: SmallVec-style inline storage for `ParseContent::Sequence`. Analysis showed `SmallVec<[ParseNode; 4]>` would grow the enum from ~32 bytes to 408+ bytes (4 inline ParseNodes of ~96 bytes each + length/discriminator), so naive inline storage hurts more than it helps. Workable only with `Box<ParseNode>` indirection (`SmallVec<[Box<ParseNode>; 4]>`), which adds a pointer chase per descent — defeats the inline-storage benefit.
+3. **`Rc<ParseNode>` in memo**: lazy-clone for the 38 retained-memo recursive rules. Bounded scope; estimated ~10% saving on those rules, ~3-5% overall.
+
+### Phase 2 M3 implementation plan
+
+Existing infrastructure (from M0/M1):
+- Commit `4450b93` added the `--inline-annotations` flag on `ast_pipeline` and emits a parallel `impl` block carrying `parse_full_<entry>_typed -> ParseResult<serde_json::Value>`.
+- Commit `92806d5` added `ParseContent::Json(serde_json::Value)` so return-annotation transforms can avoid the stringify roundtrip.
+- The M1 typed body today is `parse_full_<entry>` + `serde_json::to_value(&node)` — functionally equivalent to "parse + AST-dump-as-JSON", no perf benefit.
+
+M3 implementation steps (one commit each per the M0-M8 milestone shape):
+
+1. **Per-rule typed emit.** For each rule, generate a `parse_<rule>_typed` method whose body mirrors the legacy `parse_<rule>` body but constructs `serde_json::Value` directly:
+   - Non-annotated rules: return `Value::String(self.input[start..end].to_string())` after the body parses successfully (or a typed numeric / bool when the rule clearly produces one — e.g. `digits` could return `Value::Number`).
+   - Annotated rules: apply the `@semantic_value` / return-annotation transform during parse and return the resulting `Value` object.
+
+2. **Composition rule for non-leaf rules:**
+   - Sequence body: `Value::Array(vec![child_typed_results])`.
+   - Alternation body: return the matched branch's typed value directly.
+   - Quantified body: `Value::Array(vec![child_typed_results])` for `*` / `+`, `child_typed_result` or `Value::Null` for `?`.
+   - Lookahead body: typed value of inner without consuming.
+
+3. **Differential validation (M2).** Add a regression test that for every `regex_v1` and `return_annotation` corpus sample, `parse_full_<entry>_typed` returns byte-equivalent JSON to `serde_json::to_value(parse_full_<entry>?)`. Wire under `make -C rust SHELL=/bin/bash phase2_typed_emit_differential_gate`.
+
+4. **Perf measurement (M4).** Re-run the 8-pattern bug corpus calling `parse_full_regex_typed`. Expected: 30-60% reduction on `anchor_complex` / `character_class` because the entire `ParseNode` + `Vec<ParseNode>` allocation chain is gone.
+
+5. **RGX coordination + integration contract bump (M5).** Once perf delta confirms, bump `regex_parser_integration_contract` `1.1.31 → 1.2.0` with the typed entry point; coordinate with the RGX repo.
+
+6. **Migrate remaining grammars** one-by-one (M6: `semantic_annotation`, `return_annotation`, `systemverilog`, `vhdl`, `rtl_const_expr`, `rtl_frontend`).
+
+7. **Retire the post-parse transform** (M7) and remove the `--inline-annotations` flag (M8) once every grammar is on the typed path.
+
+### Validation at HEAD
+- `cargo build --release --features generated_parsers,mimalloc_perf` clean.
+- `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` strict source lint pass.
+
 ## 2026-04-29 - Optim #15+#16: per-rule observability/recursion-guard elision and memoization elision for non-recursive rules
 
 ### Why this entry exists

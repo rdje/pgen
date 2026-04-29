@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 formal scoping + 100k-sample handoff baseline (no code change)
+### Achievement Summary
+Documents the formal scoping of Phase 2 M3 — the architectural slice that closes PGEN-RGX-0073 PRIMARY for the remaining 4 patterns by eliminating generic `ParseNode` tree allocation in favor of inline shape-typed emit per rule. Also captures a stable 100 000-sample handoff baseline at HEAD = `5cd7219`.
+
+### Status at HEAD (Optim #15+#16 landed)
+| pattern         | p50 (µs) | <50µs?  |
+|-----------------|----------|---------|
+| literal_simple  | 15.4     | yes     |
+| digit_sequence  | 41.3     | yes     |
+| character_class | 93.5     | -46%    |
+| alternation     | 37.2     | yes     |
+| capture_groups  | 66.5     | -25%    |
+| url_simple      | 33.8     | yes     |
+| email_basic     | 54.5     | -8%     |
+| anchor_complex  | 105.0    | -52%    |
+
+4/8 patterns under PRIMARY 50µs. 100 000 samples / 1000 warmup, release build, M4 Pro, `--features generated_parsers,mimalloc_perf`.
+
+### Why micro-optims have hit diminishing returns
+Optims #1-#16 stripped per-rule overhead in seven dimensions (`String` rule names, regex compile cache, cheap `Backtrack`, mimalloc, semantic-runtime wrapper grammar-level + per-rule, observability hook elision, recursion-guard / memo elision for non-recursive rules). The geomean speedup vs the bug-baseline is now ~25-35× depending on pattern. **Optim #17** (eliding `needs_raw_post_capture_for_rule` HashMap probe for non-annotated rules) was scoped, implemented, and measured at 1-5% — within run-to-run variance — and intentionally not committed because the gain is below the codegen-complexity threshold.
+
+The biggest single remaining cost class is **`ParseNode` tree allocation**. Every successful rule entry constructs a `ParseNode { rule_name, content, span }` and `ParseContent::Sequence` / `Quantified` carry `Vec<ParseNode>`, which heap-allocates per non-leaf node. For `anchor_complex` parsing ~50 chars, the resulting tree is 100+ nodes — that is 100+ heap allocations purely to build an intermediate tree that the consumer immediately walks. No grammar-agnostic micro-optim can close 25-52% gaps against that allocation budget.
+
+### Phase 2 M3 plan (next slice)
+M0/M1 are landed (commits `4450b93` for the `--inline-annotations` flag and the `parse_full_<entry>_typed` skeleton; commit `92806d5` for the typed-Json carrier in `ParseContent`). The typed body today is `parse_full_<entry>` + `serde_json::to_value` — functionally equivalent to "parse + AST-dump-as-JSON", no perf benefit. M3 makes the typed methods truly skip the `ParseNode` tree by building `serde_json::Value` directly per the rule's annotation.
+
+Implementation steps (each independently committable per the M0-M8 milestone shape):
+
+1. **Per-rule typed emit.** For each rule, generate a `parse_<rule>_typed` method whose body mirrors the legacy `parse_<rule>` body but constructs `serde_json::Value` directly:
+   - Non-annotated rules return `Value::String(self.input[start..end].to_string())` (or a typed numeric / bool when the rule clearly produces one) after the body parses successfully.
+   - Annotated rules apply the `@semantic_value` / return-annotation transform during parse, returning the resulting `Value` object directly.
+2. **Composition rule.** Sequence/quantified bodies build `Value::Array(vec![child_typed_results])`; alternation returns the matched branch's typed value; literals/regex matches return `Value::String(matched_text)`. No `ParseNode`, no `Vec<ParseNode>`, no per-node allocation.
+3. **Public API.** `parse_full_regex_typed()` already returns `ParseResult<serde_json::Value>` from M1. Keep that signature; only the body changes. RGX integration gets a new entry point alongside the legacy `parse_full_regex` so no contract break is needed for downstream consumers that haven't migrated.
+4. **Differential validation (M2).** Add a regression test that for every `regex_v1` and `return_annotation` corpus sample, `parse_full_<entry>_typed` returns byte-equivalent JSON to `serde_json::to_value(parse_full_<entry>?)`. Wire under `make -C rust SHELL=/bin/bash phase2_typed_emit_differential_gate`.
+5. **Perf measurement (M4).** Re-run the 8-pattern bug corpus calling `parse_full_regex_typed`. Expected: 30-60% reduction on `anchor_complex` / `character_class` because the entire `ParseNode` + `Vec<ParseNode>` allocation chain is gone.
+6. **RGX coordination + integration contract bump (M5).** Once perf delta confirms, bump `regex_parser_integration_contract` `1.1.31 → 1.2.0` with the typed entry point; coordinate with the RGX repo.
+7. **Migrate remaining grammars** one-by-one (M6: `semantic_annotation`, `return_annotation`, `systemverilog`, `vhdl`, `rtl_const_expr`, `rtl_frontend`).
+8. **Retire the post-parse transform** (M7) and remove the `--inline-annotations` flag (M8) once every grammar is on the typed path.
+
+### Files in this commit
+Doc-only:
+- [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md) — handoff tracker note with 100k-sample baseline.
+- [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md) — Phase 2 M3 implementation plan.
+- [MEMORY.md](MEMORY.md) — current session note refreshed with M3 scoping.
+- [CHANGES.md](CHANGES.md) — this entry.
+
+### Validation
+- No code change; tests, build, and clippy unaffected.
+
 ## 2026-04-29 - Optim #15+#16 (PGEN-RGX-0073 campaign): per-rule observability/recursion-guard elision and memoization elision for non-recursive rules
 ### Achievement Summary
 Two stacked codegen changes in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs); both are parser-agnostic by construction (the change lives in the AST pipeline's parser-emit template, so every regenerated parser inherits the wins).

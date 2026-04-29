@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: optim-15-and-16-observability-and-recursion-guard-elision-memo-elision-non-recursive-rules)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-formal-scoping-handoff-100k-sample-baseline)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,24 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Optim #15+#16 (PGEN-RGX-0073 campaign): two stacked codegen changes in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs); both parser-agnostic.
-  - **#15**: elide `record_coverage_target_event` when `coverage_target_weight == 0`; full elision of `record_deterministic_partition_event` when no `@deterministic_partition`; lazy `effective_deterministic_partition_group` allocation when annotated.
-  - **#16**: codegen-side recursive-rule analysis (`compute_recursive_rules`); for non-recursive rules, skip `recursion_guard.check_cycle` AND `memoized_call` wrapper entirely. Push/pop on `parse_stack` is kept so error messages keep an accurate rule frame.
-- Effect on [generated/regex_parser.rs](generated/regex_parser.rs): coverage event 194→0, partition event 194→0, `check_cycle` 194→23 (recursive only), `memoized_call` 194→39 (recursive only). Wrapper count from Optim #14 already at 21.
-- Perf (release, 5000/200, M4 Pro, mimalloc): 7/8 patterns improved 11-19%; `character_class` regressed 5% (likely I-cache shift). 4/8 under PRIMARY 50µs. `email_basic` is now 4.7µs over the line.
-  - literal_simple 14.5 ✓ / digit_sequence 38.5 ✓ / character_class 88.4 ✗ (-43%) / alternation 38.2 ✓ / capture_groups 66.4 ✗ (-25%) / url_simple 34.3 ✓ / email_basic 54.7 ✗ (-9%) / anchor_complex 105.5 ✗ (-52%)
-- The remaining gap (especially anchor_complex at -52%) is too large for stacked grammar-agnostic micro-optims. Biggest remaining cost class is `ParseNode` tree allocation: every successful rule entry builds a `ParseNode` with `Vec<ParseNode>` content (heap allocation per non-leaf node). Phase 2 inline annotation application is the architectural fix.
-- Validation: `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored; `cargo build --release --features generated_parsers,mimalloc_perf` clean; clippy strict source pass.
-- Working-tree leftovers (intentionally not staged): the 3 noise parsers from prior regen plus `regex.json` / `return_annotation.json` timestamp diffs and `semantic_annotation*.json` substantive diffs from a prior EBNF-frontend fix. Tracked as separate follow-ups.
-- **Open follow-ups** (priority order):
-  1. **Phase 2 inline annotation application** (logged as task #30) — eliminate generic `ParseNode` tree allocation; rule methods emit shape-typed output directly. Biggest plausible single win for `anchor_complex` and `character_class`.
-  2. **Slim ParseNode**: arena allocation OR `SmallVec` inline storage for `ParseContent::Sequence`/`Quantified`; reduces heap pressure even before Phase 2 lands.
-  3. **`Rc<ParseNode>` in memo**: lazy-clone for the recursive rules that retain `memoized_call`; the current `node.clone()` on every memo INSERT is ~10% of remaining recursive-rule overhead.
-  4. **Profile-guided** — run samply on `character_class`, `capture_groups`, `email_basic`, `anchor_complex`; pinpoint the remaining hot frames.
-  5. Codegen determinism (`directives_by_rule`, `wrapper_specs` HashMap iteration → BTreeMap/sorted).
-  6. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
-  7. `ebnf` regen.
-  8. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
+- 100 000-sample handoff baseline at HEAD = `5cd7219` (Optim #15+#16). Release, M4 Pro, mimalloc, --warmup 1000:
+  - literal_simple 15.4 ✓ / digit_sequence 41.3 ✓ / alternation 37.2 ✓ / url_simple 33.8 ✓
+  - email_basic 54.5 ✗ (4.5µs / -8%) / capture_groups 66.5 ✗ (-25%) / character_class 93.5 ✗ (-46%) / anchor_complex 105.0 ✗ (-52%)
+- 4/8 patterns under PRIMARY 50µs. The remaining gap is too large for stacked grammar-agnostic micro-optims (Optim #17 = elide `needs_raw_post_capture_for_rule` HashMap probe → measured at 1-5%, within run-to-run variance, not committed).
+- **Phase 2 M3 is the formally scoped next slice**. The M0/M1 design is in place (commit `4450b93` added the `--inline-annotations` flag and the `parse_full_<entry>_typed` skeleton; the typed body today is just `parse_full_<entry>` + `serde_json::to_value`). M3 makes the typed methods truly skip the generic `ParseNode` tree by emitting `serde_json::Value` directly per the rule's annotation.
+
+### Phase 2 M3 implementation plan (next session)
+1. Per-rule typed emit. For each rule, generate a `parse_<rule>_typed` method that mirrors the legacy `parse_<rule>` body BUT builds `serde_json::Value` directly:
+   - Non-annotated rules: return `serde_json::Value::String(self.input[start..end].to_string())` after the body parses successfully.
+   - Annotated rules: apply the `@semantic_value` / return-annotation transform during parse, returning the resulting `Value` object.
+2. Composition rule. Sequence/quantified bodies build `Value::Array(vec![child_typed_results])`; alternation just returns the matched branch's typed value; literals/regex matches return `Value::String(matched_text)`.
+3. Public API. `parse_full_regex_typed()` already returns `ParseResult<serde_json::Value>` from M1. Keep that signature; only the body changes. RGX integration gets a new entry point alongside the legacy `parse_full_regex` (no contract break).
+4. Differential validation (M2). Add a regression test that for every `regex_v1` and `return_annotation` corpus sample, `parse_full_<entry>_typed` returns byte-equivalent JSON to `serde_json::to_value(parse_full_<entry>?)`. Wire under `make -C rust SHELL=/bin/bash phase2_typed_emit_differential_gate`.
+5. Perf measurement (M4). Re-run the 8-pattern bug corpus calling `parse_full_regex_typed`. Expected: 30-60% reduction on `anchor_complex` / `character_class` because the entire `ParseNode` + `Vec<ParseNode>` allocation chain is gone.
+6. RGX coordination + integration contract bump (M5). Once perf delta confirms, regex_parser_integration_contract `1.1.31 → 1.2.0` with the typed entry point; coordinate with RGX repo.
+7. Migrate remaining grammars one-by-one (M6) and retire the post-parse transform (M7-M8).
+
+### Validation at HEAD
+- `cargo build --release --features generated_parsers,mimalloc_perf` clean.
+- `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` strict source lint pass.
+
+### Working-tree leftovers (still intentionally not staged)
+The 3 noise parsers from earlier regen passes (`return_annotation_parser.rs`, `semantic_annotation_parser.rs`, `systemverilog_parser.rs`) plus `regex.json` / `return_annotation.json` timestamp diffs and `semantic_annotation*.json` substantive diffs from a prior EBNF-frontend fix. Tracked as separate codegen-determinism follow-up; not part of the perf campaign.
+
+### Open follow-ups (priority order, post-Phase-2)
+1. **Phase 2 M3** — see plan above. Multi-commit slice.
+2. **Slim ParseNode**: SmallVec analysis showed ParseNode size growth (Vec=24→SmallVec[T;4]=4*sizeof(T)+24); not a clear win unless paired with Box indirection that defeats the inline-storage benefit. Re-evaluate after Phase 2.
+3. **`Rc<ParseNode>` in memo**: ~10% saving on the 38 retained-memo recursive rules. Bounded scope; defer until Phase 2 perf is measured (may make this irrelevant).
+4. **Profile-guided** — samply with `RUSTFLAGS="-C debuginfo=2 -C strip=none"` on the release binary. Confirmed builds cleanly; previous attempts didn't resolve symbols (samply default symbolicator may need `--syms` sidecar).
+5. Codegen determinism (`directives_by_rule`, `wrapper_specs` HashMap iteration → BTreeMap/sorted).
+6. `rtl_frontend` regen — no LR-elim impact, separate blocker (contract probe walker).
+7. `ebnf` regen.
+8. Wire `ast_shape_contract_gate` into `ci_workflow_local_gate` and `sota_exit_gate`.
 
 ## Prior Session Note
 - Optim #14 (PGEN-RGX-0073 campaign): per-rule generalization of Optim #13's grammar-level elision gate. New helper `AstBasedGenerator::rule_has_no_semantic_annotations(rule_name)` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs); checks whether THIS rule has any direct, branch-local, or mid-sequence semantic annotation, not the whole grammar.
