@@ -718,28 +718,13 @@ impl AstBasedGenerator {
         ast_node: &ASTNode,
         rule_name: &str,
     ) -> Option<TokenStream> {
-        // Phase 2 M3 stage 4c: semantic annotations (`@semantic_value`,
-        // `@predicate`, `@emit_fact`, etc.) are runtime side-effects.
-        // `@semantic_value` computes a value used for predicates / fact
-        // emission elsewhere; `@predicate` and `@emit_fact` interact
-        // with the parser's runtime state via the
-        // `with_semantic_runtime_rule_transaction` wrapper. None of
-        // them affect the rule's AST output shape — the parsed content
-        // is the same regardless of whether semantic annotations are
-        // present. The typed body produces the AST shape (matching
-        // `serde_json::to_value(legacy)`); semantic side-effects are
-        // owned by the legacy path and remain there.
-        //
-        // This means the typed path is *unsafe* for grammars whose
-        // parsing correctness depends on semantic annotations
-        // (predicates that gate parsing, facts referenced by sibling
-        // rules). For the regex grammar, the `@semantic_value`
-        // annotations are pure metadata for downstream tooling, not
-        // gating predicates, so the typed AST shape is correct without
-        // them. Grammars that DO depend on semantic predicates (SV,
-        // VHDL) keep using the legacy path by default; the typed path
-        // is opt-in via `--inline-annotations`, and adopters know what
-        // they're trading.
+        // Semantic annotations (`@semantic_value`, `@predicate`,
+        // `@emit_fact`, etc.) shape the parser's runtime state; the
+        // typed path doesn't yet apply them, so rules carrying any
+        // semantic annotation still fall back to stage 1.
+        if !self.rule_has_no_semantic_annotations(rule_name) {
+            return None;
+        }
         // Stage 4b: rules with explicit return annotations
         // (`return_object`, `return_array`, `return_scalar`) get a
         // typed body that applies the annotation transform directly to

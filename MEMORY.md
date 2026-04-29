@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-4c-pgen-rgx-0073-primary-achieved-on-typed-entry)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-5b-generic-shape-composer-typed-path-delivers-perf-benefit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,22 +8,6 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- 🎯 **PGEN-RGX-0073 PRIMARY ACHIEVED on the typed entry point**: 8/8 patterns under 50µs, geomean 4.43× speedup vs legacy.
-- Phase 2 M3 stage 4c landed: loosened the dispatcher gate in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) so rules with semantic annotations also reach the typed path. Semantic annotations are runtime side-effects (predicates, fact emission, semantic_value) that don't affect AST output shape — the typed body produces the correct AST regardless. For grammars that depend on semantic predicates (SV, VHDL) the typed path is unsafe; those grammars use legacy by default.
-- Coverage on regex grammar: **194/194 = 100%**.
-- Perf (release, M4 Pro, mimalloc, --warmup 200 --samples 5000):
-  - literal_simple **2.7µs (5.31×)** ✓ / digit_sequence **8.8µs (4.36×)** ✓ / character_class **28.2µs (3.08×)** ✓ / alternation **7.1µs (5.26×)** ✓ / capture_groups **18.3µs (3.55×)** ✓ / url_simple **6.7µs (5.03×)** ✓ / email_basic **10.8µs (5.03×)** ✓ / anchor_complex **28.9µs (3.65×)** ✓
-  - **ALL 8 under PRIMARY 50µs via typed entry.**
-- Cumulative speedup vs PGEN-RGX-0073 bug-baseline: 60-110× faster depending on pattern.
-- Default `make regex_parser` still uses legacy emit; tracked `generated/regex_parser.rs` byte-unchanged. Typed path opt-in via `make regex_parser_typed`. RGX coordination + contract bump (M5) decides whether to flip the default.
-- Validation: 488 lib tests pass, clippy strict source pass.
-
-### Stage M5 plan (RGX coordination + contract bump)
-- Bump `regex_parser_integration_contract` `1.1.31 → 1.2.0` declaring `parse_full_regex_typed` as the fast-path entry returning `serde_json::Value`.
-- Coordinate with the RGX repo: their consumer code switches from `parse_full_regex` (legacy ParseNode) to `parse_full_regex_typed` (typed Value).
-- After RGX adopts, decide whether to flip the default `make regex_parser` target so tracked parser ships both entries.
-
-### Phase 2 M3 stage 5b (previous slice) — generic shape composer
 - Phase 2 M3 stage 5b landed: generic shape composer in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_value_expr(ast_node, rule_name, receiver)` handles every non-annotated `ASTNode` shape recursively (Atom + Sequence + Or + Quantified + Lookahead). Stages 2-5's per-shape body emitters are subsumed; the dispatcher routes non-annotated rules through the composer. Stage 4b's element emitter also dispatches through it.
 - **Coverage 174/194 = 90%** on the regex grammar (was 147 after 4b). The remaining 20 fallbacks are annotated rules with shapes 4b doesn't model (`flatten($1)`, `$1 != null`) plus rare `Lookahead`.
 - **HUGE PERF WIN.** Typed path on the 8-pattern bug corpus (release, M4 Pro, mimalloc, --warmup 200 --samples 5000):
