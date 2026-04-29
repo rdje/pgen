@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-04-30 - Slice 7: port M3 stage 3 (typed Sequence body emit) into the regex hook
+
+### What landed
+Stage 3 of the rolled-back Phase 2 M3 (`1381e9b`) re-homed inside `rust/src/parser_hooks/regex.rs`. For non-annotated `ASTNode::Sequence` rules whose children are all `Atom` or `Quantified-?-Atom`, the hook now emits a shape-typed body that builds `Value::Array(child_typed_values)` directly — bypassing `ParseNode` allocation for that rule and its in-line-handled children.
+
+### Byte-equivalence fix vs M3
+M3's stage 3 emitted `Value::Null` for `Quantified-?-Atom` children on miss and the bare matched value on hit. But `to_json_value()` of `ParseContent::Quantified(nodes, _)` always serializes via `Value::Array`. So matched gives `Value::Array(vec![<inner-typed>])` and unmatched gives `Value::Array(vec![])` — NOT a bare matched value or `Value::Null`. M3's emit there was the byte-equivalence divergence the differential gate caught at rollback time. Slice 7 emits `Value::Array(vec_of_at_most_one)` carrier instead, which is byte-equivalent.
+
+### Atom emit refactor
+`generate_typed_atom_body` is now a thin wrapper around the new `generate_typed_atom_value_expr(value, rule_name, receiver)`. The receiver parameter is a `TokenStream` — `quote! { self }` for top-level method bodies, `quote! { parser }` inside `try_parse` closures (consistent with the legacy emit's `let parser = p;` shadowing convention). This lets Sequence emit inline atom expressions at child positions including `try_parse` closures.
+
+### Slice 7 numbers (release, 1000 samples / 50 warmup, p50 ns)
+
+| pattern | slice 6 typed | slice 7 typed | delta |
+|---|---|---|---|
+| literal_simple | 37,916 | 20,667 | -46% |
+| digit_sequence | 46,875 | 50,542 | +8% |
+| character_class | 103,666 | 110,208 | +6% |
+| alternation | 47,459 | 51,125 | +8% |
+| capture_groups | 83,000 | 86,292 | +4% |
+| url_simple | 43,167 | 43,083 | ~0% |
+| email_basic | 65,083 | 64,750 | ~0% |
+| anchor_complex | 129,000 | 133,208 | +3% |
+
+`literal_simple` dropped 46%, but the change is most likely an I-cache layout effect rather than slice 7's logic on the hot path: `parse_regex_typed` for `literal_simple` ("test") still falls back to passthrough since the `regex` rule has a `-> {type: ..., pattern: $1}` return annotation. The new typed Sequence emit for non-annotated `Sequence` rules (`quantifier = quant_base quant_suffix?`, `counted_quantifier = "{" ws? body ws? "}"`) adds methods that shift relative addresses in the parser source, which helps some patterns and hurts others until the connecting tissue makes the typed path actually short-circuit.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean (~9s incremental).
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent — proves the `Value::Array` byte-equivalence fix vs M3's `Value::Null` bug is correct.
+- `make regex_typed_perf_probe`: numbers above; gate green.
+
+### Files
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs):
+  - Refactored `generate_typed_atom_body` into a thin wrapper.
+  - New `generate_typed_atom_value_expr(value, rule_name, receiver)` — expression-form atom emit with parameterized receiver.
+  - New `generate_typed_sequence_body(elements, rule_name)` — handles Atom and `?-Atom` children; emits `Value::Array(...)` carrier for `?-Atom`.
+  - `generate_typed_node_body` extended to dispatch `ASTNode::Sequence`.
+
+### What slice 8 does next
+Port M3 stage 4 (`0d8518a`): typed `ASTNode::Or` body emit. For non-annotated Or rules with all-Atom alternatives, emit a sequence of `try_parse` blocks that return the first successful typed value or fall through to `Err(ParseError::Backtrack {...})`. Byte-equivalent to legacy's `ParseContent::Alternative(child).to_json_value() = child.content.to_json_value()`.
+
 ## 2026-04-30 - Slice 6: port M3 stage 2 (typed Atom body emit) into the regex hook
 
 ### What landed

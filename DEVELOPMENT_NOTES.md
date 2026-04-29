@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 7: port M3 stage 3 (typed Sequence body emit) into the regex hook
+
+### What landed
+M3 stage 3 (commit `1381e9b`) re-homed in `rust/src/parser_hooks/regex.rs`. Adds shape-typed body emit for `ASTNode::Sequence` rules whose children are all `Atom` or `Quantified-?-Atom`. Builds `Value::Array(child_typed_values)` directly without `ParseNode` allocation for that rule.
+
+### Byte-equivalence fix vs M3
+This is the slice that caught and fixed the byte-equivalence bug from the rolled-back M3. M3's `Quantified-?-Atom` emit produced `Value::Null` on miss and the bare matched value on hit. Legacy `ParseContent::Quantified(_, _).to_json_value()` always returns `Value::Array(...)`. So byte-equivalent emit gives:
+
+- matched: `Value::Array(vec![<inner-typed>])`
+- unmatched: `Value::Array(vec![])`
+
+Slice 7 implements that. The differential gate confirms 8/8 byte-equivalent — proves the fix works for both shape-typed paths.
+
+### Surprising perf data and what it means
+Slice 7 numbers vs slice 6 (release, 1000 samples / 50 warmup, p50 ns):
+
+```
+pattern              slice 6 typed    slice 7 typed    delta
+literal_simple              37,916           20,667    -46%
+digit_sequence              46,875           50,542     +8%
+character_class            103,666          110,208     +6%
+alternation                 47,459           51,125     +8%
+capture_groups              83,000           86,292     +4%
+url_simple                  43,167           43,083     ~0%
+email_basic                 65,083           64,750     ~0%
+anchor_complex             129,000          133,208     +3%
+```
+
+`literal_simple` is the standout — 46% drop from slice 6 to slice 7. The drop is **probably not** caused by slice 7's emit logic on the hot path: `parse_regex_typed` for `literal_simple` falls back to passthrough body because the `regex` rule has a `-> {type: ..., pattern: $1}` return annotation, so the typed path for `literal_simple` still calls `parse_regex` (legacy) and then `to_json_value()`. None of the new typed Sequence emit is on the hot path for that pattern.
+
+The most likely explanation is **I-cache layout shift**. Slice 7 added typed Sequence emit for two non-annotated regex-grammar Sequence rules: `quantifier = quant_base quant_suffix?` and `counted_quantifier = "{" ws? counted_quantifier_body ws? "}"`. Those methods are now shape-typed and emit different code than their stage-1 fallback equivalents, shifting the parser source's address layout. The shift evidently helps the `literal_simple` hot path's I-cache locality and slightly hurts the others'.
+
+This is a known pattern in M3-class refactors — until the connecting tissue makes the typed path short-circuit out of the legacy passthrough, the only signal is layout-driven noise. The destination (slice 11+ where `parse_regex_typed` actually short-circuits) is what removes the layout-noise and gives a measurable, stable win.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent — proves both Atom emit and the fixed Sequence-`?-Atom` emit produce byte-equivalent shape vs `legacy.content.to_json_value()`.
+- `make regex_typed_perf_probe`: numbers above.
+
+### What slice 8 does next
+Port M3 stage 4 (commit `0d8518a`, "typed Or body emit"). For non-annotated `ASTNode::Or` rules with all-Atom alternatives, emit a sequence of `try_parse` blocks that return the first successful typed value or fall through to `Err(ParseError::Backtrack { position: self.position })`. The byte-equivalence story is direct: `ParseContent::Alternative(child).to_json_value() = child.content.to_json_value()`, and the typed emit returns the same `child_typed_value`.
+
+This will land typed bodies for the regex grammar's many `Or` rules — `atom`, `escape_unit`, `class_item`, `class_atom`, `quant_base`, etc. All should pass the gate by induction since each alternative's typed expression is itself byte-equivalent.
+
 ## 2026-04-30 - Slice 6: port M3 stage 2 (typed Atom body emit) into the regex hook
 
 ### What landed

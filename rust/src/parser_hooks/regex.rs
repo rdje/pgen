@@ -189,26 +189,44 @@ fn generate_typed_node_body(
 
     match ast_node {
         ASTNode::Atom { value } => generate_typed_atom_body(value, rule_name),
-        // Stages 3+ add the other shapes.
+        ASTNode::Sequence { elements } => generate_typed_sequence_body(elements, rule_name),
+        // Stages 4+ add `Or`, `Quantified`, `Lookahead`.
         _ => None,
     }
 }
 
-/// Slice 6 / M3-stage-2: shape-typed body for `ASTNode::Atom`.
+/// Slice 6 / M3-stage-2: shape-typed body (statement form) for
+/// `ASTNode::Atom`. Wraps [`generate_typed_atom_value_expr`] with
+/// `Ok(...)` to produce a method-body-shaped statement.
+fn generate_typed_atom_body(value: &ASTValue, rule_name: &str) -> Option<TokenStream> {
+    let expr = generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
+    Some(quote! { Ok(#expr) })
+}
+
+/// Slice 6 / M3-stage-2 (refactored in slice 7): shape-typed
+/// **expression** (not statement body) for `ASTNode::Atom`. Returns
+/// a block expression that produces `serde_json::Value` (or short-
+/// circuits via `?`). The `receiver` parameter is the parser receiver
+/// to use — `self` at top-level method bodies, or `parser` inside
+/// `try_parse` / nested closures (consistent with the legacy emit's
+/// `let parser = p;` shadowing convention). Slice 7 introduces the
+/// expression form so Sequence emit can inline atom expressions at
+/// child positions including `try_parse` closures.
 ///
 /// Three subtypes:
 /// - `quoted_string`: `match_string(literal)` → `Value::String(matched)`.
 /// - `regex`: `match_regex(pattern, skip_ws)` → `Value::String(matched)`.
-/// - `rule_reference`: `parse_<inner>_typed()` (recurses).
+/// - `rule_reference`: `parse_<inner>_typed()?` (recurses).
 ///
 /// All three produce output byte-equivalent to what `to_json_value()`
 /// returns for the legacy `ParseContent::Terminal(matched_str)` (or, for
 /// `rule_reference`, whatever the inner rule's typed entry returns —
 /// which is byte-equivalent by induction).
-///
-/// Returns `None` for unrecognized atom subtypes so the caller falls
-/// back to the passthrough.
-fn generate_typed_atom_body(value: &ASTValue, rule_name: &str) -> Option<TokenStream> {
+fn generate_typed_atom_value_expr(
+    value: &ASTValue,
+    rule_name: &str,
+    receiver: TokenStream,
+) -> Option<TokenStream> {
     let ASTValue::Token(parts) = value else {
         return None;
     };
@@ -220,8 +238,10 @@ fn generate_typed_atom_body(value: &ASTValue, rule_name: &str) -> Option<TokenSt
 
     match token_type.as_str() {
         "quoted_string" => Some(quote! {
-            let matched_str = self.match_string(#token_value)?;
-            Ok(serde_json::Value::String(matched_str.to_string()))
+            {
+                let __pgen_typed_matched = #receiver.match_string(#token_value)?;
+                serde_json::Value::String(__pgen_typed_matched.to_string())
+            }
         }),
         "regex" => {
             // Inherits the same skip-leading-whitespace policy as the
@@ -235,21 +255,94 @@ fn generate_typed_atom_body(value: &ASTValue, rule_name: &str) -> Option<TokenSt
             let skip_leading_whitespace =
                 !matches!(rule_name, "string_content_double" | "string_content_single");
             Some(quote! {
-                let matched_str = self.match_regex(
-                    #token_value,
-                    #skip_leading_whitespace,
-                )?;
-                Ok(serde_json::Value::String(matched_str.to_string()))
+                {
+                    let __pgen_typed_matched = #receiver.match_regex(
+                        #token_value,
+                        #skip_leading_whitespace,
+                    )?;
+                    serde_json::Value::String(__pgen_typed_matched.to_string())
+                }
             })
         }
         "rule_reference" => {
             let inner_typed = format_ident!("parse_{}_typed", token_value);
             Some(quote! {
-                self.#inner_typed()
+                #receiver.#inner_typed()?
             })
         }
         _ => None,
     }
+}
+
+/// Slice 7 / M3-stage-3: shape-typed body for `ASTNode::Sequence`.
+///
+/// Builds `Value::Array(child_typed_values)` by parsing each child in
+/// order. Stage 3 handles two child shapes:
+/// - `ASTNode::Atom`: inline the typed atom expression and push the
+///   resulting `Value`.
+/// - `ASTNode::Quantified` with quantifier `"?"` whose inner element
+///   is an `Atom`: wrap in `try_parse` and push a
+///   `Value::Array(...)` carrier matching what
+///   `ParseContent::Quantified(_, "?").to_json_value()` produces on
+///   the legacy path.
+///
+/// **Byte-equivalence for `?`-Quantified-Atom:** legacy
+/// `ParseContent::Quantified(nodes, _)` always serializes via
+/// `to_json_value()` to `Value::Array`. So matched gives
+/// `Value::Array(vec![<inner-typed>])` and unmatched gives
+/// `Value::Array(vec![])` — NOT a bare matched value or `Value::Null`.
+/// (M3's stage 3 emitted `Value::Null` on miss, which was the
+/// byte-equivalence divergence the differential gate caught at
+/// rollback time. Slice 7 fixes this.)
+///
+/// Returns `None` if any child is a shape stage 3 doesn't yet handle
+/// (nested `Or` / `Sequence` / `Lookahead` / `Quantified` with non-`?`
+/// quantifier or non-`Atom` inner). In that case the caller falls
+/// back to the passthrough body.
+fn generate_typed_sequence_body(elements: &[ASTNode], rule_name: &str) -> Option<TokenStream> {
+    let element_count = elements.len();
+    let mut element_pushes: Vec<TokenStream> = Vec::with_capacity(element_count);
+    for elem in elements {
+        let push = match elem {
+            ASTNode::Atom { value } => {
+                let expr = generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
+                quote! {
+                    elements.push(#expr);
+                }
+            }
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } if quantifier == "?" => {
+                let ASTNode::Atom { value } = element.as_ref() else {
+                    return None;
+                };
+                let inner_expr =
+                    generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
+                quote! {
+                    let __pgen_optional_carrier: Vec<serde_json::Value> = if let Some(__pgen_v) =
+                        self.try_parse(|p| {
+                            let parser = p;
+                            Ok::<serde_json::Value, ParseError>(#inner_expr)
+                        })
+                    {
+                        vec![__pgen_v]
+                    } else {
+                        Vec::new()
+                    };
+                    elements.push(serde_json::Value::Array(__pgen_optional_carrier));
+                }
+            }
+            _ => return None,
+        };
+        element_pushes.push(push);
+    }
+
+    Some(quote! {
+        let mut elements: Vec<serde_json::Value> = Vec::with_capacity(#element_count);
+        #(#element_pushes)*
+        Ok(serde_json::Value::Array(elements))
+    })
 }
 
 /// Slice 6 / M3-stage-2: rule has no semantic annotations of any kind
