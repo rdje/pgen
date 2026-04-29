@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-1-per-rule-typed-method-codegen-scaffolding)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-2-typed-atom-body-emit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,18 +8,22 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Phase 2 M3 stage 1 landed in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). When `--inline-annotations` is set, the emitted parser now carries a per-rule `parse_<rule>_typed` method for every rule plus a `parse_full_<entry>_typed` dispatcher. All return `ParseResult<serde_json::Value>`. Stage 1 bodies wrap legacy `parse_<rule>` + `serde_json::to_value(&node)` — no perf gain yet, but the API surface is stable across stages.
-- Direct invocation `ast_pipeline ... --inline-annotations -o /tmp/regex_parser_typed.rs` produces 194 typed methods. Lib tests 488 passed; the existing regression test for the M1 contract was updated to pin the new shape.
-- Tracked `generated/regex_parser.rs` is intentionally NOT regenerated under `--inline-annotations` in this commit. The make target keeps the flag off; tracked parser bytes stay on the legacy emit until stage 2+ delivers shape-typed bodies that actually skip `ParseNode`.
+- Phase 2 M3 stage 2 landed in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_node_body` dispatcher selects between shape-typed emit and stage-1 fallback per rule; `generate_typed_atom_body` emits typed bodies for `ASTNode::Atom` (the leaf shape):
+  - `quoted_string` → `let s = self.match_string(#literal)?; Ok(Value::String(s.to_string()))`
+  - `regex` → `let s = self.match_regex(#pattern, #skip_ws)?; Ok(Value::String(s.to_string()))`
+  - `rule_reference` → `self.parse_<inner>_typed()`
+- `ParseNode` is bypassed entirely for non-annotated Atom rules.
+- Stage 2 only dispatches non-annotated rules; annotated Atom rules use stage-1 fallback so annotation-applied shape stays correct (annotation-aware typed emit comes in stage 4 with `Or`).
+- Direct probe on regex grammar: 22/194 rules now use stage-2 typed Atom emit (e.g. `parse_dot_typed` calls `self.match_string(".")` directly). 172/194 still on stage-1 fallback (`Or`/`Sequence`/`Quantified`/`Lookahead` pending stages 3-5).
+- Tracked `generated/regex_parser.rs` still NOT regenerated under `--inline-annotations`. Stage 6 flips the flag once stages 3-5 cover the other shapes.
+- Validation: `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored; `cargo build --features generated_parsers` clean; clippy strict source pass.
 
-### Phase 2 M3 stage 2+ plan (next session)
-- **Stage 2**: shape-typed emit for `ASTNode::Atom` — terminal literals, regex matches, rule references. Body returns `Value::String(matched_text)` for leaves and dispatches to inner `parse_<inner>_typed()` for rule references. Easiest shape and most common in regex grammar.
-- **Stage 3**: `ASTNode::Sequence` — typed body builds `Value::Array(child_typed_values)`.
-- **Stage 4**: `ASTNode::Or` — typed body returns the matched branch's typed value.
-- **Stage 5**: `ASTNode::Quantified` and `Lookahead`.
+### Phase 2 M3 stage 3+ plan (next session)
+- **Stage 3**: `ASTNode::Sequence` typed body. Build `Value::Array(child_typed_values)` by calling each child's `_typed` method or inline atom emit. Reference `generate_sequence_logic` for the legacy emit shape.
+- **Stage 4**: `ASTNode::Or` typed body. Try each alternative; return first successful's typed value. **Annotation handling enters here** — per-branch return annotations (e.g. regex `@semantic_value: {type: "literal", char: $1}`) need to shape the typed value.
+- **Stage 5**: `ASTNode::Quantified` (`*`/`+`/`?`/`{n,m}`) and `Lookahead` typed bodies.
 - **Stage 6**: wire regex `make regex_parser` target to `--inline-annotations`; regenerate tracked `generated/regex_parser.rs`; update perf probe to call `parse_full_regex_typed`.
 - **Stage 7**: measure perf via the typed entry point; expected 30-60% reduction on `anchor_complex` / `character_class`. PGEN-RGX-0073 PRIMARY <50µs across all 8 patterns expected to fall here.
-- **M4-M8** then unblock once stage 2-7 confirm the architectural pattern.
 
 ### Validation at HEAD
 - `cargo build --features generated_parsers` clean.

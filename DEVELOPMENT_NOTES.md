@@ -1,4 +1,118 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Phase 2 M3 stage 2: typed Atom body emit
+
+### What landed
+First substantive shape-typed emit. Non-annotated `ASTNode::Atom` rules now produce `serde_json::Value` directly without going through `ParseNode`.
+
+### Implementation shape
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+```rust
+fn generate_typed_node_body(&self, ast_node: &ASTNode, rule_name: &str) -> Option<TokenStream> {
+    if !self.rule_has_no_semantic_annotations(rule_name) { return None; }
+    if let Some(annotations) = &self.annotations {
+        if annotations.branch_return_annotations.contains_key(rule_name) {
+            return None;
+        }
+    }
+    match ast_node {
+        ASTNode::Atom { value } => self.generate_typed_atom_body(value, rule_name),
+        _ => None,
+    }
+}
+
+fn generate_typed_atom_body(&self, value: &ASTValue, rule_name: &str) -> Option<TokenStream> {
+    let ASTValue::Token(parts) = value else { return None; };
+    if parts.len() < 2 { return None; }
+    let TokenValue::String(token_type) = &parts[0] else { return None; };
+    let TokenValue::String(token_value) = &parts[1] else { return None; };
+    match token_type.as_str() {
+        "quoted_string" => Some(quote! {
+            let matched_str = self.match_string(#token_value)?;
+            Ok(serde_json::Value::String(matched_str.to_string()))
+        }),
+        "regex" => {
+            let skip_leading_whitespace = !matches!(rule_name,
+                "string_content_double" | "string_content_single");
+            let effective_pattern = self.effective_regex_pattern(rule_name, token_value);
+            Some(quote! {
+                let matched_str = self.match_regex(
+                    #effective_pattern, #skip_leading_whitespace,
+                )?;
+                Ok(serde_json::Value::String(matched_str.to_string()))
+            })
+        }
+        "rule_reference" => {
+            let inner_typed = format_ident!("parse_{}_typed", token_value);
+            Some(quote! {
+                self.#inner_typed()
+            })
+        }
+        _ => None,
+    }
+}
+```
+
+`generate_typed_parser_impl_skeleton` now takes `grammar_tree: &HashMap<String, ASTNode>` and dispatches each rule through `generate_typed_node_body`. When the dispatcher returns `Some(body)`, the typed method body is the shape-typed emit. When it returns `None`, the typed method falls back to the stage-1 wrapper (`legacy parse + serde_json::to_value`) — used today for annotated rules and for the four shapes that stages 3-5 will add.
+
+### Why annotations gate the typed emit at stage 2
+Stage 2's typed body for a leaf returns `Value::String(matched_text)`. For an annotated rule (e.g. regex's `@semantic_value: {type: "literal", char: $1}`), the correct typed shape is the annotation's transform applied to the matched value, not the raw matched text. Without annotation handling in the typed path, the typed body would silently produce wrong output. Stage 4 (Or with branch annotations) is where annotation-aware typed emit lands; until then, annotated rules use the stage-1 fallback which preserves correctness via the legacy post-parse transform.
+
+### Effect on the regex parser
+Direct invocation:
+
+```
+ast_pipeline generated/regex.json --generate-parser --eliminate-left-recursion \
+    --inline-annotations -o /tmp/regex_parser_typed.rs
+```
+
+results:
+
+| typed body class            | count |
+|-----------------------------|-------|
+| stage-2 shape-typed Atom    | 22    |
+| stage-1 fallback (other)    | 172   |
+| **total**                   | **194** |
+
+22 typed Atom rules cover the leaf positions in the regex grammar — single-character matchers, dot, anchors, quoted-string literals — exactly where `ParseNode` allocation is most wasteful per call.
+
+Sample of a stage-2 typed body, `parse_dot_typed`:
+
+```rust
+pub fn parse_dot_typed(&mut self) -> ParseResult<serde_json::Value> {
+    let matched_str = self.match_string(".")?;
+    Ok(serde_json::Value::String(matched_str.to_string()))
+}
+```
+
+Compare to the stage-1 fallback for non-Atom rules, `parse_letter_typed`:
+
+```rust
+pub fn parse_letter_typed(&mut self) -> ParseResult<serde_json::Value> {
+    let node = self.parse_letter()?;
+    serde_json::to_value(&node).map_err(...)
+}
+```
+
+### Why tracked `generated/regex_parser.rs` is still not regenerated
+The regex `make` target keeps `--inline-annotations` off. Stage 2 typed bodies fire for ~11% of rules; until stages 3-5 cover the remaining shapes, regenerating with `--inline-annotations` on would add ~190 stage-1 fallback methods that go through legacy + serialization (wasted bytes, no perf benefit on most rules). Stage 6 flips the flag once stages 3-5 deliver typed bodies for the other shapes.
+
+### Stage 3+ plan
+- **Stage 3**: `ASTNode::Sequence` typed body. Build `Value::Array(child_typed_values)` by calling each child's `_typed` method or inline atom emit. Reference [`generate_sequence_logic`](rust/src/ast_pipeline/ast_based_generator.rs) for the legacy emit shape — typed mirror builds `Vec<Value>` instead of `Vec<ParseNode>`.
+- **Stage 4**: `ASTNode::Or` typed body. Try each alternative; return first successful's typed value. **Annotation handling enters here** — per-branch return annotations (e.g. regex `@semantic_value: {type: "literal", char: $1}`) need to shape the typed value via the annotation transform.
+- **Stage 5**: `ASTNode::Quantified` (`*`/`+`/`?`/`{n,m}`) and `Lookahead` typed bodies.
+- **Stage 6**: wire `RUST_GENERATOR_INLINE` into the regex make target; regenerate tracked parser.
+- **Stage 7**: update perf probe to call `parse_full_regex_typed`. Re-measure 8-pattern bug corpus.
+
+### Files in this commit
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds `generate_typed_node_body` dispatcher and `generate_typed_atom_body` shape-typed emitter; `generate_typed_parser_impl_skeleton` takes `grammar_tree` and uses the dispatcher per rule; regression test updated.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: 22 stage-2 typed Atom bodies, 172 stage-1 fallbacks across the regex grammar's 194 rules.
+
 ## 2026-04-29 - Phase 2 M3 stage 1: per-rule typed-method codegen scaffolding
 
 ### What landed

@@ -313,7 +313,12 @@ impl AstBasedGenerator {
         // but the API surface is stable). Future stages replace per-shape bodies
         // with shape-typed emit and `ParseNode` is bypassed entirely.
         let typed_parser_impl = if self.inline_annotations {
-            self.generate_typed_parser_impl_skeleton(&parser_name, rule_order, &entry_rule)
+            self.generate_typed_parser_impl_skeleton(
+                &parser_name,
+                grammar_tree,
+                rule_order,
+                &entry_rule,
+            )
         } else {
             TokenStream::new()
         };
@@ -692,7 +697,106 @@ impl AstBasedGenerator {
         })
     }
 
-    /// Phase 2 M1+M3-stage-1 emit. Produces a parallel `impl` block carrying
+    /// Phase 2 M3 stage 2: shape-typed body emit per rule AST node.
+    ///
+    /// Returns `Some(body)` when the typed body for this rule has been
+    /// implemented at codegen — currently `ASTNode::Atom` for the three
+    /// common subtypes (`quoted_string`, `regex`, `rule_reference`) when
+    /// the rule has no semantic / return annotations that change the
+    /// emitted shape. Returns `None` when no shape-typed emit is
+    /// available yet (annotated rules; `Sequence` / `Or` / `Quantified`
+    /// / `Lookahead` shapes pending stages 3-5); the caller falls back
+    /// to the stage-1 wrapper.
+    ///
+    /// Stage 2 contract: shape-typed body produces the matched text as
+    /// `Value::String` for leaves, or dispatches to the inner rule's
+    /// typed entry for rule references. `ParseNode` is bypassed
+    /// entirely on this path.
+    fn generate_typed_node_body(
+        &self,
+        ast_node: &ASTNode,
+        rule_name: &str,
+    ) -> Option<TokenStream> {
+        // Stage 2 only dispatches non-annotated rules. If the rule has
+        // any semantic or return annotation, fall back to stage 1 so
+        // the annotation-applied shape stays correct. Annotated rule
+        // typed emit is its own slice (M3 stage 4+ when Or / branches
+        // bring annotation handling into the typed path).
+        if !self.rule_has_no_semantic_annotations(rule_name) {
+            return None;
+        }
+        if let Some(annotations) = &self.annotations {
+            if annotations.branch_return_annotations.contains_key(rule_name) {
+                return None;
+            }
+        }
+
+        match ast_node {
+            ASTNode::Atom { value } => self.generate_typed_atom_body(value, rule_name),
+            // Stages 3-5 add the other shapes.
+            _ => None,
+        }
+    }
+
+    /// Phase 2 M3 stage 2: shape-typed body for `ASTNode::Atom`.
+    ///
+    /// Three subtypes:
+    /// - `quoted_string`: emit `match_string` and return the literal
+    ///   text as `Value::String`.
+    /// - `regex`: emit `match_regex` and return the matched text as
+    ///   `Value::String`.
+    /// - `rule_reference`: dispatch to the inner rule's typed entry.
+    ///
+    /// Returns `None` for unrecognized atom subtypes (literal_keyword,
+    /// dpi_spec_string, etc.) so the stage-1 wrapper handles them.
+    fn generate_typed_atom_body(
+        &self,
+        value: &ASTValue,
+        rule_name: &str,
+    ) -> Option<TokenStream> {
+        let ASTValue::Token(parts) = value else {
+            return None;
+        };
+        if parts.len() < 2 {
+            return None;
+        }
+        let TokenValue::String(token_type) = &parts[0] else {
+            return None;
+        };
+        let TokenValue::String(token_value) = &parts[1] else {
+            return None;
+        };
+
+        match token_type.as_str() {
+            "quoted_string" => Some(quote! {
+                let matched_str = self.match_string(#token_value)?;
+                Ok(serde_json::Value::String(matched_str.to_string()))
+            }),
+            "regex" => {
+                let skip_leading_whitespace = !matches!(
+                    rule_name,
+                    "string_content_double" | "string_content_single"
+                );
+                let effective_pattern = self.effective_regex_pattern(rule_name, token_value);
+                Some(quote! {
+                    let matched_str = self.match_regex(
+                        #effective_pattern,
+                        #skip_leading_whitespace,
+                    )?;
+                    Ok(serde_json::Value::String(matched_str.to_string()))
+                })
+            }
+            "rule_reference" => {
+                let inner_typed = format_ident!("parse_{}_typed", token_value);
+                Some(quote! {
+                    self.#inner_typed()
+                })
+            }
+            _ => None,
+        }
+    }
+
+    /// Phase 2 M1+M3 emit. Produces a parallel `impl` block carrying
     /// per-rule `parse_<rule>_typed` methods plus the entry-point
     /// `parse_full_<entry>_typed` — all returning `ParseResult<serde_json::Value>`.
     ///
@@ -712,6 +816,7 @@ impl AstBasedGenerator {
     fn generate_typed_parser_impl_skeleton(
         &self,
         parser_name: &Ident,
+        grammar_tree: &HashMap<String, ASTNode>,
         rule_order: &[String],
         entry_rule: &str,
     ) -> TokenStream {
@@ -719,33 +824,51 @@ impl AstBasedGenerator {
         let parse_full_typed_method = format_ident!("parse_full_{}_typed", entry_rule);
         let parse_entry_typed_method = format_ident!("parse_{}_typed", entry_rule);
 
-        let per_rule_typed_methods = rule_order.iter().map(|rule_name| {
-            let typed_method_name = format_ident!("parse_{}_typed", rule_name);
-            let legacy_method_name = format_ident!("parse_{}", rule_name);
-            let rule_label = rule_name.as_str();
-            quote! {
-                /// Phase 2 M3 stage 1: per-rule typed entry. Returns a
-                /// `serde_json::Value` representing the parsed subtree.
-                /// Stage 1 body is a thin wrapper around the legacy
-                /// `parse_<rule>` plus `serde_json::to_value(&node)` so the
-                /// public API surface is stable while the differential
-                /// gate (M2) verifies byte-equivalent JSON. Stage 2+
-                /// replaces this body with shape-typed emit per the
-                /// rule's AST node so `ParseNode` is bypassed entirely.
-                pub fn #typed_method_name(
-                    &mut self,
-                ) -> ParseResult<serde_json::Value> {
-                    let node = self.#legacy_method_name()?;
-                    serde_json::to_value(&node).map_err(|err| {
-                        self.create_contextual_error(&format!(
-                            "Phase 2 M3 stage 1 typed serialization failed for rule '{}': {}",
-                            #rule_label,
-                            err
-                        ))
-                    })
+        let per_rule_typed_methods: Vec<TokenStream> = rule_order
+            .iter()
+            .map(|rule_name| {
+                let typed_method_name = format_ident!("parse_{}_typed", rule_name);
+                let rule_label = rule_name.as_str();
+                let body = grammar_tree
+                    .get(rule_name)
+                    .and_then(|ast_node| self.generate_typed_node_body(ast_node, rule_name))
+                    .unwrap_or_else(|| {
+                        // Stage 1 fallback: legacy parse + serde_json::to_value.
+                        // Used for shapes / annotations not yet covered by the
+                        // typed-emit dispatcher (everything except non-annotated
+                        // ASTNode::Atom in stage 2). Future M3 stages replace
+                        // these fallbacks with shape-typed bodies per shape.
+                        let legacy_method_name = format_ident!("parse_{}", rule_name);
+                        quote! {
+                            let node = self.#legacy_method_name()?;
+                            serde_json::to_value(&node).map_err(|err| {
+                                self.create_contextual_error(&format!(
+                                    "Phase 2 M3 stage 1 typed serialization failed for rule '{}': {}",
+                                    #rule_label,
+                                    err
+                                ))
+                            })
+                        }
+                    });
+                quote! {
+                    /// Phase 2 M3 per-rule typed entry. Returns a
+                    /// `serde_json::Value` representing the parsed subtree.
+                    /// Body shape depends on the rule's AST node:
+                    /// - `ASTNode::Atom` (non-annotated): shape-typed emit
+                    ///   that returns `Value::String(matched_text)` for
+                    ///   leaves or dispatches to the inner rule's typed
+                    ///   method for rule references — `ParseNode` is
+                    ///   bypassed.
+                    /// - everything else: stage-1 fallback (`legacy + to_value`)
+                    ///   pending dedicated typed emit for that shape.
+                    pub fn #typed_method_name(
+                        &mut self,
+                    ) -> ParseResult<serde_json::Value> {
+                        #body
+                    }
                 }
-            }
-        });
+            })
+            .collect();
 
         quote! {
             impl<'input> #parser_name<'input> {
@@ -6135,10 +6258,31 @@ mod semantic_usage_tests {
             "flag-on emit must preserve legacy parse_full method, got: {}",
             rendered_on
         );
-        // Stage 1 per-rule typed body wraps the legacy `parse_<rule>` call.
+        // Stage 2 per-rule typed body for `ASTNode::Atom`(`quoted_string`)
+        // calls `self.match_string` directly and returns the matched
+        // literal as `Value::String` — the legacy `parse_<rule>` is NOT
+        // invoked on this path, so `ParseNode` allocation is bypassed.
         assert!(
-            rendered_on.contains("self.parse_package_declaration()"),
-            "stage-1 per-rule typed body must wrap the legacy parse_<rule> call, got: {}",
+            rendered_on.contains("self.match_string(\"pkg\")")
+                || rendered_on.contains("self.match_string (\"pkg\")"),
+            "stage-2 typed body for quoted_string Atom must call self.match_string with the literal, got: {}",
+            rendered_on
+        );
+        assert!(
+            rendered_on.contains("serde_json::Value::String")
+                || rendered_on.contains("serde_json :: Value :: String"),
+            "stage-2 typed body for quoted_string Atom must return Value::String, got: {}",
+            rendered_on
+        );
+        // Stage 2 typed body must NOT use the stage-1 fallback pattern
+        // (`legacy parse + serde_json::to_value`). The legacy
+        // `parse_<rule>` still appears in the rendered output because
+        // `parse_full_<entry>` calls it on the legacy path; the assertion
+        // must not match that. Check absence of the stage-1 fallback
+        // marker instead, which is unique to the fallback body.
+        assert!(
+            !rendered_on.contains("Phase 2 M3 stage 1 typed serialization failed"),
+            "stage-2 typed body for non-annotated quoted_string Atom must NOT fall back to stage-1 wrapper, got: {}",
             rendered_on
         );
         // The full-input typed entry dispatches through the per-rule typed entry.

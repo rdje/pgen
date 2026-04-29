@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 stage 2: typed Atom body emit
+### Achievement Summary
+First substantive typed-emit body lands. `generate_typed_node_body` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) is the dispatcher that selects between shape-typed emit and stage-1 fallback per rule; for `ASTNode::Atom` (the leaf shape — `quoted_string`, `regex`, `rule_reference`), `generate_typed_atom_body` produces a body that builds `serde_json::Value` directly:
+
+- `quoted_string` → `let s = self.match_string(#literal)?; Ok(Value::String(s.to_string()))`
+- `regex` → `let s = self.match_regex(#pattern, #skip_ws)?; Ok(Value::String(s.to_string()))`
+- `rule_reference` → `self.parse_<inner>_typed()`
+
+`ParseNode` is bypassed entirely on this path. The legacy `parse_<rule>` is not invoked from the typed entry for these rules.
+
+Stage 2 only dispatches non-annotated rules. Atom rules with semantic annotations or branch return annotations fall back to the stage-1 wrapper (`legacy + serde_json::to_value`), so the annotation-applied shape stays correct until the typed-with-annotations slice lands (M3 stage 4+ once `Or` brings annotation-handling into the typed path).
+
+### Effect on the regex parser
+Direct invocation `ast_pipeline generated/regex.json --generate-parser --eliminate-left-recursion --inline-annotations -o /tmp/regex_parser_typed.rs` against the regex grammar shows:
+
+- 194 total `parse_<rule>_typed` methods (one per rule plus the `parse_full_<entry>_typed` dispatcher) — unchanged count from stage 1.
+- 22 typed bodies are now stage-2 shape-typed Atom emit (e.g. `parse_dot_typed` calls `self.match_string(".")` and returns `Value::String(...)` — no `ParseNode`).
+- 172 typed bodies still use the stage-1 fallback (`Or` / `Sequence` / `Quantified` / `Lookahead` shapes pending stages 3-5).
+
+The 22 typed Atom rules cover the leaf positions in the regex grammar — single-character matchers, dot, anchors, quoted-string literals — exactly the shape positions where `ParseNode` allocation is most wasteful per call (a leaf node otherwise builds a `ParseNode` with `ParseContent::Terminal` per entry).
+
+### Tracked `generated/regex_parser.rs` not regenerated
+The regex `make` target keeps `--inline-annotations` off. Stage 2 typed bodies only fire for ~11% of rules; until stages 3-5 cover the remaining shapes, regenerating with `--inline-annotations` on would add ~190 stage-1 fallback methods that go through legacy + serialization (wasted bytes, no perf benefit on most rules). Stage 6 flips the flag once stages 3-5 deliver typed bodies for the other shapes.
+
+### Test
+The regression test `phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set` is updated to pin the stage-2 contract for the test grammar's `quoted_string` Atom rule:
+- typed body calls `self.match_string("pkg")` directly (not `self.parse_<rule>()`)
+- typed body returns `Value::String`
+- typed body does NOT contain the stage-1 fallback marker `Phase 2 M3 stage 1 typed serialization failed`
+- the full-input typed entry still dispatches through `parse_<entry>_typed`
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds `generate_typed_node_body` (dispatcher) and `generate_typed_atom_body` (shape-typed emit for Atom subtypes); `generate_typed_parser_impl_skeleton` now takes `grammar_tree` and uses the dispatcher per rule; regression test updated.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: `ast_pipeline ... --inline-annotations` emits 22 stage-2 typed Atom bodies and 172 stage-1 fallbacks across the regex grammar's 194 rules.
+
+### Stage 3+ plan
+- **Stage 3**: `ASTNode::Sequence` typed body. Build `Value::Array(child_typed_values)` by calling each child's `_typed` method or inline atom emit.
+- **Stage 4**: `ASTNode::Or` typed body. Try each alternative; return first successful's typed value. Annotation handling enters here (per-branch return annotations would shape the value).
+- **Stage 5**: `ASTNode::Quantified` (`*`/`+`/`?`/`{n,m}`) and `Lookahead` typed bodies.
+- **Stage 6**: wire regex `make` target to `--inline-annotations`; regenerate tracked parser.
+- **Stage 7**: re-measure 8-pattern bug corpus via `parse_full_regex_typed`. Expected 30-60% reduction on `anchor_complex` / `character_class`.
+
 ## 2026-04-29 - Phase 2 M3 stage 1: per-rule typed-method codegen scaffolding
 ### Achievement Summary
 First substantive Phase 2 M3 commit. Extends [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)'s `generate_typed_parser_impl_skeleton` so that, when the `--inline-annotations` flag is set on the AST pipeline, the emitted parser carries:
