@@ -190,7 +190,8 @@ fn generate_typed_node_body(
     match ast_node {
         ASTNode::Atom { value } => generate_typed_atom_body(value, rule_name),
         ASTNode::Sequence { elements } => generate_typed_sequence_body(elements, rule_name),
-        // Stages 4+ add `Or`, `Quantified`, `Lookahead`.
+        ASTNode::Or { alternatives } => generate_typed_or_body(alternatives, rule_name),
+        // Stages 5+ add `Quantified` and `Lookahead`.
         _ => None,
     }
 }
@@ -342,6 +343,54 @@ fn generate_typed_sequence_body(elements: &[ASTNode], rule_name: &str) -> Option
         let mut elements: Vec<serde_json::Value> = Vec::with_capacity(#element_count);
         #(#element_pushes)*
         Ok(serde_json::Value::Array(elements))
+    })
+}
+
+/// Slice 8 / M3-stage-4: shape-typed body for `ASTNode::Or`.
+///
+/// For Or rules whose alternatives are all `ASTNode::Atom`, emits a
+/// sequence of `try_parse` blocks: each tries the next alternative,
+/// and the first successful one returns its typed value. If all
+/// alternatives fail, returns `Err(ParseError::Backtrack { position:
+/// self.position })` so the caller's outer Or / Sequence can retry at
+/// that position.
+///
+/// **Byte-equivalence:** legacy `ParseContent::Alternative(child)
+/// .to_json_value()` returns `child.content.to_json_value()` — i.e.
+/// the chosen alternative's content unwrapped. The typed emit returns
+/// the alternative's typed value directly. Match.
+///
+/// The dispatcher's gate at `generate_typed_node_body` already
+/// filters out rules with semantic or branch return annotations, so
+/// the Or rules that reach this function either have no annotations
+/// at all OR rely on the implicit `-> $1` default for single-element
+/// branches (which is synthesized at codegen time by the generator,
+/// not stored in `branch_return_annotations`). The typed semantics —
+/// return the alternative's typed value — match the implicit `-> $1`
+/// passthrough, so the typed path is equivalent.
+///
+/// Returns `None` if any alternative is not an `ASTNode::Atom` (e.g.
+/// nested Sequence / Or / Quantified / Lookahead). Stages 5+ extend
+/// the supported alternative shapes.
+fn generate_typed_or_body(alternatives: &[ASTNode], rule_name: &str) -> Option<TokenStream> {
+    let mut try_blocks: Vec<TokenStream> = Vec::with_capacity(alternatives.len());
+    for alt in alternatives {
+        let ASTNode::Atom { value } = alt else {
+            return None;
+        };
+        let expr = generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
+        try_blocks.push(quote! {
+            if let Some(__pgen_or_v) = self.try_parse(|p| {
+                let parser = p;
+                Ok::<serde_json::Value, ParseError>(#expr)
+            }) {
+                return Ok(__pgen_or_v);
+            }
+        });
+    }
+    Some(quote! {
+        #(#try_blocks)*
+        Err(ParseError::Backtrack { position: self.position })
     })
 }
 

@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-04-30 - Slice 8: port M3 stage 4 (typed Or body emit) into the regex hook
+
+### What landed
+Stage 4 of the rolled-back Phase 2 M3 (`0d8518a`) re-homed inside `rust/src/parser_hooks/regex.rs`. For non-annotated `ASTNode::Or` rules whose alternatives are all `ASTNode::Atom`, the hook now emits a sequence of `try_parse` blocks: the first alternative that succeeds returns its typed value via `return Ok(...)`; on full failure the body returns `Err(ParseError::Backtrack { position: self.position })`.
+
+### Byte-equivalence
+Legacy `ParseContent::Alternative(child).to_json_value()` returns `child.content.to_json_value()` — i.e. the chosen alternative's content unwrapped. The typed emit returns the alternative's typed value directly. Match. Differential gate: 8/8 byte-equivalent.
+
+The dispatcher's gate at `generate_typed_node_body` already filters out rules with semantic or branch return annotations, so Or rules that reach this function either have no annotations at all OR rely on the implicit `-> $1` default for single-element branches (which is synthesized at codegen time, not stored in `branch_return_annotations`). The typed semantics — return the alternative's typed value — match the implicit `-> $1` passthrough.
+
+### Slice 8 numbers (release, 1000 samples / 50 warmup, p50 ns)
+
+| pattern | slice 7 typed | slice 8 typed | delta |
+|---|---|---|---|
+| literal_simple | 20,667 | 20,792 | ~0 |
+| digit_sequence | 50,542 | 48,375 | -4% |
+| character_class | 110,208 | 108,459 | -2% |
+| alternation | 51,125 | 49,375 | -3% |
+| capture_groups | 86,292 | 85,875 | ~0 |
+| url_simple | 43,083 | 43,291 | ~0 |
+| email_basic | 64,750 | 64,541 | ~0 |
+| anchor_complex | 133,208 | 133,333 | ~0 |
+
+`digit_sequence` and `alternation` slipped under PRIMARY 50µs (48.4µs / 49.4µs) — both were just over the line in slice 7. Pattern coverage at PRIMARY 50µs: literal_simple, digit_sequence, alternation, url_simple all under (4/8). The remaining 4 patterns (character_class, capture_groups, email_basic, anchor_complex) need slices 11+ (annotation-aware emit + shape composer) which is where M3 saw the actual perf unlock.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: numbers above; gate green.
+
+### Files
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs):
+  - New `generate_typed_or_body(alternatives, rule_name)` — emits `try_parse` chain falling through to `ParseError::Backtrack`.
+  - `generate_typed_node_body` extended to dispatch `ASTNode::Or`.
+
+### What slice 9 does next
+Port M3 stage 5 (`b6d7f28`): typed `ASTNode::Quantified` body emit for `*` / `+` / `?` (and `Lookahead`). Builds `Value::Array(child_typed_values)` directly for non-`?` quantifiers; `?` already handled inside Sequence (slice 7). After slice 9, the typed-body coverage for non-annotated rules in the regex grammar should reach close to ~70-80%; the remaining gap is annotation-aware emit (slice 10 = M3 4b) + generic shape composer (slice 11 = M3 5b) which together unlock the actual perf wins.
+
 ## 2026-04-30 - Slice 7: port M3 stage 3 (typed Sequence body emit) into the regex hook
 
 ### What landed

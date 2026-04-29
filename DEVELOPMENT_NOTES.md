@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 8: port M3 stage 4 (typed Or body emit) into the regex hook
+
+### What landed
+M3 stage 4 (commit `0d8518a`) re-homed in `rust/src/parser_hooks/regex.rs`. Adds shape-typed body emit for `ASTNode::Or` rules whose alternatives are all `ASTNode::Atom`. Emits a chain of `try_parse` blocks; the first alternative that succeeds returns its typed value, and on full failure the body returns `Err(ParseError::Backtrack { position: self.position })`.
+
+### Byte-equivalence chain
+- Legacy `ParseContent::Alternative(child).to_json_value()` = `child.content.to_json_value()`.
+- Typed emit returns the alternative's typed value (which is byte-equivalent to `child.content.to_json_value()` by induction across the Atom subtypes already covered in slice 6).
+
+So Or rules with all-Atom alternatives produce byte-equivalent output by composition. The differential gate's 8/8 result confirms this.
+
+### Annotation-handling status
+The dispatcher's gate at `generate_typed_node_body` already filters out rules with semantic or branch-return annotations. Or rules that reach this code either have no annotations at all OR rely on the implicit `-> $1` default for single-element branches — which is synthesized at codegen time inside the legacy `generate_or_logic` via `synthesize_default_passthrough_for_single_element_branch` and is NOT stored in `branch_return_annotations`. So rules with the implicit `-> $1` passthrough still pass the gate and reach the typed Or emitter; the typed semantics (return the alternative's typed value) match the implicit `-> $1`.
+
+### Slice 8 numbers (release, 1000 samples / 50 warmup, p50 ns)
+
+```
+pattern              slice 7 typed    slice 8 typed    delta
+literal_simple              20,667           20,792    ~0%
+digit_sequence              50,542           48,375    -4%
+character_class            110,208          108,459    -2%
+alternation                 51,125           49,375    -3%
+capture_groups              86,292           85,875    ~0%
+url_simple                  43,083           43,291    ~0%
+email_basic                 64,750           64,541    ~0%
+anchor_complex             133,208          133,333    ~0%
+```
+
+`digit_sequence` and `alternation` slipped under PRIMARY 50µs after slice 7 had them just over. The wins are 1-2 µs scale on a few patterns (consistent with Or coverage adding short-circuit paths through the parser's hot rule call graph). As expected per M3 history: Or body emit alone doesn't unlock the perf — that comes with annotation-aware emit (slice 10) + generic shape composer (slice 11) where the connecting tissue makes `parse_regex_typed` actually short-circuit out of the legacy passthrough.
+
+### Pattern coverage at PRIMARY 50µs after slice 8
+- Under: literal_simple (20.8µs), digit_sequence (48.4µs), alternation (49.4µs), url_simple (43.3µs) — 4/8.
+- Over: character_class (108.5µs), capture_groups (85.9µs), email_basic (64.5µs), anchor_complex (133.3µs) — 4/8.
+
+The remaining 4 patterns are the same M3 saw before its annotation-aware emit work — they need slice 10 (4b, annotation-aware) + slice 11 (5b, generic shape composer) + possibly slice 12 (4c, semantic-annotated rules) to close.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean (~16s incremental after sweep).
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: numbers above.
+- A transient failure occurred during the first probe run after `cargo sweep --time 1` cleared the target dir mid-flight; re-running produced the numbers above.
+
+### What slice 9 does next
+Port M3 stage 5 (commit `b6d7f28`, "typed Quantified body emit"). Adds shape-typed bodies for `ASTNode::Quantified` rules with `*`, `+`, `?`, `{n,m}` quantifiers. Each builds `Value::Array(child_typed_values)` matching legacy `ParseContent::Quantified(_, _).to_json_value()`. Lookahead also lands in stage 5 (emits `try_parse` without consuming input). After slice 9, the non-annotated-rule typed body coverage should be very high — but the patterns that need shape-typed emit on **annotated** rules (regex/pattern/piece/etc., the ones with `-> {...}` return annotations) still go through passthrough. Slices 10-11 close that.
+
 ## 2026-04-30 - Slice 7: port M3 stage 3 (typed Sequence body emit) into the regex hook
 
 ### What landed
