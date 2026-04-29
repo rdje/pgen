@@ -464,6 +464,46 @@ regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@echo "✅ Generated: $(REGEX_PARSER)"
 	@echo "✅ Regex parser generated successfully!"
 
+# Slice 3 / M2 differential validation gate. Proves the regex parser
+# hook's typed entry methods produce byte-equivalent JSON to the
+# legacy + `ParseContent::to_json_value()` reference path across the
+# PGEN-RGX-0073 8-pattern bug corpus. By construction the slice-2
+# passthrough hook body passes; this gate is the regression-lock that
+# future shape-typed-emit optimization slices must keep green.
+#
+# Procedure:
+# 1. Regenerate `generated/regex_parser.rs` with `--inline-annotations`
+#    so the regex hook fires and emits per-rule typed methods.
+# 2. Build and run the differential gate binary (gated by the
+#    `regex_typed_differential_gate` Cargo feature so default cargo
+#    builds don't try to reference `parse_<rule>_typed`).
+# 3. Restore tracked `generated/regex_parser.rs` to legacy emit so the
+#    working tree returns to its baseline regardless of pass/fail.
+#
+# Exit non-zero on shape divergence, parse failure on either path,
+# or feature-gating misconfiguration. The restore step always runs.
+.PHONY: regex_typed_differential_gate
+regex_typed_differential_gate: $(REGEX_JSON) $(RUST_AST_PIPELINE)
+	@echo "🔬 Slice 3 / M2 regex_typed_differential_gate"
+	@echo "   Step 1/3: regenerating regex parser with --inline-annotations"
+	$(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion --inline-annotations $(REGEX_JSON) -o $(REGEX_PARSER)
+	@echo "   Step 2/3: building and running differential gate"
+	@cd $(RUST_DIR) && \
+	    cargo build --release \
+	        --features generated_parsers,regex_typed_differential_gate \
+	        --bin regex_typed_differential_gate \
+	    && ./target/release/regex_typed_differential_gate; \
+	    DIFF_RESULT=$$?; \
+	    cd ..; \
+	    echo "   Step 3/3: restoring tracked regex_parser.rs to legacy emit"; \
+	    git checkout HEAD -- generated/regex_parser.rs 2>/dev/null || true; \
+	    if [ $$DIFF_RESULT -eq 0 ]; then \
+	        echo "✅ regex_typed_differential_gate completed (typed == reference)"; \
+	    else \
+	        echo "❌ regex_typed_differential_gate FAILED (exit $$DIFF_RESULT)"; \
+	        exit $$DIFF_RESULT; \
+	    fi
+
 # Convenience aliases for easier typing
 .PHONY: return_parser
 return_parser: return_annotation_parser

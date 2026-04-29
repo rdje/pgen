@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: slice-2-regex-parser-hook-outside-the-ast-pipeline)
+Last updated: 2026-04-29 (+0200, task: slice-3-m2-differential-gate-and-parser-hooks-mdbook-chapter)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,20 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- **Slice 2 of the redesign landed.** The regex parser-specific hook now lives at [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs) — OUTSIDE `rust/src/ast_pipeline/`. Implements `ParserHooks` for grammar `"regex"`, claims the snake_case EBNF stem via `grammar_name()`, and emits per-rule `parse_<rule>_typed` methods that delegate to the legacy `parse_<rule>` (preserving `with_semantic_runtime_rule_transaction`, `memoized_call`, recursion-guard, predicates, fact emission, all semantic side-effects) then convert the result via `ParseContent::to_json_value()`. Byte-equivalent to the legacy + `to_json_value()` reference path by construction. New module `pgen::parser_hooks` declared in `lib.rs`.
+- **Slice 3 of the redesign landed: M2 differential validation gate + parser-hooks mdbook chapter.**
+- Maintained `make regex_typed_differential_gate` target proves byte-equivalent JSON between the regex hook's typed entry methods and the legacy + `ParseContent::to_json_value()` reference path across the PGEN-RGX-0073 8-pattern bug corpus. Result: **8/8 byte-equivalent**, gate passes. By construction the slice-2 passthrough hook body passes; the gate is the regression-lock for future shape-typed-emit optimization slices.
+- Implementation: new binary [rust/src/bin/regex_typed_differential_gate.rs](rust/src/bin/regex_typed_differential_gate.rs), new Cargo feature `regex_typed_differential_gate` (depends on `generated_parsers`), new make target wraps regen + build + run + restore-to-baseline (restore always runs regardless of pass/fail).
+- New mdbook chapter [docs/book/src/parser-hooks.md](docs/book/src/parser-hooks.md) per owner direction: covers architecture, contract, where hooks are called in the pipeline, how to write a new hook, constraints on what handlers may emit, and verification properties. Added to `docs/book/src/SUMMARY.md` between "Developer Architecture" and "Operations and Governance". `make mdbook_docs_gate` passes.
+- 492 lib tests pass; clippy strict source pass; build clean. Tracked `generated/regex_parser.rs` byte-unchanged (SHA256 still `88d3e04...`); SV/VHDL/etc parsers unaffected.
+
+### Slice 4 onward
+Incrementally replace specific rules' typed-body delegation in `rust/src/parser_hooks/regex.rs` with shape-typed emit (build `serde_json::Value` directly while still wrapping in `with_semantic_runtime_rule_transaction` + `memoized_call` so semantic side-effects fire). Each slice must:
+1. Keep `regex_typed_differential_gate` green.
+2. Measurably reduce parse time on the bug corpus.
+3. Ship together with the perf measurement methodology.
+
+### Earlier in this session
+- Slice 2 of the redesign landed. The regex parser-specific hook now lives at [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs) — OUTSIDE `rust/src/ast_pipeline/`. Implements `ParserHooks` for grammar `"regex"`, claims the snake_case EBNF stem via `grammar_name()`, and emits per-rule `parse_<rule>_typed` methods that delegate to the legacy `parse_<rule>` (preserving `with_semantic_runtime_rule_transaction`, `memoized_call`, recursion-guard, predicates, fact emission, all semantic side-effects) then convert the result via `ParseContent::to_json_value()`. Byte-equivalent to the legacy + `to_json_value()` reference path by construction. New module `pgen::parser_hooks` declared in `lib.rs`.
 - Pipeline-side glue (still parser-agnostic): new `ebnf_grammar_name: Option<String>` field on `AstBasedGenerator` (canonical EBNF stem used for registry lookup; the existing `grammar_name` field is the parser-type-name input and unsuitable as a key); new entry function `generate_parser_ast_based_with_hooks(..., registry: Option<ParserHookRegistry>)` in `ast_generator_direct`; the existing `generate_parser_ast_based(...)` delegates with `None`.
 - Binary-boundary registration in [rust/src/main.rs](rust/src/main.rs): registry is built only when `--inline-annotations` is set; without it, the pipeline takes the default emit path for every grammar.
 - **Verified byte-identical default emit:** `make regex_parser` SHA256 = `88d3e04fe1ffde36b3056debcd25ca450167d203a4b071aaeb2f87dffcfc7d07`, matches pre-hook baseline. SV / VHDL / annotation / RTL parsers unaffected.

@@ -15,5 +15,6 @@
 - [Stimuli and Quality](stimuli-and-quality.md)
 - [Contracts and Support](contracts-and-support.md)
 - [Developer Architecture](developer-architecture.md)
+- [Parser Hooks](parser-hooks.md)
 - [Operations and Governance](operations-and-governance.md)
 - [Source Map](source-map.md)

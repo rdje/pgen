@@ -1,4 +1,89 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Slice 3: M2 differential validation gate + parser-hooks mdbook chapter
+
+### What landed
+Two pieces in one commit:
+1. The maintained `make regex_typed_differential_gate` target — the regression-lock that proves the regex parser hook's typed entry methods produce byte-equivalent JSON to the legacy + `ParseContent::to_json_value()` reference path across the PGEN-RGX-0073 8-pattern bug corpus.
+2. A new mdbook chapter at [docs/book/src/parser-hooks.md](docs/book/src/parser-hooks.md) that documents the parser-hook system end-to-end: architecture, contract, where the pipeline calls hooks, how to write a new hook, constraints on what handlers may emit, the differential-gate requirement, and verification properties.
+
+### Differential gate implementation
+
+[rust/src/bin/regex_typed_differential_gate.rs](rust/src/bin/regex_typed_differential_gate.rs):
+
+```rust
+for (name, input) in PATTERNS {
+    let mut p1 = RegexParser::new(input, ...);
+    let reference_value = p1.parse_regex()?.content.to_json_value();
+
+    let mut p2 = RegexParser::new(input, ...);
+    let typed_value = p2.parse_regex_typed()?;
+
+    if reference_value != typed_value {
+        // pretty-print both sides; report divergence; exit non-zero
+    }
+}
+```
+
+The binary is gated behind a new Cargo feature `regex_typed_differential_gate` (depends on `generated_parsers`) so default cargo builds don't fail to find `parse_regex_typed`. That method only exists when the regex parser was regenerated with the regex hook registered (i.e., under `--inline-annotations`); the maintained make target handles regen / build / run / restore so adopters don't manually wire it.
+
+The make target's restore step always runs regardless of pass/fail, so the working tree is left at the baseline `generated/regex_parser.rs` whether the gate succeeded or not.
+
+### Result on the bug corpus
+
+```
+[literal_simple]    typed == reference  (75 bytes)
+[digit_sequence]    typed == reference  (112 bytes)
+[character_class]   typed == reference  (113 bytes)
+[alternation]       typed == reference  (174 bytes)
+[capture_groups]    typed == reference  (167 bytes)
+[url_simple]        typed == reference  (75 bytes)
+[email_basic]       typed == reference  (77 bytes)
+[anchor_complex]    typed == reference  (75 bytes)
+
+byte-equivalent (typed == ref): 8/8
+shape divergences:              0
+```
+
+8/8 byte-equivalent. By construction the slice-2 passthrough hook body passes; the gate is what keeps future shape-typed-emit optimization slices honest.
+
+### Architectural significance
+The slice-2 hook produces a passthrough body (delegate to legacy + `to_json_value()`). That makes the differential gate trivially green today. It's important to land the gate now anyway because:
+
+1. **Regression-lock.** When a future slice replaces a specific rule's typed body with shape-typed emit (build `Value` directly without `ParseNode`), the gate will catch any shape divergence. Without the gate landed first, the perf optimization could ship a subtly different shape — exactly the bug that surfaced in the rolled-back Phase 2 M3 attempt.
+
+2. **Architecture proof.** The gate's existence demonstrates the parser-hook architecture's testability surface. It also documents — in code, not prose — the byte-equivalence contract that any typed-emit hook must respect.
+
+3. **CI-ready.** Adopters and maintainers can run the gate on every regen of the regex parser. Wiring it into a CI workflow is one line; that's a follow-up slice but the artifact is ready.
+
+### mdbook chapter
+
+[docs/book/src/parser-hooks.md](docs/book/src/parser-hooks.md) (~250 lines) walks through:
+
+- The non-negotiable rule (pipeline parser-agnostic; parser-specific code outside).
+- Architecture diagram showing the binary boundary, pipeline, and parser-hooks module layout.
+- The trait, registry, and context types (with code excerpts).
+- Where the pipeline calls hooks (today: `extend_parser_impl` from `AstBasedGenerator::generate_parser`); where future hook phases would slot in.
+- A step-by-step "how to write a hook" recipe for a hypothetical `foolang.ebnf` grammar — covering module placement, trait implementation, binary-boundary registration, and the differential-gate requirement.
+- Constraints on what handlers may emit: preserve semantic side-effects, don't collide with pipeline-emitted names, be deterministic.
+- Verification properties (byte-identity invariants the pipeline must preserve).
+- Why this design (vs alternatives that pollute the pipeline or fork the grammar).
+
+[`docs/book/src/SUMMARY.md`](docs/book/src/SUMMARY.md) gains a "Parser Hooks" entry between "Developer Architecture" and "Operations and Governance". `make mdbook_docs_gate` passes.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean (default build, no typed-gate feature).
+- `cargo test --lib --features generated_parsers` ✅ 492 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/bin/bash regex_typed_differential_gate` ✅ pass (8/8 byte-equivalent). Working tree restored.
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate` ✅ pass.
+- Tracked `generated/regex_parser.rs` byte-unchanged.
+
+### Files
+- [rust/src/bin/regex_typed_differential_gate.rs](rust/src/bin/regex_typed_differential_gate.rs) — new (~150 lines).
+- [rust/Cargo.toml](rust/Cargo.toml) — `regex_typed_differential_gate` Cargo feature + `[[bin]]` block.
+- [rust/Makefile](rust/Makefile) — `regex_typed_differential_gate` make target.
+- [docs/book/src/parser-hooks.md](docs/book/src/parser-hooks.md) — new mdbook chapter.
+- [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md) — Parser Hooks entry.
+
 ## 2026-04-29 - Slice 2: regex parser hook outside the AST pipeline
 
 ### What landed

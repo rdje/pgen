@@ -59,6 +59,18 @@ required-features = ["generated_parsers"]
 name = "coverage_gap_triage"
 path = "src/bin/coverage_gap_triage.rs"
 
+[[bin]]
+# Slice 3 / M2 differential validation gate. Compares the regex
+# parser hook's typed entry methods to the legacy +
+# `ParseContent::to_json_value()` reference path byte-for-byte across
+# the PGEN-RGX-0073 bug-corpus patterns. Requires the regex parser to
+# have been regenerated with the regex hook registered (use the
+# maintained `regex_typed_differential_gate` make target which
+# handles regen, build, run, and restore in one shot).
+name = "regex_typed_differential_gate"
+path = "src/bin/regex_typed_differential_gate.rs"
+required-features = ["regex_typed_differential_gate"]
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -96,6 +108,14 @@ bootstrap = []
 generated_parsers = []
 ebnf_dual_run = []
 mimalloc_perf = ["dep:mimalloc"]
+# Slice 3 / M2 differential validation gate. Enables the
+# `regex_typed_differential_gate` binary to reference
+# `parser.parse_regex_typed()`. The typed methods only exist when the
+# regex parser was regenerated with the regex hook registered (i.e.
+# under `--inline-annotations`); the maintained
+# `make regex_typed_differential_gate` target handles regen + build +
+# run + restore so adopters don't have to wire it manually.
+regex_typed_differential_gate = ["generated_parsers"]
 
 [dev-dependencies]
 serde_json = "1.0"
