@@ -1,4 +1,99 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Phase 2 M3 stage 5: typed Quantified body emit (?, *, +)
+
+### What landed
+Adds shape-typed body emit for `ASTNode::Quantified` rules at the rule-body level. Three quantifiers handled (each requiring `ASTNode::Atom` inner): `?`, `*`, `+`. `{n,m}` and `Lookahead` deferred.
+
+### Implementation shape
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+```rust
+fn generate_typed_quantified_body(
+    &self,
+    element: &ASTNode,
+    quantifier: &str,
+    rule_name: &str,
+) -> Option<TokenStream> {
+    let ASTNode::Atom { value } = element else { return None; };
+    match quantifier {
+        "?" => { /* if let Some(v) = try_parse {...} { Ok(v) } else { Ok(Value::Null) } */ }
+        "*" => { /* let mut elements = Vec::new(); while let Some(v) = try_parse {...} { elements.push(v); } Ok(Value::Array(elements)) */ }
+        "+" => { /* require first match (no try_parse); then loop try_parse */ }
+        _ => None,
+    }
+}
+```
+
+### Coverage on the regex parser
+
+| typed body class                          | stage 4 | stage 5 |
+|-------------------------------------------|---------|---------|
+| Shape-typed (Atom/Sequence/Or/Quantified) | 133     | **144** |
+| Stage-1 fallback                          | 61      | 50      |
+| Total typed methods                       | 194     | 194     |
+
+144/194 = **74% coverage**. Stage 5 added 11 typed bodies — the rule-body-level `?` / `*` / `+` cases over Atom inners.
+
+### Why coverage doesn't approach 100% with bounded shape-by-shape stages
+The 50 remaining stage-1 fallbacks include shapes that are *composites* of multiple shapes — for instance:
+- `(group)*` where `(group)` is a Sequence: top-level Quantified with Sequence inner.
+- `A | (B C)` where one alternative is a Sequence: Or with non-Atom alternative.
+- `seq* atom?` inside a Sequence: Sequence child that is `*`-Quantified Sequence.
+
+Each stage 2-5 emits typed bodies only for one "outer" shape with `Atom` "inner". To handle composites, every typed emitter would need to dispatch to a recursive typed-shape composer that produces a typed expression for any inner shape.
+
+That generic composer is the natural stage 5b. It would unify stages 2-5 behind one entry point: `generate_typed_value_expr(ast_node, rule_name, receiver) -> Option<TokenStream>` that returns a value-producing expression for any AST shape, with the per-shape stages becoming match arms inside it. Then the dispatcher at the rule-body level just calls this composer and wraps in `Ok(...)`.
+
+### Stage 5b sketch
+```rust
+fn generate_typed_value_expr(&self, ast_node: &ASTNode, rule_name: &str, receiver: TokenStream) -> Option<TokenStream> {
+    match ast_node {
+        ASTNode::Atom { value } => self.generate_typed_atom_value_expr(value, rule_name, receiver),
+        ASTNode::Sequence { elements } => {
+            // Build Vec<Value> by recursively composing each element's typed expr.
+            // For elements that need try_parse, wrap as in stage 3.
+        }
+        ASTNode::Or { alternatives } => {
+            // Try each alternative; recurse for non-Atom alternatives.
+        }
+        ASTNode::Quantified { element, quantifier } => {
+            // Recurse into inner; wrap with the quantifier's loop / try_parse.
+        }
+        ASTNode::Lookahead { element, positive } => {
+            // try_parse without consuming.
+        }
+    }
+}
+```
+
+Stage 5b implementation would also let me clean up the duplicated atom-emit-expr-with-receiver pattern across stages 3 and 4.
+
+### Sample stage-5 typed body, the regex grammar's top-level rule (`regex = pattern?`):
+
+```rust
+pub fn parse_regex_typed(&mut self) -> ParseResult<serde_json::Value> {
+    if let Some(__pgen_q_v) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_pattern_typed()?)
+    }) {
+        Ok(__pgen_q_v)
+    } else {
+        Ok(serde_json::Value::Null)
+    }
+}
+```
+
+Compare to the legacy `parse_regex` which goes through `recursion_guard` + `memoized_call` (or `with_semantic_runtime_rule_transaction`) + builds a `ParseNode` with `ParseContent::Quantified(elements, "?")`. The typed body skips all of that.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe on regex grammar: 144 typed bodies + 50 stage-1 fallbacks across 194 rules.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds `generate_typed_quantified_body`; dispatches `ASTNode::Quantified`.
+
 ## 2026-04-29 - Phase 2 M3 stage 4: typed Or body emit
 
 ### What landed

@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 stage 5: typed Quantified body emit (?, *, +)
+### Achievement Summary
+Adds shape-typed body emit for `ASTNode::Quantified` rules at the rule-body level. Three quantifiers handled, each requiring the inner element to be `ASTNode::Atom`:
+
+- `?` — optional. Returns the typed value on success, `Value::Null` on miss.
+- `*` — zero-or-more. Loops `try_parse` until it fails; returns `Value::Array(values)`.
+- `+` — one-or-more. Requires a first match (no `try_parse`), then loops; returns `Value::Array(values)`.
+
+`{n,m}` (bounded count) and `Lookahead` are deferred to a later slice — `{n,m}` needs min/max enforcement, and `Lookahead` is rare at the rule-body level so we wait for a real grammar use case.
+
+### Effect on the regex parser
+| typed body class                          | stage 4 | stage 5 |
+|-------------------------------------------|---------|---------|
+| Shape-typed (Atom/Sequence/Or/Quantified) | 133     | **144** |
+| Stage-1 fallback                          | 61      | 50      |
+| **Total**                                 | **194** | **194** |
+
+144/194 = **74%** of regex grammar rules now use shape-typed emit. Stage 5 added 11 more typed bodies — the rule-body-level `?`/`*`/`+` cases over Atom inners that the regex grammar uses (e.g., `regex = pattern?`).
+
+The remaining 50 stage-1 fallbacks are:
+- ~8 explicitly-annotated rules (correctly defer until per-branch annotation handling lands);
+- `Quantified` with non-Atom inner (e.g. `(group)*` where the inner is a Sequence) — needs recursive typed-shape composition;
+- `Or` rules with non-Atom alternatives (Sequence-bearing branches);
+- `Sequence` rules with `*`/`+` quantified children whose inner is non-Atom;
+- the very few `Lookahead` rules and `{n,m}` rules in the grammar.
+
+Most of these need a generic shape-composing typed-expression emitter — extending `generate_typed_atom_value_expr` to produce typed value expressions for any AST shape, not just Atom. That's a separate slice (call it stage 5b).
+
+### Tracked `generated/regex_parser.rs` not regenerated
+The regex `make` target keeps `--inline-annotations` off. Stage 6 flips the flag once coverage is high enough; at 74% we're approaching that threshold, but stage 5b (shape-composing emitter) and stage 4b (per-branch annotation handling) would push it further before the regen-and-measure stages 6-7 lock in the perf benefit.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds `generate_typed_quantified_body` for `?`/`*`/`+` over Atom inners; `generate_typed_node_body` extended to dispatch `ASTNode::Quantified`.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe on regex grammar: 144 typed bodies + 50 stage-1 fallbacks across 194 rules.
+
+### Stage 5b / 6 / 7 plan
+- **Stage 5b**: introduce a generic `generate_typed_value_expr(ast_node, rule_name, receiver)` that handles any non-annotated `ASTNode` shape (Atom + Sequence + Or + Quantified + Lookahead). Then refactor stages 2-5 to dispatch through this composer. Expected to push coverage above ~95% for the regex grammar.
+- **Stage 4b**: per-branch return-annotation handling on the typed path so the ~8 explicitly-annotated rules also reach typed emit.
+- **Stage 6**: wire regex `make` target to `--inline-annotations`; regenerate tracked parser.
+- **Stage 7**: re-measure 8-pattern bug corpus via `parse_full_regex_typed`. Expected 30-60% reduction on `anchor_complex` / `character_class`.
+
 ## 2026-04-29 - Phase 2 M3 stage 4: typed Or body emit
 ### Achievement Summary
 Adds shape-typed body emit for `ASTNode::Or` rules whose alternatives are all `ASTNode::Atom`. The typed body tries each alternative via `try_parse(|p| { let parser = p; Ok(<typed atom>) })`; the first alternative that succeeds returns its typed value, and on full failure the body returns `ParseError::Backtrack { position: self.position }` so the caller's outer `Or` or `Sequence` can retry.

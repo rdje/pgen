@@ -739,8 +739,97 @@ impl AstBasedGenerator {
             ASTNode::Or { alternatives } => {
                 self.generate_typed_or_body(alternatives, rule_name)
             }
-            // Stage 5 adds `Quantified`, `Lookahead`.
+            ASTNode::Quantified { element, quantifier } => {
+                self.generate_typed_quantified_body(element, quantifier, rule_name)
+            }
+            // `Lookahead` is rare at rule-body level and is deferred to a
+            // separate slice once a real grammar use case surfaces.
             _ => None,
+        }
+    }
+
+    /// Phase 2 M3 stage 5: shape-typed body for `ASTNode::Quantified`.
+    ///
+    /// Three quantifiers handled at this stage, each requiring the
+    /// inner element to be `ASTNode::Atom`:
+    /// - `?` — optional. Returns the typed value on success, `Value::Null` on miss.
+    /// - `*` — zero-or-more. Loops `try_parse` until it fails, returns
+    ///   `Value::Array(values)`.
+    /// - `+` — one-or-more. Requires a first match (no `try_parse`), then
+    ///   loops `try_parse` for further matches; returns `Value::Array(values)`.
+    ///
+    /// Returns `None` for `{n,m}` (bounded count, deferred) and for non-Atom
+    /// inner elements (nested `Sequence` / `Or` / etc., deferred to a later
+    /// slice).
+    fn generate_typed_quantified_body(
+        &self,
+        element: &ASTNode,
+        quantifier: &str,
+        rule_name: &str,
+    ) -> Option<TokenStream> {
+        let ASTNode::Atom { value } = element else {
+            return None;
+        };
+        match quantifier {
+            "?" => {
+                let expr_parser = self.generate_typed_atom_value_expr(
+                    value,
+                    rule_name,
+                    quote! { parser },
+                )?;
+                Some(quote! {
+                    if let Some(__pgen_q_v) = self.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#expr_parser)
+                    }) {
+                        Ok(__pgen_q_v)
+                    } else {
+                        Ok(serde_json::Value::Null)
+                    }
+                })
+            }
+            "*" => {
+                let expr_parser = self.generate_typed_atom_value_expr(
+                    value,
+                    rule_name,
+                    quote! { parser },
+                )?;
+                Some(quote! {
+                    let mut __pgen_q_elements: Vec<serde_json::Value> = Vec::new();
+                    while let Some(__pgen_q_v) = self.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#expr_parser)
+                    }) {
+                        __pgen_q_elements.push(__pgen_q_v);
+                    }
+                    Ok(serde_json::Value::Array(__pgen_q_elements))
+                })
+            }
+            "+" => {
+                let expr_self = self.generate_typed_atom_value_expr(
+                    value,
+                    rule_name,
+                    quote! { self },
+                )?;
+                let expr_parser = self.generate_typed_atom_value_expr(
+                    value,
+                    rule_name,
+                    quote! { parser },
+                )?;
+                Some(quote! {
+                    let mut __pgen_q_elements: Vec<serde_json::Value> = Vec::new();
+                    let __pgen_q_first = #expr_self;
+                    __pgen_q_elements.push(__pgen_q_first);
+                    while let Some(__pgen_q_v) = self.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#expr_parser)
+                    }) {
+                        __pgen_q_elements.push(__pgen_q_v);
+                    }
+                    Ok(serde_json::Value::Array(__pgen_q_elements))
+                })
+            }
+            _ => None, // {n,m} and other forms deferred
         }
     }
 
