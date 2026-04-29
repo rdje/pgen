@@ -65,9 +65,55 @@ pub fn generate_parser_ast_based(
     filename: &str,
     inline_annotations: bool,
 ) -> Result<String> {
+    generate_parser_ast_based_with_hooks(
+        grammar_name,
+        grammar,
+        rule_order,
+        annotations,
+        filename,
+        inline_annotations,
+        None,
+    )
+}
+
+/// Like [`generate_parser_ast_based`] but lets the caller supply a
+/// parser-hook registry. Hooks are looked up by EBNF grammar name; for
+/// grammars without a registered handler the pipeline emits the same
+/// output as `generate_parser_ast_based` (i.e. as if `registry` were
+/// `None`). This signature is what the binary boundary calls when it
+/// wants to register parser-specific hooks (which themselves live
+/// outside `rust/src/ast_pipeline/`).
+pub fn generate_parser_ast_based_with_hooks(
+    grammar_name: &str,
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    annotations: Option<&Annotations>,
+    filename: &str,
+    inline_annotations: bool,
+    registry: Option<crate::ast_pipeline::ParserHookRegistry>,
+) -> Result<String> {
+    // The existing `AstBasedGenerator::new` interprets its argument
+    // as the input to the parser-type-name derivation
+    // (`{Pascal(grammar_name)}Parser`). Other constructor paths in
+    // tests pass snake_case here on the assumption that capitalize-
+    // first does the right thing for single-word names like `regex`,
+    // and the existing emit code only does capitalize-first (not full
+    // snake-to-pascal). For multi-word EBNF stems like
+    // `return_annotation`, the historical contract is that the
+    // generator receives a PascalCase string already (e.g.
+    // `ReturnAnnotation`), so the emitted parser type name is
+    // `ReturnAnnotationParser`. We preserve that contract here.
     let parser_name = snake_to_pascal(grammar_name);
     let mut generator = AstBasedGenerator::new(parser_name);
     generator.inline_annotations = inline_annotations;
+    // The pipeline's parser-hook registry is keyed on the canonical
+    // EBNF grammar name (the snake_case stem). The generator's
+    // `grammar_name` field carries the parser-type-name input above
+    // (PascalCase or snake_case depending on caller convention) and
+    // is unsuitable for registry lookup, so we record the EBNF stem
+    // separately on the generator.
+    generator.ebnf_grammar_name = Some(grammar_name.to_string());
+    generator.parser_hook_registry = registry;
 
     // Transfer annotations if provided
     if let Some(annotations) = annotations {

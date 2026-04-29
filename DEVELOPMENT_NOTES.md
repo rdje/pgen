@@ -1,4 +1,131 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Slice 2: regex parser hook outside the AST pipeline
+
+### What landed
+The regex parser-specific hook now lives in a sibling module to the AST pipeline:
+
+```
+rust/src/parser_hooks/
+├── mod.rs          (organizing module + convention docs)
+└── regex.rs        (RegexParserHooks: ParserHooks for "regex")
+```
+
+`rust/src/lib.rs` declares `pub mod parser_hooks;`. The module is parallel to `pub mod ast_pipeline;`, not nested inside it — parser-specific code physically does not live in the pipeline.
+
+### Hook contract
+
+```rust
+pub struct RegexParserHooks;
+
+impl ParserHooks for RegexParserHooks {
+    fn grammar_name(&self) -> &'static str { "regex" }
+
+    fn extend_parser_impl(&self, ctx: &ParserImplContext<'_>) -> Option<TokenStream> {
+        // For every rule in ctx.rule_order, emit `parse_<rule>_typed`
+        // that delegates to the legacy `parse_<rule>` and converts
+        // the result via ParseContent::to_json_value().
+        let per_rule = ctx.rule_order.iter().map(|rule_name| {
+            let typed_method_name = format_ident!("parse_{}_typed", rule_name);
+            let legacy_method_name = format_ident!("parse_{}", rule_name);
+            quote! {
+                pub fn #typed_method_name(&mut self) -> ParseResult<serde_json::Value> {
+                    let node = self.#legacy_method_name()?;
+                    Ok(node.content.to_json_value())
+                }
+            }
+        });
+        Some(quote! {
+            impl<'input> #parser_name<'input> {
+                #(#per_rule)*
+            }
+        })
+    }
+}
+```
+
+The hook does NOT emit `parse_full_<entry>_typed` — that name is owned by the M1 skeleton (parser-agnostic, pre-existing in the pipeline). Avoiding the duplicate name keeps both mechanisms compatible.
+
+### Pipeline glue (still parser-agnostic)
+
+The pipeline gained a new field `ebnf_grammar_name: Option<String>` on `AstBasedGenerator`. The existing `grammar_name` field is the input to the parser-type-name derivation (`{Pascal(grammar_name)}Parser`); callers like `ast_generator_direct.rs` pass it in PascalCase form (e.g. `RegexParser`-input). That's not a reliable key for registry lookup — the hook advertises the snake_case EBNF stem (`"regex"`) which doesn't match `"Regex"`.
+
+Resolving by adding a dedicated `ebnf_grammar_name` field keeps the existing `grammar_name` semantics intact (so historical Pascal-input callers don't break) while giving registry lookup a canonical key. The binary boundary sets it; uninitialized callers (`None`) silently skip the registry path.
+
+```rust
+let extension_impl = match (
+    &self.parser_hook_registry,
+    self.ebnf_grammar_name.as_deref(),
+) {
+    (Some(registry), Some(ebnf_name)) => {
+        if let Some(hooks) = registry.get(ebnf_name) {
+            let ctx = ParserImplContext { /* ... */ };
+            hooks.extend_parser_impl(&ctx).unwrap_or_else(TokenStream::new)
+        } else {
+            TokenStream::new()
+        }
+    }
+    _ => TokenStream::new(),
+};
+```
+
+### Binary-boundary registration
+
+[rust/src/main.rs](rust/src/main.rs) builds the registry only when `--inline-annotations` is set:
+
+```rust
+let parser_hook_registry = if args.inline_annotations {
+    let mut registry = pgen::ast_pipeline::ParserHookRegistry::new();
+    registry.register(Box::new(pgen::parser_hooks::regex::RegexParserHooks));
+    Some(registry)
+} else {
+    None
+};
+
+let parser_code = pgen::ast_pipeline::ast_generator_direct::generate_parser_ast_based_with_hooks(
+    &grammar.grammar_name,
+    &grammar.grammar_tree,
+    &grammar.rule_order,
+    grammar.annotations.as_ref(),
+    output_rust.as_str(),
+    args.inline_annotations,
+    parser_hook_registry,
+)?;
+```
+
+When the flag is not set, no registry is constructed → no hook fires → byte-identical output for every grammar.
+
+### Trap I hit and the lesson learned
+First attempt set `generator.grammar_name = grammar_name.to_string()` directly (snake_case). That broke the parser-type-name derivation for grammars whose stem has underscores (e.g. `return_annotation` → `Return_annotationParser` instead of `ReturnAnnotationParser`), surfacing as 6 compile errors in the lib (lib.rs's `include!()` of the regenerated parser file fails to find the expected type name).
+
+Lesson: the existing `grammar_name` field carries semantic baggage from older callers — some pass Pascal, others pass snake. Repurposing it for hook lookup conflicts with both paths. A dedicated field (`ebnf_grammar_name`) sidesteps that entirely; the binary boundary sets it explicitly, and callers that don't know about the registry continue to work.
+
+### Verification
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 492 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Default `make regex_parser` SHA256 = `88d3e04...` (byte-identical to pre-hook baseline). `git diff -- generated/regex_parser.rs` empty.
+- Direct `ast_pipeline ... --inline-annotations` invocation against regex grammar emits 194 typed methods (193 per-rule from the hook + 1 M1 skeleton entry).
+
+### Path to perf benefit (slice 3 onward)
+**Slice 3 (M2 differential gate):** wire a maintained make target that runs the regex parser through both:
+1. The hook's typed entry (`parser.parse_<rule>_typed()`).
+2. The legacy + `to_json_value()` reference path (`parser.parse_<rule>()?.content.to_json_value()`).
+
+Compares output byte-for-byte across the bug corpus. By construction the slice-2 passthrough body passes; the gate is the regression-lock for future shape-typed-emit optimizations.
+
+**Slice 4 onward:** incrementally replace specific rules' typed-body delegation with shape-typed emit that builds `serde_json::Value` directly without going through `ParseNode`. Each slice must:
+1. Continue wrapping in `with_semantic_runtime_rule_transaction` + `memoized_call` so semantic side-effects fire.
+2. Produce byte-equivalent JSON to the reference path (gate stays green).
+3. Be measurable: re-run the perf probe with the typed entry and report the speedup ratio.
+
+### Files
+- [rust/src/parser_hooks/mod.rs](rust/src/parser_hooks/mod.rs) — new (~24 lines, organizing module + convention docs).
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs) — new (~150 lines including a unit test that pins `grammar_name() == "regex"`).
+- [rust/src/lib.rs](rust/src/lib.rs) — `pub mod parser_hooks;` declaration with documentation explaining the convention.
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — new `ebnf_grammar_name: Option<String>` field; struct-literal initializers updated; registry-lookup site uses `ebnf_grammar_name`.
+- [rust/src/ast_pipeline/ast_generator_direct.rs](rust/src/ast_pipeline/ast_generator_direct.rs) — new `generate_parser_ast_based_with_hooks(...)` entry; existing `generate_parser_ast_based(...)` delegates.
+- [rust/src/main.rs](rust/src/main.rs) — binary-boundary registration of the regex hook when `--inline-annotations` is set.
+
 ## 2026-04-29 - Slice 1: parser-agnostic extensibility mechanism in the Rust AST pipeline
 
 ### What landed

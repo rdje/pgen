@@ -54,9 +54,9 @@ pub struct AstBasedGenerator {
     /// (currently: after the legacy parser impl block is emitted, the
     /// pipeline asks the registry whether anyone wants to append
     /// additional impl items). When `None` or when no handler is
-    /// registered for `grammar_name`, the pipeline falls through to its
-    /// default emit and the generated parser is byte-identical to the
-    /// pre-registry baseline.
+    /// registered for the lookup key, the pipeline falls through to
+    /// its default emit and the generated parser is byte-identical to
+    /// the pre-registry baseline.
     ///
     /// **The registry contract is parser-agnostic.** This field's name,
     /// type, and value MUST NOT carry any reasoning about which
@@ -64,6 +64,17 @@ pub struct AstBasedGenerator {
     /// an opaque dispatch table. Parser-specific code lives outside
     /// `rust/src/ast_pipeline/`.
     pub parser_hook_registry: Option<ParserHookRegistry>,
+    /// Canonical EBNF grammar name (snake_case stem of the source
+    /// `*.ebnf` file) used as the lookup key for
+    /// `parser_hook_registry`. The existing `grammar_name` field is
+    /// the input to the parser-type-name derivation
+    /// (`{Pascal(grammar_name)}Parser`) and may be PascalCase or
+    /// snake_case depending on caller convention; that's not a
+    /// reliable lookup key. Setting `ebnf_grammar_name` to the
+    /// canonical stem (e.g. `"regex"` for `regex.ebnf`) is the
+    /// caller's responsibility at the binary boundary; when `None`
+    /// the registry lookup falls through to no-op.
+    pub ebnf_grammar_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -186,6 +197,7 @@ impl AstBasedGenerator {
             enable_debug: true,
             inline_annotations: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         }
     }
 
@@ -331,32 +343,38 @@ impl AstBasedGenerator {
 
         // Parser-agnostic extension point: ask the parser-hook registry
         // (if any) whether a handler is registered for this grammar
-        // name and wants to append additional impl items. The pipeline
+        // and wants to append additional impl items. The pipeline
         // never names a specific grammar; it only forwards the
-        // grammar name to the registry's lookup. When no registry is
-        // configured, or no handler is registered for this grammar,
-        // `extension_impl` is empty and the emitted parser is
-        // byte-identical to the pre-registry baseline. See
+        // canonical EBNF grammar name (`ebnf_grammar_name`, set by
+        // the binary boundary) to the registry's lookup. When no
+        // registry is configured, or no `ebnf_grammar_name` is set,
+        // or no handler is registered for the name, `extension_impl`
+        // is empty and the emitted parser is byte-identical to the
+        // pre-registry baseline. See
         // [`crate::ast_pipeline::parser_hooks`] for the contract.
-        let extension_impl = if let Some(registry) = &self.parser_hook_registry {
-            if let Some(hooks) = registry.get(&self.grammar_name) {
-                let ctx = ParserImplContext {
-                    grammar_name: self.grammar_name.as_str(),
-                    parser_name: &parser_name,
-                    grammar_tree,
-                    rule_order,
-                    entry_rule: entry_rule.as_str(),
-                    annotations: self.annotations.as_ref(),
-                    filename,
-                };
-                hooks
-                    .extend_parser_impl(&ctx)
-                    .unwrap_or_else(TokenStream::new)
-            } else {
-                TokenStream::new()
+        let extension_impl = match (
+            &self.parser_hook_registry,
+            self.ebnf_grammar_name.as_deref(),
+        ) {
+            (Some(registry), Some(ebnf_name)) => {
+                if let Some(hooks) = registry.get(ebnf_name) {
+                    let ctx = ParserImplContext {
+                        grammar_name: ebnf_name,
+                        parser_name: &parser_name,
+                        grammar_tree,
+                        rule_order,
+                        entry_rule: entry_rule.as_str(),
+                        annotations: self.annotations.as_ref(),
+                        filename,
+                    };
+                    hooks
+                        .extend_parser_impl(&ctx)
+                        .unwrap_or_else(TokenStream::new)
+                } else {
+                    TokenStream::new()
+                }
             }
-        } else {
-            TokenStream::new()
+            _ => TokenStream::new(),
         };
 
         // Combine everything
@@ -5469,6 +5487,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         }
     }
 
@@ -5499,6 +5518,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         }
     }
 
@@ -5547,6 +5567,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         }
     }
 
@@ -5644,6 +5665,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         }
     }
 
@@ -5707,6 +5729,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         }
     }
 
@@ -5884,6 +5907,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let logic = generator
@@ -6506,6 +6530,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         assert_eq!(
@@ -6536,6 +6561,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
@@ -6563,6 +6589,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         assert_eq!(
@@ -6625,6 +6652,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let (
@@ -6697,6 +6725,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let logic = generator
@@ -6753,6 +6782,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let logic = generator
@@ -6778,6 +6808,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator.generate_types().to_string();
@@ -6804,6 +6835,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator.generate_parse_method("start").to_string();
@@ -6845,6 +6877,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator
@@ -6900,6 +6933,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let policy = generator.rule_coverage_target_policy("stmt");
@@ -6918,6 +6952,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -6980,6 +7015,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let method = generator
@@ -7020,6 +7056,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator
@@ -7074,6 +7111,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let policy = generator.rule_negative_case_policy("stmt");
@@ -7092,6 +7130,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -7149,6 +7188,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let method = generator
@@ -7186,6 +7226,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator
@@ -7234,6 +7275,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let policy = generator.rule_deterministic_partition_policy("stmt");
@@ -7252,6 +7294,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -7324,6 +7367,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let method = generator
@@ -7360,6 +7404,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator
@@ -7427,6 +7472,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let logic = generator
@@ -7461,6 +7507,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator
@@ -7503,6 +7550,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         assert_eq!(
@@ -7542,6 +7590,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         assert_eq!(
@@ -7581,6 +7630,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let logic = generator
@@ -7636,6 +7686,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let logic = generator
@@ -7682,6 +7733,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let logic = generator
@@ -7732,6 +7784,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -7776,6 +7829,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -7826,6 +7880,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let method = generator
@@ -7868,6 +7923,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator
@@ -7901,6 +7957,7 @@ mod semantic_usage_tests {
             inline_annotations: false,
             enable_debug: false,
             parser_hook_registry: None,
+            ebnf_grammar_name: None,
         };
 
         let rendered = generator

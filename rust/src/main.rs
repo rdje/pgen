@@ -901,15 +901,31 @@ fn main() -> Result<()> {
             dump_gen_ast_max_bytes,
         )?;
 
+        // Build the parser-hook registry at the binary boundary.
+        // Parser-specific hook handlers live in `rust/src/parser_hooks/`
+        // (OUTSIDE the AST pipeline) and are registered here only when
+        // the operator opts in via `--inline-annotations`. With no
+        // registry passed, the pipeline's default emit runs unchanged
+        // for every grammar, preserving byte-identical output for
+        // every tracked parser.
+        let parser_hook_registry = if args.inline_annotations {
+            let mut registry = pgen::ast_pipeline::ParserHookRegistry::new();
+            registry.register(Box::new(pgen::parser_hooks::regex::RegexParserHooks));
+            Some(registry)
+        } else {
+            None
+        };
+
         // Generate parser through the direct AST integration path so typed annotation
         // validation and strict CI policies apply to normal CLI generation as well.
-        let parser_code = generate_parser_ast_based(
+        let parser_code = pgen::ast_pipeline::ast_generator_direct::generate_parser_ast_based_with_hooks(
             &grammar.grammar_name,
             &grammar.grammar_tree,
             &grammar.rule_order,
             grammar.annotations.as_ref(),
             output_rust.as_str(),
             args.inline_annotations,
+            parser_hook_registry,
         )?;
         std::fs::write(&output_rust, parser_code)?;
 
