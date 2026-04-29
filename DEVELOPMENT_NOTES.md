@@ -1,4 +1,124 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Phase 2 M3 stage 3: typed Sequence body emit
+
+### What landed
+Adds shape-typed body emit for `ASTNode::Sequence` rules. Builds `Value::Array(child_typed_values)` directly; no `ParseNode` allocation on the typed path.
+
+### Implementation shape
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+`generate_typed_atom_body` is refactored into a thin wrapper around a new expression-form emitter:
+
+```rust
+fn generate_typed_atom_value_expr(
+    &self,
+    value: &ASTValue,
+    rule_name: &str,
+    receiver: TokenStream,  // quote!{self} or quote!{parser}
+) -> Option<TokenStream> {
+    // ... emits a block expression that produces serde_json::Value (may use `?`)
+    // using #receiver as the parser receiver
+}
+
+fn generate_typed_atom_body(&self, value: &ASTValue, rule_name: &str) -> Option<TokenStream> {
+    let expr = self.generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
+    Some(quote! { Ok(#expr) })
+}
+```
+
+The `receiver` parameter exists so the same atom emit can inline both at top-level method bodies (where `self` is the receiver) and inside `try_parse` closures (where the legacy convention is `let parser = p;` shadowing).
+
+The Sequence dispatcher:
+
+```rust
+fn generate_typed_sequence_body(
+    &self,
+    elements: &[ASTNode],
+    rule_name: &str,
+) -> Option<TokenStream> {
+    let element_count = elements.len();
+    let mut element_pushes: Vec<TokenStream> = Vec::with_capacity(element_count);
+    for elem in elements {
+        let push = match elem {
+            ASTNode::Atom { value } => {
+                let expr = self.generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
+                quote! { elements.push(#expr); }
+            }
+            ASTNode::Quantified { element, quantifier } if quantifier == "?" => {
+                let ASTNode::Atom { value } = element.as_ref() else { return None; };
+                let inner_expr = self.generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
+                quote! {
+                    let __pgen_optional_value = if let Some(__pgen_v) =
+                        self.try_parse(|p| {
+                            let parser = p;
+                            Ok::<serde_json::Value, ParseError>(#inner_expr)
+                        })
+                    {
+                        __pgen_v
+                    } else {
+                        serde_json::Value::Null
+                    };
+                    elements.push(__pgen_optional_value);
+                }
+            }
+            _ => return None,
+        };
+        element_pushes.push(push);
+    }
+    Some(quote! {
+        let mut elements: Vec<serde_json::Value> = Vec::with_capacity(#element_count);
+        #(#element_pushes)*
+        Ok(serde_json::Value::Array(elements))
+    })
+}
+```
+
+`generate_typed_node_body` dispatches `ASTNode::Sequence` to the new emitter; returns `None` (stage-1 fallback) for any unhandled child shape inside a Sequence.
+
+### Coverage on the regex parser
+
+| typed body class                  | stage 1 | stage 2 | stage 3 |
+|-----------------------------------|---------|---------|---------|
+| Shape-typed (Atom + Sequence)     | 0       | 22      | **73**  |
+| Stage-1 fallback                  | 194     | 172     | 121     |
+| Total typed methods               | 194     | 194     | 194     |
+
+Sample stage-3 typed body, `parse_quantifier_typed`:
+
+```rust
+pub fn parse_quantifier_typed(&mut self) -> ParseResult<serde_json::Value> {
+    let mut elements: Vec<serde_json::Value> = Vec::with_capacity(2usize);
+    elements.push(self.parse_quant_base_typed()?);
+    let __pgen_optional_value = if let Some(__pgen_v) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_quant_suffix_typed()?)
+    }) {
+        __pgen_v
+    } else {
+        serde_json::Value::Null
+    };
+    elements.push(__pgen_optional_value);
+    Ok(serde_json::Value::Array(elements))
+}
+```
+
+Compare to the legacy `parse_quantifier`: builds `Vec<ParseNode>` of length 2, wraps each child in `ParseNode { rule_name: "element_N", content: ..., span }`, returns `ParseContent::Sequence(elements)` packaged in a `ParseNode`. Per-call cost: ~3 heap allocations (Vec + 2 ParseNodes) plus the inner `Box<ParseNode>` for `Alternative` wrappers around each rule reference. Typed body cost: 1 `Vec<Value>` allocation; nested rule-ref typed methods may allocate further `Vec<Value>` if they're Sequence too, otherwise just `Value::String` (no heap for short literals via `String::to_string` of an inline `&str`).
+
+### Stage 4+ plan
+- **Stage 4**: `ASTNode::Or` typed body. Try each alternative; return first successful's typed value. **Annotation handling enters here** — per-branch return annotations like regex's `@semantic_value: {type: "literal", char: $1}` need to shape the typed value via the annotation transform. This unlocks the annotated-Atom path that stages 2-3 deferred.
+- **Stage 5**: `ASTNode::Quantified` (`*` / `+` / `{n,m}`) and `Lookahead` typed bodies.
+- **Stage 6**: wire `RUST_GENERATOR_INLINE` into the regex make target; regenerate tracked parser.
+- **Stage 7**: update perf probe to call `parse_full_regex_typed`. Re-measure 8-pattern bug corpus.
+
+### Files in this commit
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — `generate_typed_atom_body` refactored into thin wrapper around `generate_typed_atom_value_expr`; new `generate_typed_sequence_body` Sequence dispatcher; `generate_typed_node_body` extended to dispatch `ASTNode::Sequence`.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: 73 stage-2/3 typed bodies + 121 stage-1 fallbacks across the regex grammar's 194 rules.
+
 ## 2026-04-29 - Phase 2 M3 stage 2: typed Atom body emit
 
 ### What landed

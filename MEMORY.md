@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-2-typed-atom-body-emit)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-3-typed-sequence-body-emit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,20 +8,15 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Phase 2 M3 stage 2 landed in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_node_body` dispatcher selects between shape-typed emit and stage-1 fallback per rule; `generate_typed_atom_body` emits typed bodies for `ASTNode::Atom` (the leaf shape):
-  - `quoted_string` → `let s = self.match_string(#literal)?; Ok(Value::String(s.to_string()))`
-  - `regex` → `let s = self.match_regex(#pattern, #skip_ws)?; Ok(Value::String(s.to_string()))`
-  - `rule_reference` → `self.parse_<inner>_typed()`
-- `ParseNode` is bypassed entirely for non-annotated Atom rules.
-- Stage 2 only dispatches non-annotated rules; annotated Atom rules use stage-1 fallback so annotation-applied shape stays correct (annotation-aware typed emit comes in stage 4 with `Or`).
-- Direct probe on regex grammar: 22/194 rules now use stage-2 typed Atom emit (e.g. `parse_dot_typed` calls `self.match_string(".")` directly). 172/194 still on stage-1 fallback (`Or`/`Sequence`/`Quantified`/`Lookahead` pending stages 3-5).
-- Tracked `generated/regex_parser.rs` still NOT regenerated under `--inline-annotations`. Stage 6 flips the flag once stages 3-5 cover the other shapes.
-- Validation: `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored; `cargo build --features generated_parsers` clean; clippy strict source pass.
+- Phase 2 M3 stage 3 landed in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_sequence_body` dispatcher emits `Value::Array(child_typed_values)` for non-annotated `ASTNode::Sequence` rules whose children are all `Atom` or `Quantified-? Atom`. Refactored `generate_typed_atom_body` into a thin wrapper around the new expression-form emitter `generate_typed_atom_value_expr(value, rule_name, receiver)` that takes a parser receiver (`self` for top-level, `parser` for nested `try_parse` closures) so the same atom emit can inline at multiple call sites.
+- Direct probe on regex grammar: **73/194 rules** now use shape-typed emit (was 22 after stage 2). Stage-1 fallback dropped from 172 → 121. Sequence rules with simple Atom or optional-Atom children are now typed.
+- Sample stage-3 typed body (`parse_quantifier_typed`): builds `Vec<Value>` of length 2, pushes inner Atom typed values directly, returns `Value::Array`. No `ParseNode { rule_name: "element_N", content, span }` wrappers, no `Vec<ParseNode>` allocation.
+- Tracked `generated/regex_parser.rs` still NOT regenerated under `--inline-annotations`. Stage 6 flips the flag once stages 4-5 push coverage above ~90%.
+- Validation: 488 lib tests pass, clippy strict source pass, build clean.
 
-### Phase 2 M3 stage 3+ plan (next session)
-- **Stage 3**: `ASTNode::Sequence` typed body. Build `Value::Array(child_typed_values)` by calling each child's `_typed` method or inline atom emit. Reference `generate_sequence_logic` for the legacy emit shape.
-- **Stage 4**: `ASTNode::Or` typed body. Try each alternative; return first successful's typed value. **Annotation handling enters here** — per-branch return annotations (e.g. regex `@semantic_value: {type: "literal", char: $1}`) need to shape the typed value.
-- **Stage 5**: `ASTNode::Quantified` (`*`/`+`/`?`/`{n,m}`) and `Lookahead` typed bodies.
+### Phase 2 M3 stage 4+ plan (next session)
+- **Stage 4**: `ASTNode::Or` typed body. Try each alternative; return first successful's typed value. **Annotation handling enters here** — per-branch return annotations (e.g. regex `@semantic_value: {type: "literal", char: $1}`) need to shape the typed value via the annotation transform. This unlocks the annotated-Atom path that stages 2-3 deferred.
+- **Stage 5**: `ASTNode::Quantified` (`*`/`+`/`{n,m}`) and `Lookahead` typed bodies.
 - **Stage 6**: wire regex `make regex_parser` target to `--inline-annotations`; regenerate tracked `generated/regex_parser.rs`; update perf probe to call `parse_full_regex_typed`.
 - **Stage 7**: measure perf via the typed entry point; expected 30-60% reduction on `anchor_complex` / `character_class`. PGEN-RGX-0073 PRIMARY <50µs across all 8 patterns expected to fall here.
 

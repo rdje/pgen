@@ -1,4 +1,69 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 stage 3: typed Sequence body emit
+### Achievement Summary
+Adds shape-typed body emit for `ASTNode::Sequence` rules. Builds `Value::Array(child_typed_values)` by parsing each child in order, with no `ParseNode` allocation on the typed path.
+
+New helpers in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+- `generate_typed_atom_value_expr(value, rule_name, receiver)` — refactored expression-form emitter that takes a parser receiver (`self` for top-level method bodies, `parser` for nested `try_parse` closures) so the same atom emit can be used inline at multiple call sites.
+- `generate_typed_sequence_body(elements, rule_name)` — Sequence dispatcher.
+
+Stage 3 handles two child shapes inside Sequence:
+- `ASTNode::Atom` (any subtype handled by stage 2): inline the typed atom expression and push the resulting `Value`.
+- `ASTNode::Quantified` with quantifier `?` whose inner element is an `Atom`: wrap in `try_parse(|p| { let parser = p; Ok(<typed atom>) })` and push the typed value or `Value::Null` on miss.
+
+Returns `None` (and falls back to stage-1 wrapper) if any child is a shape stage 3 doesn't yet handle (nested `Or` / `Sequence` / `Lookahead` / non-`?` `Quantified` / non-`Atom` `?-Quantified` inner).
+
+### Effect on the regex parser
+| typed body class                  | stage 2 commit | stage 3 commit |
+|-----------------------------------|----------------|----------------|
+| Shape-typed (Atom + Sequence)     | 22             | **73**         |
+| Stage-1 fallback (other shapes)   | 172            | 121            |
+| **Total**                         | **194**        | **194**        |
+
+73/194 = 38% of regex grammar rules now use shape-typed emit. The remaining 121 are `Or` / non-trivial `Quantified` / `Lookahead` shapes pending stages 4-5.
+
+Sample of a stage-3 typed body, `parse_quantifier_typed`:
+
+```rust
+pub fn parse_quantifier_typed(&mut self) -> ParseResult<serde_json::Value> {
+    let mut elements: Vec<serde_json::Value> = Vec::with_capacity(2usize);
+    elements.push(self.parse_quant_base_typed()?);
+    let __pgen_optional_value = if let Some(__pgen_v) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_quant_suffix_typed()?)
+    }) {
+        __pgen_v
+    } else {
+        serde_json::Value::Null
+    };
+    elements.push(__pgen_optional_value);
+    Ok(serde_json::Value::Array(elements))
+}
+```
+
+`ParseNode` is bypassed entirely on this path — the typed body builds a `Vec<Value>` instead of a `Vec<ParseNode>` and never constructs the per-element `ParseNode { rule_name: "element_N", content, span }` wrapper that the legacy emit produces.
+
+### Tracked `generated/regex_parser.rs` not regenerated
+The regex `make` target keeps `--inline-annotations` off. With stages 2+3 covering ~38% of rules, regenerating now would still leave 62% on stage-1 fallback (legacy + serialize) — wasted bytes. Stage 6 flips the flag once stages 4-5 push coverage above ~90%.
+
+### Test
+The regression test continues to pin the stage-2 quoted_string Atom contract; stage 3 leaves that test green and is exercised end-to-end via the lib tests (488 passed) plus the direct `ast_pipeline ... --inline-annotations` invocation.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — `generate_typed_atom_body` refactored to use the new `generate_typed_atom_value_expr` expression emitter; new `generate_typed_sequence_body` Sequence dispatcher; `generate_typed_node_body` extended to dispatch `ASTNode::Sequence`.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe on regex grammar: 73 stage-2/3 typed bodies + 121 stage-1 fallbacks across 194 rules (was 22 + 172 after stage 2 alone).
+
+### Stage 4+ plan
+- **Stage 4**: `ASTNode::Or` typed body. Try each alternative; return first successful's typed value. **Annotation handling enters here** — per-branch return annotations like regex's `@semantic_value: {type: "literal", char: $1}` need to shape the typed value via the annotation transform.
+- **Stage 5**: `ASTNode::Quantified` (`*` / `+` / `{n,m}`) and `Lookahead` typed bodies.
+- **Stage 6**: wire regex `make` target to `--inline-annotations`; regenerate tracked parser.
+- **Stage 7**: re-measure 8-pattern bug corpus via `parse_full_regex_typed`. Expected 30-60% reduction on `anchor_complex` / `character_class`.
+
 ## 2026-04-29 - Phase 2 M3 stage 2: typed Atom body emit
 ### Achievement Summary
 First substantive typed-emit body lands. `generate_typed_node_body` in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) is the dispatcher that selects between shape-typed emit and stage-1 fallback per rule; for `ASTNode::Atom` (the leaf shape — `quoted_string`, `regex`, `rule_reference`), `generate_typed_atom_body` produces a body that builds `serde_json::Value` directly:

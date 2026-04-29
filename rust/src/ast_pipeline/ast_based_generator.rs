@@ -733,7 +733,10 @@ impl AstBasedGenerator {
 
         match ast_node {
             ASTNode::Atom { value } => self.generate_typed_atom_body(value, rule_name),
-            // Stages 3-5 add the other shapes.
+            ASTNode::Sequence { elements } => {
+                self.generate_typed_sequence_body(elements, rule_name)
+            }
+            // Stages 4-5 add `Or`, `Quantified`, `Lookahead`.
             _ => None,
         }
     }
@@ -754,6 +757,23 @@ impl AstBasedGenerator {
         value: &ASTValue,
         rule_name: &str,
     ) -> Option<TokenStream> {
+        let expr = self.generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
+        Some(quote! { Ok(#expr) })
+    }
+
+    /// Phase 2 M3 stage 2/3: shape-typed *expression* (not statement
+    /// body) for `ASTNode::Atom`. Returns a block expression that
+    /// produces `serde_json::Value` (or short-circuits via `?`). The
+    /// `receiver` parameter is the parser receiver to use — `self` at
+    /// top-level method bodies, or `parser` inside `try_parse` /
+    /// nested closures (consistent with the legacy emit's `let parser
+    /// = p;` shadowing convention).
+    fn generate_typed_atom_value_expr(
+        &self,
+        value: &ASTValue,
+        rule_name: &str,
+        receiver: TokenStream,
+    ) -> Option<TokenStream> {
         let ASTValue::Token(parts) = value else {
             return None;
         };
@@ -769,8 +789,10 @@ impl AstBasedGenerator {
 
         match token_type.as_str() {
             "quoted_string" => Some(quote! {
-                let matched_str = self.match_string(#token_value)?;
-                Ok(serde_json::Value::String(matched_str.to_string()))
+                {
+                    let __pgen_typed_matched = #receiver.match_string(#token_value)?;
+                    serde_json::Value::String(__pgen_typed_matched.to_string())
+                }
             }),
             "regex" => {
                 let skip_leading_whitespace = !matches!(
@@ -779,21 +801,90 @@ impl AstBasedGenerator {
                 );
                 let effective_pattern = self.effective_regex_pattern(rule_name, token_value);
                 Some(quote! {
-                    let matched_str = self.match_regex(
-                        #effective_pattern,
-                        #skip_leading_whitespace,
-                    )?;
-                    Ok(serde_json::Value::String(matched_str.to_string()))
+                    {
+                        let __pgen_typed_matched = #receiver.match_regex(
+                            #effective_pattern,
+                            #skip_leading_whitespace,
+                        )?;
+                        serde_json::Value::String(__pgen_typed_matched.to_string())
+                    }
                 })
             }
             "rule_reference" => {
                 let inner_typed = format_ident!("parse_{}_typed", token_value);
                 Some(quote! {
-                    self.#inner_typed()
+                    #receiver.#inner_typed()?
                 })
             }
             _ => None,
         }
+    }
+
+    /// Phase 2 M3 stage 3: shape-typed body for `ASTNode::Sequence`.
+    ///
+    /// Builds `Value::Array(child_typed_values)` by parsing each child
+    /// in order. Stage 3 handles the two most common child shapes:
+    /// - `ASTNode::Atom` (any subtype handled by
+    ///   `generate_typed_atom_value_expr`): inline the typed atom
+    ///   expression and push the resulting `Value`.
+    /// - `ASTNode::Quantified` with quantifier `?` whose inner element
+    ///   is an `Atom`: wrap in `try_parse` and push the typed value or
+    ///   `Value::Null` on miss.
+    ///
+    /// Returns `None` if any child is a shape stage 3 doesn't yet
+    /// handle (nested `Or` / `Sequence` / `Lookahead` / `Quantified`
+    /// with non-`?` quantifier or non-`Atom` inner). In that case the
+    /// stage-1 fallback handles the whole rule.
+    fn generate_typed_sequence_body(
+        &self,
+        elements: &[ASTNode],
+        rule_name: &str,
+    ) -> Option<TokenStream> {
+        let element_count = elements.len();
+        let mut element_pushes: Vec<TokenStream> = Vec::with_capacity(element_count);
+        for elem in elements {
+            let push = match elem {
+                ASTNode::Atom { value } => {
+                    let expr =
+                        self.generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
+                    quote! {
+                        elements.push(#expr);
+                    }
+                }
+                ASTNode::Quantified { element, quantifier } if quantifier == "?" => {
+                    let ASTNode::Atom { value } = element.as_ref() else {
+                        return None;
+                    };
+                    let inner_expr = self.generate_typed_atom_value_expr(
+                        value,
+                        rule_name,
+                        quote! { parser },
+                    )?;
+                    quote! {
+                        let __pgen_optional_value = if let Some(__pgen_v) =
+                            self.try_parse(|p| {
+                                let parser = p;
+                                Ok::<serde_json::Value, ParseError>(#inner_expr)
+                            })
+                        {
+                            __pgen_v
+                        } else {
+                            serde_json::Value::Null
+                        };
+                        elements.push(__pgen_optional_value);
+                    }
+                }
+                _ => return None,
+            };
+            element_pushes.push(push);
+        }
+
+        Some(quote! {
+            let mut elements: Vec<serde_json::Value> =
+                Vec::with_capacity(#element_count);
+            #(#element_pushes)*
+            Ok(serde_json::Value::Array(elements))
+        })
     }
 
     /// Phase 2 M1+M3 emit. Produces a parallel `impl` block carrying
