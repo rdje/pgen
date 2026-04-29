@@ -736,9 +736,58 @@ impl AstBasedGenerator {
             ASTNode::Sequence { elements } => {
                 self.generate_typed_sequence_body(elements, rule_name)
             }
-            // Stages 4-5 add `Or`, `Quantified`, `Lookahead`.
+            ASTNode::Or { alternatives } => {
+                self.generate_typed_or_body(alternatives, rule_name)
+            }
+            // Stage 5 adds `Quantified`, `Lookahead`.
             _ => None,
         }
+    }
+
+    /// Phase 2 M3 stage 4: shape-typed body for `ASTNode::Or`.
+    ///
+    /// Tries each alternative in order via `try_parse`; the first
+    /// alternative that succeeds returns its typed value. If every
+    /// alternative fails, the typed body returns
+    /// `ParseError::Backtrack { position }` so the caller's outer Or
+    /// or sequence can retry as needed.
+    ///
+    /// Stage 4 handles alternatives that are themselves `ASTNode::Atom`
+    /// (any subtype the stage-2 atom emit handles). Returns `None`
+    /// (stage-1 fallback) if any alternative is a more complex shape;
+    /// nested `Sequence` / `Or` / `Quantified` / `Lookahead`
+    /// alternatives are deferred to a later slice. Annotated rules
+    /// were already filtered out at `generate_typed_node_body` because
+    /// per-branch return-annotation transforms need their own
+    /// implementation pass before they land on the typed path.
+    fn generate_typed_or_body(
+        &self,
+        alternatives: &[ASTNode],
+        rule_name: &str,
+    ) -> Option<TokenStream> {
+        let mut try_blocks: Vec<TokenStream> = Vec::with_capacity(alternatives.len());
+        for alt in alternatives {
+            let ASTNode::Atom { value } = alt else {
+                return None;
+            };
+            let expr = self.generate_typed_atom_value_expr(
+                value,
+                rule_name,
+                quote! { parser },
+            )?;
+            try_blocks.push(quote! {
+                if let Some(__pgen_or_v) = self.try_parse(|p| {
+                    let parser = p;
+                    Ok::<serde_json::Value, ParseError>(#expr)
+                }) {
+                    return Ok(__pgen_or_v);
+                }
+            });
+        }
+        Some(quote! {
+            #(#try_blocks)*
+            Err(ParseError::Backtrack { position: self.position })
+        })
     }
 
     /// Phase 2 M3 stage 2: shape-typed body for `ASTNode::Atom`.

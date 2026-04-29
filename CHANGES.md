@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 stage 4: typed Or body emit
+### Achievement Summary
+Adds shape-typed body emit for `ASTNode::Or` rules whose alternatives are all `ASTNode::Atom`. The typed body tries each alternative via `try_parse(|p| { let parser = p; Ok(<typed atom>) })`; the first alternative that succeeds returns its typed value, and on full failure the body returns `ParseError::Backtrack { position: self.position }` so the caller's outer `Or` or `Sequence` can retry.
+
+Annotated rules (semantic or branch-return annotations declared in the grammar — like regex's `@semantic_value: {type: "literal", char: $1}`) were already filtered out at `generate_typed_node_body`'s gate; per-branch return-annotation transforms in the typed path are deferred to a later stage.
+
+Or rules with non-Atom alternatives (nested `Sequence` / `Or` / `Quantified` / `Lookahead`) still fall back to stage-1 wrapper.
+
+### Effect on the regex parser
+| typed body class                      | stage 2 | stage 3 | stage 4 |
+|---------------------------------------|---------|---------|---------|
+| Shape-typed (Atom/Sequence/Or)        | 22      | 73      | **133** |
+| Stage-1 fallback                      | 172     | 121     | 61      |
+| **Total**                             | **194** | **194** | **194** |
+
+133/194 = **69%** of regex grammar rules now use shape-typed emit. The remaining 61 are:
+- ~8 rules with explicit semantic annotations (correctly fall back so the annotation-applied shape stays honest);
+- the rest are `Quantified` (`*` / `+` / `{n,m}`) and `Lookahead` shapes pending stage 5, plus a few `Or` / `Sequence` rules with non-Atom children.
+
+Sample of a stage-4 typed Or body, `parse_atom_typed`:
+
+```rust
+pub fn parse_atom_typed(&mut self) -> ParseResult<serde_json::Value> {
+    if let Some(__pgen_or_v) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_literal_typed()?)
+    }) {
+        return Ok(__pgen_or_v);
+    }
+    if let Some(__pgen_or_v) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_char_class_typed()?)
+    }) {
+        return Ok(__pgen_or_v);
+    }
+    // ... more alternatives ...
+    Err(ParseError::Backtrack { position: self.position })
+}
+```
+
+`ParseNode` is bypassed entirely on this path — the typed body neither builds a `ParseNode` nor invokes the legacy `parse_<rule>` method.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds `generate_typed_or_body` Or dispatcher; `generate_typed_node_body` extended to dispatch `ASTNode::Or`.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe on regex grammar: 133 stage-2/3/4 typed bodies + 61 stage-1 fallbacks across 194 rules.
+
+### Stage 5+ plan
+- **Stage 5**: `ASTNode::Quantified` (`*` / `+` / `{n,m}`) and `Lookahead` typed bodies. `*` / `+` build `Value::Array(child_typed_values)`; lookahead emits `try_parse` without consuming.
+- **Stage 4b** (later): per-branch return-annotation handling so annotated `Or` / `Atom` rules also reach the typed path. The `@semantic_value` transform applied to the matched typed value gives the correct shape.
+- **Stage 6**: wire regex `make` target to `--inline-annotations`; regenerate tracked parser.
+- **Stage 7**: re-measure 8-pattern bug corpus via `parse_full_regex_typed`. Expected 30-60% reduction on `anchor_complex` / `character_class`.
+
 ## 2026-04-29 - Phase 2 M3 stage 3: typed Sequence body emit
 ### Achievement Summary
 Adds shape-typed body emit for `ASTNode::Sequence` rules. Builds `Value::Array(child_typed_values)` by parsing each child in order, with no `ParseNode` allocation on the typed path.

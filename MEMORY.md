@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-3-typed-sequence-body-emit)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-4-typed-or-body-emit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,15 +8,16 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Phase 2 M3 stage 3 landed in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_sequence_body` dispatcher emits `Value::Array(child_typed_values)` for non-annotated `ASTNode::Sequence` rules whose children are all `Atom` or `Quantified-? Atom`. Refactored `generate_typed_atom_body` into a thin wrapper around the new expression-form emitter `generate_typed_atom_value_expr(value, rule_name, receiver)` that takes a parser receiver (`self` for top-level, `parser` for nested `try_parse` closures) so the same atom emit can inline at multiple call sites.
-- Direct probe on regex grammar: **73/194 rules** now use shape-typed emit (was 22 after stage 2). Stage-1 fallback dropped from 172 → 121. Sequence rules with simple Atom or optional-Atom children are now typed.
-- Sample stage-3 typed body (`parse_quantifier_typed`): builds `Vec<Value>` of length 2, pushes inner Atom typed values directly, returns `Value::Array`. No `ParseNode { rule_name: "element_N", content, span }` wrappers, no `Vec<ParseNode>` allocation.
-- Tracked `generated/regex_parser.rs` still NOT regenerated under `--inline-annotations`. Stage 6 flips the flag once stages 4-5 push coverage above ~90%.
+- Phase 2 M3 stage 4 landed in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_or_body` dispatcher emits typed `Or` bodies that try each alternative via `try_parse(|p| { let parser = p; Ok(<typed atom>) })`; first success returns its typed value, on full failure returns `ParseError::Backtrack { position }`. Stage 4 handles alternatives that are themselves `ASTNode::Atom`; annotated rules and Or with non-Atom alternatives still fall back to stage-1.
+- Direct probe on regex grammar: **133/194 rules** now use shape-typed emit (was 73 after stage 3). Stage-1 fallback dropped from 121 → 61. **69% coverage** at this point.
+- Remaining 61 stage-1 fallbacks: ~8 explicitly-annotated rules (correctly defer to stage-1 so annotation-applied shape stays honest); the rest are `Quantified` (`*` / `+` / `{n,m}`) and `Lookahead` shapes pending stage 5, plus a few `Or` / `Sequence` rules with non-Atom children.
+- Sample stage-4 body (`parse_atom_typed`): tries each alternative `parse_<X>_typed()` via `try_parse`; no `ParseNode`, no legacy `parse_<rule>` invocation.
+- Tracked `generated/regex_parser.rs` still NOT regenerated under `--inline-annotations`. Stage 6 flips the flag once stage 5 pushes coverage above ~90%.
 - Validation: 488 lib tests pass, clippy strict source pass, build clean.
 
-### Phase 2 M3 stage 4+ plan (next session)
-- **Stage 4**: `ASTNode::Or` typed body. Try each alternative; return first successful's typed value. **Annotation handling enters here** — per-branch return annotations (e.g. regex `@semantic_value: {type: "literal", char: $1}`) need to shape the typed value via the annotation transform. This unlocks the annotated-Atom path that stages 2-3 deferred.
-- **Stage 5**: `ASTNode::Quantified` (`*`/`+`/`{n,m}`) and `Lookahead` typed bodies.
+### Phase 2 M3 stage 5+ plan (next session)
+- **Stage 5**: `ASTNode::Quantified` (`*` / `+` / `{n,m}`) and `Lookahead` typed bodies. `*` / `+` build `Value::Array(child_typed_values)`; lookahead emits `try_parse` without consuming.
+- **Stage 4b** (later): per-branch return-annotation handling so annotated `Or` / `Atom` rules also reach the typed path. The `@semantic_value` transform applied to the matched typed value gives the correct shape.
 - **Stage 6**: wire regex `make regex_parser` target to `--inline-annotations`; regenerate tracked `generated/regex_parser.rs`; update perf probe to call `parse_full_regex_typed`.
 - **Stage 7**: measure perf via the typed entry point; expected 30-60% reduction on `anchor_complex` / `character_class`. PGEN-RGX-0073 PRIMARY <50µs across all 8 patterns expected to fall here.
 

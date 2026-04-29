@@ -1,4 +1,108 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Phase 2 M3 stage 4: typed Or body emit
+
+### What landed
+Adds shape-typed body emit for non-annotated `ASTNode::Or` rules whose alternatives are all `ASTNode::Atom`.
+
+### Implementation
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
+
+```rust
+fn generate_typed_or_body(
+    &self,
+    alternatives: &[ASTNode],
+    rule_name: &str,
+) -> Option<TokenStream> {
+    let mut try_blocks: Vec<TokenStream> = Vec::with_capacity(alternatives.len());
+    for alt in alternatives {
+        let ASTNode::Atom { value } = alt else { return None; };
+        let expr = self.generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
+        try_blocks.push(quote! {
+            if let Some(__pgen_or_v) = self.try_parse(|p| {
+                let parser = p;
+                Ok::<serde_json::Value, ParseError>(#expr)
+            }) {
+                return Ok(__pgen_or_v);
+            }
+        });
+    }
+    Some(quote! {
+        #(#try_blocks)*
+        Err(ParseError::Backtrack { position: self.position })
+    })
+}
+```
+
+`generate_typed_node_body` dispatches `ASTNode::Or` to the new emitter.
+
+### Annotation handling status
+The dispatcher's gate at the top of `generate_typed_node_body` already filters out:
+- rules with any semantic annotation (`rule_has_no_semantic_annotations`);
+- rules with explicit branch return annotations (`branch_return_annotations.contains_key`).
+
+So annotated rules don't reach the Or handler. That's intentional for stage 4 — per-branch return-annotation transforms in the typed path are deferred to a separate slice (stage 4b later, or rolled into stage 5 if simpler).
+
+The implicit `-> $1` default for single-element branches is **not** stored in `branch_return_annotations` — it is synthesized at codegen time inside `generate_or_logic` via `synthesize_default_passthrough_for_single_element_branch`. So rules where every branch has the implicit `-> $1` (and no explicit annotation) still pass the gate and reach the typed Or emitter. The typed semantics — return the alternative's typed value — match the implicit `-> $1` (which is "passthrough $1"), so the typed path is equivalent.
+
+### Coverage on the regex parser
+
+| typed body class                      | stage 1 | stage 2 | stage 3 | stage 4 |
+|---------------------------------------|---------|---------|---------|---------|
+| Shape-typed (Atom/Sequence/Or)        | 0       | 22      | 73      | **133** |
+| Stage-1 fallback                      | 194     | 172     | 121     | 61      |
+| Total typed methods                   | 194     | 194     | 194     | 194     |
+
+133/194 = **69% coverage** at stage 4.
+
+### Why some rules still fall back at stage 4
+Concrete example: `class_atom`. Grammar:
+
+```
+@generate: extract_char_value($1)
+@semantic_value: {type: "atom", value: $1}
+class_atom = quoted_class_range_atom | class_range_escape | class_literal
+```
+
+`@semantic_value: {type: "atom", value: $1}` is an explicit annotation — `class_atom` is in `rule_has_no_semantic_annotations`'s blocked set. The typed Or dispatcher correctly does not emit because the `@semantic_value` transform must shape the typed value (returning the atom's text directly would be wrong; the correct shape is `{"type": "atom", "value": <atom_text>}`). Stage 4b will land that.
+
+### Sample stage-4 typed Or body, `parse_atom_typed`:
+
+```rust
+pub fn parse_atom_typed(&mut self) -> ParseResult<serde_json::Value> {
+    if let Some(__pgen_or_v) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_literal_typed()?)
+    }) {
+        return Ok(__pgen_or_v);
+    }
+    if let Some(__pgen_or_v) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_char_class_typed()?)
+    }) {
+        return Ok(__pgen_or_v);
+    }
+    // ... more alternatives
+    Err(ParseError::Backtrack { position: self.position })
+}
+```
+
+`ParseNode` is bypassed entirely on this path — no legacy `parse_<rule>` invocation, no `Vec<ParseNode>`, no per-element wrapper.
+
+### Stage 5+ plan
+- **Stage 5**: `ASTNode::Quantified` (`*` / `+` / `{n,m}`) typed body builds `Value::Array(child_typed_values)` by looping the inner shape's typed emitter; `Lookahead` emits `try_parse` without consuming, returning the inner typed value or `Value::Null`.
+- **Stage 4b**: per-branch return-annotation handling. For an annotated Or rule, each branch's typed body applies the annotation's transform to its matched typed values, producing the correct typed shape. Lifts the annotated-rule fallback.
+- **Stage 6**: wire regex `make` target to `--inline-annotations`; regenerate tracked parser.
+- **Stage 7**: re-measure 8-pattern bug corpus via `parse_full_regex_typed`.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — adds `generate_typed_or_body` Or dispatcher; `generate_typed_node_body` extended to dispatch `ASTNode::Or`.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: 133 typed bodies + 61 stage-1 fallbacks across 194 rules.
+
 ## 2026-04-29 - Phase 2 M3 stage 3: typed Sequence body emit
 
 ### What landed
