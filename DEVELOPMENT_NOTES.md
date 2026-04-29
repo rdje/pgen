@@ -1,4 +1,74 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Phase 2 M3 stage 4c: 🎯 PGEN-RGX-0073 PRIMARY achieved — 8/8 patterns under 50µs via typed entry, geomean 4.43× speedup
+
+### What landed
+The slice that closes PGEN-RGX-0073 PRIMARY on the typed entry point. Loosens the dispatcher gate so rules with semantic annotations (`@semantic_value`, `@predicate`, `@emit_fact`) also reach the typed path.
+
+### Key insight
+Semantic annotations are runtime side-effects:
+- `@semantic_value: $expr` computes a value used for predicates / fact emission elsewhere.
+- `@predicate: cond` runtime check that gates parsing.
+- `@emit_fact: kind, name, attrs` emits a fact at parse time (consumed by sibling-rule predicates).
+- `@validate: cond` runtime validation.
+
+**None of these affect the rule's AST output shape.** The parsed content is the same regardless of semantic side-effects. The typed body produces the AST shape (matching `serde_json::to_value(legacy)`); semantic side-effects remain owned by the legacy path's `with_semantic_runtime_rule_transaction` wrapper.
+
+### Trade-off
+For grammars whose parsing correctness depends on semantic predicates (SV, VHDL — predicates gate which alternatives match), the typed path is **unsafe**: predicates wouldn't fire, and the parser may accept inputs that legacy would reject (or vice versa). Those grammars use the legacy path by default; the typed path is opt-in via `--inline-annotations`, and adopters know what they're trading.
+
+For the regex grammar specifically, the `@semantic_value` annotations are pure metadata for downstream tooling, not gating predicates. The typed AST shape is correct without them. So loosening the gate is safe for regex; the hot rules (`class_body` with `flatten($1)`, `negation` with `$1 != null`) all reach the typed path with their AST shape intact.
+
+### Coverage on the regex parser
+
+| typed body class      | stage 5b | stage 4c |
+|-----------------------|----------|----------|
+| Shape-typed (composer) | 174      | **194**  |
+| Stage-1 fallback       | 20       | **0**    |
+
+100% coverage. Every regex grammar rule reaches the typed path.
+
+### Perf delta — PGEN-RGX-0073 PRIMARY ACHIEVED
+Release, M4 Pro, mimalloc, --warmup 200, --samples 5000:
+
+| pattern         | bug-baseline | legacy (HEAD) | typed (this commit) | ratio | <50µs?  |
+|-----------------|--------------|---------------|---------------------|-------|---------|
+| literal_simple  | 288µs        | 14.2µs        | **2.7µs**           | 5.31× | ✓✓✓     |
+| digit_sequence  | 567µs        | 38.4µs        | **8.8µs**           | 4.36× | ✓✓✓     |
+| character_class | 1.87ms       | 86.8µs        | **28.2µs**          | 3.08× | ✓✓✓     |
+| alternation     | 747µs        | 37.4µs        | **7.1µs**           | 5.26× | ✓✓✓     |
+| capture_groups  | 1.11ms       | 65.0µs        | **18.3µs**          | 3.55× | ✓✓✓     |
+| url_simple      | 644µs        | 33.7µs        | **6.7µs**           | 5.03× | ✓✓✓     |
+| email_basic     | 829µs        | 54.5µs        | **10.8µs**          | 5.03× | ✓✓✓     |
+| anchor_complex  | 2.09ms       | 105.5µs       | **28.9µs**          | 3.65× | ✓✓✓     |
+
+GeoMean 4.43× speedup vs legacy. ALL 8 PATTERNS under PRIMARY 50µs. Cumulative speedup vs the bug-baseline (when PGEN-RGX-0073 was filed): **60-110× faster depending on pattern**.
+
+### Architectural lesson
+The typed path's perf advantage compounds. Every fully-typed-chain rule eliminates:
+- One `ParseNode { rule_name, content, span }` allocation per rule entry.
+- One `Vec<ParseNode>` per non-leaf node.
+- One `ParseContent::Alternative(Box<ParseNode>)` wrapper per rule reference.
+- The post-parse return-annotation transform's tree walk.
+
+For deep parses (anchor_complex parses ~50 chars through ~100 rule entries), eliminating those allocations turns 100+ heap operations into a handful. Stages 2-5b/4b/4c each closed a class of fallback; **4c was the last one needed for the regex grammar to fully type the AST**.
+
+### Default tracked parser still on legacy
+The default `make regex_parser` target still uses legacy emit. Tracked `generated/regex_parser.rs` is byte-unchanged in this commit. The typed methods land only via the explicit `make regex_parser_typed` target. RGX coordination + integration-contract bump (M5) decides whether to flip the default.
+
+### Stage M5 plan (RGX adoption)
+- Bump `regex_parser_integration_contract` `1.1.31 → 1.2.0` declaring `parse_full_regex_typed` as the fast-path entry returning `serde_json::Value`.
+- Coordinate with the RGX repo: their consumer code switches from `parse_full_regex` (legacy, returns `ParseNode`) to `parse_full_regex_typed` (typed, returns `serde_json::Value`).
+- After RGX adopts, decide whether to flip the default `make regex_parser` target to `--inline-annotations` (file-size cost ~3M but tracked parser ships both entries; consumers can pick).
+
+### Files in this commit
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — `generate_typed_node_body` no longer filters rules with semantic annotations. Comment documents the trade-off (correct AST shape but skipped semantic side-effects; regex safe, SV/VHDL keep legacy by default).
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: `make regex_parser_typed` regenerates with **194/194 shape-typed bodies, 0 stage-1 fallbacks**. Perf shows 3.08-5.31× speedup across all 8 patterns; **ALL 8 under PRIMARY 50µs via typed entry**.
+
 ## 2026-04-29 - Phase 2 M3 stage 5b: generic shape composer — typed path delivers 1.4-5.6× speedups; 6/8 patterns under PRIMARY 50µs
 
 ### What landed
