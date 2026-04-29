@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-formal-scoping-handoff-100k-sample-baseline)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-1-per-rule-typed-method-codegen-scaffolding)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- 100 000-sample handoff baseline at HEAD = `5cd7219` (Optim #15+#16). Release, M4 Pro, mimalloc, --warmup 1000:
+- Phase 2 M3 stage 1 landed in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). When `--inline-annotations` is set, the emitted parser now carries a per-rule `parse_<rule>_typed` method for every rule plus a `parse_full_<entry>_typed` dispatcher. All return `ParseResult<serde_json::Value>`. Stage 1 bodies wrap legacy `parse_<rule>` + `serde_json::to_value(&node)` — no perf gain yet, but the API surface is stable across stages.
+- Direct invocation `ast_pipeline ... --inline-annotations -o /tmp/regex_parser_typed.rs` produces 194 typed methods. Lib tests 488 passed; the existing regression test for the M1 contract was updated to pin the new shape.
+- Tracked `generated/regex_parser.rs` is intentionally NOT regenerated under `--inline-annotations` in this commit. The make target keeps the flag off; tracked parser bytes stay on the legacy emit until stage 2+ delivers shape-typed bodies that actually skip `ParseNode`.
+
+### Phase 2 M3 stage 2+ plan (next session)
+- **Stage 2**: shape-typed emit for `ASTNode::Atom` — terminal literals, regex matches, rule references. Body returns `Value::String(matched_text)` for leaves and dispatches to inner `parse_<inner>_typed()` for rule references. Easiest shape and most common in regex grammar.
+- **Stage 3**: `ASTNode::Sequence` — typed body builds `Value::Array(child_typed_values)`.
+- **Stage 4**: `ASTNode::Or` — typed body returns the matched branch's typed value.
+- **Stage 5**: `ASTNode::Quantified` and `Lookahead`.
+- **Stage 6**: wire regex `make regex_parser` target to `--inline-annotations`; regenerate tracked `generated/regex_parser.rs`; update perf probe to call `parse_full_regex_typed`.
+- **Stage 7**: measure perf via the typed entry point; expected 30-60% reduction on `anchor_complex` / `character_class`. PGEN-RGX-0073 PRIMARY <50µs across all 8 patterns expected to fall here.
+- **M4-M8** then unblock once stage 2-7 confirm the architectural pattern.
+
+### Validation at HEAD
+- `cargo build --features generated_parsers` clean.
+- `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` strict source lint pass.
+
+### 100 000-sample baseline at HEAD = `5cd7219` (Optim #15+#16, unchanged by this commit). Release, M4 Pro, mimalloc, --warmup 1000:
   - literal_simple 15.4 ✓ / digit_sequence 41.3 ✓ / alternation 37.2 ✓ / url_simple 33.8 ✓
   - email_basic 54.5 ✗ (4.5µs / -8%) / capture_groups 66.5 ✗ (-25%) / character_class 93.5 ✗ (-46%) / anchor_complex 105.0 ✗ (-52%)
 - 4/8 patterns under PRIMARY 50µs. The remaining gap is too large for stacked grammar-agnostic micro-optims (Optim #17 = elide `needs_raw_post_capture_for_rule` HashMap probe → measured at 1-5%, within run-to-run variance, not committed).

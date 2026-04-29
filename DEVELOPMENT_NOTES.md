@@ -1,4 +1,83 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Phase 2 M3 stage 1: per-rule typed-method codegen scaffolding
+
+### What landed
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)'s `generate_typed_parser_impl_skeleton` is rewritten so that, under `--inline-annotations`, the emitted parser carries a typed method for every rule, not just the entry point.
+
+Before (M1):
+
+```rust
+impl<'input> RegexParser<'input> {
+    pub fn parse_full_regex_typed(&mut self) -> ParseResult<serde_json::Value> {
+        let node = self.parse_full_regex()?;
+        serde_json::to_value(&node).map_err(...)
+    }
+}
+```
+
+After (M3 stage 1):
+
+```rust
+impl<'input> RegexParser<'input> {
+    // ... 194 of these, one per rule:
+    pub fn parse_regex_typed(&mut self) -> ParseResult<serde_json::Value> {
+        let node = self.parse_regex()?;
+        serde_json::to_value(&node).map_err(...)
+    }
+    pub fn parse_pattern_typed(&mut self) -> ParseResult<serde_json::Value> { ... }
+    pub fn parse_alternation_typed(&mut self) -> ParseResult<serde_json::Value> { ... }
+    // ...
+
+    pub fn parse_full_regex_typed(&mut self) -> ParseResult<serde_json::Value> {
+        let value = self.parse_regex_typed()?;
+        if self.position != self.input.len() {
+            return Err(self.create_contextual_error(
+                "Phase 2 typed entry: trailing input not consumed",
+            ));
+        }
+        Ok(value)
+    }
+}
+```
+
+Stage 1 bodies still wrap legacy `parse_<rule>` + `serde_json::to_value(&node)`. No perf gain yet — the architectural pattern and public API surface are what's stable now. Future stages replace the per-rule body with shape-typed emit per `ASTNode` shape.
+
+### Verification
+
+`cargo test --lib --features generated_parsers` 488 passed. The M1 regression test (`phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set`) was updated to pin the new contract: per-rule typed method present, dispatcher entry calls it, stage-1 body wraps legacy `parse_<rule>`.
+
+Direct invocation:
+
+```
+ast_pipeline generated/regex.json --generate-parser --eliminate-left-recursion \
+    --inline-annotations -o /tmp/regex_parser_typed.rs
+```
+
+emits 194 `parse_<rule>_typed` methods plus the dispatcher.
+
+### Why tracked `generated/regex_parser.rs` is not regenerated yet
+The make target `make -C rust regex_parser` keeps `--inline-annotations` off. Stage 1's typed bodies still go through the legacy `ParseNode` chain plus `serde_json::to_value`, so regenerating now would only grow the parser file with stage-1 typed methods that perform identically to the legacy methods plus serialization overhead — no perf benefit, just larger binary. The make target flips on once stage 2+ delivers shape-typed emit that actually skips `ParseNode`.
+
+### Stage 2+ plan (next session)
+- **Stage 2**: shape-typed emit for `ASTNode::Atom`. Three subtypes:
+  - `quoted_string`: emit `let _ = parser.match_string(#literal)?; Ok(Value::String(#literal.to_string()))`.
+  - `regex`: emit regex match + `Ok(Value::String(matched_text.to_string()))`.
+  - `rule_reference`: emit `parser.#inner_typed_method()` (recursive dispatch).
+- **Stage 3**: `ASTNode::Sequence`. Body builds `Vec<Value>` by calling each child's `_typed` method, returns `Value::Array(values)`.
+- **Stage 4**: `ASTNode::Or`. Body tries each alternative, returns the first successful's typed value (no wrapper).
+- **Stage 5**: `ASTNode::Quantified` (`*`/`+`/`?`/`{n,m}`) and `Lookahead`. `*`/`+` build `Value::Array`; `?` returns the value or `Value::Null`.
+- **Stage 6**: wire `RUST_GENERATOR_INLINE = $(RUST_AST_PIPELINE) --generate-parser --inline-annotations ...` into the regex make target; regenerate tracked `generated/regex_parser.rs`. Verify test suite stays green.
+- **Stage 7**: update [rust/src/bin/regex_perf_probe.rs](rust/src/bin/regex_perf_probe.rs) to call `parse_full_regex_typed` (or both for comparison). Re-measure the 8-pattern bug corpus; expected 30-60% reduction on `anchor_complex` / `character_class`.
+- **M4** completes once stage 7 confirms the perf delta. **M5** then bumps `regex_parser_integration_contract` `1.1.31 → 1.2.0` with the typed entry point, coordinated with the RGX repo.
+
+### Files in this commit
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — `generate_typed_parser_impl_skeleton` rewritten; regression test updated.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+
 ## 2026-04-29 - Phase 2 M3 formal scoping + Optim #17 measurement (not committed)
 
 ### Why this entry exists

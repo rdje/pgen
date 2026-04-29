@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 stage 1: per-rule typed-method codegen scaffolding
+### Achievement Summary
+First substantive Phase 2 M3 commit. Extends [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)'s `generate_typed_parser_impl_skeleton` so that, when the `--inline-annotations` flag is set on the AST pipeline, the emitted parser carries:
+- a per-rule `parse_<rule>_typed` method for **every** rule in `rule_order` (was: only the full-input typed entry-point existed);
+- a `parse_full_<entry>_typed` entry-point that **dispatches through** the per-rule typed method and enforces end-of-input (was: wrapped the legacy `parse_full_<entry>` and serialized via `serde_json::to_value`).
+
+All typed methods return `ParseResult<serde_json::Value>`. Stage 1 bodies are still thin wrappers around the legacy `parse_<rule>` plus `serde_json::to_value(&node)` — functionally equivalent to "parse + AST-dump-as-JSON" today, no perf gain. The architectural pattern and the public API surface are now stable; M3 stage 2+ replaces the per-rule bodies with shape-typed emit per `ASTNode::Or` / `Sequence` / `Atom` / `Quantified` / `Lookahead` that builds `serde_json::Value` directly, eliminating `ParseNode` allocation entirely.
+
+### Wiring proof
+Direct invocation of `ast_pipeline ... --inline-annotations -o /tmp/regex_parser_typed.rs` against the regex grammar produces:
+- 194 emitted `parse_<rule>_typed` methods (one per rule plus the entry).
+- The full-input typed entry calls `self.parse_<entry>_typed()` and enforces `self.position == self.input.len()` instead of the prior `serde_json::to_value(&node)` path.
+
+Tracked `generated/regex_parser.rs` is **not** regenerated under `--inline-annotations` in this commit — the make target keeps the flag off, so tracked parser bytes stay on the legacy emit until the perf-relevant M3 stage 2+ work lands. The perf measurement (M4) and RGX coordination (M5) come after stage 2+ delivers shape-typed bodies that actually skip `ParseNode`.
+
+### Test
+[rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)'s `phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set` is updated to pin the new contract: per-rule typed method present, full-input typed entry dispatches through it, stage-1 body wraps the legacy `parse_<rule>` call.
+
+### Files
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — `generate_typed_parser_impl_skeleton` rewritten to emit per-rule typed methods plus dispatcher entry; `phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set` regression test updated to pin the new contract.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean.
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: `ast_pipeline generated/regex.json --generate-parser --eliminate-left-recursion --inline-annotations -o /tmp/regex_parser_typed.rs` ✅ emits 194 `parse_<rule>_typed` methods plus the dispatcher entry.
+
+### Stage 2+ plan
+Per [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md) Phase 2 M3 plan. Stage 2 implements shape-typed emit for `ASTNode::Atom` (terminal literals, regex matches, rule references — the most common shape and the easiest to typed-emit). Stage 3-5 add `Sequence`, `Or`, `Quantified`, `Lookahead`. Stage 6 wires the regex `make` target to `--inline-annotations` and regenerates tracked parser. Stage 7 measures perf via `parse_full_regex_typed` in the perf probe; expected 30-60% reduction on `anchor_complex` / `character_class`.
+
 ## 2026-04-29 - Phase 2 M3 formal scoping + 100k-sample handoff baseline (no code change)
 ### Achievement Summary
 Documents the formal scoping of Phase 2 M3 — the architectural slice that closes PGEN-RGX-0073 PRIMARY for the remaining 4 patterns by eliminating generic `ParseNode` tree allocation in favor of inline shape-typed emit per rule. Also captures a stable 100 000-sample handoff baseline at HEAD = `5cd7219`.

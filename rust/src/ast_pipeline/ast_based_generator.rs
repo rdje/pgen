@@ -305,9 +305,15 @@ impl AstBasedGenerator {
         eprintln!("        File: {}:{}", file!(), line!());
         eprintln!();
 
-        // Phase 2 M1: parallel typed parser impl, only emitted when --inline-annotations is set.
+        // Phase 2 M1+M3-stage-1: parallel typed parser impl, only emitted when
+        // --inline-annotations is set. Emits a per-rule `parse_<rule>_typed`
+        // method for every rule in `rule_order` plus the `parse_full_<entry>_typed`
+        // entry-point that dispatches through the per-rule typed entry. Stage 1
+        // bodies wrap the legacy parse + serde_json::to_value (no perf gain yet,
+        // but the API surface is stable). Future stages replace per-shape bodies
+        // with shape-typed emit and `ParseNode` is bypassed entirely.
         let typed_parser_impl = if self.inline_annotations {
-            self.generate_typed_parser_impl_skeleton(&parser_name, &entry_rule)
+            self.generate_typed_parser_impl_skeleton(&parser_name, rule_order, &entry_rule)
         } else {
             TokenStream::new()
         };
@@ -686,38 +692,82 @@ impl AstBasedGenerator {
         })
     }
 
-    /// Phase 2 M1 emit. Produces a parallel `impl` block carrying
-    /// `parse_full_<entry>_typed` returning `ParseResult<serde_json::Value>`. The M1 body
-    /// is a skeleton wrapper around the legacy `parse_full_<entry>` plus
-    /// `serde_json::to_value(&node)`, which is functionally equivalent to "parse + AST
-    /// dump as JSON". M2 will replace the body with truly inline shape-emit logic that
-    /// honors the rule's return annotation. M1 establishes the architectural pattern and
-    /// the public API surface; it does NOT yet produce shaped output per annotations.
+    /// Phase 2 M1+M3-stage-1 emit. Produces a parallel `impl` block carrying
+    /// per-rule `parse_<rule>_typed` methods plus the entry-point
+    /// `parse_full_<entry>_typed` — all returning `ParseResult<serde_json::Value>`.
+    ///
+    /// Stage 1 (this commit) keeps the bodies as thin wrappers around the legacy
+    /// `parse_<rule>` plus `serde_json::to_value(&node)`. Functionally equivalent to
+    /// "parse + AST-dump-as-JSON" today. The architectural pattern and the public
+    /// API surface are now stable across rules — every rule has a typed entry, and
+    /// the entry-point typed method dispatches to its per-rule typed entry.
+    ///
+    /// Subsequent M3 stages replace the per-rule bodies with shape-typed emit per
+    /// `ASTNode::Or` / `Sequence` / `Atom` / `Quantified` / `Lookahead` that builds
+    /// `serde_json::Value` directly without going through `ParseNode`. That is the
+    /// architectural slice that closes the remaining PGEN-RGX-0073 gap by
+    /// eliminating the generic `ParseNode` tree allocation per rule entry. The
+    /// signature `fn parse_<rule>_typed(&mut self) -> ParseResult<serde_json::Value>`
+    /// is stable; only the body changes per stage.
     fn generate_typed_parser_impl_skeleton(
         &self,
         parser_name: &Ident,
+        rule_order: &[String],
         entry_rule: &str,
     ) -> TokenStream {
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
         let parse_full_typed_method = format_ident!("parse_full_{}_typed", entry_rule);
+        let parse_entry_typed_method = format_ident!("parse_{}_typed", entry_rule);
 
-        quote! {
-            impl<'input> #parser_name<'input> {
-                /// Phase 2 M1 skeleton: parses via the legacy ParseNode path, then
-                /// converts the tree to `serde_json::Value` via Serialize. Functionally
-                /// equivalent to "parse + AST-dump-as-JSON" for now. M2 will replace
-                /// this body with truly inline shape-emit logic that honors the rule's
-                /// return annotation, eliminating the post-parse transform.
-                pub fn #parse_full_typed_method(
+        let per_rule_typed_methods = rule_order.iter().map(|rule_name| {
+            let typed_method_name = format_ident!("parse_{}_typed", rule_name);
+            let legacy_method_name = format_ident!("parse_{}", rule_name);
+            let rule_label = rule_name.as_str();
+            quote! {
+                /// Phase 2 M3 stage 1: per-rule typed entry. Returns a
+                /// `serde_json::Value` representing the parsed subtree.
+                /// Stage 1 body is a thin wrapper around the legacy
+                /// `parse_<rule>` plus `serde_json::to_value(&node)` so the
+                /// public API surface is stable while the differential
+                /// gate (M2) verifies byte-equivalent JSON. Stage 2+
+                /// replaces this body with shape-typed emit per the
+                /// rule's AST node so `ParseNode` is bypassed entirely.
+                pub fn #typed_method_name(
                     &mut self,
                 ) -> ParseResult<serde_json::Value> {
-                    let node = self.#parse_full_method()?;
+                    let node = self.#legacy_method_name()?;
                     serde_json::to_value(&node).map_err(|err| {
                         self.create_contextual_error(&format!(
-                            "Phase 2 M1 typed serialization failed: {}",
+                            "Phase 2 M3 stage 1 typed serialization failed for rule '{}': {}",
+                            #rule_label,
                             err
                         ))
                     })
+                }
+            }
+        });
+
+        quote! {
+            impl<'input> #parser_name<'input> {
+                #(#per_rule_typed_methods)*
+
+                /// Phase 2 M1 + M3 stage 1: full-input typed entry point.
+                /// Stage 1 body dispatches through the per-rule typed method
+                /// then enforces end-of-input. Stage 1's per-rule typed
+                /// method internally calls the legacy `parse_<rule>` plus
+                /// `serde_json::to_value`, so the same parse work happens
+                /// once. Stage 2+ replaces the per-rule body with shape-
+                /// typed emit and the legacy parse goes away on this path.
+                pub fn #parse_full_typed_method(
+                    &mut self,
+                ) -> ParseResult<serde_json::Value> {
+                    let value = self.#parse_entry_typed_method()?;
+                    if self.position != self.input.len() {
+                        return Err(self.create_contextual_error(
+                            "Phase 2 typed entry: trailing input not consumed",
+                        ));
+                    }
+                    Ok(value)
                 }
             }
         }
@@ -6021,11 +6071,15 @@ mod semantic_usage_tests {
 
     #[test]
     fn phase_2_m1_typed_entry_emits_only_when_inline_annotations_flag_is_set() {
-        // Phase 2 M1 contract: when AstBasedGenerator.inline_annotations is true, the
-        // emitted parser carries `parse_full_<entry>_typed` returning
-        // `ParseResult<serde_json::Value>` alongside the existing
-        // `parse_full_<entry>` returning `ParseResult<ParseNode>`. Default-off behavior
-        // is byte-unchanged: no typed method appears.
+        // Phase 2 M1+M3-stage-1 contract: when AstBasedGenerator.inline_annotations
+        // is true, the emitted parser carries:
+        //   1. a per-rule `parse_<rule>_typed` method for every rule in `rule_order`,
+        //      each returning `ParseResult<serde_json::Value>` and wrapping the
+        //      legacy `parse_<rule>` plus `serde_json::to_value(&node)` (stage 1
+        //      body; stage 2+ replaces with shape-typed emit per ASTNode shape);
+        //   2. a `parse_full_<entry>_typed` entry-point that dispatches through
+        //      the per-rule typed method and enforces end-of-input.
+        // Default-off behavior is byte-unchanged: no typed method appears.
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
             "package_declaration".to_string(),
@@ -6044,23 +6098,35 @@ mod semantic_usage_tests {
             "flag-off emit must not include typed method, got: {}",
             rendered_off
         );
+        assert!(
+            !rendered_off.contains("parse_package_declaration_typed"),
+            "flag-off emit must not include per-rule typed method, got: {}",
+            rendered_off
+        );
 
-        // Flag on: legacy emit + parallel typed impl block.
+        // Flag on: legacy emit + parallel typed impl block with per-rule typed methods.
         let mut generator_on = AstBasedGenerator::new("usage_test".to_string());
         generator_on.enable_debug = false;
         generator_on.inline_annotations = true;
         let rendered_on = generator_on
             .generate_parser(&grammar_tree, &rule_order, "phase_2_m1.rs")
             .expect("flag-on parser generation should succeed");
+        // The full-input typed entry is present.
         assert!(
             rendered_on.contains("pub fn parse_full_package_declaration_typed"),
             "flag-on emit must include typed entry method, got: {}",
             rendered_on
         );
+        // The per-rule typed method is present for every rule.
+        assert!(
+            rendered_on.contains("pub fn parse_package_declaration_typed"),
+            "flag-on emit must include per-rule typed method for every rule, got: {}",
+            rendered_on
+        );
         assert!(
             rendered_on.contains("ParseResult<serde_json::Value>")
                 || rendered_on.contains("ParseResult < serde_json :: Value >"),
-            "typed method must return ParseResult<serde_json::Value>, got: {}",
+            "typed methods must return ParseResult<serde_json::Value>, got: {}",
             rendered_on
         );
         // The legacy method is preserved unchanged.
@@ -6069,10 +6135,16 @@ mod semantic_usage_tests {
             "flag-on emit must preserve legacy parse_full method, got: {}",
             rendered_on
         );
-        // The typed method body delegates to the legacy method (M1 skeleton).
+        // Stage 1 per-rule typed body wraps the legacy `parse_<rule>` call.
         assert!(
-            rendered_on.contains("self.parse_full_package_declaration()"),
-            "M1 typed body must wrap the legacy parse_full call, got: {}",
+            rendered_on.contains("self.parse_package_declaration()"),
+            "stage-1 per-rule typed body must wrap the legacy parse_<rule> call, got: {}",
+            rendered_on
+        );
+        // The full-input typed entry dispatches through the per-rule typed entry.
+        assert!(
+            rendered_on.contains("self.parse_package_declaration_typed()"),
+            "full-input typed entry must dispatch through per-rule typed method, got: {}",
             rendered_on
         );
     }
