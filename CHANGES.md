@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-29 - Slice 5: stop tracking generated/* in git
+
+### Why
+The tracked `generated/` directory totaled 93 MB across 30 files, with `generated/systemverilog_parser.rs` alone at 56 MB — past GitHub's 50 MB recommended file-size threshold (warnings on every push). Generated files don't belong in version control as a hygiene principle anyway: they're derived from `grammars/*.ebnf` by a deterministic codegen and reproducible at any time. With CI disabled (no automation depends on the tracked artifacts), there is no reason to keep them.
+
+### What changed
+- Added `generated/` to `.gitignore` with a comment block documenting the policy and the new byte-identity verification model.
+- `git rm --cached -r generated/` removed all 30 files from the index. Local working-copy files are preserved (regen-on-demand still works without re-running every per-grammar make target).
+- The maintained gate make targets that previously did `git checkout HEAD -- generated/regex_parser.rs` to restore the tracked baseline now regenerate to default-emit instead. The `--enable-parser-hooks` regen produces typed methods; the restore step regenerates without `--enable-parser-hooks` so the working tree returns to default-emit shape.
+
+### Byte-identity contract change
+Previously: "regen produces the same bytes as before any pipeline change," verified by `git diff -- generated/<parser>.rs` being empty against a tracked baseline.
+
+Now: "regen is deterministic given the same input," verified by `make <parser>` twice and comparing the two output SHAs. Pinning a fixed SHA value in docs proved brittle anyway — the slice 5 verification run discovered that the documented `88d3e04…` baseline matched the previously-tracked `regex_parser.rs` only when `generated/regex.json` was at its HEAD-committed SHA `ef817a08…`. The on-disk `regex.json` has carryover drift (`e42bee54…`) from a regen earlier in the session that was never committed back. Today's regen against the drifted `regex.json` produces a different SHA (`22e51e…`) — both deterministic, just keyed on different inputs. This silent input drift is exactly the failure mode that motivated dropping `generated/` from version control: a stale tracked output paired with a separately-drifted tracked input gives a false sense of byte-identity. The mdbook chapter ([docs/book/src/parser-hooks.md](docs/book/src/parser-hooks.md)) documents the new determinism contract instead of pinning brittle SHA values.
+
+### Validation
+- `git ls-files generated/` empty after the slice.
+- Working tree files preserved locally (93 MB still on disk under `generated/`, untracked).
+- `make regex_typed_differential_gate` ran successfully through its new "regen-to-default" restore path.
+- `.gitignore` now ignores future `generated/` writes.
+
+### What still needs follow-up (separate slices, optional)
+1. **Repo history rewrite** (`git filter-repo`) to drop the giant blobs from `.git/objects` — unblocks clone-size benefit. Destructive (rewrites history; force-push required); track separately.
+2. **Build-time regen automation** (`build.rs` or `make ramp_up` target) so fresh clones don't need to manually run every per-grammar make target before the first test run. Convenience, not correctness.
+3. **Macro consolidation in codegen** to shrink the SV parser's per-rule boilerplate. Touches every parser the pipeline produces; deferred until SV work resumes.
+
+### Files
+- [.gitignore](.gitignore) — `generated/` policy block + path entry.
+- [rust/Makefile](rust/Makefile) — gate restore steps regenerate-to-default instead of `git checkout HEAD --`.
+- [docs/book/src/parser-hooks.md](docs/book/src/parser-hooks.md) — verification properties section updated to reflect the new "regen-and-SHA" contract.
+- 30 files under `generated/` removed from git index (kept locally).
+
 ## 2026-04-29 - Slice 4: typed-path perf probe + flag split + flag rename
 
 ### Achievement Summary

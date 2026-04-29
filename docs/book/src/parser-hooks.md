@@ -218,7 +218,7 @@ If your hook emits a parallel typed entry-point that returns `serde_json::Value`
 
 1. New binary `rust/src/bin/<grammar>_typed_differential_gate.rs` that runs both paths on a corpus and compares.
 2. New Cargo feature gating the binary (so default builds don't try to reference methods that only exist when the hook was registered during regen).
-3. New maintained `make` target wrapping regen + build + run + restore-tracked-parser-to-baseline. The maintained target is the public surface; users don't manually wire the steps.
+3. New maintained `make` target wrapping regen + build + run + regenerate-to-default. The maintained target is the public surface; users don't manually wire the steps. (Slice 5 changed the final step from "git checkout HEAD --" of a tracked baseline file to "regenerate without `--enable-parser-hooks`" because `generated/` is no longer tracked; see the verification properties below.)
 
 The differential gate is the regression-lock that lets future optimization slices replace the hook's typed-body delegation with shape-typed emit while staying correctness-honest.
 
@@ -226,8 +226,8 @@ The differential gate is the regression-lock that lets future optimization slice
 
 Three properties any pipeline change must preserve:
 
-1. **Default regen is byte-identical.** Regenerating a tracked parser without registering any hook for it must produce the same bytes as before the pipeline change. The `make regex_parser` baseline (SHA256 `88d3e04fe1ffde36b3056debcd25ca450167d203a4b071aaeb2f87dffcfc7d07` at the time of writing) is a quick load-bearing check.
-2. **Every parser-family parser unaffected unless its grammar has a registered handler.** SV / VHDL / annotation / RTL parsers stay byte-unchanged because no handler is registered for those grammars. The registry's lookup-by-name is what guarantees this; it is not a property of the pipeline being "well-behaved" in some informal sense.
+1. **Default regen is deterministic given the same input.** `make regex_parser` (and equivalents for other grammars) must produce the same output bytes when run twice in a row against the same `grammars/<name>.ebnf` source. The verification workflow before slice 5 was `git diff -- generated/<parser>.rs` empty against the tracked baseline. After slice 5, the workflow is "regenerate twice, compare SHAs": `make regex_parser && shasum -a 256 generated/regex_parser.rs > /tmp/sha1 && make regex_parser && shasum -a 256 generated/regex_parser.rs > /tmp/sha2 && diff /tmp/sha1 /tmp/sha2`. The SHA value itself is contingent on the current pipeline + grammar source; documenting a fixed SHA is brittle (the SHA shifts whenever the pipeline source or grammar source legitimately changes), so we document the determinism property instead. To check that a pipeline change *did not* alter codegen output, regenerate before and after and diff the two outputs directly.
+2. **Every parser-family parser unaffected unless its grammar has a registered handler.** SV / VHDL / annotation / RTL parsers regenerate to the same SHA whether or not the regex hook is registered, because no handler claims those grammars. The registry's lookup-by-name is what guarantees this; it is not a property of the pipeline being "well-behaved" in some informal sense.
 3. **Hook output passes the differential gate.** When a hook emits a parallel typed entry-point, its output must be byte-equivalent to the legacy reference path until the gate is explicitly updated alongside an annotation transform that changes the documented shape.
 
 ## Why this design

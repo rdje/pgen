@@ -4,6 +4,26 @@
 # =============================================================================
 
 # =============================================================================
+# GENERATED PIPELINE ARTIFACTS
+# =============================================================================
+# Everything in generated/ is pipeline output (parser source files,
+# AST JSON dumps, return-annotation inventories) that's regenerated
+# from grammars/*.ebnf. These files are large (the SystemVerilog
+# parser alone is ~57 MB) and reproducible, so they're not tracked.
+#
+# Slice 5 (PGEN-RGX-0073 redesign, 2026-04-29): the previous "git
+# blob is the byte-identity baseline" verification model is replaced
+# with "regenerate, then assert SHA256 matches the value documented
+# in DEVELOPMENT_NOTES." See docs/book/src/parser-hooks.md for the
+# updated byte-identity contract.
+#
+# To populate generated/ on a fresh clone, run the per-grammar make
+# targets (regex_parser, return_annotation_parser, semantic_annotation_parser,
+# rtl_const_expr_parser, rtl_frontend_parser, ebnf, json_parser, vhdl_parser,
+# systemverilog_parser, systemverilog_preprocessor_parser).
+generated/
+
+# =============================================================================
 # RUST
 # =============================================================================
 # Compiled files

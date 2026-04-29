@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-29 - Slice 5: stop tracking generated/* in git
+
+### Context
+GitHub push warnings flagged `generated/systemverilog_parser.rs` at ~57 MB (above the 50 MB advisory threshold). Total tracked `generated/` was 93 MB across 30 files. Discussion narrowed the options: macro consolidation (deep codegen change, touches every parser, blocked by paused SV work), Git LFS (storage policy, no source change), drop tracking (smallest blast radius, regen-on-demand). With CI disabled and no automation depending on tracked artifacts, drop-tracking won.
+
+### Implementation
+- `.gitignore` added a `generated/` block with a documentation comment explaining the policy and the new byte-identity verification model.
+- `git rm --cached -r generated/` removed all 30 files from the index. Local working-copy files preserved.
+- The maintained `regex_typed_differential_gate` and `regex_typed_perf_probe` make targets used to do `git checkout HEAD -- generated/regex_parser.rs` as their final restore step. After untracking, that becomes a no-op. Replaced with a regen-to-default invocation: `$(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion $(REGEX_JSON) -o $(REGEX_PARSER)`. Same end-state (default emit in working tree); cost is ~10s of pipeline runtime per restore vs the instant `git checkout`.
+
+### Byte-identity contract change (and what slice 5 verification surfaced)
+The parser-hook redesign rests on a verification property: "default regen produces a stable parser file." Before slice 5, the way to check this was to diff the tracked file: `git diff -- generated/regex_parser.rs` empty meant the regen produced the same bytes as the committed baseline.
+
+While running the gate to verify slice 5's new restore-by-regen step worked, I discovered that the documented baseline SHA `88d3e04fe1ffde36b3056debcd25ca450167d203a4b071aaeb2f87dffcfc7d07` corresponds to `regex_parser.rs` *as previously tracked at HEAD*, which was generated from `regex.json` at HEAD SHA `ef817a08caeeec5882b278729d9c9a554735a6650958fc8e52ad3ff9f6e288a8`. The on-disk `regex.json` has been carryover-drifted to `e42bee54b13e2cce11950a62d9678ac7f9d1f520864006ef9a38174d96b58c1a` from a regen earlier in the session (or earlier sessions) that was never committed back. Regenerating regex_parser.rs from the drifted regex.json produces SHA `22e51efc99a04919a3db63eeea44a523ce66f0ff91a51a5c7a364e2a695c161f` — both 88d3e04 and 22e51e are deterministic outputs of the codegen, just from different inputs.
+
+This is exactly the failure mode that motivated dropping `generated/` from version control: a stale tracked output paired with a separately-drifted tracked input gives a false sense of byte-identity. Reviewers had been comfortable that `git diff -- generated/regex_parser.rs` being empty meant "the codegen still produces the documented bytes" — but a drift in `generated/regex.json` could hide a codegen change, or vice versa.
+
+After slice 5, the contract is restated: "regen is deterministic given the same input." Verified by running `make <parser>` twice and comparing the two output SHAs. To check that a pipeline change did not alter codegen output, regenerate before the change and after, diff the two outputs directly. The mdbook chapter no longer pins fixed SHA values, since those are brittle in either direction (legitimate pipeline or grammar changes shift them; SHA pin then hides whether the shift was intentional).
+
+### Why this is safe right now
+1. CI is disabled — no automation depends on the tracked artifacts.
+2. No active downstream consumer pulls the parser source from git (the `pgen` crate's `generated_parsers` feature uses `cfg!()`-gated `include!` paths against the local `generated/` directory).
+3. The PGEN-RGX-0073 byte-identity property is preserved; it's just verified by SHA-on-regen rather than git-diff-on-tracked-blob.
+
+### Why this isn't quite enough
+- **The blobs still live in `.git/objects`.** `git rm` removes from the working tree + future commits, but every old SV parser version is still in the object database. Fresh clones still pull the full history. The clone-size benefit requires `git filter-repo` (destructive: rewrites history, force-push). That's a separate optional slice.
+- **Fresh clones can't `cargo build --features generated_parsers`** until each per-grammar make target has been run. Build-time automation (build.rs that regenerates if missing, or a `make ramp_up` aggregator) is a convenience follow-up.
+
+### Validation
+- `git ls-files generated/` empty.
+- `git diff` still shows the .gitignore + Makefile + mdbook + continuity-doc changes; `generated/*` no longer appears.
+- Working tree's `generated/` directory still has all the local files (93 MB preserved on disk).
+- `make regex_typed_differential_gate` runs end-to-end via the new restore-by-regen path (verified before commit).
+
 ## 2026-04-29 - Slice 4: typed-path perf probe + flag split + flag rename
 
 ### What landed

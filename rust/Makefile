@@ -498,8 +498,8 @@ regex_typed_differential_gate: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	    && ./target/release/regex_typed_differential_gate; \
 	    DIFF_RESULT=$$?; \
 	    cd ..; \
-	    echo "   Step 3/3: restoring tracked regex_parser.rs to legacy emit"; \
-	    git checkout HEAD -- generated/regex_parser.rs 2>/dev/null || true; \
+	    echo "   Step 3/3: regenerating regex_parser.rs to default emit (no hooks)"; \
+	    $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion $(REGEX_JSON) -o $(REGEX_PARSER) 2>/dev/null || true; \
 	    if [ $$DIFF_RESULT -eq 0 ]; then \
 	        echo "✅ regex_typed_differential_gate completed (typed == reference)"; \
 	    else \
@@ -540,8 +540,8 @@ regex_typed_perf_probe: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	    && ./target/release/regex_typed_perf_probe; \
 	    PROBE_RESULT=$$?; \
 	    cd ..; \
-	    echo "   Step 3/3: restoring tracked regex_parser.rs to legacy emit"; \
-	    git checkout HEAD -- generated/regex_parser.rs 2>/dev/null || true; \
+	    echo "   Step 3/3: regenerating regex_parser.rs to default emit (no hooks)"; \
+	    $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion $(REGEX_JSON) -o $(REGEX_PARSER) 2>/dev/null || true; \
 	    if [ $$PROBE_RESULT -eq 0 ]; then \
 	        echo "✅ regex_typed_perf_probe completed"; \
 	    else \
