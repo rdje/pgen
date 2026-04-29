@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-5-typed-quantified-body-emit)
+Last updated: 2026-04-29 (+0200, task: phase-2-m3-stage-6-and-7-typed-path-wiring-and-perf-measurement)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,16 +8,20 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Phase 2 M3 stage 5 landed in [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs). New `generate_typed_quantified_body` dispatcher emits typed `Quantified` bodies for `?`/`*`/`+` over Atom inners. `?` returns typed value or `Value::Null`; `*` loops `try_parse` and returns `Value::Array`; `+` requires first match, then loops, returns `Value::Array`. `{n,m}` and `Lookahead` deferred (rare).
-- Direct probe on regex grammar: **144/194 rules** now use shape-typed emit (was 133 after stage 4). Stage-1 fallback dropped from 61 → 50. **74% coverage** at this point.
-- Remaining 50 stage-1 fallbacks: ~8 explicitly-annotated rules (correctly defer); shapes with non-Atom recursion (Quantified with Sequence/Or inner; Or with Sequence alternatives; Sequence with `*`/`+` quantified non-Atom children); a few `Lookahead` and `{n,m}` rules.
-- Validation: 488 lib tests pass, clippy strict source pass, build clean.
+- Phase 2 M3 stages 6+7 landed: typed-path wiring + perf measurement. Adds `make regex_parser_typed` target (regenerates with `--inline-annotations`) and `phase_2_typed_emit_probe` Cargo feature that exposes a typed measurement column in `regex_perf_probe`. Default `make regex_parser` and default cargo build are byte-unchanged; tracked `generated/regex_parser.rs` stays on legacy emit.
+- Loosened the typed-emit dispatcher gate to only block rules with **explicit non-`None`** branch return annotations (was: any `branch_return_annotations.contains_key`). Implicit `-> $1` defaults are identity-passthrough and match the typed emit semantically, so they should not gate.
+- **Result on the 8-pattern bug corpus: typed = ~1.0× legacy. No perf gain at this stage.** Annotated rules at the top of the parse (`regex`, `pattern`, `piece` — three of the eight `@semantic_value`/`return_*`-annotated rules) all fall back through `legacy + serde_json::to_value`, so the typed path does the same legacy parse work and adds the serialization step on top. The deeper-tree typed methods never execute because their parents are stage-1 fallback.
+- **Path forward = stage 4b (annotation-aware typed emit).** For each annotated rule, generate a typed body that applies the annotation transform directly to typed sub-values (`piece`'s `{type: "piece", atom: $1, quantifier: $2}` becomes `Value::Object` built directly from `parse_atom_typed()`/`parse_quantifier_typed()` results). Then stage 5b adds the generic shape composer for non-Atom inners. Both unblock the perf benefit.
 
-### Phase 2 M3 stage 5b / 6 / 7 plan (next session)
-- **Stage 5b**: introduce a generic `generate_typed_value_expr(ast_node, rule_name, receiver)` that handles any non-annotated `ASTNode` shape (Atom + Sequence + Or + Quantified + Lookahead). Then refactor stages 2-5 to dispatch through this composer. Expected to push coverage above ~95% for the regex grammar.
-- **Stage 4b**: per-branch return-annotation handling on the typed path so the ~8 explicitly-annotated rules also reach typed emit.
-- **Stage 6**: wire regex `make regex_parser` target to `--inline-annotations`; regenerate tracked `generated/regex_parser.rs`; update perf probe to call `parse_full_regex_typed`.
-- **Stage 7**: measure perf via the typed entry point; expected 30-60% reduction on `anchor_complex` / `character_class`. PGEN-RGX-0073 PRIMARY <50µs across all 8 patterns expected to fall here.
+### Phase 2 M3 stage 4b / 5b / 6 (re-entry) / 7 (re-entry) plan (next session)
+- **Stage 4b**: annotation-aware typed emit. Per `return_object` / `return_array` / `return_scalar` annotation, build the typed `Value::Object` / `Value::Array` / etc. directly from typed sub-values. Reuses the post-parse transform's structure but operates on `serde_json::Value` instead of `ParseContent`.
+- **Stage 5b**: generic `generate_typed_value_expr(ast_node, rule_name, receiver)` handling any non-annotated ASTNode shape recursively. Refactor stages 2-5 to dispatch through it.
+- **Stage 6 (re-entry)**: once 4b + 5b deliver typed emit on the hot path, regenerate tracked `generated/regex_parser.rs` via `make regex_parser_typed` and decide whether to flip the default `regex_parser` target.
+- **Stage 7 (re-entry)**: re-measure with the new typed parser. Expected 30-60% reduction on `anchor_complex` / `character_class`. PGEN-RGX-0073 PRIMARY <50µs across all 8 patterns expected to fall here.
+
+### 100k-sample handoff baseline (legacy emit at HEAD = `5cd7219`, unchanged through stage 6+7)
+- literal_simple 15.4 ✓ / digit_sequence 41.3 ✓ / alternation 37.2 ✓ / url_simple 33.8 ✓
+- email_basic 54.5 ✗ (-8%) / capture_groups 66.5 ✗ (-25%) / character_class 93.5 ✗ (-46%) / anchor_complex 105.0 ✗ (-52%)
 
 ### Validation at HEAD
 - `cargo build --features generated_parsers` clean.

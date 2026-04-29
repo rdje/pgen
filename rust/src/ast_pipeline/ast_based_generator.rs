@@ -725,9 +725,20 @@ impl AstBasedGenerator {
         if !self.rule_has_no_semantic_annotations(rule_name) {
             return None;
         }
+        // The frontend stores per-branch return-annotation slots for
+        // every rule, but the slots are `Option<BranchAnnotation>` and
+        // a `None` slot just means "no explicit annotation, fall back
+        // to the synthetic `-> $1` default". `contains_key` matched
+        // both, which incorrectly blocked typed emit on rules with
+        // only the implicit default. Implicit `-> $1` is identity
+        // passthrough — exactly what the typed emit produces — so the
+        // gate should only fire on rules with at least one *explicit*
+        // (non-None) branch annotation.
         if let Some(annotations) = &self.annotations {
-            if annotations.branch_return_annotations.contains_key(rule_name) {
-                return None;
+            if let Some(branches) = annotations.branch_return_annotations.get(rule_name) {
+                if branches.iter().any(Option::is_some) {
+                    return None;
+                }
             }
         }
 

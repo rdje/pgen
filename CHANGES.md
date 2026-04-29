@@ -1,4 +1,88 @@
 # CHANGES.md
+## 2026-04-29 - Phase 2 M3 stage 6+7: typed-path wiring + perf measurement (typed = ~1.0× legacy at 74% coverage; stage 4b is the actual perf unlock)
+### Achievement Summary
+This commit lands the wiring + measurement pieces of Phase 2 M3 and reports the honest perf result: at the current 74% shape-typed coverage, the typed entry-point measures **~1.0× legacy on the regex bug corpus** — neither faster nor slower. The annotated rules at the top of the regex parse (`regex`, `pattern`, `piece` — three of the eight rules with explicit `@semantic_value` / `return_*` annotations) all fall back to the stage-1 wrapper `legacy parse + serde_json::to_value(&node)`, which means the typed entry point does the same legacy parse work and adds the serialization step on top. Even though the deeper-tree typed methods (e.g. `parse_atom_typed`) bypass `ParseNode`, they're dominated by the upstream legacy path that's still being executed for the annotated spine.
+
+### What landed in this commit (no perf gain yet)
+- New Make target `make regex_parser_typed` that regenerates `generated/regex_parser.rs` with `--inline-annotations` so the per-rule `parse_<rule>_typed` methods land alongside the legacy emit. The default `make regex_parser` target stays on legacy emit until stage 4b unlocks the perf benefit.
+- Loosened the Phase 2 M3 dispatcher gate so it only blocks rules with **explicit non-`None`** branch return annotations (`branches.iter().any(Option::is_some)`) rather than every rule the frontend stores a `Vec<Option<BranchAnnotation>>` slot for. The implicit `-> $1` default for single-element branches is identity-passthrough and matches the typed emit's semantics, so it should not gate typed emit.
+- New Cargo feature `phase_2_typed_emit_probe` (depends on `generated_parsers`) that opts the `regex_perf_probe` binary into a second measurement column — typed-path p50 plus a "vs legacy" speedup ratio. The typed code path in the probe is `cfg`-gated so the binary still builds against the default tracked parser (legacy emit only).
+- Default-build invariant preserved: `cargo build --features generated_parsers` clean, `cargo test --lib --features generated_parsers` 488 passed / 0 failed / 21 ignored, strict source clippy pass.
+
+### Measurement methodology and result
+Procedure (one-shot, retained as documentation): run `make regex_parser_typed` to regenerate the regex parser with typed methods; build the perf probe with `cargo build --release --features generated_parsers,mimalloc_perf,phase_2_typed_emit_probe --bin regex_perf_probe`; run with `--samples 5000 --warmup 200`. Probe reports both legacy and typed columns side-by-side with the per-pattern ratio.
+
+Result on the 8-pattern PGEN-RGX-0073 corpus (release, M4 Pro, mimalloc):
+
+| pattern         | legacy p50 | typed p50 | ratio (legacy/typed) |
+|-----------------|------------|-----------|----------------------|
+| literal_simple  | 13.9µs     | 14.2µs    | 0.98×                |
+| digit_sequence  | 37.9µs     | 37.9µs    | 1.00×                |
+| character_class | 86.8µs     | 87.1µs    | 1.00×                |
+| alternation     | 36.3µs     | 37.0µs    | 0.98×                |
+| capture_groups  | 65.0µs     | 65.5µs    | 0.99×                |
+| url_simple      | 33.3µs     | 34.0µs    | 0.98×                |
+| email_basic     | 54.4µs     | 55.5µs    | 0.98×                |
+| anchor_complex  | 103.5µs    | 104.6µs   | 0.99×                |
+
+GeoMean ~0.99×. Typed path is essentially identical to legacy at this stage.
+
+### Why the perf doesn't move (yet)
+Tracing `parse_full_regex_typed`'s call graph on the regex grammar:
+
+```
+parse_full_regex_typed (typed, Quantified ?)
+  → parse_pattern_typed                   (stage-1 fallback: explicit `return_scalar: $1`)
+    → parse_pattern (legacy)
+      → builds full ParseNode tree (the actual parse work happens here)
+    → serde_json::to_value(&node)         (extra serialization step, NEW cost)
+```
+
+The `regex` rule itself has explicit annotation `{type: "regex", pattern: $1}`; `pattern` has `return_scalar: $1`; `piece` has explicit `{type: "piece", atom: $1, quantifier: $2}`. Three of the eight annotated rules are on the hot path, so every parse traverses the legacy `ParseNode` machinery anyway. The typed methods deeper in the tree (`parse_atom_typed`, `parse_alternative_typed`, etc.) never get a chance to execute on the typed path — they're only reached if their parent is also typed.
+
+### What unlocks the perf
+**Stage 4b: annotation-aware typed emit.** For each annotated rule, instead of falling back to `legacy parse + serde_json::to_value`, generate a typed body that applies the annotation transform directly to typed sub-values. For example, `piece`'s `{type: "piece", atom: $1, quantifier: $2}` becomes:
+
+```rust
+pub fn parse_piece_typed(&mut self) -> ParseResult<serde_json::Value> {
+    let v1 = self.parse_atom_typed()?;
+    let v2 = if let Some(v) = self.try_parse(|p| {
+        let parser = p;
+        Ok::<serde_json::Value, ParseError>(parser.parse_quantifier_typed()?)
+    }) { v } else { serde_json::Value::Null };
+    let mut __pgen_obj = serde_json::Map::new();
+    __pgen_obj.insert("type".to_string(), serde_json::Value::String("piece".to_string()));
+    __pgen_obj.insert("atom".to_string(), v1);
+    __pgen_obj.insert("quantifier".to_string(), v2);
+    Ok(serde_json::Value::Object(__pgen_obj))
+}
+```
+
+Same shape as the post-parse transform produces today, but built directly on the typed path with no `ParseNode` allocation.
+
+**Stage 5b: composite-shape typed emit.** Generic `generate_typed_value_expr` that handles `Sequence` / `Or` / `Quantified` with non-Atom inners. Pushes coverage above ~95% for the regex grammar and lets `alternation` (a `Sequence` with `Quantified-* Sequence` inner) reach the typed path.
+
+Both stages need to land before the typed-path measurement shows benefit. They are the natural next slices.
+
+### Files
+- [rust/Makefile](rust/Makefile) — adds `RUST_GENERATOR_INLINE_ANNOTATIONS` variable and `regex_parser_typed` target.
+- [rust/Cargo.toml](rust/Cargo.toml) — adds `phase_2_typed_emit_probe` feature.
+- [rust/src/bin/regex_perf_probe.rs](rust/src/bin/regex_perf_probe.rs) — adds typed-path measurement (cfg-gated behind the new feature).
+- [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) — loosens `branch_return_annotations` gate to only block explicit-annotation rules.
+
+### Validation
+- `cargo build --features generated_parsers` ✅ clean (default build, no typed probe).
+- `cargo test --lib --features generated_parsers` ✅ 488 passed / 0 failed / 21 ignored.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅ strict source lint pass.
+- Direct probe: `make regex_parser_typed` regenerates with 144 shape-typed bodies + 50 stage-1 fallbacks; perf measurement shows ~1.0× ratio across the 8 patterns.
+
+### Open follow-ups (priority order)
+1. **Stage 4b** — annotation-aware typed emit. The actual perf unlock.
+2. **Stage 5b** — generic shape composer for non-Atom inners. Pushes coverage above ~95%.
+3. **Stage 6 (re-entry)** — once 4b lands, regenerate tracked `generated/regex_parser.rs` with `--inline-annotations` (file size grows, but typed perf is then real).
+4. **Stage 7 (re-entry)** — re-measure 8-pattern corpus. Target: 30-60% reduction on `anchor_complex` / `character_class`. PGEN-RGX-0073 PRIMARY <50µs across all 8 patterns is expected to fall here.
+5. M5: bump `regex_parser_integration_contract` `1.1.31 → 1.2.0` with the typed entry point.
+
 ## 2026-04-29 - Phase 2 M3 stage 5: typed Quantified body emit (?, *, +)
 ### Achievement Summary
 Adds shape-typed body emit for `ASTNode::Quantified` rules at the rule-body level. Three quantifiers handled, each requiring the inner element to be `ASTNode::Atom`:

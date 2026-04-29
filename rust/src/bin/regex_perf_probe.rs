@@ -111,6 +111,37 @@ fn time_one_parse(_input: &str) -> u64 {
     0
 }
 
+/// Phase 2 M3 stage 7: typed-path measurement. Calls the
+/// `parse_full_regex_typed` entry-point that dispatches through the
+/// per-rule `parse_<rule>_typed` methods. Stages 2-5 emit shape-typed
+/// bodies for ~74% of regex grammar rules; the rest fall back to the
+/// stage-1 wrapper (legacy + `serde_json::to_value`).
+///
+/// Gated behind `--features phase_2_typed_emit_probe` because
+/// `parse_full_regex_typed` only exists in the regex parser when it
+/// has been regenerated with `--inline-annotations`
+/// (`make regex_parser_typed`). The default tracked
+/// `generated/regex_parser.rs` ships the legacy emit only because
+/// stage 4b (annotation-aware typed emit) hasn't landed yet, so the
+/// typed path measures ~1.0× legacy on the regex grammar — the hot
+/// path (`regex` / `pattern` / `piece`) is annotated and falls back
+/// through `serde_json::to_value`.
+#[cfg(all(feature = "generated_parsers", feature = "phase_2_typed_emit_probe"))]
+fn time_one_parse_typed(input: &str) -> u64 {
+    let start = Instant::now();
+    let mut parser = RegexParser::new(
+        input,
+        pgen::ast_pipeline::runtime_logger_box("regex_perf_probe_typed"),
+    );
+    let _ = parser.parse_full_regex_typed();
+    start.elapsed().as_nanos() as u64
+}
+
+#[cfg(not(all(feature = "generated_parsers", feature = "phase_2_typed_emit_probe")))]
+fn time_one_parse_typed(_input: &str) -> u64 {
+    0
+}
+
 fn measure(name: &'static str, input: &str, samples: usize, warmup: usize) -> Stats {
     // Warmup
     for _ in 0..warmup {
@@ -120,6 +151,27 @@ fn measure(name: &'static str, input: &str, samples: usize, warmup: usize) -> St
     let mut times = Vec::with_capacity(samples);
     for _ in 0..samples {
         times.push(time_one_parse(input));
+    }
+    times.sort_unstable();
+    let mean_ns = (times.iter().sum::<u64>() as f64 / times.len() as f64) as u64;
+    Stats {
+        name,
+        samples,
+        min_ns: times[0],
+        p50_ns: percentile(&times, 0.50),
+        mean_ns,
+        p99_ns: percentile(&times, 0.99),
+        max_ns: *times.last().unwrap(),
+    }
+}
+
+fn measure_typed(name: &'static str, input: &str, samples: usize, warmup: usize) -> Stats {
+    for _ in 0..warmup {
+        let _ = time_one_parse_typed(input);
+    }
+    let mut times = Vec::with_capacity(samples);
+    for _ in 0..samples {
+        times.push(time_one_parse_typed(input));
     }
     times.sort_unstable();
     let mean_ns = (times.iter().sum::<u64>() as f64 / times.len() as f64) as u64;
@@ -147,14 +199,55 @@ fn main() {
         "pattern", "min (ns)", "p50 (ns)", "mean (ns)", "p99 (ns)", "max (ns)", "samples"
     );
     println!("{}", "-".repeat(102));
+    let mut legacy_p50: Vec<(&'static str, u64)> = Vec::with_capacity(PATTERNS.len());
     for (name, input) in PATTERNS {
         let s = measure(name, input, samples, warmup);
         println!(
             "{:<18} {:>14} {:>14} {:>14} {:>14} {:>14} {:>10}",
             s.name, s.min_ns, s.p50_ns, s.mean_ns, s.p99_ns, s.max_ns, s.samples
         );
+        legacy_p50.push((s.name, s.p50_ns));
     }
     println!();
+    #[cfg(feature = "phase_2_typed_emit_probe")]
+    {
+        println!("# Phase 2 M3 stage 7: typed-path measurement via parse_full_regex_typed");
+        println!(
+            "# (~74% of rules use shape-typed emit at the current codegen; the rest fall back to legacy + serde_json::to_value)"
+        );
+        println!();
+        println!(
+            "{:<18} {:>14} {:>14} {:>14} {:>14} {:>14} {:>10} {:>14}",
+            "pattern", "min (ns)", "p50 (ns)", "mean (ns)", "p99 (ns)", "max (ns)", "samples", "vs legacy"
+        );
+        println!("{}", "-".repeat(118));
+        for (idx, (name, input)) in PATTERNS.iter().enumerate() {
+            let s = measure_typed(name, input, samples, warmup);
+            let legacy_p50_ns = legacy_p50[idx].1 as f64;
+            let typed_p50_ns = s.p50_ns as f64;
+            let ratio = if typed_p50_ns > 0.0 {
+                legacy_p50_ns / typed_p50_ns
+            } else {
+                0.0
+            };
+            println!(
+                "{:<18} {:>14} {:>14} {:>14} {:>14} {:>14} {:>10} {:>14}",
+                s.name,
+                s.min_ns,
+                s.p50_ns,
+                s.mean_ns,
+                s.p99_ns,
+                s.max_ns,
+                s.samples,
+                format!("{:.2}x", ratio)
+            );
+        }
+        println!();
+    }
+    #[cfg(not(feature = "phase_2_typed_emit_probe"))]
+    let _ = legacy_p50; // silence unused-binding warning when typed probe is off
+    #[cfg(not(feature = "phase_2_typed_emit_probe"))]
+    let _: fn(&'static str, &str, usize, usize) -> Stats = measure_typed;
     println!(
         "# RGX bug-bundle reference (rgx_compile_phase_split.txt, 1000 samples, 50 warmup, Apple M4 Pro):"
     );
