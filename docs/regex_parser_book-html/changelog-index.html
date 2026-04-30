@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -198,12 +198,21 @@
 </div>
 <p>When investigating “what changed and why,” start with the contract document, drop down to the ledger for specific bugs, fall back to git for diffs.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
-<p>This book documents the regex parser at the <strong>6e5b0f23</strong> state — that’s:</p>
+<p>This book is <strong>live</strong> and tracks current main HEAD. Versioning summary:</p>
 <ul>
-<li><strong>Release 1.1.33</strong> (parser version) — schema-affecting through slice 2 of the typed-shape campaign.</li>
-<li><strong>Contract 1.1.35</strong> (contract document version).</li>
+<li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.1.33 / Contract 1.1.35</strong> (slice 2 of the typed-shape campaign).</li>
+<li>Slices 3 and 4 (typed <code>counted_quantifier_body</code> + <code>null</code> literal, then typed <code>counted_quantifier</code>) are landed on main but the consolidated contract identity bump for them lands together with the next quantifier-subtree slice that closes the outer <code>quantifier</code> rule.</li>
+<li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
-<p>Below are the shape-change highlights of recent releases, with pointers to the contract sections.</p>
+<p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="post-1133-main--counted_quantifier-typed-slice-4n"><a class="header" href="#post-1133-main--counted_quantifier-typed-slice-4n">Post-1.1.33 main — counted_quantifier typed (slice 4/N)</a></h3>
+<p><strong>What changed:</strong> <code>counted_quantifier</code> rule got <code>-&gt; $3</code> annotation, lifting <code>counted_quantifier_body</code>’s typed <code>{min, max}</code> straight through and dropping the surrounding <code>{</code>/<code>}</code>/whitespace tokens. The brace tokens carry no semantic information beyond “this is a counted quantifier” — context the surrounding <code>quant_base</code> already conveys.</p>
+<p><strong>Consumer impact:</strong> the <code>quant_base</code> position (visible inside <code>quantifier</code>’s <code>[&lt;base&gt;, &lt;suffix&gt;]</code> shape) now carries either a bare string <code>"*"</code>/<code>"+"</code>/<code>"?"</code> OR a typed <code>{min, max}</code> object directly. No more digging through a 5-element Sequence wrapper to reach the body’s typed shape. See <a href="rules-quantifier.html">Quantifier Subtree</a>.</p>
+<p><strong>Contract section:</strong> pending bump (will land with the slice that closes <code>quantifier</code>).</p>
+<h3 id="post-1133-main--counted_quantifier_body-typed--null-literal-slice-3n"><a class="header" href="#post-1133-main--counted_quantifier_body-typed--null-literal-slice-3n">Post-1.1.33 main — counted_quantifier_body typed + null literal (slice 3/N)</a></h3>
+<p><strong>What changed:</strong> restructured <code>counted_quantifier_body</code> from 2 branches (with 4 logical cases compressed inside an optional sub-group) into 4 explicit branches each with its own per-branch <code>-&gt; {min, max}</code> annotation. Added the <code>null</code> literal to the return-annotation language so the unbounded <code>{n,}</code> form can encode <code>max:null</code> directly.</p>
+<p><strong>Consumer impact:</strong> the body now emits a typed <code>{min, max}</code> object regardless of which <code>{n}</code>/<code>{n,}</code>/<code>{n,m}</code>/<code>{,m}</code> source form matched. <code>min</code> is always a typed integer; <code>max</code> is a typed integer OR <code>null</code> (only <code>null</code> for the unbounded form). See <a href="rules-quantifier.html">Quantifier Subtree</a>, <a href="examples-quantifiers.html">Quantifiers</a>.</p>
+<p><strong>Contract section:</strong> pending bump (will land with the slice that closes <code>quantifier</code>).</p>
 <h3 id="1133--contract-1135--quant_suffix-typed-slice-2n"><a class="header" href="#1133--contract-1135--quant_suffix-typed-slice-2n">1.1.33 / Contract 1.1.35 — quant_suffix typed (slice 2/N)</a></h3>
 <p><strong>What changed:</strong> <code>quant_suffix</code> rule’s two branches each got a return annotation: <code>"?"</code> → <code>"lazy"</code>, <code>"+"</code> → <code>"possessive"</code>. The <code>quant_suffix?</code> slot inside <code>quantifier</code> now carries either <code>[]</code> (greedy, no suffix matched) or <code>["lazy"]</code> / <code>["possessive"]</code> (1-element Quantified-?).</p>
 <p><strong>Consumer impact:</strong> consumers reading the quantifier shape can dispatch on the string instead of inferring from which branch matched. See <a href="rules-quantifier.html">Quantifier Subtree</a>.</p>
@@ -231,8 +240,9 @@
 <tr><th>Slice</th><th>Target rule</th><th>Expected AST change</th></tr>
 </thead>
 <tbody>
-<tr><td>3</td><td><code>counted_quantifier_body</code></td><td>Typed <code>{min, max}</code> Json (with <code>null</code> for absent max)</td></tr>
-<tr><td>4+</td><td>TBD per cadence</td><td>One rule per slice</td></tr>
+<tr><td>5</td><td><code>quant_base</code></td><td>Lift counted-quantifier passthrough; clarify shorthand string emission</td></tr>
+<tr><td>6</td><td><code>quantifier</code></td><td>Combine quant_base + quant_suffix? into typed <code>{type:"quantifier", min, max, greediness}</code></td></tr>
+<tr><td>7+</td><td>atom subtree, char class, group family, escape subtree, …</td><td>One rule per slice</td></tr>
 </tbody>
 </table>
 </div>

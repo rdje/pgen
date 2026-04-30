@@ -8,6 +8,10 @@ This book is the **canonical integration reference** for PGEN's `regex` parser. 
 
 If you are a downstream consumer, you should be able to read this book end-to-end and have everything you need to integrate the parser into your build, parse a regex source string, and traverse the resulting AST to produce whatever consumer-side representation you need (a compiled matcher, an evaluator, a pretty-printer, etc.).
 
+## Book status: live
+
+This is a **live book** — it is updated in lockstep with the regex parser. Every parser release that changes the AST shape lands together with the book updates that document the new shape, in the same commit window. Reading any commit's snapshot of this book gives you the AST description for that commit's parser. If you observe a shape that disagrees with the book, that's a documentation bug — please report.
+
 ## What this book is
 
 - The **single source of truth** for the regex parser's runtime AST shape, by rule and by example.

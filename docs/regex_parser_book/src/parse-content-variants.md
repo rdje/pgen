@@ -60,7 +60,7 @@ It may still appear in deeper subtrees for legacy / fallback cases, especially d
 
 ## Variant: `Json(serde_json::Value)`
 
-The typed structured carrier. Holds any `serde_json::Value` shape — object, array, string, number, boolean. (At this release the annotation language does not yet support a `null` literal; future PGEN releases add it.)
+The typed structured carrier. Holds any `serde_json::Value` shape — object, array, string, number, boolean, **or null** (the `null` literal landed in the slice that introduced typed `counted_quantifier_body` to mark the unbounded `{n,}` form).
 
 **JSON form:**
 

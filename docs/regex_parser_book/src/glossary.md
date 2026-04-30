@@ -4,7 +4,7 @@ Definitions for terms used throughout this book and in the surrounding PGEN docu
 
 ## Annotation language
 
-The expression language used inside `-> ...` clauses in EBNF rules. Syntactic forms documented in `grammars/return_annotation.ebnf` and `grammars/builtin_return_annotation.ebnf`. Includes positional refs (`$1`, `$2`, ...), object literals, array literals, string/number/boolean literals, the spread operator `*`, the flatten-spread `**`, and (in 1.1.34+) the `null` literal.
+The expression language used inside `-> ...` clauses in EBNF rules. Syntactic forms documented in `grammars/return_annotation.ebnf` and `grammars/builtin_return_annotation.ebnf`. Includes positional refs (`$1`, `$2`, ...), object literals, array literals, string/number/boolean literals, the `null` literal, the spread operator `*`, and the flatten-spread `**`.
 
 ## AST envelope
 
@@ -48,7 +48,7 @@ A grammar rule and a regex concept. The `concatenation` rule produces a flat seq
 
 ## Counted quantifier
 
-A quantifier of the form `{n}`, `{n,}`, `{,m}`, or `{n,m}`. Parsed by the `counted_quantifier` rule, with body parsed by `counted_quantifier_body` (currently 2-branch raw envelope at this release; slice 3 in a later release adds typed `{min, max}` Json).
+A quantifier of the form `{n}`, `{n,}`, `{,m}`, or `{n,m}`. Parsed by the `counted_quantifier` rule (`-> $3`, lifts the body's typed shape), with body parsed by `counted_quantifier_body` (4 explicit branches each emitting a typed `{min, max}` object — `min` is always integer, `max` is integer-or-null for the unbounded form). Both rules annotated in slices 3+4 of the typed-shape campaign.
 
 ## Discriminator
 
@@ -168,4 +168,4 @@ A descent through multiple rules that all use implicit `-> $1` (single-positiona
 
 ## UnifiedReturnAST
 
-The Rust enum representing parsed return-annotation expressions, defined in `rust/src/ast_pipeline/unified_return_ast.rs`. Variants: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral (1.1.34+), Object, Array, Spread, FlattenSpread, PropertyAccess, ArrayAccess, QuantifiedExtraction, Identifier, Passthrough.
+The Rust enum representing parsed return-annotation expressions, defined in `rust/src/ast_pipeline/unified_return_ast.rs`. Variants: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral, Object, Array, Spread, FlattenSpread, PropertyAccess, ArrayAccess, QuantifiedExtraction, Identifier, Passthrough.

@@ -90,7 +90,7 @@ The `piece_quoted_run_quantified` output produces 3 pieces (the quoted-run's cha
   [[
     { "atom": "a", "quantifier": [],                          "type": "piece" },
     { "atom": "b", "quantifier": [],                          "type": "piece" },
-    { "atom": "*", "quantifier": [<counted_quantifier-{2,}>], "type": "piece" }
+    { "atom": "*", "quantifier": [{"min":2,"max":null}, []],  "type": "piece" }
   ]],
   []
 ]

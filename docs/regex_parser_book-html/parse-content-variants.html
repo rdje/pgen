@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -221,7 +221,7 @@
 <p>In the regex parser today, <code>digits</code> uses <code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code> to coerce its match to an integer. The integer becomes a <code>serde_json::Value::Number</code> carried via <code>Json</code>, NOT a <code>TransformedTerminal</code>. So in <strong>current</strong> regex output, <code>TransformedTerminal</code> rarely appears at the top of the AST.</p>
 <p>It may still appear in deeper subtrees for legacy / fallback cases, especially during transitional builds. Consumers should handle it analogously to <code>Terminal</code> — it’s a leaf scalar.</p>
 <h2 id="variant-jsonserde_jsonvalue"><a class="header" href="#variant-jsonserde_jsonvalue">Variant: <code>Json(serde_json::Value)</code></a></h2>
-<p>The typed structured carrier. Holds any <code>serde_json::Value</code> shape — object, array, string, number, boolean. (At this release the annotation language does not yet support a <code>null</code> literal; future PGEN releases add it.)</p>
+<p>The typed structured carrier. Holds any <code>serde_json::Value</code> shape — object, array, string, number, boolean, <strong>or null</strong> (the <code>null</code> literal landed in the slice that introduced typed <code>counted_quantifier_body</code> to mark the unbounded <code>{n,}</code> form).</p>
 <p><strong>JSON form:</strong></p>
 <pre><code class="language-json">{ "Json": &lt;any-json-value&gt; }
 </code></pre>

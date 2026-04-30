@@ -15,12 +15,29 @@ When investigating "what changed and why," start with the contract document, dro
 
 ## Releases relevant to this book
 
-This book documents the regex parser at the **6e5b0f23** state — that's:
+This book is **live** and tracks current main HEAD. Versioning summary:
 
-- **Release 1.1.33** (parser version) — schema-affecting through slice 2 of the typed-shape campaign.
-- **Contract 1.1.35** (contract document version).
+- The most recent **published** parser-release section in the contract is **1.1.33 / Contract 1.1.35** (slice 2 of the typed-shape campaign).
+- Slices 3 and 4 (typed `counted_quantifier_body` + `null` literal, then typed `counted_quantifier`) are landed on main but the consolidated contract identity bump for them lands together with the next quantifier-subtree slice that closes the outer `quantifier` rule.
+- Until then, the contract document still shows `1.1.33 / 1.1.35` while this book describes the post-slice-3+4 shape that's actually emitted by main HEAD.
 
-Below are the shape-change highlights of recent releases, with pointers to the contract sections.
+Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
+
+### Post-1.1.33 main — counted_quantifier typed (slice 4/N)
+
+**What changed:** `counted_quantifier` rule got `-> $3` annotation, lifting `counted_quantifier_body`'s typed `{min, max}` straight through and dropping the surrounding `{`/`}`/whitespace tokens. The brace tokens carry no semantic information beyond "this is a counted quantifier" — context the surrounding `quant_base` already conveys.
+
+**Consumer impact:** the `quant_base` position (visible inside `quantifier`'s `[<base>, <suffix>]` shape) now carries either a bare string `"*"`/`"+"`/`"?"` OR a typed `{min, max}` object directly. No more digging through a 5-element Sequence wrapper to reach the body's typed shape. See [Quantifier Subtree](rules-quantifier.md).
+
+**Contract section:** pending bump (will land with the slice that closes `quantifier`).
+
+### Post-1.1.33 main — counted_quantifier_body typed + null literal (slice 3/N)
+
+**What changed:** restructured `counted_quantifier_body` from 2 branches (with 4 logical cases compressed inside an optional sub-group) into 4 explicit branches each with its own per-branch `-> {min, max}` annotation. Added the `null` literal to the return-annotation language so the unbounded `{n,}` form can encode `max:null` directly.
+
+**Consumer impact:** the body now emits a typed `{min, max}` object regardless of which `{n}`/`{n,}`/`{n,m}`/`{,m}` source form matched. `min` is always a typed integer; `max` is a typed integer OR `null` (only `null` for the unbounded form). See [Quantifier Subtree](rules-quantifier.md), [Quantifiers](examples-quantifiers.md).
+
+**Contract section:** pending bump (will land with the slice that closes `quantifier`).
 
 ### 1.1.33 / Contract 1.1.35 — quant_suffix typed (slice 2/N)
 
@@ -66,8 +83,9 @@ Upcoming slice campaign work (task #40 — "Annotate regex.ebnf for full AST usa
 
 | Slice | Target rule | Expected AST change |
 |---|---|---|
-| 3 | `counted_quantifier_body` | Typed `{min, max}` Json (with `null` for absent max) |
-| 4+ | TBD per cadence | One rule per slice |
+| 5 | `quant_base` | Lift counted-quantifier passthrough; clarify shorthand string emission |
+| 6 | `quantifier` | Combine quant_base + quant_suffix? into typed `{type:"quantifier", min, max, greediness}` |
+| 7+ | atom subtree, char class, group family, escape subtree, ... | One rule per slice |
 
 Each slice will:
 

@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 4 (`counted_quantifier` typed) + first live-book sync
+
+### What landed
+Quantifier-subtree slice 4. `counted_quantifier = "{" ws? counted_quantifier_body ws? "}"  -> $3`. The annotation lifts the body's typed `{min, max}` straight through and drops the surrounding brace/ws tokens. Result: at the `quant_base` position, counted forms now appear as the typed object directly instead of a 5-element Sequence wrapping the body.
+
+### Live-book policy (new this session)
+Owner direction: "the regex parser mdbook is another live book". Going forward, every shape-changing slice updates the book in the same commit. This commit forward-syncs the book past slices 3 (counted_quantifier_body typed + null literal — landed at 9f134a6) and slice 4 (this one):
+- `rules-quantifier.md` — both `counted_quantifier_body` and `counted_quantifier` flipped to "annotated"; walking recipe collapses from raw-Sequence digging to a 4-line typed-field read.
+- `examples-quantifiers.md` — `a{n}`, `a{n,m}`, `a{n,}`, `a{,m}` plus lazy/possessive variants now show typed `{min, max}`. The consumer-extraction code shrinks dramatically.
+- `examples-quoted-literal.md` — `\Qab*\E{2,}` and degenerate forms use the new shape.
+- `walking-the-ast.md`, `rules-piece.md` — references to "raw counted_quantifier shape" replaced with the typed-object description.
+- `json-carrier.md` — annotated rules table gains `counted_quantifier` and four `counted_quantifier_body` branches; `Value::Null` no longer "future".
+- `parse-content-variants.md` — `Value::Null` no longer "future".
+- `glossary.md` — counted-quantifier definition updated; `null` literal no longer "1.1.34+".
+- `schema-versioning.md` — version timeline gets 0.8.0 (slice 3) and 0.8.1 (slice 4) rows.
+- `changelog-index.md` — slice 3 and 4 both added; book is now described as live (tracks main HEAD); contract version mismatch (1.1.33/1.1.35 vs main HEAD post-slice-4) explicitly called out.
+- `welcome.md` — new "Book status: live" section.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 493 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json` updated: new `counted_quantifier` entry (rule="counted_quantifier", branch=0, return_scalar, "$3").
+- `make regex_parser_book_gate` — green (chapters present, mdbook builds, tracked HTML present).
+- Empirical probe: `a{2,5}` → `quantifier[0] == {"min":2,"max":5}`.
+
+### Remaining quantifier-subtree slices
+- `quant_base = "*" | "+" | "?" | counted_quantifier` — promote shorthand strings; pass counted_quantifier through (likely no shape change).
+- `quantifier = quant_base quant_suffix?` — consolidate to `{type:"quantifier", min, max, greediness}`.
+
+After those land, the quantifier subtree is fully typed and consumer extraction is a 4-line typed-field read. That slice will also carry the consolidated contract identity bump covering slices 3+4+5+6.
+
+### Why no contract bump on slice 3 or 4
+Both rules are intermediate — they affect the typed shape that lives at the `quant_base` position inside `quantifier`, but `quantifier` itself isn't yet typed. Bumping the contract per-slice would force RGX to consume four versions in quick succession to walk through the same lane work. The bump comes when the outer rule closes and the typed shape is fully reachable from the consumer's standard walking path.
+
 ## 2026-05-01 - Standalone regex parser mdBook for downstream integrators (RGX-aligned at `6e5b0f23`)
 
 ### Goal

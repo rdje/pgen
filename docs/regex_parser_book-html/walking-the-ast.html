@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -338,7 +338,7 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <li><code>&lt;quant_base&gt;</code> is one of:
 <ul>
 <li><code>"*"</code>, <code>"+"</code>, <code>"?"</code> (raw terminals — the <code>quant_base</code> rule is not yet annotated).</li>
-<li>The <code>counted_quantifier</code> shape — currently raw, see below.</li>
+<li>A typed <code>{min, max}</code> object — for counted quantifiers (<code>counted_quantifier</code> is annotated <code>-&gt; $3</code>, lifting the body’s typed shape).</li>
 </ul>
 </li>
 <li><code>&lt;quant_suffix&gt;</code> is one of:
@@ -351,7 +351,7 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 </ul>
 </li>
 </ul>
-<p>For counted quantifiers like <code>{2,5}</code>, the <code>&lt;quant_base&gt;</code> slot today emits the raw <code>Sequence</code> of <code>["{", ws?, body, ws?, "}"]</code> because <code>counted_quantifier</code> is not yet annotated, and <code>counted_quantifier_body</code> is also not yet annotated at this release — it still emits its raw 2-branch shape. The leaf <code>digits</code> rule IS annotated, so the actual count values inside the body shape are typed integers. Consumers extracting count bounds today walk the raw <code>counted_quantifier_body</code> shape per the <a href="rules-quantifier.html">Quantifier Subtree</a> chapter and pull the typed integers from the digit slots.</p>
+<p>For counted quantifiers like <code>{2,5}</code>, the <code>&lt;quant_base&gt;</code> slot emits a typed <code>{min, max}</code> object directly — no Sequence wrapping, no digging into the body shape. Both <code>counted_quantifier</code> (<code>-&gt; $3</code>) and <code>counted_quantifier_body</code> (per-branch <code>{min, max}</code> annotations) are now annotated. The leaf <code>digits</code> rule emits typed integers, so <code>min</code> is always <code>Number</code>; <code>max</code> is <code>Number</code> for bounded forms or JSON <code>null</code> for the unbounded <code>{n,}</code> form. The walk recipe is a single <code>as_object().get("min")</code> lookup — no branch detection. See the <a href="rules-quantifier.html">Quantifier Subtree</a> chapter for full details.</p>
 <p>The <a href="rules-quantifier.html">Quantifier Subtree</a> chapter walks this in detail.</p>
 <h2 id="handling-qe-quoted-runs"><a class="header" href="#handling-qe-quoted-runs">Handling <code>\Q...\E</code> quoted runs</a></h2>
 <p>For <code>\Qab*\E{2,}</code>, the parser emits 3 separate pieces (per PCRE2 semantics, fixed in PGEN-RGX-0074):</p>

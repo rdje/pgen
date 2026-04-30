@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -190,8 +190,8 @@
 <li><code>Value::String(String)</code> — for <code>-&gt; "..."</code> annotations.</li>
 <li><code>Value::Number(Number)</code> — for numeric literal annotations and integer-coerced <code>@transform</code> matches.</li>
 <li><code>Value::Bool(bool)</code> — for <code>-&gt; true</code>/<code>-&gt; false</code> annotations.</li>
+<li><code>Value::Null</code> — for <code>-&gt; null</code> annotations (added in the slice that introduced typed <code>counted_quantifier_body</code> <code>{min, max:null}</code> for the unbounded <code>{n,}</code> form).</li>
 </ul>
-<p>At this release the annotation language does not yet support a <code>null</code> literal — future PGEN releases add it. Until then, “absent” is represented by an empty array <code>[]</code> (the byte-shape of an unmatched <code>?</code>-Quantified) or by omitting the field from the parent object.</p>
 <h2 id="when-it-appears"><a class="header" href="#when-it-appears">When it appears</a></h2>
 <p>The codegen emits <code>ParseContent::Json(...)</code> whenever a rule has an explicit return annotation that lifts the rule’s output into a typed shape. The current set of annotated rules in <code>grammars/regex.ebnf</code>:</p>
 <div class="table-wrapper">
@@ -207,6 +207,11 @@
 <tr><td><code>piece</code> (branch 1)</td><td><code>-&gt; {type: "piece", atom: $1, quantifier: $2}</code></td><td>Object <code>{type, atom, quantifier}</code></td></tr>
 <tr><td><code>piece_quoted_run_quantified</code></td><td><code>-&gt; [$2**, {type: "piece", atom: $3, quantifier: $5}]</code></td><td>Array of piece-objects</td></tr>
 <tr><td><code>quoted_run_inner_piece</code></td><td><code>-&gt; {type: "piece", atom: $1, quantifier: []}</code></td><td>Object <code>{type, atom, quantifier:[]}</code></td></tr>
+<tr><td><code>counted_quantifier</code></td><td><code>-&gt; $3</code></td><td>Whatever <code>counted_quantifier_body</code> produced (transparent passthrough)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 0)</td><td><code>-&gt; {min: $1, max: $3}</code></td><td>Object <code>{min, max}</code> (<code>{n,m}</code> form)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 1)</td><td><code>-&gt; {min: $1, max: null}</code></td><td>Object <code>{min, max:null}</code> (<code>{n,}</code> unbounded form)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 2)</td><td><code>-&gt; {min: $1, max: $1}</code></td><td>Object <code>{min, max}</code> (<code>{n}</code> form, max == min)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 3)</td><td><code>-&gt; {min: 0, max: $3}</code></td><td>Object <code>{min:0, max}</code> (<code>{,m}</code> form)</td></tr>
 <tr><td><code>quant_suffix</code> (branch 0)</td><td><code>-&gt; "lazy"</code></td><td>String <code>"lazy"</code></td></tr>
 <tr><td><code>quant_suffix</code> (branch 1)</td><td><code>-&gt; "possessive"</code></td><td>String <code>"possessive"</code></td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
@@ -257,7 +262,7 @@ fn walk_json(value: &amp;Value) {
 <li><code>"regex"</code> — emitted by the <code>regex</code> rule.</li>
 <li><code>"piece"</code> — emitted by all piece-emitting rules.</li>
 </ul>
-<p>Counted-quantifier bodies and quant_suffix outputs do NOT have <code>"type"</code> discriminators because their shape is unambiguous from context (they always appear inside a <code>quantifier</code> slot).</p>
+<p>Counted-quantifier bodies (the typed <code>{min, max}</code> shape) and quant_suffix outputs do NOT have <code>"type"</code> discriminators because their shape is unambiguous from context (they always appear inside a <code>quantifier</code> slot).</p>
 <p>When walking, treat <code>"type"</code> as the canonical discriminator when present. Don’t rely on field-presence as a proxy for type — that will silently break when a future shape adds optional fields.</p>
 <h3 id="mixed-json--sequence-in-the-same-level"><a class="header" href="#mixed-json--sequence-in-the-same-level">Mixed Json + Sequence in the same level</a></h3>
 <p>The <code>concatenation</code> rule’s <code>[$1**]</code> flatten-spread produces a <code>Sequence</code> of <code>ParseNode</code>s, where each child node may have its own <code>Json(piece_obj)</code> content. So when walking pattern’s contents, you’ll see:</p>

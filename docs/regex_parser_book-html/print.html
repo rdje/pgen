@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -186,6 +186,8 @@
 <li>Migrate consumer code across PGEN releases when the AST shape evolves.</li>
 </ul>
 <p>If you are a downstream consumer, you should be able to read this book end-to-end and have everything you need to integrate the parser into your build, parse a regex source string, and traverse the resulting AST to produce whatever consumer-side representation you need (a compiled matcher, an evaluator, a pretty-printer, etc.).</p>
+<h2 id="book-status-live"><a class="header" href="#book-status-live">Book status: live</a></h2>
+<p>This is a <strong>live book</strong> — it is updated in lockstep with the regex parser. Every parser release that changes the AST shape lands together with the book updates that document the new shape, in the same commit window. Reading any commit’s snapshot of this book gives you the AST description for that commit’s parser. If you observe a shape that disagrees with the book, that’s a documentation bug — please report.</p>
 <h2 id="what-this-book-is"><a class="header" href="#what-this-book-is">What this book is</a></h2>
 <ul>
 <li>The <strong>single source of truth</strong> for the regex parser’s runtime AST shape, by rule and by example.</li>
@@ -723,7 +725,7 @@ assert!(contract.supports_regex_generated_backend);
 <p>In the regex parser today, <code>digits</code> uses <code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code> to coerce its match to an integer. The integer becomes a <code>serde_json::Value::Number</code> carried via <code>Json</code>, NOT a <code>TransformedTerminal</code>. So in <strong>current</strong> regex output, <code>TransformedTerminal</code> rarely appears at the top of the AST.</p>
 <p>It may still appear in deeper subtrees for legacy / fallback cases, especially during transitional builds. Consumers should handle it analogously to <code>Terminal</code> — it’s a leaf scalar.</p>
 <h2 id="variant-jsonserde_jsonvalue"><a class="header" href="#variant-jsonserde_jsonvalue">Variant: <code>Json(serde_json::Value)</code></a></h2>
-<p>The typed structured carrier. Holds any <code>serde_json::Value</code> shape — object, array, string, number, boolean. (At this release the annotation language does not yet support a <code>null</code> literal; future PGEN releases add it.)</p>
+<p>The typed structured carrier. Holds any <code>serde_json::Value</code> shape — object, array, string, number, boolean, <strong>or null</strong> (the <code>null</code> literal landed in the slice that introduced typed <code>counted_quantifier_body</code> to mark the unbounded <code>{n,}</code> form).</p>
 <p><strong>JSON form:</strong></p>
 <pre><code class="language-json">{ "Json": &lt;any-json-value&gt; }
 </code></pre>
@@ -842,8 +844,8 @@ assert!(contract.supports_regex_generated_backend);
 <li><code>Value::String(String)</code> — for <code>-&gt; "..."</code> annotations.</li>
 <li><code>Value::Number(Number)</code> — for numeric literal annotations and integer-coerced <code>@transform</code> matches.</li>
 <li><code>Value::Bool(bool)</code> — for <code>-&gt; true</code>/<code>-&gt; false</code> annotations.</li>
+<li><code>Value::Null</code> — for <code>-&gt; null</code> annotations (added in the slice that introduced typed <code>counted_quantifier_body</code> <code>{min, max:null}</code> for the unbounded <code>{n,}</code> form).</li>
 </ul>
-<p>At this release the annotation language does not yet support a <code>null</code> literal — future PGEN releases add it. Until then, “absent” is represented by an empty array <code>[]</code> (the byte-shape of an unmatched <code>?</code>-Quantified) or by omitting the field from the parent object.</p>
 <h2 id="when-it-appears"><a class="header" href="#when-it-appears">When it appears</a></h2>
 <p>The codegen emits <code>ParseContent::Json(...)</code> whenever a rule has an explicit return annotation that lifts the rule’s output into a typed shape. The current set of annotated rules in <code>grammars/regex.ebnf</code>:</p>
 <div class="table-wrapper">
@@ -859,6 +861,11 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>piece</code> (branch 1)</td><td><code>-&gt; {type: "piece", atom: $1, quantifier: $2}</code></td><td>Object <code>{type, atom, quantifier}</code></td></tr>
 <tr><td><code>piece_quoted_run_quantified</code></td><td><code>-&gt; [$2**, {type: "piece", atom: $3, quantifier: $5}]</code></td><td>Array of piece-objects</td></tr>
 <tr><td><code>quoted_run_inner_piece</code></td><td><code>-&gt; {type: "piece", atom: $1, quantifier: []}</code></td><td>Object <code>{type, atom, quantifier:[]}</code></td></tr>
+<tr><td><code>counted_quantifier</code></td><td><code>-&gt; $3</code></td><td>Whatever <code>counted_quantifier_body</code> produced (transparent passthrough)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 0)</td><td><code>-&gt; {min: $1, max: $3}</code></td><td>Object <code>{min, max}</code> (<code>{n,m}</code> form)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 1)</td><td><code>-&gt; {min: $1, max: null}</code></td><td>Object <code>{min, max:null}</code> (<code>{n,}</code> unbounded form)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 2)</td><td><code>-&gt; {min: $1, max: $1}</code></td><td>Object <code>{min, max}</code> (<code>{n}</code> form, max == min)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 3)</td><td><code>-&gt; {min: 0, max: $3}</code></td><td>Object <code>{min:0, max}</code> (<code>{,m}</code> form)</td></tr>
 <tr><td><code>quant_suffix</code> (branch 0)</td><td><code>-&gt; "lazy"</code></td><td>String <code>"lazy"</code></td></tr>
 <tr><td><code>quant_suffix</code> (branch 1)</td><td><code>-&gt; "possessive"</code></td><td>String <code>"possessive"</code></td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
@@ -909,7 +916,7 @@ fn walk_json(value: &amp;Value) {
 <li><code>"regex"</code> — emitted by the <code>regex</code> rule.</li>
 <li><code>"piece"</code> — emitted by all piece-emitting rules.</li>
 </ul>
-<p>Counted-quantifier bodies and quant_suffix outputs do NOT have <code>"type"</code> discriminators because their shape is unambiguous from context (they always appear inside a <code>quantifier</code> slot).</p>
+<p>Counted-quantifier bodies (the typed <code>{min, max}</code> shape) and quant_suffix outputs do NOT have <code>"type"</code> discriminators because their shape is unambiguous from context (they always appear inside a <code>quantifier</code> slot).</p>
 <p>When walking, treat <code>"type"</code> as the canonical discriminator when present. Don’t rely on field-presence as a proxy for type — that will silently break when a future shape adds optional fields.</p>
 <h3 id="mixed-json--sequence-in-the-same-level"><a class="header" href="#mixed-json--sequence-in-the-same-level">Mixed Json + Sequence in the same level</a></h3>
 <p>The <code>concatenation</code> rule’s <code>[$1**]</code> flatten-spread produces a <code>Sequence</code> of <code>ParseNode</code>s, where each child node may have its own <code>Json(piece_obj)</code> content. So when walking pattern’s contents, you’ll see:</p>
@@ -1091,7 +1098,7 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <li><code>&lt;quant_base&gt;</code> is one of:
 <ul>
 <li><code>"*"</code>, <code>"+"</code>, <code>"?"</code> (raw terminals — the <code>quant_base</code> rule is not yet annotated).</li>
-<li>The <code>counted_quantifier</code> shape — currently raw, see below.</li>
+<li>A typed <code>{min, max}</code> object — for counted quantifiers (<code>counted_quantifier</code> is annotated <code>-&gt; $3</code>, lifting the body’s typed shape).</li>
 </ul>
 </li>
 <li><code>&lt;quant_suffix&gt;</code> is one of:
@@ -1104,7 +1111,7 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 </ul>
 </li>
 </ul>
-<p>For counted quantifiers like <code>{2,5}</code>, the <code>&lt;quant_base&gt;</code> slot today emits the raw <code>Sequence</code> of <code>["{", ws?, body, ws?, "}"]</code> because <code>counted_quantifier</code> is not yet annotated, and <code>counted_quantifier_body</code> is also not yet annotated at this release — it still emits its raw 2-branch shape. The leaf <code>digits</code> rule IS annotated, so the actual count values inside the body shape are typed integers. Consumers extracting count bounds today walk the raw <code>counted_quantifier_body</code> shape per the <a href="#quantifier-subtree">Quantifier Subtree</a> chapter and pull the typed integers from the digit slots.</p>
+<p>For counted quantifiers like <code>{2,5}</code>, the <code>&lt;quant_base&gt;</code> slot emits a typed <code>{min, max}</code> object directly — no Sequence wrapping, no digging into the body shape. Both <code>counted_quantifier</code> (<code>-&gt; $3</code>) and <code>counted_quantifier_body</code> (per-branch <code>{min, max}</code> annotations) are now annotated. The leaf <code>digits</code> rule emits typed integers, so <code>min</code> is always <code>Number</code>; <code>max</code> is <code>Number</code> for bounded forms or JSON <code>null</code> for the unbounded <code>{n,}</code> form. The walk recipe is a single <code>as_object().get("min")</code> lookup — no branch detection. See the <a href="#quantifier-subtree">Quantifier Subtree</a> chapter for full details.</p>
 <p>The <a href="#quantifier-subtree">Quantifier Subtree</a> chapter walks this in detail.</p>
 <h2 id="handling-qe-quoted-runs"><a class="header" href="#handling-qe-quoted-runs">Handling <code>\Q...\E</code> quoted runs</a></h2>
 <p>For <code>\Qab*\E{2,}</code>, the parser emits 3 separate pieces (per PCRE2 semantics, fixed in PGEN-RGX-0074):</p>
@@ -1413,7 +1420,7 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
   [[
     { "atom": "a", "quantifier": [],                          "type": "piece" },
     { "atom": "b", "quantifier": [],                          "type": "piece" },
-    { "atom": "*", "quantifier": [&lt;counted_quantifier-{2,}&gt;], "type": "piece" }
+    { "atom": "*", "quantifier": [{"min":2,"max":null}, []],  "type": "piece" }
   ]],
   []
 ]
@@ -1483,7 +1490,7 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 <p>The <a href="#atom-subtree">Atom Subtree</a> chapter documents each alternative.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quantifier-subtree"><a class="header" href="#quantifier-subtree">Quantifier Subtree</a></h1>
-<p>Six grammar rules cover quantifier syntax. <strong>At the parser release this book describes (post-PGEN-RGX-0074, after the cold-clone bootstrap landed), <code>digits</code> and <code>quant_suffix</code> are annotated. The remaining four (<code>quantifier</code>, <code>quant_base</code>, <code>counted_quantifier</code>, <code>counted_quantifier_body</code>) are not yet — they emit raw envelope shapes and will be annotated in successive future slices.</strong></p>
+<p>Six grammar rules cover quantifier syntax. <strong>At the parser release this book describes (current main HEAD, post-slices-1-through-4), <code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, and <code>counted_quantifier</code> are annotated. Two remain un-annotated: the outer <code>quantifier</code> and the <code>quant_base</code> Or rule. Those will be annotated in successive future slices.</strong></p>
 <h2 id="quantifier"><a class="header" href="#quantifier"><code>quantifier</code></a></h2>
 <pre><code class="language-ebnf">quantifier = quant_base quant_suffix?
 </code></pre>
@@ -1494,7 +1501,7 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 <p><code>&lt;quant_base-content&gt;</code> is one of:</p>
 <ul>
 <li><code>"*"</code>, <code>"+"</code>, <code>"?"</code> — for shorthand quantifiers (raw terminals).</li>
-<li>A <code>Sequence</code> of <code>["{", ws?, &lt;counted_quantifier_body&gt;, ws?, "}"]</code> — for counted quantifiers.</li>
+<li>A typed <code>{min, max}</code> object — for counted quantifiers (<code>{n}</code>, <code>{n,}</code>, <code>{n,m}</code>, <code>{,m}</code>).</li>
 </ul>
 <p><code>&lt;quant_suffix?-content&gt;</code> is one of:</p>
 <ul>
@@ -1505,75 +1512,50 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 <h2 id="quant_base"><a class="header" href="#quant_base"><code>quant_base</code></a></h2>
 <pre><code class="language-ebnf">quant_base = "*" | "+" | "?" | counted_quantifier
 </code></pre>
-<p><strong>Un-annotated.</strong> Each branch emits the raw matched text or the un-annotated <code>counted_quantifier</code> Sequence.</p>
+<p><strong>Un-annotated.</strong> Each branch emits the raw matched text or the typed <code>counted_quantifier</code> shape passed straight through.</p>
 <h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
 <ul>
 <li>Branch 0 (<code>*</code>): <code>Terminal("*")</code>. Visible in JSON as the bare string <code>"*"</code>.</li>
 <li>Branch 1 (<code>+</code>): <code>Terminal("+")</code>. Visible as <code>"+"</code>.</li>
 <li>Branch 2 (<code>?</code>): <code>Terminal("?")</code>. Visible as <code>"?"</code>.</li>
-<li>Branch 3 (<code>counted_quantifier</code>): nested counted quantifier shape — see below.</li>
+<li>Branch 3 (<code>counted_quantifier</code>): the typed <code>{min, max}</code> object directly (because <code>counted_quantifier</code> itself lifts the body’s typed shape).</li>
 </ul>
 <h2 id="counted_quantifier"><a class="header" href="#counted_quantifier"><code>counted_quantifier</code></a></h2>
 <pre><code class="language-ebnf">counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+-&gt; $3
 </code></pre>
-<p><strong>Un-annotated.</strong> Output is the raw 5-element Sequence: <code>["{", ws?, body, ws?, "}"]</code>.</p>
+<p><strong>Annotated.</strong> The annotation <code>-&gt; $3</code> lifts the typed <code>counted_quantifier_body</code> shape straight through, dropping the surrounding <code>{</code>, whitespace, and <code>}</code> tokens — they carry no semantic information beyond “this is a counted quantifier” (which the surrounding <code>quant_base</code> context already conveys).</p>
+<h3 id="current-shape-2"><a class="header" href="#current-shape-2">Current shape</a></h3>
+<pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
+</code></pre>
+<p>A typed <code>{min, max}</code> object, identical to whatever <code>counted_quantifier_body</code> emitted.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source input</th><th>Resulting shape at quant_base position</th></tr>
+</thead>
+<tbody>
+<tr><td><code>{2}</code></td><td><code>{"min": 2, "max": 2}</code></td></tr>
+<tr><td><code>{2,}</code></td><td><code>{"min": 2, "max": null}</code></td></tr>
+<tr><td><code>{2,5}</code></td><td><code>{"min": 2, "max": 5}</code></td></tr>
+<tr><td><code>{,5}</code></td><td><code>{"min": 0, "max": 5}</code></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="counted_quantifier_body"><a class="header" href="#counted_quantifier_body"><code>counted_quantifier_body</code></a></h2>
-<pre><code class="language-ebnf">counted_quantifier_body = digits ws? ("," ws? digits?)?
-                        | "," ws? digits
+<pre><code class="language-ebnf">counted_quantifier_body = digits "," digits ws?  -&gt; {min: $1, max: $3}
+                        | digits "," ws?         -&gt; {min: $1, max: null}
+                        | digits ws?             -&gt; {min: $1, max: $1}
+                        | "," ws? digits         -&gt; {min: 0,  max: $3}
 </code></pre>
-<p><strong>Un-annotated</strong> at this release. Two branches with four logical cases compressed inside the optional sub-group of branch 1. Each branch emits the raw Sequence of its body.</p>
-<h3 id="current-shape--branch-0"><a class="header" href="#current-shape--branch-0">Current shape — Branch 0</a></h3>
-<pre><code class="language-json">[
-  &lt;digits&gt;,                  // first count, typed integer (digits IS annotated)
-  &lt;ws-content&gt;,              // optional whitespace
-  &lt;optional [",", ws, digits?] sub-group&gt;
-]
+<p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). Each branch carries its own per-branch annotation producing the same <code>{min, max}</code> shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
+<h3 id="current-shape-3"><a class="header" href="#current-shape-3">Current shape</a></h3>
+<pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
 </code></pre>
-<p>For <code>{n}</code> (no comma): branch 0 matches with the optional sub-group empty, so the third slot is <code>[]</code>.
-For <code>{n,}</code> (comma, no second count): branch 0 matches with the sub-group present but its inner <code>digits?</code> empty.
-For <code>{n,m}</code> (full range): branch 0 matches with both digits present.</p>
-<h3 id="current-shape--branch-1"><a class="header" href="#current-shape--branch-1">Current shape — Branch 1</a></h3>
-<pre><code class="language-json">[",", &lt;ws-content&gt;, &lt;digits&gt;]
-</code></pre>
-<p>For <code>{,m}</code>: branch 1 matches.</p>
-<h3 id="walking-the-body-shape"><a class="header" href="#walking-the-body-shape">Walking the body shape</a></h3>
-<p>Because <code>digits</code> IS annotated to a typed integer at this release, the digit values inside <code>counted_quantifier_body</code> are direct <code>serde_json::Value::Number</code> integers — no concatenation needed.</p>
-<p>A consumer extracting count bounds:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn extract_count_bounds(body: &amp;Value) -&gt; Option&lt;(u64, Option&lt;u64&gt;)&gt; {
-    let arr = body.as_array()?;
-    // Branch detection by first element shape:
-    //   Number → branch 0 (starts with digits).
-    //   String "," → branch 1 (starts with comma, {,m} form).
-    if matches!(arr.first(), Some(Value::String(s)) if s == ",") {
-        // Branch 1: {,m}
-        let max = arr.get(2)?.as_u64()?;
-        return Some((0, Some(max)));
-    }
-    // Branch 0 — first element is digits (a typed integer)
-    let min = arr.first()?.as_u64()?;
-    // arr[2] is the optional ("," ws? digits?)? sub-group
-    let sub = arr.get(2)?;
-    if let Some(sub_arr) = sub.as_array() {
-        if sub_arr.is_empty() {
-            return Some((min, Some(min))); // {n} — no comma
-        }
-        // sub_arr is the [",", ws?, digits?] inner Sequence
-        let inner_digits_slot = sub_arr.get(2)?;
-        // inner_digits_slot is the digits?'s Quantified-? slot
-        if let Some(inner_arr) = inner_digits_slot.as_array() {
-            if inner_arr.is_empty() {
-                return Some((min, None));     // {n,}
-            }
-            let max = inner_arr.first()?.as_u64()?;
-            return Some((min, Some(max)));     // {n,m}
-        }
-    }
-    None
-}
-<span class="boring">}</span></code></pre>
-<p>(The branching here is what motivated splitting <code>counted_quantifier_body</code> into 4 explicit branches in a future slice — when that lands, the consumer code becomes a single-line field lookup.)</p>
+<p><code>min</code> is always a typed integer (<code>Number</code>). <code>max</code> is either a typed integer (<code>Number</code>) or <code>null</code> (when the source uses the unbounded <code>{n,}</code> form).</p>
+<h3 id="why-the-four-branches"><a class="header" href="#why-the-four-branches">Why the four branches</a></h3>
+<p>The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.</p>
+<p>The book entry for <a href="#examples-qe-quoted-literals">\Q…\E Quoted Literals</a> and <a href="#examples-quantifiers">Quantifiers</a> shows this typed shape in worked examples.</p>
 <h2 id="quant_suffix"><a class="header" href="#quant_suffix"><code>quant_suffix</code></a></h2>
 <pre><code class="language-ebnf">quant_suffix = "?" -&gt; "lazy"
              | "+" -&gt; "possessive"
@@ -1652,7 +1634,7 @@ digits = /([0-9]+)/
     if arr.is_empty() {
         return None; // no quantifier
     }
-    // arr[0] = quant_base (raw "*", "+", "?", or counted_quantifier Sequence)
+    // arr[0] = quant_base (raw "*", "+", "?", or typed {min, max} object)
     // arr[1] = quant_suffix? — empty array, "lazy", or "possessive"
     let base = &amp;arr[0];
     let suffix = &amp;arr[1];
@@ -1661,11 +1643,23 @@ digits = /([0-9]+)/
         Value::String(s) if s == "*" =&gt; (0, None),
         Value::String(s) if s == "+" =&gt; (1, None),
         Value::String(s) if s == "?" =&gt; (0, Some(1)),
-        Value::Array(seq) =&gt; {
-            // counted_quantifier — Sequence shape: ["{", ws?, body, ws?, "}"]
-            // Body is at index 2.
-            let body = seq.get(2)?;
-            extract_count_bounds(body)?
+        Value::Object(map) =&gt; {
+            // counted_quantifier — typed {min, max} object directly.
+            let min = map.get("min")?.as_u64()?;
+            let max = map.get("max").and_then(|v| match v {
+                Value::Number(n) =&gt; n.as_u64(),
+                Value::Null =&gt; None,
+                _ =&gt; None,
+            });
+            // Note: max == None if the JSON value is null OR the field is missing.
+            // For counted_quantifier_body the field is always present; null marks
+            // the unbounded `{n,}` form.
+            let max = match map.get("max") {
+                Some(Value::Null) =&gt; None,
+                Some(Value::Number(n)) =&gt; n.as_u64(),
+                _ =&gt; None,
+            };
+            (min, max)
         }
         _ =&gt; return None,
     };
@@ -1679,16 +1673,21 @@ digits = /([0-9]+)/
     Some(Quantifier { min, max, greediness })
 }
 <span class="boring">}</span></code></pre>
+<p>The dispatch is now: shorthand quantifiers come through as bare strings; counted quantifiers come through as typed <code>{min, max}</code> objects. No structural digging into Sequence wrappers required.</p>
 <h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>Future PGEN releases will annotate the remaining quantifier-subtree rules. Target shape for the unified <code>quantifier</code> rule:</p>
+<p>Two slices remain in the quantifier-subtree campaign:</p>
+<ul>
+<li><code>quant_base</code> annotation. Goal: emit <code>"*"</code>/<code>"+"</code>/<code>"?"</code> as typed strings (no shape change to consumers — they’re already strings — but cleaner once it’s official) and lift <code>counted_quantifier</code>’s typed object straight through.</li>
+<li><code>quantifier</code> annotation. Goal: combine <code>quant_base</code> and <code>quant_suffix?</code> into a single typed object:</li>
+</ul>
 <pre><code class="language-json">{
   "type": "quantifier",
   "min": 2,
-  "max": null,           // null = unbounded
-  "greediness": "greedy" // "greedy" | "lazy" | "possessive"
+  "max": null,
+  "greediness": "greedy"
 }
 </code></pre>
-<p>The slices to land that target shape are tracked under task #40 in PGEN’s tracker. When RGX bumps PGEN to a release containing them, this book chapter will be updated. Until then, the per-rule walking above is operative.</p>
+<p>When that final slice lands, the consumer’s <code>extract_quantifier</code> walker collapses to a 4-line field read. The slices are tracked under task #40 in PGEN’s tracker.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="atom-subtree"><a class="header" href="#atom-subtree">Atom Subtree</a></h1>
 <p><code>atom</code> is the most-frequently-walked rule in the regex parser — every regex element that doesn’t have a quantifier inline (and even those that do, before the quantifier is attached) ends up here.</p>
@@ -1720,7 +1719,7 @@ digits = /([0-9]+)/
      | group
 </code></pre>
 <p>25-way Or rule. Currently <strong>un-annotated</strong>. Each branch’s content varies by alternative.</p>
-<h3 id="current-shape-2"><a class="header" href="#current-shape-2">Current shape</a></h3>
+<h3 id="current-shape-4"><a class="header" href="#current-shape-4">Current shape</a></h3>
 <p>The matched alternative’s content appears as the atom’s content directly — wrapped in an <code>Alternative</code> envelope at the ParseNode level, but <code>to_json_value()</code> unwraps it transparently.</p>
 <p>So when walking the JSON output, the atom field of a piece simply IS the matched alternative’s shape. There’s no <code>{type: "atom", kind: "literal", ...}</code> wrapper.</p>
 <h3 id="future-shape"><a class="header" href="#future-shape">Future shape</a></h3>
@@ -3090,91 +3089,46 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <pre><code class="language-json">{
   "atom": "a",
   "quantifier": [
-    [
-      "{",
-      [],                       // optional ws — empty
-      [&lt;digits=3&gt;, [], []],     // counted_quantifier_body branch 0
-      [],                       // trailing optional ws
-      "}"
-    ],
-    []                          // no suffix
+    { "min": 3, "max": 3 },
+    []
   ],
   "type": "piece"
 }
 </code></pre>
-<p>The counted_quantifier shape is the raw 5-element Sequence. The body at <code>quantifier[0][2]</code> is the un-annotated <code>counted_quantifier_body</code> Sequence; for <code>{3}</code> (just <code>digits</code>, no comma), the shape is <code>[&lt;digits&gt;, &lt;ws?&gt;, &lt;optional sub-group&gt;]</code> with the sub-group <code>[]</code> (not matched).</p>
-<p><code>&lt;digits=3&gt;</code> is the typed integer <code>3</code> (from the annotated <code>digits</code> rule).</p>
+<p><code>counted_quantifier</code>’s <code>-&gt; $3</code> annotation lifts <code>counted_quantifier_body</code>’s typed <code>{min, max}</code> straight through, dropping the surrounding <code>{</code>, whitespace, and <code>}</code> tokens. The body’s branch 2 (<code>digits ws? -&gt; {min: $1, max: $1}</code>) duplicates the single source count into both fields.</p>
 <h2 id="a25-range-count"><a class="header" href="#a25-range-count"><code>a{2,5}</code> (range count)</a></h2>
 <pre><code class="language-json">{
   "atom": "a",
   "quantifier": [
-    [
-      "{",
-      [],
-      [
-        &lt;digits=2&gt;,
-        [],
-        [                       // sub-group: ["," ws? digits?]
-          ",",
-          [],
-          [&lt;digits=5&gt;]           // digits? slot — matched
-        ]
-      ],
-      [],
-      "}"
-    ],
+    { "min": 2, "max": 5 },
     []
   ],
   "type": "piece"
 }
 </code></pre>
-<p>The sub-group at body index 2 is now present: <code>[",", &lt;ws&gt;, &lt;digits-Quantified&gt;]</code>. The inner <code>[&lt;digits=5&gt;]</code> is the <code>Quantified-?</code> slot containing the second count.</p>
+<p>Branch 0 of <code>counted_quantifier_body</code> — <code>digits "," digits ws? -&gt; {min: $1, max: $3}</code>.</p>
 <h2 id="a2-min-only"><a class="header" href="#a2-min-only"><code>a{2,}</code> (min only)</a></h2>
 <pre><code class="language-json">{
   "atom": "a",
   "quantifier": [
-    [
-      "{",
-      [],
-      [
-        &lt;digits=2&gt;,
-        [],
-        [
-          ",",
-          [],
-          []                     // digits? slot — empty (no upper bound)
-        ]
-      ],
-      [],
-      "}"
-    ],
+    { "min": 2, "max": null },
     []
   ],
   "type": "piece"
 }
 </code></pre>
-<p>The sub-group is matched (comma is present), but the inner <code>digits?</code> slot is empty — meaning unbounded.</p>
+<p>Branch 1 of <code>counted_quantifier_body</code> — <code>digits "," ws? -&gt; {min: $1, max: null}</code>. The unbounded upper bound is encoded as a typed JSON <code>null</code> (the <code>null</code> literal added in the same slice that introduced this typed shape).</p>
 <h2 id="a5-pcre2-implicit-min0"><a class="header" href="#a5-pcre2-implicit-min0"><code>a{,5}</code> (PCRE2 implicit min=0)</a></h2>
 <pre><code class="language-json">{
   "atom": "a",
   "quantifier": [
-    [
-      "{",
-      [],
-      [                          // counted_quantifier_body branch 1
-        ",",
-        [],
-        &lt;digits=5&gt;
-      ],
-      [],
-      "}"
-    ],
+    { "min": 0, "max": 5 },
     []
   ],
   "type": "piece"
 }
 </code></pre>
-<p>This is <strong>branch 1</strong> of <code>counted_quantifier_body</code> — starts with comma directly (no leading digits). The 3-element shape is <code>[",", &lt;ws&gt;, &lt;digits&gt;]</code>. Distinguish from branch 0 by inspecting the FIRST element: if it’s a Number (typed integer), branch 0; if it’s the string <code>","</code>, branch 1.</p>
+<p>Branch 3 of <code>counted_quantifier_body</code> — <code>"," ws? digits -&gt; {min: 0, max: $3}</code>. The implicit <code>min=0</code> is a literal numeric in the annotation, not derived from the source.</p>
 <h2 id="a25-lazy-range"><a class="header" href="#a25-lazy-range"><code>a{2,5}?</code> (lazy range)</a></h2>
 <pre><code class="language-json">{
   "atom": "a",
@@ -3186,16 +3140,28 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 }
 </code></pre>
 <p>The <code>quant_suffix?</code> slot now carries the typed string <code>"lazy"</code>.</p>
-<h2 id="a25-possessive-range"><a class="header" href="#a25-possessive-range"><code>a{2,5}+</code> (possessive range)</a></h2>
+<h2 id="a25-and-a25-lazy--possessive-range"><a class="header" href="#a25-and-a25-lazy--possessive-range"><code>a{2,5}?</code> and <code>a{2,5}+</code> (lazy / possessive range)</a></h2>
+<p>For <code>a{2,5}?</code>:</p>
 <pre><code class="language-json">{
   "atom": "a",
   "quantifier": [
-    [&lt;counted_quantifier shape with min=2 max=5&gt;],
+    { "min": 2, "max": 5 },
+    "lazy"
+  ],
+  "type": "piece"
+}
+</code></pre>
+<p>For <code>a{2,5}+</code>:</p>
+<pre><code class="language-json">{
+  "atom": "a",
+  "quantifier": [
+    { "min": 2, "max": 5 },
     "possessive"
   ],
   "type": "piece"
 }
 </code></pre>
+<p>The counted-quantifier body is the same typed object regardless of greediness; the <code>quant_suffix?</code> slot independently carries <code>"lazy"</code> / <code>"possessive"</code> / <code>[]</code>.</p>
 <h2 id="consumer-extraction"><a class="header" href="#consumer-extraction">Consumer extraction</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -3207,41 +3173,18 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
         Value::String(s) if s == "*" =&gt; (0u64, None),
         Value::String(s) if s == "+" =&gt; (1, None),
         Value::String(s) if s == "?" =&gt; (0, Some(1)),
-        Value::Array(seq) =&gt; {
-            // counted_quantifier — Sequence ["{", ws, body, ws, "}"]
-            let body = seq.get(2)?.as_array()?;
-            // Determine branch:
-            //   body[0] is a typed integer  → branch 0 (digits-first)
-            //   body[0] is the string ","   → branch 1 (comma-first)
-            match body.first() {
-                Some(Value::Number(_)) =&gt; {
-                    let min = body[0].as_u64()?;
-                    let sub = body.get(2)?;
-                    // sub is the optional ("," ws? digits?)? Quantified
-                    // []     → no comma → exact {n}
-                    // [...]  → comma present → look at inner [2] for max
-                    if let Some(sub_arr) = sub.as_array() {
-                        if sub_arr.is_empty() {
-                            return Some(Quantifier { min, max: Some(min), greediness: Greediness::Greedy });
-                        }
-                        // sub_arr is the inner Sequence [",", ws?, digits?]
-                        let max_slot = sub_arr.get(2)?.as_array()?;
-                        // digits? — Quantified-?
-                        let max_val = max_slot.first().and_then(|d| d.as_u64());
-                        return Some(Quantifier { min, max: max_val, greediness: Greediness::Greedy });
-                    }
-                    None
-                }
-                Some(Value::String(s)) if s == "," =&gt; {
-                    // Branch 1: {,m}
-                    let max = body.get(2)?.as_u64()?;
-                    Some(Quantifier { min: 0, max: Some(max), greediness: Greediness::Greedy })
-                }
-                _ =&gt; None,
-            }
+        Value::Object(map) =&gt; {
+            // counted_quantifier — typed {min, max} object directly.
+            let min = map.get("min")?.as_u64()?;
+            let max = match map.get("max") {
+                Some(Value::Null) =&gt; None,            // unbounded `{n,}`
+                Some(Value::Number(n)) =&gt; n.as_u64(), // bounded
+                _ =&gt; return None,
+            };
+            (min, max)
         }
         _ =&gt; return None,
-    }?;
+    };
 
     let greediness = match &amp;q[1] {
         Value::String(s) if s == "lazy" =&gt; Greediness::Lazy,
@@ -3252,7 +3195,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
     Some(Quantifier { min, max, greediness })
 }
 <span class="boring">}</span></code></pre>
-<p>Once future PGEN slices land typed <code>counted_quantifier_body</code> and unified <code>quantifier</code> shapes, this function collapses to a few <code>value.get("min").as_u64()</code> lookups.</p>
+<p>Once the remaining quantifier-subtree slices land (<code>quant_base</code>, then unified <code>quantifier</code> with <code>{type:"quantifier", min, max, greediness}</code>), this function collapses to a 4-line typed-field read.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-character-classes"><a class="header" href="#examples-character-classes">Examples: Character Classes</a></h1>
 <p>Concrete probe outputs for character class regexes. The <code>char_class</code> rule is <strong>un-annotated</strong> at this release — the AST emits the raw 4-element Sequence wrapper.</p>
@@ -3792,13 +3735,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
           {
             "atom": "*",
             "quantifier": [
-              [
-                "{",
-                [],
-                [&lt;digits=2&gt;, [], [",", [], []]],   // counted_quantifier_body branch 0, {n,} form
-                [],
-                "}"
-              ],
+              { "min": 2, "max": null },
               []
             ],
             "type": "piece"
@@ -3847,7 +3784,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
         "\\E"
       ],
       "quantifier": [
-        [&lt;counted_quantifier shape with min=3 max=3&gt;],
+        { "min": 3, "max": 3 },
         []
       ],
       "type": "piece"
@@ -3867,7 +3804,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
         "\\E"
       ],
       "quantifier": [
-        [&lt;counted_quantifier shape with min=2 max=2&gt;],
+        { "min": 2, "max": 2 },
         []
       ],
       "type": "piece"
@@ -4512,6 +4449,8 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.7.0</td><td>1.1.31</td><td>PGEN-RGX-0074 fix: <code>\Q...\E</code> per-char piece array. New <code>**</code> flatten-spread semantics.</td></tr>
 <tr><td>0.7.1</td><td>1.1.32</td><td><code>digits</code> → integer (slice 1). Within-version-line shape addition (additive).</td></tr>
 <tr><td>0.7.2</td><td>1.1.33</td><td><code>quant_suffix</code> → enum string (slice 2).</td></tr>
+<tr><td>0.8.0</td><td>post-1.1.33 main</td><td><code>counted_quantifier_body</code> → typed <code>{min, max}</code> (slice 3). New <code>null</code> literal in the annotation language.</td></tr>
+<tr><td>0.8.1</td><td>post-1.1.33 main</td><td><code>counted_quantifier</code> → <code>-&gt; $3</code> lifts body’s typed shape (slice 4).</td></tr>
 </tbody>
 </table>
 </div>
@@ -4524,7 +4463,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <p>Definitions for terms used throughout this book and in the surrounding PGEN documentation. Where a term has both a PGEN-specific meaning and a general regex/parsing meaning, the PGEN-specific one is given.</p>
 <h2 id="annotation-language"><a class="header" href="#annotation-language">Annotation language</a></h2>
-<p>The expression language used inside <code>-&gt; ...</code> clauses in EBNF rules. Syntactic forms documented in <code>grammars/return_annotation.ebnf</code> and <code>grammars/builtin_return_annotation.ebnf</code>. Includes positional refs (<code>$1</code>, <code>$2</code>, …), object literals, array literals, string/number/boolean literals, the spread operator <code>*</code>, the flatten-spread <code>**</code>, and (in 1.1.34+) the <code>null</code> literal.</p>
+<p>The expression language used inside <code>-&gt; ...</code> clauses in EBNF rules. Syntactic forms documented in <code>grammars/return_annotation.ebnf</code> and <code>grammars/builtin_return_annotation.ebnf</code>. Includes positional refs (<code>$1</code>, <code>$2</code>, …), object literals, array literals, string/number/boolean literals, the <code>null</code> literal, the spread operator <code>*</code>, and the flatten-spread <code>**</code>.</p>
 <h2 id="ast-envelope"><a class="header" href="#ast-envelope">AST envelope</a></h2>
 <p>The recursive <code>ParseNode { rule_name, content, span }</code> structure. “Envelope” = the structural shell that wraps every parser output. Pre-1.1.30 the envelope was the entire AST; 1.1.30+ adds typed-Json content as an inner shape.</p>
 <h2 id="atom-1"><a class="header" href="#atom-1">Atom</a></h2>
@@ -4546,7 +4485,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <h2 id="concatenation-1"><a class="header" href="#concatenation-1">Concatenation</a></h2>
 <p>A grammar rule and a regex concept. The <code>concatenation</code> rule produces a flat sequence of pieces — <code>concatenation = piece+ -&gt; [$1**]</code>. The <code>**</code> flatten-spread is what produces the flat array (without it, the output would be a deeply-nested chain of Quantified wrappers).</p>
 <h2 id="counted-quantifier"><a class="header" href="#counted-quantifier">Counted quantifier</a></h2>
-<p>A quantifier of the form <code>{n}</code>, <code>{n,}</code>, <code>{,m}</code>, or <code>{n,m}</code>. Parsed by the <code>counted_quantifier</code> rule, with body parsed by <code>counted_quantifier_body</code> (currently 2-branch raw envelope at this release; slice 3 in a later release adds typed <code>{min, max}</code> Json).</p>
+<p>A quantifier of the form <code>{n}</code>, <code>{n,}</code>, <code>{,m}</code>, or <code>{n,m}</code>. Parsed by the <code>counted_quantifier</code> rule (<code>-&gt; $3</code>, lifts the body’s typed shape), with body parsed by <code>counted_quantifier_body</code> (4 explicit branches each emitting a typed <code>{min, max}</code> object — <code>min</code> is always integer, <code>max</code> is integer-or-null for the unbounded form). Both rules annotated in slices 3+4 of the typed-shape campaign.</p>
 <h2 id="discriminator"><a class="header" href="#discriminator">Discriminator</a></h2>
 <p>The field in a Json object whose value tells the consumer which kind of object this is. In the regex AST, the convention is <code>"type"</code>: <code>"regex"</code>, <code>"piece"</code>, etc. See <a href="#the-json-carrier">The Json Carrier</a>.</p>
 <h2 id="ebnf"><a class="header" href="#ebnf">EBNF</a></h2>
@@ -4606,7 +4545,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <h2 id="un-annotated-chain"><a class="header" href="#un-annotated-chain">Un-annotated chain</a></h2>
 <p>A descent through multiple rules that all use implicit <code>-&gt; $1</code> (single-positional pass-through). Produces nested Alternative-wrapped layers in the AST, e.g. <code>escape_unit → simple_escape → any_char → /char/</code> chains four wrappers around one terminal. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array.</p>
 <h2 id="unifiedreturnast"><a class="header" href="#unifiedreturnast">UnifiedReturnAST</a></h2>
-<p>The Rust enum representing parsed return-annotation expressions, defined in <code>rust/src/ast_pipeline/unified_return_ast.rs</code>. Variants: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral (1.1.34+), Object, Array, Spread, FlattenSpread, PropertyAccess, ArrayAccess, QuantifiedExtraction, Identifier, Passthrough.</p>
+<p>The Rust enum representing parsed return-annotation expressions, defined in <code>rust/src/ast_pipeline/unified_return_ast.rs</code>. Variants: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral, Object, Array, Spread, FlattenSpread, PropertyAccess, ArrayAccess, QuantifiedExtraction, Identifier, Passthrough.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="changelog-index"><a class="header" href="#changelog-index">Changelog Index</a></h1>
 <p>This chapter is an index — pointers into other docs that carry the full changelog detail. Use it to find what changed in a given release.</p>
@@ -4626,12 +4565,21 @@ fn ast_snapshot_for_canonical_inputs() {
 </div>
 <p>When investigating “what changed and why,” start with the contract document, drop down to the ledger for specific bugs, fall back to git for diffs.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
-<p>This book documents the regex parser at the <strong>6e5b0f23</strong> state — that’s:</p>
+<p>This book is <strong>live</strong> and tracks current main HEAD. Versioning summary:</p>
 <ul>
-<li><strong>Release 1.1.33</strong> (parser version) — schema-affecting through slice 2 of the typed-shape campaign.</li>
-<li><strong>Contract 1.1.35</strong> (contract document version).</li>
+<li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.1.33 / Contract 1.1.35</strong> (slice 2 of the typed-shape campaign).</li>
+<li>Slices 3 and 4 (typed <code>counted_quantifier_body</code> + <code>null</code> literal, then typed <code>counted_quantifier</code>) are landed on main but the consolidated contract identity bump for them lands together with the next quantifier-subtree slice that closes the outer <code>quantifier</code> rule.</li>
+<li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
-<p>Below are the shape-change highlights of recent releases, with pointers to the contract sections.</p>
+<p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="post-1133-main--counted_quantifier-typed-slice-4n"><a class="header" href="#post-1133-main--counted_quantifier-typed-slice-4n">Post-1.1.33 main — counted_quantifier typed (slice 4/N)</a></h3>
+<p><strong>What changed:</strong> <code>counted_quantifier</code> rule got <code>-&gt; $3</code> annotation, lifting <code>counted_quantifier_body</code>’s typed <code>{min, max}</code> straight through and dropping the surrounding <code>{</code>/<code>}</code>/whitespace tokens. The brace tokens carry no semantic information beyond “this is a counted quantifier” — context the surrounding <code>quant_base</code> already conveys.</p>
+<p><strong>Consumer impact:</strong> the <code>quant_base</code> position (visible inside <code>quantifier</code>’s <code>[&lt;base&gt;, &lt;suffix&gt;]</code> shape) now carries either a bare string <code>"*"</code>/<code>"+"</code>/<code>"?"</code> OR a typed <code>{min, max}</code> object directly. No more digging through a 5-element Sequence wrapper to reach the body’s typed shape. See <a href="#quantifier-subtree">Quantifier Subtree</a>.</p>
+<p><strong>Contract section:</strong> pending bump (will land with the slice that closes <code>quantifier</code>).</p>
+<h3 id="post-1133-main--counted_quantifier_body-typed--null-literal-slice-3n"><a class="header" href="#post-1133-main--counted_quantifier_body-typed--null-literal-slice-3n">Post-1.1.33 main — counted_quantifier_body typed + null literal (slice 3/N)</a></h3>
+<p><strong>What changed:</strong> restructured <code>counted_quantifier_body</code> from 2 branches (with 4 logical cases compressed inside an optional sub-group) into 4 explicit branches each with its own per-branch <code>-&gt; {min, max}</code> annotation. Added the <code>null</code> literal to the return-annotation language so the unbounded <code>{n,}</code> form can encode <code>max:null</code> directly.</p>
+<p><strong>Consumer impact:</strong> the body now emits a typed <code>{min, max}</code> object regardless of which <code>{n}</code>/<code>{n,}</code>/<code>{n,m}</code>/<code>{,m}</code> source form matched. <code>min</code> is always a typed integer; <code>max</code> is a typed integer OR <code>null</code> (only <code>null</code> for the unbounded form). See <a href="#quantifier-subtree">Quantifier Subtree</a>, <a href="#examples-quantifiers">Quantifiers</a>.</p>
+<p><strong>Contract section:</strong> pending bump (will land with the slice that closes <code>quantifier</code>).</p>
 <h3 id="1133--contract-1135--quant_suffix-typed-slice-2n"><a class="header" href="#1133--contract-1135--quant_suffix-typed-slice-2n">1.1.33 / Contract 1.1.35 — quant_suffix typed (slice 2/N)</a></h3>
 <p><strong>What changed:</strong> <code>quant_suffix</code> rule’s two branches each got a return annotation: <code>"?"</code> → <code>"lazy"</code>, <code>"+"</code> → <code>"possessive"</code>. The <code>quant_suffix?</code> slot inside <code>quantifier</code> now carries either <code>[]</code> (greedy, no suffix matched) or <code>["lazy"]</code> / <code>["possessive"]</code> (1-element Quantified-?).</p>
 <p><strong>Consumer impact:</strong> consumers reading the quantifier shape can dispatch on the string instead of inferring from which branch matched. See <a href="#quantifier-subtree">Quantifier Subtree</a>.</p>
@@ -4659,8 +4607,9 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><th>Slice</th><th>Target rule</th><th>Expected AST change</th></tr>
 </thead>
 <tbody>
-<tr><td>3</td><td><code>counted_quantifier_body</code></td><td>Typed <code>{min, max}</code> Json (with <code>null</code> for absent max)</td></tr>
-<tr><td>4+</td><td>TBD per cadence</td><td>One rule per slice</td></tr>
+<tr><td>5</td><td><code>quant_base</code></td><td>Lift counted-quantifier passthrough; clarify shorthand string emission</td></tr>
+<tr><td>6</td><td><code>quantifier</code></td><td>Combine quant_base + quant_suffix? into typed <code>{type:"quantifier", min, max, greediness}</code></td></tr>
+<tr><td>7+</td><td>atom subtree, char class, group family, escape subtree, …</td><td>One rule per slice</td></tr>
 </tbody>
 </table>
 </div>

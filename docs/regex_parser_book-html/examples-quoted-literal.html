@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -221,13 +221,7 @@
           {
             "atom": "*",
             "quantifier": [
-              [
-                "{",
-                [],
-                [&lt;digits=2&gt;, [], [",", [], []]],   // counted_quantifier_body branch 0, {n,} form
-                [],
-                "}"
-              ],
+              { "min": 2, "max": null },
               []
             ],
             "type": "piece"
@@ -276,7 +270,7 @@
         "\\E"
       ],
       "quantifier": [
-        [&lt;counted_quantifier shape with min=3 max=3&gt;],
+        { "min": 3, "max": 3 },
         []
       ],
       "type": "piece"
@@ -296,7 +290,7 @@
         "\\E"
       ],
       "quantifier": [
-        [&lt;counted_quantifier shape with min=2 max=2&gt;],
+        { "min": 2, "max": 2 },
         []
       ],
       "type": "piece"

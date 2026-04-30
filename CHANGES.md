@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 4/N: typed `counted_quantifier` (`-> $3`) + book live-sync
+
+### What landed
+
+Quantifier-subtree slice 4 of N. The `counted_quantifier` rule got a `-> $3` annotation that lifts `counted_quantifier_body`'s typed `{min, max}` straight through, dropping the surrounding `{` / whitespace / `}` tokens. The brace tokens carry no semantic information beyond "this is a counted quantifier" — context the surrounding `quant_base` already conveys.
+
+```ebnf
+counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+-> $3
+```
+
+**Empirical AST shape:**
+- Before: `quantifier[0]` was a 5-element Sequence `["{", ws?, body, ws?, "}"]`; consumers had to dig into `quantifier[0][2]` to find the body.
+- After: `quantifier[0]` carries the typed `{min, max}` object directly. `a{2,5}` → `quantifier: [{"min": 2, "max": 5}, []]`.
+
+### Live book sync
+
+Per the new live-book policy ("the regex parser mdbook is another live book") this slice updates the book in the same commit:
+- `rules-quantifier.md` — quantifier table flips counted_quantifier and counted_quantifier_body to "annotated" status; walking recipe now reads typed object via `as_object().get("min")`/`get("max")` instead of digging through Sequence.
+- `examples-quantifiers.md` — `a{n}` / `a{n,m}` / `a{n,}` / `a{,m}` examples (and lazy/possessive variants) now show the typed `{min, max}` shape.
+- `examples-quoted-literal.md` — `\Qab*\E{2,}` and degenerate cases use the typed shape.
+- `walking-the-ast.md`, `rules-piece.md`, `json-carrier.md`, `parse-content-variants.md`, `glossary.md`, `schema-versioning.md`, `changelog-index.md` — updated for the new shape and to reflect that the `null` literal is no longer "future" — it's emitted by `counted_quantifier_body`'s branch 1 today.
+- `welcome.md` — added "Book status: live" section confirming the live-book policy.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 493 / 0.
+- Manifest updated: `rust/test_data/ast_shape_contract/regex_v1.json` — new `counted_quantifier` entry (branch 0, `return_scalar`, `"$3"`).
+- `make regex_parser_book_gate` green.
+- Empirical probe (`a{2,5}`) confirms `quantifier[0] == {"min":2,"max":5}`.
+
+### No contract bump in this commit
+Same rationale as slice 3: contract identity bump and the consolidated AST-shape contract section will land on the slice that closes the quantifier subtree (`quant_base` and `quantifier` rules).
+
 ## 2026-05-01 - Standalone regex parser mdBook for downstream integrators (RGX-aligned at `6e5b0f23`)
 
 ### What landed

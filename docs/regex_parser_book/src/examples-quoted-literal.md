@@ -40,13 +40,7 @@ Pre-fix, PGEN incorrectly bound the quantifier to the entire `\Q...\E` block. Th
           {
             "atom": "*",
             "quantifier": [
-              [
-                "{",
-                [],
-                [<digits=2>, [], [",", [], []]],   // counted_quantifier_body branch 0, {n,} form
-                [],
-                "}"
-              ],
+              { "min": 2, "max": null },
               []
             ],
             "type": "piece"
@@ -103,7 +97,7 @@ Two pieces: `a` (no quantifier) and `b` (with `{3}`).
         "\\E"
       ],
       "quantifier": [
-        [<counted_quantifier shape with min=3 max=3>],
+        { "min": 3, "max": 3 },
         []
       ],
       "type": "piece"
@@ -127,7 +121,7 @@ ONE piece. The `piece_quoted_run_quantified` branch requires at least one prefix
         "\\E"
       ],
       "quantifier": [
-        [<counted_quantifier shape with min=2 max=2>],
+        { "min": 2, "max": 2 },
         []
       ],
       "type": "piece"

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="quantifier-subtree"><a class="header" href="#quantifier-subtree">Quantifier Subtree</a></h1>
-<p>Six grammar rules cover quantifier syntax. <strong>At the parser release this book describes (post-PGEN-RGX-0074, after the cold-clone bootstrap landed), <code>digits</code> and <code>quant_suffix</code> are annotated. The remaining four (<code>quantifier</code>, <code>quant_base</code>, <code>counted_quantifier</code>, <code>counted_quantifier_body</code>) are not yet — they emit raw envelope shapes and will be annotated in successive future slices.</strong></p>
+<p>Six grammar rules cover quantifier syntax. <strong>At the parser release this book describes (current main HEAD, post-slices-1-through-4), <code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, and <code>counted_quantifier</code> are annotated. Two remain un-annotated: the outer <code>quantifier</code> and the <code>quant_base</code> Or rule. Those will be annotated in successive future slices.</strong></p>
 <h2 id="quantifier"><a class="header" href="#quantifier"><code>quantifier</code></a></h2>
 <pre><code class="language-ebnf">quantifier = quant_base quant_suffix?
 </code></pre>
@@ -192,7 +192,7 @@
 <p><code>&lt;quant_base-content&gt;</code> is one of:</p>
 <ul>
 <li><code>"*"</code>, <code>"+"</code>, <code>"?"</code> — for shorthand quantifiers (raw terminals).</li>
-<li>A <code>Sequence</code> of <code>["{", ws?, &lt;counted_quantifier_body&gt;, ws?, "}"]</code> — for counted quantifiers.</li>
+<li>A typed <code>{min, max}</code> object — for counted quantifiers (<code>{n}</code>, <code>{n,}</code>, <code>{n,m}</code>, <code>{,m}</code>).</li>
 </ul>
 <p><code>&lt;quant_suffix?-content&gt;</code> is one of:</p>
 <ul>
@@ -203,75 +203,50 @@
 <h2 id="quant_base"><a class="header" href="#quant_base"><code>quant_base</code></a></h2>
 <pre><code class="language-ebnf">quant_base = "*" | "+" | "?" | counted_quantifier
 </code></pre>
-<p><strong>Un-annotated.</strong> Each branch emits the raw matched text or the un-annotated <code>counted_quantifier</code> Sequence.</p>
+<p><strong>Un-annotated.</strong> Each branch emits the raw matched text or the typed <code>counted_quantifier</code> shape passed straight through.</p>
 <h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
 <ul>
 <li>Branch 0 (<code>*</code>): <code>Terminal("*")</code>. Visible in JSON as the bare string <code>"*"</code>.</li>
 <li>Branch 1 (<code>+</code>): <code>Terminal("+")</code>. Visible as <code>"+"</code>.</li>
 <li>Branch 2 (<code>?</code>): <code>Terminal("?")</code>. Visible as <code>"?"</code>.</li>
-<li>Branch 3 (<code>counted_quantifier</code>): nested counted quantifier shape — see below.</li>
+<li>Branch 3 (<code>counted_quantifier</code>): the typed <code>{min, max}</code> object directly (because <code>counted_quantifier</code> itself lifts the body’s typed shape).</li>
 </ul>
 <h2 id="counted_quantifier"><a class="header" href="#counted_quantifier"><code>counted_quantifier</code></a></h2>
 <pre><code class="language-ebnf">counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+-&gt; $3
 </code></pre>
-<p><strong>Un-annotated.</strong> Output is the raw 5-element Sequence: <code>["{", ws?, body, ws?, "}"]</code>.</p>
+<p><strong>Annotated.</strong> The annotation <code>-&gt; $3</code> lifts the typed <code>counted_quantifier_body</code> shape straight through, dropping the surrounding <code>{</code>, whitespace, and <code>}</code> tokens — they carry no semantic information beyond “this is a counted quantifier” (which the surrounding <code>quant_base</code> context already conveys).</p>
+<h3 id="current-shape-2"><a class="header" href="#current-shape-2">Current shape</a></h3>
+<pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
+</code></pre>
+<p>A typed <code>{min, max}</code> object, identical to whatever <code>counted_quantifier_body</code> emitted.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source input</th><th>Resulting shape at quant_base position</th></tr>
+</thead>
+<tbody>
+<tr><td><code>{2}</code></td><td><code>{"min": 2, "max": 2}</code></td></tr>
+<tr><td><code>{2,}</code></td><td><code>{"min": 2, "max": null}</code></td></tr>
+<tr><td><code>{2,5}</code></td><td><code>{"min": 2, "max": 5}</code></td></tr>
+<tr><td><code>{,5}</code></td><td><code>{"min": 0, "max": 5}</code></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="counted_quantifier_body"><a class="header" href="#counted_quantifier_body"><code>counted_quantifier_body</code></a></h2>
-<pre><code class="language-ebnf">counted_quantifier_body = digits ws? ("," ws? digits?)?
-                        | "," ws? digits
+<pre><code class="language-ebnf">counted_quantifier_body = digits "," digits ws?  -&gt; {min: $1, max: $3}
+                        | digits "," ws?         -&gt; {min: $1, max: null}
+                        | digits ws?             -&gt; {min: $1, max: $1}
+                        | "," ws? digits         -&gt; {min: 0,  max: $3}
 </code></pre>
-<p><strong>Un-annotated</strong> at this release. Two branches with four logical cases compressed inside the optional sub-group of branch 1. Each branch emits the raw Sequence of its body.</p>
-<h3 id="current-shape--branch-0"><a class="header" href="#current-shape--branch-0">Current shape — Branch 0</a></h3>
-<pre><code class="language-json">[
-  &lt;digits&gt;,                  // first count, typed integer (digits IS annotated)
-  &lt;ws-content&gt;,              // optional whitespace
-  &lt;optional [",", ws, digits?] sub-group&gt;
-]
+<p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). Each branch carries its own per-branch annotation producing the same <code>{min, max}</code> shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
+<h3 id="current-shape-3"><a class="header" href="#current-shape-3">Current shape</a></h3>
+<pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
 </code></pre>
-<p>For <code>{n}</code> (no comma): branch 0 matches with the optional sub-group empty, so the third slot is <code>[]</code>.
-For <code>{n,}</code> (comma, no second count): branch 0 matches with the sub-group present but its inner <code>digits?</code> empty.
-For <code>{n,m}</code> (full range): branch 0 matches with both digits present.</p>
-<h3 id="current-shape--branch-1"><a class="header" href="#current-shape--branch-1">Current shape — Branch 1</a></h3>
-<pre><code class="language-json">[",", &lt;ws-content&gt;, &lt;digits&gt;]
-</code></pre>
-<p>For <code>{,m}</code>: branch 1 matches.</p>
-<h3 id="walking-the-body-shape"><a class="header" href="#walking-the-body-shape">Walking the body shape</a></h3>
-<p>Because <code>digits</code> IS annotated to a typed integer at this release, the digit values inside <code>counted_quantifier_body</code> are direct <code>serde_json::Value::Number</code> integers — no concatenation needed.</p>
-<p>A consumer extracting count bounds:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn extract_count_bounds(body: &amp;Value) -&gt; Option&lt;(u64, Option&lt;u64&gt;)&gt; {
-    let arr = body.as_array()?;
-    // Branch detection by first element shape:
-    //   Number → branch 0 (starts with digits).
-    //   String "," → branch 1 (starts with comma, {,m} form).
-    if matches!(arr.first(), Some(Value::String(s)) if s == ",") {
-        // Branch 1: {,m}
-        let max = arr.get(2)?.as_u64()?;
-        return Some((0, Some(max)));
-    }
-    // Branch 0 — first element is digits (a typed integer)
-    let min = arr.first()?.as_u64()?;
-    // arr[2] is the optional ("," ws? digits?)? sub-group
-    let sub = arr.get(2)?;
-    if let Some(sub_arr) = sub.as_array() {
-        if sub_arr.is_empty() {
-            return Some((min, Some(min))); // {n} — no comma
-        }
-        // sub_arr is the [",", ws?, digits?] inner Sequence
-        let inner_digits_slot = sub_arr.get(2)?;
-        // inner_digits_slot is the digits?'s Quantified-? slot
-        if let Some(inner_arr) = inner_digits_slot.as_array() {
-            if inner_arr.is_empty() {
-                return Some((min, None));     // {n,}
-            }
-            let max = inner_arr.first()?.as_u64()?;
-            return Some((min, Some(max)));     // {n,m}
-        }
-    }
-    None
-}
-<span class="boring">}</span></code></pre>
-<p>(The branching here is what motivated splitting <code>counted_quantifier_body</code> into 4 explicit branches in a future slice — when that lands, the consumer code becomes a single-line field lookup.)</p>
+<p><code>min</code> is always a typed integer (<code>Number</code>). <code>max</code> is either a typed integer (<code>Number</code>) or <code>null</code> (when the source uses the unbounded <code>{n,}</code> form).</p>
+<h3 id="why-the-four-branches"><a class="header" href="#why-the-four-branches">Why the four branches</a></h3>
+<p>The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.</p>
+<p>The book entry for <a href="examples-quoted-literal.html">\Q…\E Quoted Literals</a> and <a href="examples-quantifiers.html">Quantifiers</a> shows this typed shape in worked examples.</p>
 <h2 id="quant_suffix"><a class="header" href="#quant_suffix"><code>quant_suffix</code></a></h2>
 <pre><code class="language-ebnf">quant_suffix = "?" -&gt; "lazy"
              | "+" -&gt; "possessive"
@@ -350,7 +325,7 @@ digits = /([0-9]+)/
     if arr.is_empty() {
         return None; // no quantifier
     }
-    // arr[0] = quant_base (raw "*", "+", "?", or counted_quantifier Sequence)
+    // arr[0] = quant_base (raw "*", "+", "?", or typed {min, max} object)
     // arr[1] = quant_suffix? — empty array, "lazy", or "possessive"
     let base = &amp;arr[0];
     let suffix = &amp;arr[1];
@@ -359,11 +334,23 @@ digits = /([0-9]+)/
         Value::String(s) if s == "*" =&gt; (0, None),
         Value::String(s) if s == "+" =&gt; (1, None),
         Value::String(s) if s == "?" =&gt; (0, Some(1)),
-        Value::Array(seq) =&gt; {
-            // counted_quantifier — Sequence shape: ["{", ws?, body, ws?, "}"]
-            // Body is at index 2.
-            let body = seq.get(2)?;
-            extract_count_bounds(body)?
+        Value::Object(map) =&gt; {
+            // counted_quantifier — typed {min, max} object directly.
+            let min = map.get("min")?.as_u64()?;
+            let max = map.get("max").and_then(|v| match v {
+                Value::Number(n) =&gt; n.as_u64(),
+                Value::Null =&gt; None,
+                _ =&gt; None,
+            });
+            // Note: max == None if the JSON value is null OR the field is missing.
+            // For counted_quantifier_body the field is always present; null marks
+            // the unbounded `{n,}` form.
+            let max = match map.get("max") {
+                Some(Value::Null) =&gt; None,
+                Some(Value::Number(n)) =&gt; n.as_u64(),
+                _ =&gt; None,
+            };
+            (min, max)
         }
         _ =&gt; return None,
     };
@@ -377,16 +364,21 @@ digits = /([0-9]+)/
     Some(Quantifier { min, max, greediness })
 }
 <span class="boring">}</span></code></pre>
+<p>The dispatch is now: shorthand quantifiers come through as bare strings; counted quantifiers come through as typed <code>{min, max}</code> objects. No structural digging into Sequence wrappers required.</p>
 <h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>Future PGEN releases will annotate the remaining quantifier-subtree rules. Target shape for the unified <code>quantifier</code> rule:</p>
+<p>Two slices remain in the quantifier-subtree campaign:</p>
+<ul>
+<li><code>quant_base</code> annotation. Goal: emit <code>"*"</code>/<code>"+"</code>/<code>"?"</code> as typed strings (no shape change to consumers — they’re already strings — but cleaner once it’s official) and lift <code>counted_quantifier</code>’s typed object straight through.</li>
+<li><code>quantifier</code> annotation. Goal: combine <code>quant_base</code> and <code>quant_suffix?</code> into a single typed object:</li>
+</ul>
 <pre><code class="language-json">{
   "type": "quantifier",
   "min": 2,
-  "max": null,           // null = unbounded
-  "greediness": "greedy" // "greedy" | "lazy" | "possessive"
+  "max": null,
+  "greediness": "greedy"
 }
 </code></pre>
-<p>The slices to land that target shape are tracked under task #40 in PGEN’s tracker. When RGX bumps PGEN to a release containing them, this book chapter will be updated. Until then, the per-rule walking above is operative.</p>
+<p>When that final slice lands, the consumer’s <code>extract_quantifier</code> walker collapses to a 4-line field read. The slices are tracked under task #40 in PGEN’s tracker.</p>
 
                     </main>
 

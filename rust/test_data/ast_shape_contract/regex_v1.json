@@ -85,6 +85,12 @@
         "normalized_text": "[$1**]"
       },
       {
+        "rule": "counted_quantifier",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$3"
+      },
+      {
         "rule": "counted_quantifier_body",
         "branch_index": 0,
         "annotation_type": "return_object",

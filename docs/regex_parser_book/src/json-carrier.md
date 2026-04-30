@@ -11,8 +11,7 @@ A `Json(serde_json::Value)` is the runtime representation of the typed shape tha
 - `Value::String(String)` — for `-> "..."` annotations.
 - `Value::Number(Number)` — for numeric literal annotations and integer-coerced `@transform` matches.
 - `Value::Bool(bool)` — for `-> true`/`-> false` annotations.
-
-At this release the annotation language does not yet support a `null` literal — future PGEN releases add it. Until then, "absent" is represented by an empty array `[]` (the byte-shape of an unmatched `?`-Quantified) or by omitting the field from the parent object.
+- `Value::Null` — for `-> null` annotations (added in the slice that introduced typed `counted_quantifier_body` `{min, max:null}` for the unbounded `{n,}` form).
 
 ## When it appears
 
@@ -27,6 +26,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `piece` (branch 1) | `-> {type: "piece", atom: $1, quantifier: $2}` | Object `{type, atom, quantifier}` |
 | `piece_quoted_run_quantified` | `-> [$2**, {type: "piece", atom: $3, quantifier: $5}]` | Array of piece-objects |
 | `quoted_run_inner_piece` | `-> {type: "piece", atom: $1, quantifier: []}` | Object `{type, atom, quantifier:[]}` |
+| `counted_quantifier` | `-> $3` | Whatever `counted_quantifier_body` produced (transparent passthrough) |
+| `counted_quantifier_body` (branch 0) | `-> {min: $1, max: $3}` | Object `{min, max}` (`{n,m}` form) |
+| `counted_quantifier_body` (branch 1) | `-> {min: $1, max: null}` | Object `{min, max:null}` (`{n,}` unbounded form) |
+| `counted_quantifier_body` (branch 2) | `-> {min: $1, max: $1}` | Object `{min, max}` (`{n}` form, max == min) |
+| `counted_quantifier_body` (branch 3) | `-> {min: 0, max: $3}` | Object `{min:0, max}` (`{,m}` form) |
 | `quant_suffix` (branch 0) | `-> "lazy"` | String `"lazy"` |
 | `quant_suffix` (branch 1) | `-> "possessive"` | String `"possessive"` |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
@@ -79,7 +83,7 @@ Most object-shaped `Json` values carry a `"type"` field as their discriminator. 
 - `"regex"` — emitted by the `regex` rule.
 - `"piece"` — emitted by all piece-emitting rules.
 
-Counted-quantifier bodies and quant_suffix outputs do NOT have `"type"` discriminators because their shape is unambiguous from context (they always appear inside a `quantifier` slot).
+Counted-quantifier bodies (the typed `{min, max}` shape) and quant_suffix outputs do NOT have `"type"` discriminators because their shape is unambiguous from context (they always appear inside a `quantifier` slot).
 
 When walking, treat `"type"` as the canonical discriminator when present. Don't rely on field-presence as a proxy for type — that will silently break when a future shape adds optional fields.
 

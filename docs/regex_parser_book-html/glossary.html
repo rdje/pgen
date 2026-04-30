@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -183,7 +183,7 @@
                         <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <p>Definitions for terms used throughout this book and in the surrounding PGEN documentation. Where a term has both a PGEN-specific meaning and a general regex/parsing meaning, the PGEN-specific one is given.</p>
 <h2 id="annotation-language"><a class="header" href="#annotation-language">Annotation language</a></h2>
-<p>The expression language used inside <code>-&gt; ...</code> clauses in EBNF rules. Syntactic forms documented in <code>grammars/return_annotation.ebnf</code> and <code>grammars/builtin_return_annotation.ebnf</code>. Includes positional refs (<code>$1</code>, <code>$2</code>, …), object literals, array literals, string/number/boolean literals, the spread operator <code>*</code>, the flatten-spread <code>**</code>, and (in 1.1.34+) the <code>null</code> literal.</p>
+<p>The expression language used inside <code>-&gt; ...</code> clauses in EBNF rules. Syntactic forms documented in <code>grammars/return_annotation.ebnf</code> and <code>grammars/builtin_return_annotation.ebnf</code>. Includes positional refs (<code>$1</code>, <code>$2</code>, …), object literals, array literals, string/number/boolean literals, the <code>null</code> literal, the spread operator <code>*</code>, and the flatten-spread <code>**</code>.</p>
 <h2 id="ast-envelope"><a class="header" href="#ast-envelope">AST envelope</a></h2>
 <p>The recursive <code>ParseNode { rule_name, content, span }</code> structure. “Envelope” = the structural shell that wraps every parser output. Pre-1.1.30 the envelope was the entire AST; 1.1.30+ adds typed-Json content as an inner shape.</p>
 <h2 id="atom"><a class="header" href="#atom">Atom</a></h2>
@@ -205,7 +205,7 @@
 <h2 id="concatenation"><a class="header" href="#concatenation">Concatenation</a></h2>
 <p>A grammar rule and a regex concept. The <code>concatenation</code> rule produces a flat sequence of pieces — <code>concatenation = piece+ -&gt; [$1**]</code>. The <code>**</code> flatten-spread is what produces the flat array (without it, the output would be a deeply-nested chain of Quantified wrappers).</p>
 <h2 id="counted-quantifier"><a class="header" href="#counted-quantifier">Counted quantifier</a></h2>
-<p>A quantifier of the form <code>{n}</code>, <code>{n,}</code>, <code>{,m}</code>, or <code>{n,m}</code>. Parsed by the <code>counted_quantifier</code> rule, with body parsed by <code>counted_quantifier_body</code> (currently 2-branch raw envelope at this release; slice 3 in a later release adds typed <code>{min, max}</code> Json).</p>
+<p>A quantifier of the form <code>{n}</code>, <code>{n,}</code>, <code>{,m}</code>, or <code>{n,m}</code>. Parsed by the <code>counted_quantifier</code> rule (<code>-&gt; $3</code>, lifts the body’s typed shape), with body parsed by <code>counted_quantifier_body</code> (4 explicit branches each emitting a typed <code>{min, max}</code> object — <code>min</code> is always integer, <code>max</code> is integer-or-null for the unbounded form). Both rules annotated in slices 3+4 of the typed-shape campaign.</p>
 <h2 id="discriminator"><a class="header" href="#discriminator">Discriminator</a></h2>
 <p>The field in a Json object whose value tells the consumer which kind of object this is. In the regex AST, the convention is <code>"type"</code>: <code>"regex"</code>, <code>"piece"</code>, etc. See <a href="json-carrier.html">The Json Carrier</a>.</p>
 <h2 id="ebnf"><a class="header" href="#ebnf">EBNF</a></h2>
@@ -265,7 +265,7 @@
 <h2 id="un-annotated-chain"><a class="header" href="#un-annotated-chain">Un-annotated chain</a></h2>
 <p>A descent through multiple rules that all use implicit <code>-&gt; $1</code> (single-positional pass-through). Produces nested Alternative-wrapped layers in the AST, e.g. <code>escape_unit → simple_escape → any_char → /char/</code> chains four wrappers around one terminal. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array.</p>
 <h2 id="unifiedreturnast"><a class="header" href="#unifiedreturnast">UnifiedReturnAST</a></h2>
-<p>The Rust enum representing parsed return-annotation expressions, defined in <code>rust/src/ast_pipeline/unified_return_ast.rs</code>. Variants: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral (1.1.34+), Object, Array, Spread, FlattenSpread, PropertyAccess, ArrayAccess, QuantifiedExtraction, Identifier, Passthrough.</p>
+<p>The Rust enum representing parsed return-annotation expressions, defined in <code>rust/src/ast_pipeline/unified_return_ast.rs</code>. Variants: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral, Object, Array, Spread, FlattenSpread, PropertyAccess, ArrayAccess, QuantifiedExtraction, Identifier, Passthrough.</p>
 
                     </main>
 

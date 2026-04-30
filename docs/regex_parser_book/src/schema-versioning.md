@@ -126,6 +126,8 @@ When you upgrade PGEN, this test will fail loudly on any shape change. Re-baseli
 | 0.7.0 | 1.1.31 | PGEN-RGX-0074 fix: `\Q...\E` per-char piece array. New `**` flatten-spread semantics. |
 | 0.7.1 | 1.1.32 | `digits` → integer (slice 1). Within-version-line shape addition (additive). |
 | 0.7.2 | 1.1.33 | `quant_suffix` → enum string (slice 2). |
+| 0.8.0 | post-1.1.33 main | `counted_quantifier_body` → typed `{min, max}` (slice 3). New `null` literal in the annotation language. |
+| 0.8.1 | post-1.1.33 main | `counted_quantifier` → `-> $3` lifts body's typed shape (slice 4). |
 
 (Numbers above match the contract document at the time this book was written. The contract is authoritative for the current state — consult it for the live version.)
 

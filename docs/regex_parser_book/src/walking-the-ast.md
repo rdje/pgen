@@ -170,13 +170,13 @@ Every piece carries a `quantifier` slot. The slot's content is currently the raw
 - **With quantifier:** `"quantifier": [<quant_base>, <quant_suffix>]`.
   - `<quant_base>` is one of:
     - `"*"`, `"+"`, `"?"` (raw terminals — the `quant_base` rule is not yet annotated).
-    - The `counted_quantifier` shape — currently raw, see below.
+    - A typed `{min, max}` object — for counted quantifiers (`counted_quantifier` is annotated `-> $3`, lifting the body's typed shape).
   - `<quant_suffix>` is one of:
     - `[]` (empty — no `?` or `+` modifier).
     - `"lazy"` (annotated value when `?` appears as a quantifier modifier).
     - `"possessive"` (annotated value when `+` appears as a quantifier modifier).
 
-For counted quantifiers like `{2,5}`, the `<quant_base>` slot today emits the raw `Sequence` of `["{", ws?, body, ws?, "}"]` because `counted_quantifier` is not yet annotated, and `counted_quantifier_body` is also not yet annotated at this release — it still emits its raw 2-branch shape. The leaf `digits` rule IS annotated, so the actual count values inside the body shape are typed integers. Consumers extracting count bounds today walk the raw `counted_quantifier_body` shape per the [Quantifier Subtree](rules-quantifier.md) chapter and pull the typed integers from the digit slots.
+For counted quantifiers like `{2,5}`, the `<quant_base>` slot emits a typed `{min, max}` object directly — no Sequence wrapping, no digging into the body shape. Both `counted_quantifier` (`-> $3`) and `counted_quantifier_body` (per-branch `{min, max}` annotations) are now annotated. The leaf `digits` rule emits typed integers, so `min` is always `Number`; `max` is `Number` for bounded forms or JSON `null` for the unbounded `{n,}` form. The walk recipe is a single `as_object().get("min")` lookup — no branch detection. See the [Quantifier Subtree](rules-quantifier.md) chapter for full details.
 
 The [Quantifier Subtree](rules-quantifier.md) chapter walks this in detail.
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f187406.js";
+            window.path_to_searchindex_js = "searchindex-db44b383.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -188,6 +188,8 @@
 <li>Migrate consumer code across PGEN releases when the AST shape evolves.</li>
 </ul>
 <p>If you are a downstream consumer, you should be able to read this book end-to-end and have everything you need to integrate the parser into your build, parse a regex source string, and traverse the resulting AST to produce whatever consumer-side representation you need (a compiled matcher, an evaluator, a pretty-printer, etc.).</p>
+<h2 id="book-status-live"><a class="header" href="#book-status-live">Book status: live</a></h2>
+<p>This is a <strong>live book</strong> — it is updated in lockstep with the regex parser. Every parser release that changes the AST shape lands together with the book updates that document the new shape, in the same commit window. Reading any commit’s snapshot of this book gives you the AST description for that commit’s parser. If you observe a shape that disagrees with the book, that’s a documentation bug — please report.</p>
 <h2 id="what-this-book-is"><a class="header" href="#what-this-book-is">What this book is</a></h2>
 <ul>
 <li>The <strong>single source of truth</strong> for the regex parser’s runtime AST shape, by rule and by example.</li>

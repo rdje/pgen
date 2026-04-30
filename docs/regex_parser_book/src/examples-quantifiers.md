@@ -66,22 +66,14 @@ Concrete probe outputs for the seven PCRE2 quantifier forms × three greediness 
 {
   "atom": "a",
   "quantifier": [
-    [
-      "{",
-      [],                       // optional ws — empty
-      [<digits=3>, [], []],     // counted_quantifier_body branch 0
-      [],                       // trailing optional ws
-      "}"
-    ],
-    []                          // no suffix
+    { "min": 3, "max": 3 },
+    []
   ],
   "type": "piece"
 }
 ```
 
-The counted_quantifier shape is the raw 5-element Sequence. The body at `quantifier[0][2]` is the un-annotated `counted_quantifier_body` Sequence; for `{3}` (just `digits`, no comma), the shape is `[<digits>, <ws?>, <optional sub-group>]` with the sub-group `[]` (not matched).
-
-`<digits=3>` is the typed integer `3` (from the annotated `digits` rule).
+`counted_quantifier`'s `-> $3` annotation lifts `counted_quantifier_body`'s typed `{min, max}` straight through, dropping the surrounding `{`, whitespace, and `}` tokens. The body's branch 2 (`digits ws? -> {min: $1, max: $1}`) duplicates the single source count into both fields.
 
 ## `a{2,5}` (range count)
 
@@ -89,28 +81,14 @@ The counted_quantifier shape is the raw 5-element Sequence. The body at `quantif
 {
   "atom": "a",
   "quantifier": [
-    [
-      "{",
-      [],
-      [
-        <digits=2>,
-        [],
-        [                       // sub-group: ["," ws? digits?]
-          ",",
-          [],
-          [<digits=5>]           // digits? slot — matched
-        ]
-      ],
-      [],
-      "}"
-    ],
+    { "min": 2, "max": 5 },
     []
   ],
   "type": "piece"
 }
 ```
 
-The sub-group at body index 2 is now present: `[",", <ws>, <digits-Quantified>]`. The inner `[<digits=5>]` is the `Quantified-?` slot containing the second count.
+Branch 0 of `counted_quantifier_body` — `digits "," digits ws? -> {min: $1, max: $3}`.
 
 ## `a{2,}` (min only)
 
@@ -118,28 +96,14 @@ The sub-group at body index 2 is now present: `[",", <ws>, <digits-Quantified>]`
 {
   "atom": "a",
   "quantifier": [
-    [
-      "{",
-      [],
-      [
-        <digits=2>,
-        [],
-        [
-          ",",
-          [],
-          []                     // digits? slot — empty (no upper bound)
-        ]
-      ],
-      [],
-      "}"
-    ],
+    { "min": 2, "max": null },
     []
   ],
   "type": "piece"
 }
 ```
 
-The sub-group is matched (comma is present), but the inner `digits?` slot is empty — meaning unbounded.
+Branch 1 of `counted_quantifier_body` — `digits "," ws? -> {min: $1, max: null}`. The unbounded upper bound is encoded as a typed JSON `null` (the `null` literal added in the same slice that introduced this typed shape).
 
 ## `a{,5}` (PCRE2 implicit min=0)
 
@@ -147,24 +111,14 @@ The sub-group is matched (comma is present), but the inner `digits?` slot is emp
 {
   "atom": "a",
   "quantifier": [
-    [
-      "{",
-      [],
-      [                          // counted_quantifier_body branch 1
-        ",",
-        [],
-        <digits=5>
-      ],
-      [],
-      "}"
-    ],
+    { "min": 0, "max": 5 },
     []
   ],
   "type": "piece"
 }
 ```
 
-This is **branch 1** of `counted_quantifier_body` — starts with comma directly (no leading digits). The 3-element shape is `[",", <ws>, <digits>]`. Distinguish from branch 0 by inspecting the FIRST element: if it's a Number (typed integer), branch 0; if it's the string `","`, branch 1.
+Branch 3 of `counted_quantifier_body` — `"," ws? digits -> {min: 0, max: $3}`. The implicit `min=0` is a literal numeric in the annotation, not derived from the source.
 
 ## `a{2,5}?` (lazy range)
 
@@ -181,18 +135,35 @@ This is **branch 1** of `counted_quantifier_body` — starts with comma directly
 
 The `quant_suffix?` slot now carries the typed string `"lazy"`.
 
-## `a{2,5}+` (possessive range)
+## `a{2,5}?` and `a{2,5}+` (lazy / possessive range)
+
+For `a{2,5}?`:
 
 ```json
 {
   "atom": "a",
   "quantifier": [
-    [<counted_quantifier shape with min=2 max=5>],
+    { "min": 2, "max": 5 },
+    "lazy"
+  ],
+  "type": "piece"
+}
+```
+
+For `a{2,5}+`:
+
+```json
+{
+  "atom": "a",
+  "quantifier": [
+    { "min": 2, "max": 5 },
     "possessive"
   ],
   "type": "piece"
 }
 ```
+
+The counted-quantifier body is the same typed object regardless of greediness; the `quant_suffix?` slot independently carries `"lazy"` / `"possessive"` / `[]`.
 
 ## Consumer extraction
 
@@ -205,41 +176,18 @@ fn extract_quant(piece: &Value) -> Option<Quantifier> {
         Value::String(s) if s == "*" => (0u64, None),
         Value::String(s) if s == "+" => (1, None),
         Value::String(s) if s == "?" => (0, Some(1)),
-        Value::Array(seq) => {
-            // counted_quantifier — Sequence ["{", ws, body, ws, "}"]
-            let body = seq.get(2)?.as_array()?;
-            // Determine branch:
-            //   body[0] is a typed integer  → branch 0 (digits-first)
-            //   body[0] is the string ","   → branch 1 (comma-first)
-            match body.first() {
-                Some(Value::Number(_)) => {
-                    let min = body[0].as_u64()?;
-                    let sub = body.get(2)?;
-                    // sub is the optional ("," ws? digits?)? Quantified
-                    // []     → no comma → exact {n}
-                    // [...]  → comma present → look at inner [2] for max
-                    if let Some(sub_arr) = sub.as_array() {
-                        if sub_arr.is_empty() {
-                            return Some(Quantifier { min, max: Some(min), greediness: Greediness::Greedy });
-                        }
-                        // sub_arr is the inner Sequence [",", ws?, digits?]
-                        let max_slot = sub_arr.get(2)?.as_array()?;
-                        // digits? — Quantified-?
-                        let max_val = max_slot.first().and_then(|d| d.as_u64());
-                        return Some(Quantifier { min, max: max_val, greediness: Greediness::Greedy });
-                    }
-                    None
-                }
-                Some(Value::String(s)) if s == "," => {
-                    // Branch 1: {,m}
-                    let max = body.get(2)?.as_u64()?;
-                    Some(Quantifier { min: 0, max: Some(max), greediness: Greediness::Greedy })
-                }
-                _ => None,
-            }
+        Value::Object(map) => {
+            // counted_quantifier — typed {min, max} object directly.
+            let min = map.get("min")?.as_u64()?;
+            let max = match map.get("max") {
+                Some(Value::Null) => None,            // unbounded `{n,}`
+                Some(Value::Number(n)) => n.as_u64(), // bounded
+                _ => return None,
+            };
+            (min, max)
         }
         _ => return None,
-    }?;
+    };
 
     let greediness = match &q[1] {
         Value::String(s) if s == "lazy" => Greediness::Lazy,
@@ -251,4 +199,4 @@ fn extract_quant(piece: &Value) -> Option<Quantifier> {
 }
 ```
 
-Once future PGEN slices land typed `counted_quantifier_body` and unified `quantifier` shapes, this function collapses to a few `value.get("min").as_u64()` lookups.
+Once the remaining quantifier-subtree slices land (`quant_base`, then unified `quantifier` with `{type:"quantifier", min, max, greediness}`), this function collapses to a 4-line typed-field read.

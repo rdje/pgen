@@ -1,6 +1,6 @@
 # Quantifier Subtree
 
-Six grammar rules cover quantifier syntax. **At the parser release this book describes (post-PGEN-RGX-0074, after the cold-clone bootstrap landed), `digits` and `quant_suffix` are annotated. The remaining four (`quantifier`, `quant_base`, `counted_quantifier`, `counted_quantifier_body`) are not yet — they emit raw envelope shapes and will be annotated in successive future slices.**
+Six grammar rules cover quantifier syntax. **At the parser release this book describes (current main HEAD, post-slices-1-through-4), `digits`, `quant_suffix`, `counted_quantifier_body`, and `counted_quantifier` are annotated. Two remain un-annotated: the outer `quantifier` and the `quant_base` Or rule. Those will be annotated in successive future slices.**
 
 ## `quantifier`
 
@@ -18,7 +18,7 @@ quantifier = quant_base quant_suffix?
 
 `<quant_base-content>` is one of:
 - `"*"`, `"+"`, `"?"` — for shorthand quantifiers (raw terminals).
-- A `Sequence` of `["{", ws?, <counted_quantifier_body>, ws?, "}"]` — for counted quantifiers.
+- A typed `{min, max}` object — for counted quantifiers (`{n}`, `{n,}`, `{n,m}`, `{,m}`).
 
 `<quant_suffix?-content>` is one of:
 - `[]` — when no `?`/`+` suffix.
@@ -31,95 +31,63 @@ quantifier = quant_base quant_suffix?
 quant_base = "*" | "+" | "?" | counted_quantifier
 ```
 
-**Un-annotated.** Each branch emits the raw matched text or the un-annotated `counted_quantifier` Sequence.
+**Un-annotated.** Each branch emits the raw matched text or the typed `counted_quantifier` shape passed straight through.
 
 ### Current shape
 
 - Branch 0 (`*`): `Terminal("*")`. Visible in JSON as the bare string `"*"`.
 - Branch 1 (`+`): `Terminal("+")`. Visible as `"+"`.
 - Branch 2 (`?`): `Terminal("?")`. Visible as `"?"`.
-- Branch 3 (`counted_quantifier`): nested counted quantifier shape — see below.
+- Branch 3 (`counted_quantifier`): the typed `{min, max}` object directly (because `counted_quantifier` itself lifts the body's typed shape).
 
 ## `counted_quantifier`
 
 ```ebnf
 counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+-> $3
 ```
 
-**Un-annotated.** Output is the raw 5-element Sequence: `["{", ws?, body, ws?, "}"]`.
+**Annotated.** The annotation `-> $3` lifts the typed `counted_quantifier_body` shape straight through, dropping the surrounding `{`, whitespace, and `}` tokens — they carry no semantic information beyond "this is a counted quantifier" (which the surrounding `quant_base` context already conveys).
+
+### Current shape
+
+```json
+{ "min": <usize>, "max": <usize | null> }
+```
+
+A typed `{min, max}` object, identical to whatever `counted_quantifier_body` emitted.
+
+| Source input | Resulting shape at quant_base position |
+|---|---|
+| `{2}` | `{"min": 2, "max": 2}` |
+| `{2,}` | `{"min": 2, "max": null}` |
+| `{2,5}` | `{"min": 2, "max": 5}` |
+| `{,5}` | `{"min": 0, "max": 5}` |
 
 ## `counted_quantifier_body`
 
 ```ebnf
-counted_quantifier_body = digits ws? ("," ws? digits?)?
-                        | "," ws? digits
+counted_quantifier_body = digits "," digits ws?  -> {min: $1, max: $3}
+                        | digits "," ws?         -> {min: $1, max: null}
+                        | digits ws?             -> {min: $1, max: $1}
+                        | "," ws? digits         -> {min: 0,  max: $3}
 ```
 
-**Un-annotated** at this release. Two branches with four logical cases compressed inside the optional sub-group of branch 1. Each branch emits the raw Sequence of its body.
+**Annotated.** Four explicit branches, one per logical case (`{n,m}`, `{n,}`, `{n}`, `{,m}`). Each branch carries its own per-branch annotation producing the same `{min, max}` shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so `{2,5}` matches the range form before falling through to `{2,}` or `{2}`.
 
-### Current shape — Branch 0
+### Current shape
 
 ```json
-[
-  <digits>,                  // first count, typed integer (digits IS annotated)
-  <ws-content>,              // optional whitespace
-  <optional [",", ws, digits?] sub-group>
-]
+{ "min": <usize>, "max": <usize | null> }
 ```
 
-For `{n}` (no comma): branch 0 matches with the optional sub-group empty, so the third slot is `[]`.
-For `{n,}` (comma, no second count): branch 0 matches with the sub-group present but its inner `digits?` empty.
-For `{n,m}` (full range): branch 0 matches with both digits present.
+`min` is always a typed integer (`Number`). `max` is either a typed integer (`Number`) or `null` (when the source uses the unbounded `{n,}` form).
 
-### Current shape — Branch 1
+### Why the four branches
 
-```json
-[",", <ws-content>, <digits>]
-```
+The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.
 
-For `{,m}`: branch 1 matches.
-
-### Walking the body shape
-
-Because `digits` IS annotated to a typed integer at this release, the digit values inside `counted_quantifier_body` are direct `serde_json::Value::Number` integers — no concatenation needed.
-
-A consumer extracting count bounds:
-
-```rust
-fn extract_count_bounds(body: &Value) -> Option<(u64, Option<u64>)> {
-    let arr = body.as_array()?;
-    // Branch detection by first element shape:
-    //   Number → branch 0 (starts with digits).
-    //   String "," → branch 1 (starts with comma, {,m} form).
-    if matches!(arr.first(), Some(Value::String(s)) if s == ",") {
-        // Branch 1: {,m}
-        let max = arr.get(2)?.as_u64()?;
-        return Some((0, Some(max)));
-    }
-    // Branch 0 — first element is digits (a typed integer)
-    let min = arr.first()?.as_u64()?;
-    // arr[2] is the optional ("," ws? digits?)? sub-group
-    let sub = arr.get(2)?;
-    if let Some(sub_arr) = sub.as_array() {
-        if sub_arr.is_empty() {
-            return Some((min, Some(min))); // {n} — no comma
-        }
-        // sub_arr is the [",", ws?, digits?] inner Sequence
-        let inner_digits_slot = sub_arr.get(2)?;
-        // inner_digits_slot is the digits?'s Quantified-? slot
-        if let Some(inner_arr) = inner_digits_slot.as_array() {
-            if inner_arr.is_empty() {
-                return Some((min, None));     // {n,}
-            }
-            let max = inner_arr.first()?.as_u64()?;
-            return Some((min, Some(max)));     // {n,m}
-        }
-    }
-    None
-}
-```
-
-(The branching here is what motivated splitting `counted_quantifier_body` into 4 explicit branches in a future slice — when that lands, the consumer code becomes a single-line field lookup.)
+The book entry for [\Q...\E Quoted Literals](examples-quoted-literal.md) and [Quantifiers](examples-quantifiers.md) shows this typed shape in worked examples.
 
 ## `quant_suffix`
 
@@ -198,7 +166,7 @@ fn extract_quantifier(piece: &Value) -> Option<Quantifier> {
     if arr.is_empty() {
         return None; // no quantifier
     }
-    // arr[0] = quant_base (raw "*", "+", "?", or counted_quantifier Sequence)
+    // arr[0] = quant_base (raw "*", "+", "?", or typed {min, max} object)
     // arr[1] = quant_suffix? — empty array, "lazy", or "possessive"
     let base = &arr[0];
     let suffix = &arr[1];
@@ -207,11 +175,23 @@ fn extract_quantifier(piece: &Value) -> Option<Quantifier> {
         Value::String(s) if s == "*" => (0, None),
         Value::String(s) if s == "+" => (1, None),
         Value::String(s) if s == "?" => (0, Some(1)),
-        Value::Array(seq) => {
-            // counted_quantifier — Sequence shape: ["{", ws?, body, ws?, "}"]
-            // Body is at index 2.
-            let body = seq.get(2)?;
-            extract_count_bounds(body)?
+        Value::Object(map) => {
+            // counted_quantifier — typed {min, max} object directly.
+            let min = map.get("min")?.as_u64()?;
+            let max = map.get("max").and_then(|v| match v {
+                Value::Number(n) => n.as_u64(),
+                Value::Null => None,
+                _ => None,
+            });
+            // Note: max == None if the JSON value is null OR the field is missing.
+            // For counted_quantifier_body the field is always present; null marks
+            // the unbounded `{n,}` form.
+            let max = match map.get("max") {
+                Some(Value::Null) => None,
+                Some(Value::Number(n)) => n.as_u64(),
+                _ => None,
+            };
+            (min, max)
         }
         _ => return None,
     };
@@ -226,17 +206,22 @@ fn extract_quantifier(piece: &Value) -> Option<Quantifier> {
 }
 ```
 
+The dispatch is now: shorthand quantifiers come through as bare strings; counted quantifiers come through as typed `{min, max}` objects. No structural digging into Sequence wrappers required.
+
 ## Future direction
 
-Future PGEN releases will annotate the remaining quantifier-subtree rules. Target shape for the unified `quantifier` rule:
+Two slices remain in the quantifier-subtree campaign:
+
+- `quant_base` annotation. Goal: emit `"*"`/`"+"`/`"?"` as typed strings (no shape change to consumers — they're already strings — but cleaner once it's official) and lift `counted_quantifier`'s typed object straight through.
+- `quantifier` annotation. Goal: combine `quant_base` and `quant_suffix?` into a single typed object:
 
 ```json
 {
   "type": "quantifier",
   "min": 2,
-  "max": null,           // null = unbounded
-  "greediness": "greedy" // "greedy" | "lazy" | "possessive"
+  "max": null,
+  "greediness": "greedy"
 }
 ```
 
-The slices to land that target shape are tracked under task #40 in PGEN's tracker. When RGX bumps PGEN to a release containing them, this book chapter will be updated. Until then, the per-rule walking above is operative.
+When that final slice lands, the consumer's `extract_quantifier` walker collapses to a 4-line field read. The slices are tracked under task #40 in PGEN's tracker.
