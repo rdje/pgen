@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - regex.ebnf annotation slice 2: quant_suffix → typed string + retroactive contract bumps + ledger cleanup
+
+### Slice scope
+One rule: `quant_suffix`. Per-branch annotations replace raw token output with semantic strings.
+
+```ebnf
+# Before
+quant_suffix   = "?"
+               | "+"
+
+# After
+quant_suffix   = "?" -> "lazy"
+               | "+" -> "possessive"
+```
+
+Output: at the `quant_suffix?` position inside `quantifier`, consumers now see a typed string (`"lazy"` / `"possessive"`) instead of a raw `Terminal` carrying the literal token.
+
+### Retroactive contract bumps
+I had previously deferred contract bumps for slice 1 (`digits`) on the grounds that `digits` is "internal-only". That reasoning was wrong: the typed integer at the `digits` position bubbles up into `counted_quantifier`/`quantifier`'s shape, which IS consumer-visible. Owner caught the gap. Bumping retroactively:
+- Parser `1.1.32` / contract `1.1.34` — slice 1 (digits typed integer).
+- Parser `1.1.33` / contract `1.1.35` — slice 2 (quant_suffix typed string).
+
+Going forward: every slice that produces an observable shape change bumps the contract identity and adds a per-version section in `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`. No deferral.
+
+### REGEX-0075 ledger row removed
+Commit `c78956d` (PGEN-RGX-0074 attachment fix) added a `REGEX-0075` row I had allocated. Per owner direction, ledger IDs are not auto-allocated by code-side work — they come from a separate process. That row was invalid and has been removed. Five stale references to `REGEX-0075` cleaned up across:
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (row deleted).
+- `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` (text reference removed from the 1.1.31/1.1.33 section).
+- `LIVE_ACHIEVEMENT_STATUS.md` (text reference removed from the PGEN-RGX-0074 tracker note).
+- `CHANGES.md` (text reference removed from the PGEN-RGX-0074 doc-sync list).
+- `DEVELOPMENT_NOTES.md` (text reference removed from the PGEN-RGX-0074 doc-sync list).
+
+### Verified
+- `make regex_parser`: clean regen.
+- `cargo test --lib --features generated_parsers`: 493 passed / 0 failed.
+- `make mdbook_docs_gate`: green.
+- Empirical dump:
+  - `a*` → `quantifier: ["*", []]` (no suffix; slot stays `[]`).
+  - `a*?` → `quantifier: ["*", "lazy"]` (was `["*", "?"]`).
+  - `a*+` → `quantifier: ["*", "possessive"]` (was `["*", "+"]`).
+
+### What didn't change
+- `quant_base`, `counted_quantifier`, `counted_quantifier_body`, `quantifier` itself — all still emit raw shape. Each is its own future slice.
+
 ## 2026-04-30 - regex.ebnf annotation slice 1: digits → typed integer
 
 ### Doctrine
@@ -100,7 +144,6 @@ The second regen produced a real parse function but the dump still showed the bu
 - `docs/RETURN_ANNOTATIONS_REFERENCE.md` — `**` operator + examples.
 - `docs/book/src/annotation-system.md` — flatten-spread section.
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` — release `1.1.31` / contract `1.1.33` section + identity bump.
-- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` — `REGEX-0075` row.
 
 ### Open follow-ups
 - Task #38 — fix EBNF parens-grouped-Or branch-attribution (the pre-existing `extract_rule_annotations` bug surfaced earlier).

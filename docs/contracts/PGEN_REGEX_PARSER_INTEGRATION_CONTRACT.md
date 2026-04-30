@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.33`
+  - `1.1.35`
 - Parser release version:
-  - `1.1.31`
+  - `1.1.33`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -28,9 +28,47 @@ This is the document downstream projects such as RGX should read first when deci
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
 
+## Release 1.1.33 / Contract 1.1.35 Highlights — quantifier-subtree typed-shape rollout (slice 2/N: `quant_suffix`)
+
+- Internal-driven shape work (no downstream report). Part of an ongoing campaign to make the regex AST fully typed — every field directly usable, no consumer-side parsing/extraction needed (per project doctrine).
+- **Rule changed: `quant_suffix`** in `grammars/regex.ebnf`. Per-branch annotations replaced raw token output with semantic strings:
+  - `quant_suffix = "?" -> "lazy" | "+" -> "possessive"`.
+- **AST shape change (consumer-visible)**: the `quant_suffix?` slot inside `quantifier` now carries the typed string `"lazy"` / `"possessive"` directly. Empirical:
+  - Before: input `a*?` → `quantifier: ["*", "?"]` (raw `Terminal("?")` in the Quantified-? slot).
+  - After:  input `a*?` → `quantifier: ["*", "lazy"]` (typed string).
+  - Same for `a*+` → `["*", "possessive"]`. Inputs without a suffix keep the existing `[]` shape (empty `Quantified-?`).
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_regex()`, `parser.parse_full_regex()`, `parse_regex_typed()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- This is a **partial step** in the quantifier-subtree work. The final published `quantifier` shape (target: `{type:"quantifier", min, max, greediness}`) is still pending the slices that close `counted_quantifier_body`, `counted_quantifier`, `quant_base`, and `quantifier`. Until then, RGX integrating against this version sees:
+  - Typed `min`/`max` integer scalars at the digits positions inside `counted_quantifier`.
+  - Typed `"lazy"` / `"possessive"` strings at the `quant_suffix` position in `quantifier`.
+  - Raw shape for the `quant_base` and outer `quantifier` slots (still `Sequence`/`Quantified` carriers).
+- Recommended RGX integration steps:
+  1. Update PGEN dependency to the post-`1.1.33` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` (default emit).
+  3. Update any code that pattern-matched on `Terminal("?")` / `Terminal("+")` at the `quant_suffix` position to match the typed strings instead.
+- Regex AST schema version stays `1`.
+
+## Release 1.1.32 / Contract 1.1.34 Highlights — quantifier-subtree typed-shape rollout (slice 1/N: `digits`)
+
+- Internal-driven shape work (no downstream report). First slice of the quantifier-subtree typed-shape campaign.
+- **Rule changed: `digits`** in `grammars/regex.ebnf`. Rewrote `digits = digit+` to `digits = /([0-9]+)/` paired with `@transform: str::parse::<usize>().unwrap_or(0)`. Output is now a typed integer at the rule directly.
+- **AST shape change (consumer-visible)**: every position in the AST that contained a `digits` sub-tree now contains a typed integer instead of a raw `Quantified(Terminal-per-char)` carrier. Affected positions:
+  - `counted_quantifier_body`'s digit slots (the `min` and `max` of `{n}`, `{n,}`, `{n,m}`, `{,m}`).
+  - `version_number`'s digit slots inside conditional version checks `(?(VERSION>=1.55)...)`.
+  - `recursion_condition`'s optional `digits?` slot inside `(?(R)...)` style conditions.
+  - `callout_arg`'s numeric form `(?C12)`.
+  - `backreference_digits = nonzero_digit digit*` is **NOT** affected — it uses the per-char `digit` rule.
+- Empirical: input `\Qab*\E{2,}` → `quantifier`'s digit position is `2` (integer) instead of `[["2"]]` (raw nested array).
+- Other digits-collection rules (`hex_digits`, `octal_digits`) are NOT included in this slice — they keep their existing per-char emit, queued as future slices in the campaign.
+- Public API surface unchanged. Regex AST schema version stays `1`.
+- Recommended RGX integration steps:
+  1. Update PGEN dependency to the post-`1.1.32` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser`.
+  3. Update any code that walked digits positions expecting a `Quantified`/`Terminal-per-char` shape — these positions now carry typed integers directly.
+
 ## Release 1.1.31 / Contract 1.1.33 Highlights — PGEN-RGX-0074 `\Q...\E` quantifier-attachment correctness
 
-- `1.1.31` closes RGX correctness report **PGEN-RGX-0074** (ledger row `REGEX-0075`).
+- `1.1.31` closes RGX correctness report **PGEN-RGX-0074**.
 - Per `pcre2pattern(3)` §"Backslash", a quantifier following `\Q...\E` applies only to the **last character** of the literal sequence; PGEN previously bound the quantifier to the entire quoted block.
 - AST shape change for `\Q...\E quantifier?` patterns (consumer-visible):
   - **Before:** one `piece` with `atom = quoted_literal(\Q...\E)` and the trailing quantifier attached to the whole block.
@@ -57,7 +95,7 @@ This is the document downstream projects such as RGX should read first when deci
 - **Cumulative speedup vs the original PGEN-RGX-0073 bug-bundle baseline**: literal_simple 22×, digit_sequence 20×, **character_class 53×**, alternation 29×, capture_groups 22×, url_simple 28×, email_basic 23×, **anchor_complex 27×**. Geomean ~25× faster across all 8 patterns. The biggest single-pattern win is `character_class` (originally 1.87ms, now 35µs).
 - **Public API surface unchanged**: `RegexParser::new`, `parser.parse_regex()`, `parser.parse_full_regex()` keep the same signatures. `ParseNode { content: ParseContent, rule_name, span }` and the `ParseContent` enum (`Terminal`, `TransformedTerminal`, `Json`, `Sequence`, `Alternative`, `Quantified`) are unchanged. `ParseContent::to_json_value() -> serde_json::Value` produces byte-equivalent output across the 8 corpus patterns (machine-verified by the maintained `make regex_typed_differential_gate` target on every regen with `--enable-parser-hooks`).
 - **`ParseNode` shape change for 11 leaf rules** (the only consumer-visible change): the rules `letter`, `digit`, `nonzero_digit`, `hex_digit`, `octal_digit`, `whitespace`, `literal_char`, `class_literal`, `class_safe_special`, `any_char`, `special_char` were rewritten in `grammars/regex.ebnf` from `Or`-of-single-character alternatives to `/.../` regex literals. The legacy emit's `ParseNode` for these rules now carries `ParseContent::Terminal(matched_str)` directly instead of `ParseContent::Alternative(child_node)` (where `child_node.content` was the `Terminal`). Consumers that rely on `to_json_value()` (or any code path that consumes JSON transitively) see no change. Consumers that pattern-match on `ParseContent::Alternative` for these specific 11 rules need to update to match `ParseContent::Terminal` instead.
-- **New optional typed entry-point** (opt-in): `parser.parse_regex_typed() -> ParseResult<serde_json::Value>` and per-rule `parse_<rule>_typed()` methods bypass `ParseNode` allocation and return `serde_json::Value` directly. Available only when the parser was regenerated with `--enable-parser-hooks` (registers the regex parser hook at `rust/src/parser_hooks/regex.rs`). Default `make regex_parser` does NOT register the hook → tracked default emit doesn't carry these methods. Output is byte-equivalent to `parse_regex()?.content.to_json_value()` (verified by `make regex_typed_differential_gate` 8/8 across the corpus). Consumers can migrate to this fast path for the JSON-direct case; otherwise no action required.
+- **New optional typed entry-point** (opt-in): `parser.parse_regex_typed() -> ParseResult<serde_json::Value>` and per-rule `parse_<rule>_typed()` methods bypass `ParseNode` allocation and return `serde_json::Value` directly. Available only when the parser was regenerated with `--enable-parser-hooks` (registers the regex parser hook at `rust/src/parser_hooks/regex.rs`). Default `make regex_parser` does NOT register the hook → the default emit doesn't carry these methods. Output is byte-equivalent to `parse_regex()?.content.to_json_value()` (verified by `make regex_typed_differential_gate` 8/8 across the corpus). Consumers can migrate to this fast path for the JSON-direct case; otherwise no action required.
 - **Recommended RGX integration steps**:
   1. Update PGEN dependency to the post-`1.1.30` commit on `main`.
   2. Regenerate the regex parser via `make regex_parser` (default emit, legacy API).
@@ -427,6 +465,166 @@ This is the document downstream projects such as RGX should read first when deci
 - If building directly from a PGEN checkout, enable the generated parser surface rather than relying on bootstrap-only builds.
 - If the generated backend is unavailable, the stable failure mode is:
   - `E_BACKEND_UNAVAILABLE`
+
+## Generated Parser Build Recipe (for downstream consumers like RGX)
+
+`generated/*` is intentionally NOT git-tracked (per the policy in `LIVE_ACHIEVEMENT_STATUS.md` 2026-04-29 slice-5 entry). A fresh PGEN clone does NOT have `generated/regex_parser.rs` on disk. Downstream consumers must regenerate the parser before linking against `--features generated_parsers`. The build recipe below is the maintained, owner-supported path.
+
+### Prerequisites
+
+| Tool | Version | How to verify |
+|---|---|---|
+| Rust toolchain | `1.95` or newer (project MSRV) | `rustc --version` |
+| `cargo` | (ships with rustup) | `cargo --version` |
+| GNU `make` | any recent | `make --version` |
+| `bash` | any recent | `bash --version` |
+
+The Rust toolchain floor is documented in `README.md` and enforced via `Cargo.toml`'s `rust-version`.
+
+### Fresh start (clean reset of the PGEN submodule under RGX)
+
+If RGX needs to wipe any cached state in `subs/pgen/` and rebuild the regex parser from absolute scratch (e.g. PGEN's `generated/` ended up in a broken intermediate state, or a partial pull left stale artifacts on disk), use these commands inside `subs/pgen/`:
+
+```bash
+# Option 1 — Makefile targets (recommended).
+#   `clean`     removes generated/*.{pl,json,rs,placeholder} files AND runs `cargo clean`.
+#   `clean-all` does the above PLUS removes the entire generated/ directory.
+make -C rust SHELL=/bin/bash clean        # most common
+# OR, for a deeper wipe:
+make -C rust SHELL=/bin/bash clean-all
+
+# Option 2 — manual wipe (if Make targets misbehave or you want ironclad isolation).
+rm -rf generated/                          # all PGEN-generated artifacts
+rm -rf rust/target/                        # all Rust build artifacts (cargo cache, binaries)
+
+# Optional — also reset any uncommitted local changes inside subs/pgen.
+# WARNING: destructive. Only do this when you're sure nothing local is worth keeping.
+git -C subs/pgen reset --hard HEAD
+git -C subs/pgen clean -fdx generated/ rust/target/
+```
+
+After cleaning, follow the **Cold-zero-clone bootstrap** procedure below to repopulate `generated/`. The clean state guarantees no stale artifacts pollute the rebuild — a deterministic regen against the pinned PGEN commit produces byte-identical output every time (see "Determinism check" below).
+
+> **Submodule pinning reminder for RGX**: keep `subs/pgen` pinned to a specific PGEN commit on `main`. After a fresh start + rebuild, the resulting `generated/regex_parser.rs` is fully a function of (a) the pinned commit's PGEN sources and (b) the generated-parser feature flags. Any drift between RGX deployments points to one of those two inputs, not to a non-deterministic build.
+
+### Standard regen (when `generated/ebnf.rs` is already on disk)
+
+The Make dependency graph chains the entire downstream build. From the PGEN repo root (or RGX's `subs/pgen/` submodule path), one command:
+
+```bash
+make -C rust SHELL=/bin/bash regex_parser
+```
+
+This transitively pulls in the bootstrap-mode AST pipeline binary, the bootstrap-safe annotation parsers (`return_annotation_parser` and `semantic_annotation_parser`), the EBNF frontend binary, the JSON intermediate (`generated/regex.json`), and finally `generated/regex_parser.rs`. The Makefile encodes the dependency chain:
+
+| Target | Depends on | Output |
+|---|---|---|
+| `regex_parser` | `$(REGEX_JSON) $(RUST_AST_PIPELINE)` | `generated/regex_parser.rs` |
+| `$(REGEX_JSON)` | `grammars/regex.ebnf $(RUST_EBNF_FRONTEND_BIN)` | `generated/regex.json` |
+| `$(RUST_AST_PIPELINE)` | `$(AST_PIPELINE_SOURCES) $(SEMANTIC_ANNOTATION_PARSER) $(RETURN_ANNOTATION_PARSER)` | `rust/target/debug/ast_pipeline` |
+| `$(SEMANTIC_ANNOTATION_PARSER)` | `$(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)` | `generated/semantic_annotation_parser.rs` |
+| `$(RETURN_ANNOTATION_PARSER)` | `$(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)` | `generated/return_annotation_parser.rs` |
+| `$(RUST_AST_PIPELINE_BOOTSTRAP)` | `$(AST_PIPELINE_SOURCES)` | `rust/target/debug/ast_pipeline_bootstrap` |
+| `$(RUST_EBNF_FRONTEND_BIN)` | `$(AST_PIPELINE_SOURCES) generated/ebnf.rs rust/build.rs` | the EBNF-to-JSON binary |
+
+After `make regex_parser` completes, `generated/regex_parser.rs` is on disk and ready for `--features generated_parsers` builds.
+
+### Cold-zero-clone bootstrap (when `generated/ebnf.rs` does NOT yet exist)
+
+Per the slice-5 tracker note in `LIVE_ACHIEVEMENT_STATUS.md` (2026-04-29): _"build-time regen automation so fresh clones can `cargo build --features generated_parsers` without manual per-grammar regen first"_ is an explicitly **deferred follow-up**. Until that automation lands, a fresh clone with NO `generated/` files needs a one-time bootstrap step to seed `generated/ebnf.rs`, because `$(RUST_EBNF_FRONTEND_BIN)` (the EBNF-to-JSON binary) compiles `generated/ebnf.rs` into itself via the `ebnf_dual_run` feature.
+
+The chicken-and-egg breaker is the bootstrap-mode AST pipeline binary, which is built `--no-default-features --features bootstrap` and therefore does NOT depend on any `generated/` files.
+
+```bash
+# Step A — seed generated/ebnf.json from grammars/ebnf.ebnf using the
+# legacy Perl frontend. This is the fallback path that has zero
+# dependency on prior generated state.
+mkdir -p generated
+perl tools/ebnf_to_json.pl grammars/ebnf.ebnf > generated/ebnf.json
+
+# Step B — build the bootstrap binary (no generated/* dependencies).
+( cd rust && cargo build --bin ast_pipeline_bootstrap --no-default-features --features bootstrap )
+
+# Step C — generate generated/ebnf.rs from generated/ebnf.json using
+# the bootstrap binary.
+rust/target/debug/ast_pipeline_bootstrap \
+    --generate-parser --bootstrap-mode --debug --eliminate-left-recursion \
+    generated/ebnf.json -o generated/ebnf.rs
+
+# Step D — now the standard chain works. This single command builds
+# everything from here on.
+make -C rust SHELL=/bin/bash regex_parser
+```
+
+Once steps A-C have run on a clean clone, subsequent updates only need step D (the standard `make regex_parser`); `generated/ebnf.rs` only needs to be re-seeded if it's been deleted or if `grammars/ebnf.ebnf` itself changed in a way that affected the bootstrap chain.
+
+A downstream consumer like RGX should typically:
+- Run steps A-C once during initial PGEN-submodule setup (e.g. in their `setup.sh` or a one-time bootstrap script).
+- Run step D as part of the normal build pipeline (e.g. before `cargo build`).
+- Treat re-seeding as a rare event tied to PGEN bootstrap-grammar changes.
+
+### Downstream usage
+
+```bash
+# Build the embedding-API library + binaries that include the regex parser.
+cargo build --manifest-path rust/Cargo.toml --features generated_parsers
+
+# Probe the regex parser end-to-end.
+echo -n 'a*' > /tmp/sample.txt
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- \
+    --parse regex /tmp/sample.txt --profile regex_default
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- \
+    --parse-dump-ast-pretty regex /tmp/sample.txt /tmp/sample_ast.json --profile regex_default
+```
+
+### Determinism check
+
+Per slice 5's verification policy, the regen path is deterministic given the same input. To confirm a clean regen:
+
+```bash
+make -C rust SHELL=/bin/bash regex_parser \
+    && shasum -a 256 generated/regex_parser.rs > /tmp/sha1
+make -C rust SHELL=/bin/bash regex_parser \
+    && shasum -a 256 generated/regex_parser.rs > /tmp/sha2
+diff /tmp/sha1 /tmp/sha2   # must be empty
+```
+
+Two consecutive regens against the same `grammars/regex.ebnf` and the same PGEN source must produce byte-identical `generated/regex_parser.rs`. The SHA itself shifts whenever the grammar source or the PGEN pipeline source legitimately changes; the contract is determinism, not a fixed SHA.
+
+### Pulling a new PGEN
+
+When a downstream consumer pulls new PGEN commits, regenerate the parser to pick up any grammar/codegen changes:
+
+```bash
+git -C <pgen-submodule-path> pull --ff-only
+make -C rust SHELL=/bin/bash regex_parser     # incremental: only rebuilds if inputs changed
+```
+
+If the changes touch the bootstrap chain (return_annotation, semantic_annotation grammars or any pipeline code those parsers depend on), redo steps 2-4 of the cold-checkout recipe above.
+
+### What can go wrong
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `cargo build --features generated_parsers` errors `file not found: generated/regex_parser.rs` | step 4 not run yet | run step 4 |
+| `make regex_parser` errors `ast_pipeline: not found` | step 3 not run yet | run step 3 |
+| `make return_annotation_parser` errors `ast_pipeline_bootstrap: not found` | step 1 not run yet | run step 1 |
+| Two consecutive `make regex_parser` produce different SHAs | non-determinism bug — please file an issue | report; do NOT ship the unstable parser |
+| Grammar parse error during step 4 | likely a stale `grammars/regex.ebnf` from a partial pull | reset the grammar file; rerun |
+
+### Optional: typed-entry-point fast path
+
+To get the opt-in `parse_regex_typed()` typed entry point (see release `1.1.30`/`1.1.32` highlights), regenerate with `--enable-parser-hooks`:
+
+```bash
+# Replace step 4 with:
+rust/target/debug/ast_pipeline \
+    --generate-parser --debug --trace --eliminate-left-recursion \
+    --enable-parser-hooks \
+    generated/regex.json -o generated/regex_parser.rs
+```
+
+The default `make regex_parser` target does NOT register the hook, so the default emit doesn't carry the typed methods. The legacy `parse_regex()` API is unchanged either way.
 
 ## Stable Diagnostics Contract
 - Stable diagnostic codes:

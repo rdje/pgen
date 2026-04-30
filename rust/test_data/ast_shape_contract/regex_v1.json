@@ -115,6 +115,18 @@
         "normalized_text": "$1"
       },
       {
+        "rule": "quant_suffix",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "\"lazy\""
+      },
+      {
+        "rule": "quant_suffix",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "\"possessive\""
+      },
+      {
         "rule": "quoted_run_inner_piece",
         "branch_index": 0,
         "annotation_type": "return_object",

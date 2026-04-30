@@ -61,8 +61,12 @@ quant_base     = "*" | "+" | "?" | counted_quantifier
 counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
 counted_quantifier_body = digits ws? ("," ws? digits?)?
                       | "," ws? digits
-quant_suffix   = "?"     # lazy (non-greedy)
-               | "+"     # possessive
+# Each branch surfaces its semantic name directly as a typed string,
+# so consumers don't need to compare against the literal `"?"` / `"+"`
+# tokens or know which suffix character means which thing. Used by
+# `quantifier` to attach a `greediness` field on top of the base shape.
+quant_suffix   = "?" -> "lazy"
+               | "+" -> "possessive"
 
 # Atoms
 atom           = literal

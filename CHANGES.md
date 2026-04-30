@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-30 - regex.ebnf: typed `quant_suffix` ("lazy"/"possessive") — quantifier-subtree slice 2/N + retroactive contract bumps
+
+### What landed
+Two coupled changes:
+
+**1. Slice 2 (quant_suffix typed-string).** `grammars/regex.ebnf::quant_suffix` rewritten from `"?" | "+"` to per-branch annotations producing semantic strings:
+
+```ebnf
+quant_suffix   = "?" -> "lazy"
+               | "+" -> "possessive"
+```
+
+The `quant_suffix?` slot inside `quantifier` now carries the typed string `"lazy"` / `"possessive"` directly instead of raw `Terminal("?")` / `Terminal("+")`. Empirical: input `a*?` → `quantifier: ["*", "lazy"]`. Slot for inputs without a suffix stays `[]` (empty `Quantified-?`).
+
+**2. Retroactive contract bumps for slices 1 + 2.** I had previously deferred contract bumps for slice 1 (digits) on the grounds that `digits` is "internal-only". That was wrong — the digits change DOES leak into the quantifier subtree's typed shape, which IS consumer-visible. Fixed: contract identity now bumped per shape-change slice.
+- Parser `1.1.32` / contract `1.1.34` — covers slice 1 (`digits` → integer).
+- Parser `1.1.33` / contract `1.1.35` — covers slice 2 (`quant_suffix` → typed string).
+
+**Removed REGEX-0075 from the ledger.** The PGEN-RGX-0074 fix slice (commit `c78956d`) added a row I'd allocated as `REGEX-0075`. Per owner direction, ledger IDs aren't auto-allocated by code-side work; that row was wrong and is removed.
+
+### Verified
+- regex_parser regen clean.
+- `cargo test --lib --features generated_parsers`: 493 passed / 0 failed.
+- mdbook gate green.
+
+### Documentation sync
+- `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` — identity bumped to 1.1.33/1.1.35; new sections for slice 1 (1.1.32/1.1.34) and slice 2 (1.1.33/1.1.35); stale `REGEX-0075` reference cleaned out of the 1.1.31/1.1.33 section.
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` — `REGEX-0075` row removed.
+- Live continuity docs updated to remove ledger references.
+
 ## 2026-04-30 - regex.ebnf: typed `digits` (integer) — quantifier-subtree slice 1/N
 
 ### What landed
@@ -57,7 +87,6 @@ Two parser-agnostic changes that together close the long-standing PGEN-RGX-0074 
 - `docs/RETURN_ANNOTATIONS_REFERENCE.md` — `**` operator added to syntax reference + examples.
 - `docs/book/src/annotation-system.md` — flatten-spread chapter section.
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` — release `1.1.31` / contract `1.1.33` highlights section.
-- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` — `REGEX-0075` row.
 
 ### Bootstrap parser caveat
 `parse_bootstrap` in `unified_return_ast.rs` still parses `$N**` as nested `Spread(Spread(...))` (existing behavior; pinned by an existing test). This divergence is benign because no bootstrap-chain grammar uses `**`. Tooling that calls `parse_bootstrap` on a `**`-using annotation gracefully degrades to `ShapeKind::Unknown` / `Passthrough`. If a future bootstrap grammar needs `**`, that's a separate slice to align spec/impl.
