@@ -1,4 +1,65 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Codegen: tighten implicit `-> $1` default — exclude Quantified bodies
+
+### Why this matters
+Investigating PGEN-RGX-0074 surfaced a deeper regression. For input `abc` (three trivial pieces), the regex parser was emitting only the FIRST piece in the typed JSON output. Same for any multi-piece regex pattern. The bug was visible in the typed AST output but not loud anywhere in the gates (the gates are aligned to the regression). PGEN-RGX-0074's reported symptom (wrong AST for `\Q...\E{q}`) was partly a consequence of this systemic issue — the surface evidence was unreliable.
+
+### Diagnosis
+Commit `6ea521e` (2026-04-27, "Codegen: implicit `-> $1` default for single-element branches") introduced `synthesize_default_passthrough_for_single_element_branch`, called when a rule has no explicit branch annotation. It used `body_has_single_element`:
+
+```rust
+fn body_has_single_element(node: &ASTNode) -> bool {
+    match node {
+        ASTNode::Sequence { elements } => elements.len() <= 1,
+        _ => true,                  // ← Quantified treated as "single-element"
+    }
+}
+```
+
+For `concatenation = piece+`, the body is `ASTNode::Quantified` — `body_has_single_element` returned true, so the synthetic `-> $1` fired. The transform that gets emitted for `$1` against a Quantified result is:
+
+```rust
+ParseContent::Quantified(elements, _) if !elements.is_empty() =>
+    elements[0].content.clone(),
+```
+
+For `+`/`*` quantifiers (multi-iteration) this drops everything past the first match.
+
+### What the original commit got right and what it got wrong
+The intent of `6ea521e` was to make leaf-shaped rules like `boolean := 'true' | 'false'` flow through implicitly without forcing authors to write `-> $1` everywhere. That's correct for single-Atom branches and single-element-Sequence branches. The over-reach was including Quantified — `RULE := X+`'s natural meaning of `$1` is "the whole capture group", which is just raw passthrough; "extract elements[0]" is the wrong reading.
+
+### Fix
+Exclude `ASTNode::Quantified` from `body_has_single_element`:
+
+```rust
+fn body_has_single_element(node: &ASTNode) -> bool {
+    match node {
+        ASTNode::Sequence { elements } => elements.len() <= 1,
+        ASTNode::Quantified { .. } => false,  // explicit exclusion
+        _ => true,
+    }
+}
+```
+
+Authors who want a non-trivial transform on a Quantified body declare it explicitly (e.g. `concatenation = piece+ -> [$1*]` for an explicit array-of-pieces shape).
+
+### Verification
+- New regression test `quantified_bodied_rule_with_no_annotation_does_not_get_synthetic_dollar_one` pins the new exclusion.
+- `cargo test --lib --features generated_parsers`: 493 passed / 0 failed (was 492 + 1 new).
+- All 10 grammars regenerated under the new codegen (3 via top-level make targets, 7 via direct `ast_pipeline --generate-parser` invocations on the corresponding `generated/<name>.json`).
+- Regex parser empirical dumps: `abc` now produces 3 pieces (was 1); control `ab\*{2,}` produces 3 pieces with `{2,}` bound to `\*` only.
+
+### Pre-existing failure surfaced
+`make return_annotation_support_gate` fails with `object_property 'key' must be string or typed object; got ["'","","'"]` on a generated stimulus that contains a single-quoted empty string `''` as a property key. Verified the same failure on the pre-edit baseline (stash + regen + run). Root cause: `rust/src/ast_pipeline/mod.rs::extract_rule_annotations` only increments `branch_idx` for `|` operators at `group_depth == 0` (lines 1962-1976). For `RULE := (BRANCH1 | BRANCH2) -> annotation` the inner `|` is inside the parens (group_depth=1), so branch_idx never increments and the trailing annotation lands at `branch_return_annotations[0]` only. The codegen later enumerates the inner Or as 2 branches [0, 1]; branch 0 gets the typed transform, branch 1 emits raw Sequence passthrough. Empirically confirmed in regenerated `parse_string_literal`: branch 0 (double-quoted) has the typed `Json({type:"string", value:$2})` transform; branch 1 (single-quoted) has bare `let transformed = content.clone();`. Tracked as a dedicated fix slice — fix needs to either distribute the outer annotation across inner-parens branches or rewrite the parens-with-Or shape at the EBNF frontend before codegen sees it.
+
+### Affected grammars (audit needed in the dedicated fix slice)
+At minimum:
+- `grammars/return_annotation.ebnf`: `string_literal := ('"' string_content_double '"' | "'" string_content_single "'") -> {type: "string", value: $2}`.
+- Any other rule across all 10 grammars with the same `(... | ...) -> annotation` shape.
+
+### Sequencing
+This codegen tightening is the prerequisite for any further work on PGEN-RGX-0074. The grammar-side fix for `\Q...\E quantifier?` attachment is the next slice once this one commits.
+
 ## 2026-04-30 - Slice 16: any_char + special_char as /.../ — 7/8 closure (PGEN-RGX-0073 called day)
 
 ### What landed

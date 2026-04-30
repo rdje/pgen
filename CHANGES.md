@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-04-30 - Codegen: tighten implicit `-> $1` default — exclude Quantified bodies
+
+### What landed
+Restrict `body_has_single_element` in `rust/src/ast_pipeline/ast_based_generator.rs` so `ASTNode::Quantified { .. }` is treated like a multi-element Sequence — it no longer triggers the synthetic `-> $1` default introduced in commit `6ea521e` (2026-04-27, "Codegen: implicit `-> $1` default for single-element branches").
+
+```rust
+fn body_has_single_element(node: &ASTNode) -> bool {
+    match node {
+        ASTNode::Sequence { elements } => elements.len() <= 1,
+        ASTNode::Quantified { .. } => false,  // NEW
+        _ => true,
+    }
+}
+```
+
+### Why
+The synthetic `-> $1` for a Quantified body emits an extraction transform that takes `elements[0].content` from the Quantified — i.e. the **first iteration only** — silently dropping every match past the first. The visible symptom for `regex.ebnf`'s `concatenation = piece+`: any multi-piece input (e.g. `abc`, control `ab\*{2,}`) only ever surfaced the first piece in the typed JSON output. The natural reading of `$1` on a `RULE := X+` body is "the whole capture group" — which is just raw passthrough. So the right behavior for unannotated Quantified-bodied rules is no transform; authors who want an explicit shape (e.g. `-> [$1*]`) declare it.
+
+### Verified
+- New regression test `quantified_bodied_rule_with_no_annotation_does_not_get_synthetic_dollar_one` in `ast_based_generator.rs` pins the exclusion.
+- `cargo test --lib --features generated_parsers`: 493 passed / 0 failed (was 492 + 1 new test).
+- All 10 grammars regenerated under the new codegen: `regex_parser`, `return_annotation_parser`, `semantic_annotation_parser` (top-level make targets), plus `json`, `ebnf`, `vhdl`, `systemverilog_preprocessor`, `rtl_const_expr`, `rtl_frontend`, `systemverilog` (direct `ast_pipeline --generate-parser` invocations on each `generated/<name>.json`).
+- Empirical regex-parser dump: `abc` now produces 3 pieces (was 1); control `ab\*{2,}` produces 3 pieces with `{2,}` correctly bound to `\*` only; `\Qab*\E{2,}` (PGEN-RGX-0074) still has its grammar-level bug (handled in a separate slice).
+
+### Pre-existing bug surfaced (NOT caused by this change)
+`make return_annotation_support_gate` fails with `object_property 'key' must be string or typed object; got ["'","","'"]`. Verified the same failure on the pre-edit baseline by stashing this change and regenerating. Root cause: `rust/src/ast_pipeline/mod.rs::extract_rule_annotations` increments `branch_idx` only for `|` at `group_depth == 0`, so for `RULE := (BRANCH1 | BRANCH2) -> annotation` the inner `|` doesn't bump branch_idx and the annotation is stored only at `branch_return_annotations[0]`. The codegen later enumerates the inner Or as two branches, so branch 0 gets the typed transform and branch 1 emits raw Sequence passthrough. Tracked as a dedicated fix slice.
+
+### Closes
+- The systemic regression that masked any multi-iteration Quantified body in the typed AST output. PGEN-RGX-0074's surface evidence is now reliable; its grammar-level fix is a separate slice on top of this baseline.
+
 ## 2026-04-30 - Slice 16: rewrite any_char + special_char as /.../ — 7/8 closure on both paths (PGEN-RGX-0073 called day at owner direction)
 
 ### What landed

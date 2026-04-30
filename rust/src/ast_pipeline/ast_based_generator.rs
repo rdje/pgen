@@ -2839,6 +2839,17 @@ impl AstBasedGenerator {
     fn body_has_single_element(node: &ASTNode) -> bool {
         match node {
             ASTNode::Sequence { elements } => elements.len() <= 1,
+            // A `+`/`*`/`?` body emits a `Quantified(...)` that holds ALL
+            // matches. Synthesizing `-> $1` here would extract `elements[0]`
+            // and silently drop every iteration past the first (e.g.
+            // `concatenation = piece+` would only ever surface the first
+            // piece). The natural reading of `$1` on a Quantified body is
+            // "the whole capture group" — i.e. raw passthrough — and that's
+            // already what no-transform produces, so an implicit default
+            // here would either be wrong (current `elements[0]` shape) or
+            // redundant. Authors who want a non-trivial transform on a
+            // Quantified body must declare it explicitly (e.g. `-> [$1*]`).
+            ASTNode::Quantified { .. } => false,
             _ => true,
         }
     }
@@ -6029,6 +6040,65 @@ mod semantic_usage_tests {
                 .take(30)
                 .collect::<Vec<_>>()
                 .join("\n")
+        );
+    }
+
+    /// Regression test for the implicit `-> $1` over-reach.
+    ///
+    /// The original commit (`6ea521e`) listed "single quantified element"
+    /// among the bodies that should get a synthetic `-> $1` default. That
+    /// was wrong: for `RULE := X+` the body parses to `Quantified(matches,
+    /// "+")`, and the synthetic `-> $1` then extracts `elements[0].content`
+    /// — silently dropping every match past the first. The visible symptom
+    /// was `concatenation = piece+` in `regex.ebnf` only ever surfacing the
+    /// FIRST piece in the typed JSON output for any multi-piece input.
+    ///
+    /// The fix in `body_has_single_element` excludes `ASTNode::Quantified`,
+    /// matching how multi-element Sequences are already excluded. An
+    /// unannotated Quantified-bodied rule now emits raw `Quantified(...)`
+    /// content (which serialises as the array of all matches), and authors
+    /// who want a different transform must declare it explicitly.
+    #[test]
+    fn quantified_bodied_rule_with_no_annotation_does_not_get_synthetic_dollar_one() {
+        // Build `r = a+` (no return annotation). a is just a token reference.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "r".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(token("rule_reference", "a")),
+                quantifier: "+".to_string(),
+            },
+        );
+        grammar_tree.insert("a".to_string(), token("quoted_string", "a"));
+        let rule_order = vec!["r".to_string(), "a".to_string()];
+
+        let mut generator = AstBasedGenerator::new("quant_no_synthetic_test".to_string());
+        generator.enable_debug = false;
+
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "quant_no_synthetic_test.rs")
+            .expect("parser generation should succeed");
+
+        // Carve out just `fn parse_r` so the assertion can't be confused by
+        // any other rule's body.
+        let parse_r_body: String = rendered
+            .lines()
+            .skip_while(|l| !l.contains("fn parse_r"))
+            .take_while(|l| !l.contains("fn parse_a") && !l.contains("fn parse_full"))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        // The synthetic `-> $1` would emit a `let result = { match &result {
+        // ... ParseContent::Quantified(elements, _) if !elements.is_empty()
+        // => elements[0usize].content.clone() ... } };` shadow rebind right
+        // after the parse logic. With the fix that rebind must NOT appear
+        // for an unannotated Quantified-bodied rule.
+        assert!(
+            !parse_r_body.contains("elements [0usize] . content . clone")
+                && !parse_r_body.contains("elements[0usize].content.clone"),
+            "unannotated Quantified-bodied rule must not emit a synthetic `-> $1` \
+             extraction; parse_r body was:\n{}",
+            parse_r_body
         );
     }
 

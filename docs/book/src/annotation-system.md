@@ -91,6 +91,18 @@ Annotation support is not considered real just because syntax exists. It is expe
 - round-trip or comparable contract evidence,
 - maintained aggregate gates.
 
+## Implicit `-> $1` default — what it does and what it doesn't
+
+When a rule body is a **single Atom** (one terminal, one regex, one rule-reference) or a **single-element Sequence**, and the author has not declared a return annotation, the codegen synthesizes an implicit `-> $1` so the matched value flows through cleanly. This is what lets `boolean_literal := 'true' | 'false'` produce a clean string output without forcing per-branch `-> $1` everywhere.
+
+The implicit default does **not** fire on:
+
+- **Multi-element Sequence bodies** (e.g. `'(' expression ')'`). Picking which `$N` to surface would be an arbitrary author decision; require an explicit declaration.
+- **Quantified bodies** (`X+`, `X*`, `X?`). The natural reading of `$1` here is "the whole capture group" — i.e. passthrough — and that is just what no-transform produces. The earlier (now-fixed) shape that synthesized `-> $1` on Quantified bodies emitted an `elements[0].content.clone()` extraction that silently dropped every match past the first; the regression is documented in the codegen-tightening tracker entry on 2026-04-30. Authors who want a different shape on a Quantified body declare it explicitly (`concatenation = piece+ -> [$1*]`).
+- **Or-bodies as a whole.** Each Or branch is judged independently against the same rule (single Atom → implicit; single-element Sequence → implicit; multi-element Sequence → no synthetic; Quantified → no synthetic).
+
+Synthetic defaults are codegen-only — they never appear in the inventory artifact, and the grammar-author-written annotations remain the visible declared surface.
+
 ## Phase 2: Eliminate Stringification Roundtrips In Return-Annotation Transforms (retargeted)
 
 Last updated: 2026-04-26.
