@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-30 - Cold-clone bootstrap: single `make regex_parser_bootstrap` target via Rust EBNF frontend (no Perl)
+
+### What landed
+A single make target — `regex_parser_bootstrap` — that handles the full cold-clone build for downstream consumers like RGX. Idempotent; safe to run on every build. Replaces the manual multi-step bootstrap procedure.
+
+The chicken-and-egg between `ast_pipeline` (which compiles `generated/ebnf.rs` into itself via the `ebnf_dual_run` feature) and `generated/ebnf.rs` (which is produced by `ast_pipeline`) is now broken cleanly:
+
+- `rust/build.rs` sets a new `has_generated_ebnf_parser` cfg flag only when `generated/ebnf.rs` exists on disk.
+- `rust/src/lib.rs::ebnf_generated_parser` module is gated on `#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]` instead of `#[cfg(feature = "ebnf_dual_run")]`. The `include!()` site is elided when the file isn't present.
+- `rust/src/ebnf_frontend.rs` — the Rust EBNF frontend's main parsing path is hand-written; the generated `EbnfParser` was only used as an optional cross-check. That cross-check is now also gated on `has_generated_ebnf_parser`, so the frontend is fully functional in cold-clone state.
+- `rust/src/parser_registry.rs` — `parse_with_ebnf*` adapters and the registry entry / parseability tests gated on the same combined cfg.
+
+Result: `cargo build --features ebnf_dual_run --bin ast_pipeline` succeeds without `generated/ebnf.rs`. The `regex_parser_bootstrap` target uses this property to seed `generated/ebnf.rs` from `grammars/ebnf.ebnf` via the Rust frontend (no Perl), rebuild `ast_pipeline` (which now has the cross-check active), and run the standard `regex_parser` chain.
+
+### Why no Perl
+
+The legacy `tools/ebnf_to_json.pl` has feature-coverage limitations the Rust frontend doesn't share. Cold-clone bootstrap should produce the same `ebnf.rs` as warm regen — using a different parser for cold vs. warm produced silently divergent outputs. The bootstrap target now uses the Rust frontend exclusively. Perl is retained as a fallback for users with no Rust toolchain but is **not** the recommended path.
+
+### Verified
+- `cargo build --features ebnf_dual_run --bin ast_pipeline` succeeds with `generated/ebnf.rs` removed.
+- `make regex_parser_bootstrap` end-to-end on a state with `ebnf.rs` deleted: regen produces both `generated/ebnf.rs` and `generated/regex_parser.rs` cleanly.
+- `cargo test --lib --features generated_parsers`: 493 passed / 0 failed (unchanged).
+- Contract `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` updated: the cold-zero-clone bootstrap section now documents the single `make regex_parser_bootstrap` recipe + manual decomposition for debugging. Perl path explicitly de-emphasized.
+
+### Files changed
+- `rust/build.rs` — gate `PGEN_EBNF_PARSER_PATH_RESOLVED` env vars + new `has_generated_ebnf_parser` cfg behind file-existence check.
+- `rust/src/lib.rs` — `ebnf_generated_parser` module gated on combined feature + cfg.
+- `rust/src/ebnf_frontend.rs` — `EbnfParser` cross-check cfg-gated.
+- `rust/src/parser_registry.rs` — all `parse_with_ebnf*` users + tests gated.
+- `rust/Makefile` — new `regex_parser_bootstrap` PHONY target.
+- `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` — cold-clone bootstrap section rewritten.
+
 ## 2026-04-30 - regex.ebnf: typed `quant_suffix` ("lazy"/"possessive") — quantifier-subtree slice 2/N + retroactive contract bumps
 
 ### What landed

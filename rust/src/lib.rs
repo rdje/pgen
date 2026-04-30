@@ -31,7 +31,7 @@ pub mod test_discovery;
 pub use ast_pipeline::Logger;
 pub use ast_pipeline::NoOpLogger;
 
-#[cfg(feature = "ebnf_dual_run")]
+#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 pub mod ebnf_generated_parser {
     include!(env!("PGEN_EBNF_PARSER_PATH_RESOLVED"));
 }

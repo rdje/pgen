@@ -2,6 +2,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 fn main() {
+    println!("cargo:rustc-check-cfg=cfg(has_generated_ebnf_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_systemverilog_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_systemverilog_preprocessor_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_vhdl_parser)");
@@ -71,14 +72,22 @@ fn main() {
         "cargo:rerun-if-changed={}",
         rtl_frontend_resolved.to_string_lossy()
     );
-    println!(
-        "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED={}",
-        relativize_for_include(&source_dir, &ebnf_resolved).display()
-    );
-    println!(
-        "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED_BIN={}",
-        relativize_for_include(&bin_source_dir, &ebnf_resolved).display()
-    );
+    // The EBNF generated parser is treated like any other generated parser:
+    // its `include!()` site is gated on the `has_generated_ebnf_parser`
+    // cfg flag, which is set only when `generated/ebnf.rs` exists on disk.
+    // This breaks the cold-clone chicken-and-egg where the binary that
+    // GENERATES `generated/ebnf.rs` also needs to compile against it.
+    if ebnf_resolved.is_file() {
+        println!("cargo:rustc-cfg=has_generated_ebnf_parser");
+        println!(
+            "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED={}",
+            relativize_for_include(&source_dir, &ebnf_resolved).display()
+        );
+        println!(
+            "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED_BIN={}",
+            relativize_for_include(&bin_source_dir, &ebnf_resolved).display()
+        );
+    }
 
     if json_resolved.is_file() {
         println!("cargo:rustc-cfg=has_generated_json_parser");

@@ -470,6 +470,25 @@ This is the document downstream projects such as RGX should read first when deci
 
 `generated/*` is intentionally NOT git-tracked (per the policy in `LIVE_ACHIEVEMENT_STATUS.md` 2026-04-29 slice-5 entry). A fresh PGEN clone does NOT have `generated/regex_parser.rs` on disk. Downstream consumers must regenerate the parser before linking against `--features generated_parsers`. The build recipe below is the maintained, owner-supported path.
 
+### TL;DR — two commands cover everything RGX needs
+
+| When | Command |
+|---|---|
+| **Normal build** (incremental, idempotent) | `make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap` |
+| **Fresh start** (wipe + rebuild from absolute zero) | `make -C subs/pgen/rust SHELL=/bin/bash regex_parser_fresh` |
+
+**`regex_parser_bootstrap`** handles every state:
+
+- Fresh checkout, no `generated/` files at all → seeds everything from `grammars/*.ebnf` and produces `generated/regex_parser.rs`.
+- Warm tree, `generated/ebnf.rs` already present → skips the seed step and just runs the standard `regex_parser` chain.
+- Pulling new PGEN commits → run again; Make's incremental dep graph rebuilds only what changed.
+
+It is **idempotent** — safe to run unconditionally on every RGX build.
+
+**`regex_parser_fresh`** is the nuclear option — it runs `clean-all` (drops the entire `generated/` directory and `cargo clean`s `rust/target/`) and then runs `regex_parser_bootstrap`. Use this when something has gotten weird and you want a guaranteed-fresh rebuild from absolute zero.
+
+Subsequent sections explain prerequisites, internals, and recovery paths.
+
 ### Prerequisites
 
 | Tool | Version | How to verify |
@@ -483,27 +502,41 @@ The Rust toolchain floor is documented in `README.md` and enforced via `Cargo.to
 
 ### Fresh start (clean reset of the PGEN submodule under RGX)
 
-If RGX needs to wipe any cached state in `subs/pgen/` and rebuild the regex parser from absolute scratch (e.g. PGEN's `generated/` ended up in a broken intermediate state, or a partial pull left stale artifacts on disk), use these commands inside `subs/pgen/`:
+If RGX needs to wipe any cached state in `subs/pgen/` and rebuild the regex parser from absolute scratch (e.g. PGEN's `generated/` ended up in a broken intermediate state, or a partial pull left stale artifacts on disk), the simplest path is the combined wipe-and-rebuild target:
 
 ```bash
-# Option 1 — Makefile targets (recommended).
-#   `clean`     removes generated/*.{pl,json,rs,placeholder} files AND runs `cargo clean`.
-#   `clean-all` does the above PLUS removes the entire generated/ directory.
-make -C rust SHELL=/bin/bash clean        # most common
-# OR, for a deeper wipe:
-make -C rust SHELL=/bin/bash clean-all
+make -C subs/pgen/rust SHELL=/bin/bash regex_parser_fresh
+```
 
-# Option 2 — manual wipe (if Make targets misbehave or you want ironclad isolation).
-rm -rf generated/                          # all PGEN-generated artifacts
-rm -rf rust/target/                        # all Rust build artifacts (cargo cache, binaries)
+This is **`clean-all` + `regex_parser_bootstrap` in one go**:
 
-# Optional — also reset any uncommitted local changes inside subs/pgen.
-# WARNING: destructive. Only do this when you're sure nothing local is worth keeping.
+1. Drops the entire `generated/` directory.
+2. Runs `cargo clean` to drop everything under `rust/target/`.
+3. Bootstraps `generated/ebnf.rs` from `grammars/ebnf.ebnf` via the Rust frontend.
+4. Runs the full `regex_parser` chain end-to-end.
+
+Result: `generated/regex_parser.rs` is fresh from absolute zero. Typical wall time on a modern laptop: 4–6 minutes (the cargo full rebuild is the long pole).
+
+#### Lower-level alternatives
+
+If you want to clean without immediately rebuilding (e.g. to inspect state, or to clean before a different build sequence):
+
+```bash
+# Option 1 — Makefile clean targets:
+make -C subs/pgen/rust SHELL=/bin/bash clean       # generated/*.{pl,json,rs,placeholder} + `cargo clean`
+make -C subs/pgen/rust SHELL=/bin/bash clean-all   # the above PLUS rm -rf generated/
+
+# Option 2 — manual wipe (if Make targets misbehave or you want ironclad isolation):
+rm -rf subs/pgen/generated/                         # all PGEN-generated artifacts
+rm -rf subs/pgen/rust/target/                       # all Rust build artifacts
+
+# Option 3 — also reset uncommitted local changes inside subs/pgen.
+# WARNING: destructive. Only do this when nothing local is worth keeping.
 git -C subs/pgen reset --hard HEAD
 git -C subs/pgen clean -fdx generated/ rust/target/
 ```
 
-After cleaning, follow the **Cold-zero-clone bootstrap** procedure below to repopulate `generated/`. The clean state guarantees no stale artifacts pollute the rebuild — a deterministic regen against the pinned PGEN commit produces byte-identical output every time (see "Determinism check" below).
+After any of these manual cleans, run `make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap` to repopulate `generated/`.
 
 > **Submodule pinning reminder for RGX**: keep `subs/pgen` pinned to a specific PGEN commit on `main`. After a fresh start + rebuild, the resulting `generated/regex_parser.rs` is fully a function of (a) the pinned commit's PGEN sources and (b) the generated-parser feature flags. Any drift between RGX deployments points to one of those two inputs, not to a non-deterministic build.
 
@@ -531,37 +564,51 @@ After `make regex_parser` completes, `generated/regex_parser.rs` is on disk and 
 
 ### Cold-zero-clone bootstrap (when `generated/ebnf.rs` does NOT yet exist)
 
-Per the slice-5 tracker note in `LIVE_ACHIEVEMENT_STATUS.md` (2026-04-29): _"build-time regen automation so fresh clones can `cargo build --features generated_parsers` without manual per-grammar regen first"_ is an explicitly **deferred follow-up**. Until that automation lands, a fresh clone with NO `generated/` files needs a one-time bootstrap step to seed `generated/ebnf.rs`, because `$(RUST_EBNF_FRONTEND_BIN)` (the EBNF-to-JSON binary) compiles `generated/ebnf.rs` into itself via the `ebnf_dual_run` feature.
-
-The chicken-and-egg breaker is the bootstrap-mode AST pipeline binary, which is built `--no-default-features --features bootstrap` and therefore does NOT depend on any `generated/` files.
+A single make target — `regex_parser_bootstrap` — handles the full cold-clone build, including seeding `generated/ebnf.rs` if it isn't on disk. The target is **idempotent**; running it on a warm tree skips the seed step and just runs the standard `regex_parser` chain.
 
 ```bash
-# Step A — seed generated/ebnf.json from grammars/ebnf.ebnf using the
-# legacy Perl frontend. This is the fallback path that has zero
-# dependency on prior generated state.
+make -C rust SHELL=/bin/bash regex_parser_bootstrap
+```
+
+That's the recommended single command for downstream consumers. RGX should call this from its build script when bringing up a fresh `subs/pgen/`.
+
+#### What the target does internally
+
+The chicken-and-egg used to be: building `ast_pipeline` with `--features ebnf_dual_run` required `include!("generated/ebnf.rs")`, but that file is itself produced by `ast_pipeline`. The fix (landed alongside this contract version) splits the two: `build.rs` now sets a `has_generated_ebnf_parser` cfg flag only when `generated/ebnf.rs` exists, and the `include!()` site in `lib.rs` is gated on that cfg. The hand-written Rust EBNF frontend (`rust/src/ebnf_frontend.rs`) — whose main parsing path is hand-written and only uses the generated `EbnfParser` as an optional cross-check — is now also gated, so the cross-check is skipped when `generated/ebnf.rs` isn't built yet.
+
+Result: `cargo build --features ebnf_dual_run --bin ast_pipeline` succeeds even with no `generated/` files. The Rust EBNF frontend produces `generated/ebnf.json` from `grammars/ebnf.ebnf`, and the same binary then converts JSON → `generated/ebnf.rs`. After that initial seed, the binary is rebuilt (now with the cross-check active) and the normal `regex_parser` chain runs to completion.
+
+The Perl-based fallback `tools/ebnf_to_json.pl` is retained but is **not** the recommended path — it has known feature-coverage limitations that the Rust frontend doesn't share. Don't reach for it unless you have no Rust toolchain.
+
+#### Manual decomposition (if you want to debug each step)
+
+```bash
+# Step A — build ast_pipeline. Compiles even with no generated/ebnf.rs
+# because has_generated_ebnf_parser is unset; the EbnfParser cross-check
+# inside ebnf_frontend.rs is cfg-gated and elided.
+cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline
+
+# Step B — Rust EBNF frontend: grammars/ebnf.ebnf -> generated/ebnf.json.
 mkdir -p generated
-perl tools/ebnf_to_json.pl grammars/ebnf.ebnf > generated/ebnf.json
+rust/target/debug/ast_pipeline grammars/ebnf.ebnf --emit-raw-ast-json generated/ebnf.json
 
-# Step B — build the bootstrap binary (no generated/* dependencies).
-( cd rust && cargo build --bin ast_pipeline_bootstrap --no-default-features --features bootstrap )
-
-# Step C — generate generated/ebnf.rs from generated/ebnf.json using
-# the bootstrap binary.
-rust/target/debug/ast_pipeline_bootstrap \
-    --generate-parser --bootstrap-mode --debug --eliminate-left-recursion \
+# Step C — JSON -> generated/ebnf.rs.
+rust/target/debug/ast_pipeline \
+    --generate-parser --debug --eliminate-left-recursion \
     generated/ebnf.json -o generated/ebnf.rs
 
-# Step D — now the standard chain works. This single command builds
-# everything from here on.
+# Step D — rebuild ast_pipeline. Now has_generated_ebnf_parser is set;
+# subsequent runs of the EBNF frontend cross-check the generated parser
+# against the hand-written walk for verification.
+cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline
+
+# Step E — standard regex_parser chain.
 make -C rust SHELL=/bin/bash regex_parser
 ```
 
-Once steps A-C have run on a clean clone, subsequent updates only need step D (the standard `make regex_parser`); `generated/ebnf.rs` only needs to be re-seeded if it's been deleted or if `grammars/ebnf.ebnf` itself changed in a way that affected the bootstrap chain.
-
 A downstream consumer like RGX should typically:
-- Run steps A-C once during initial PGEN-submodule setup (e.g. in their `setup.sh` or a one-time bootstrap script).
-- Run step D as part of the normal build pipeline (e.g. before `cargo build`).
-- Treat re-seeding as a rare event tied to PGEN bootstrap-grammar changes.
+- Call `make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap` from its build script. Idempotent — safe to run on every build.
+- Treat the seed step as a rare event tied to PGEN bootstrap-grammar changes; subsequent runs on a warm tree skip step A-C and just run step D-E.
 
 ### Downstream usage
 
@@ -606,11 +653,13 @@ If the changes touch the bootstrap chain (return_annotation, semantic_annotation
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `cargo build --features generated_parsers` errors `file not found: generated/regex_parser.rs` | step 4 not run yet | run step 4 |
-| `make regex_parser` errors `ast_pipeline: not found` | step 3 not run yet | run step 3 |
-| `make return_annotation_parser` errors `ast_pipeline_bootstrap: not found` | step 1 not run yet | run step 1 |
-| Two consecutive `make regex_parser` produce different SHAs | non-determinism bug — please file an issue | report; do NOT ship the unstable parser |
-| Grammar parse error during step 4 | likely a stale `grammars/regex.ebnf` from a partial pull | reset the grammar file; rerun |
+| `cargo build --features generated_parsers` errors `file not found: generated/regex_parser.rs` | bootstrap target not run yet on a fresh clone | run `make -C rust SHELL=/bin/bash regex_parser_bootstrap` |
+| `make regex_parser` errors at the EBNF-to-JSON step (`ast_pipeline: not found`) | the bin hasn't been built yet | use `make regex_parser_bootstrap` instead — it builds `ast_pipeline` first |
+| `regex_parser_bootstrap` fails at the seed step with a Rust compile error mentioning `ebnf_generated_parser` or `EbnfParser` | likely an outdated PGEN checkout where the cfg gating wasn't yet in place | pull PGEN to a commit at or after the contract `1.1.35` cold-clone fix |
+| Two consecutive `make regex_parser_bootstrap` produce different `generated/regex_parser.rs` SHAs | non-determinism bug — please file an issue | report; do NOT ship the unstable parser |
+| Grammar parse error during the EBNF-to-JSON step | a stale `grammars/regex.ebnf` from a partial pull, or a hand-edit drift | `git -C subs/pgen checkout grammars/regex.ebnf`; rerun bootstrap |
+| `make: *** No rule to make target ...` | called from the wrong directory | always use `make -C subs/pgen/rust ...` (or `cd subs/pgen && make -C rust ...`) |
+| Build succeeds but `parser_embedding_api_contract().supports_regex_generated_backend` is `false` at runtime | RGX's own build wasn't rebuilt with `--features generated_parsers` after the bootstrap | rebuild RGX with the feature enabled |
 
 ### Optional: typed-entry-point fast path
 

@@ -3,7 +3,7 @@
 //! This centralizes grammar-name dispatch so new generated grammars are added in one place.
 
 use crate::ast_pipeline::{ParseNode, UnifiedSemanticAST, runtime_logger, runtime_logger_box};
-#[cfg(feature = "ebnf_dual_run")]
+#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 use crate::ebnf_generated_parser::EbnfParser;
 #[cfg(has_generated_json_parser)]
 use crate::generated_parsers::json::JsonParser;
@@ -147,13 +147,13 @@ fn parse_with_builtin_semantic_annotation_ast_json(sample: &str) -> Result<JsonV
         .map_err(|err| format!("failed to serialize bootstrap semantic AST: {}", err))
 }
 
-#[cfg(feature = "ebnf_dual_run")]
+#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 fn parse_with_ebnf(sample: &str) -> bool {
     let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
     parser.parse_full_grammar_file().is_ok()
 }
 
-#[cfg(feature = "ebnf_dual_run")]
+#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
     let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
     parser
@@ -162,7 +162,7 @@ fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
         .map_err(|err| err.to_string())
 }
 
-#[cfg(feature = "ebnf_dual_run")]
+#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 fn parse_with_ebnf_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
     let parsed = parser
@@ -418,7 +418,7 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "builtin_semantic_annotation",
         parse_sample: parse_with_builtin_semantic_annotation,
     },
-    #[cfg(feature = "ebnf_dual_run")]
+    #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
     GeneratedParserRegistryEntry {
         grammar_name: "ebnf",
         parse_sample: parse_with_ebnf,
@@ -510,7 +510,7 @@ pub fn parse_sample_detail_with_profile(
         "builtin_semantic_annotation" => {
             Some(parse_with_builtin_semantic_annotation_detail(sample))
         }
-        #[cfg(feature = "ebnf_dual_run")]
+        #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
         "ebnf" => Some(parse_with_ebnf_detail(sample)),
         #[cfg(has_generated_json_parser)]
         "json" => Some(parse_with_json_detail(sample)),
@@ -555,7 +555,7 @@ pub fn parse_sample_ast_json_with_profile(
         "builtin_semantic_annotation" => {
             Some(parse_with_builtin_semantic_annotation_ast_json(sample))
         }
-        #[cfg(feature = "ebnf_dual_run")]
+        #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
         "ebnf" => Some(parse_with_ebnf_ast_json(sample)),
         #[cfg(has_generated_json_parser)]
         "json" => Some(parse_with_json_ast_json(sample)),
@@ -719,7 +719,7 @@ mod tests {
         assert!(grammars.contains(&"builtin_semantic_annotation"));
     }
 
-    #[cfg(feature = "ebnf_dual_run")]
+    #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
     #[test]
     fn registry_exposes_ebnf_when_dual_run_enabled() {
         let grammars = registered_grammars();
@@ -841,7 +841,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "ebnf_dual_run")]
+    #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
     #[test]
     fn ebnf_parseability_adapter_accepts_valid_rule_and_rejects_garbage() {
         assert_eq!(
@@ -851,7 +851,7 @@ mod tests {
         assert_eq!(parse_sample("ebnf", ":::not-ebnf:::"), Some(false));
     }
 
-    #[cfg(feature = "ebnf_dual_run")]
+    #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
     #[test]
     fn ebnf_parseability_adapter_accepts_inline_lookahead_in_sequence() {
         let sample = r#"ports := direction item ( "," !direction item )*

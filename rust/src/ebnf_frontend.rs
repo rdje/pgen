@@ -6,6 +6,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::ast_pipeline::runtime_logger_box;
+#[cfg(has_generated_ebnf_parser)]
 use crate::ebnf_generated_parser::EbnfParser;
 
 /// Parse an EBNF file with the Rust-generated EBNF parser and emit an
@@ -41,6 +42,14 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
         raw_ast.push(converted);
     }
 
+    // Cross-check the input against the generated `EbnfParser` when it
+    // is available. This is purely a verification step — the hand-written
+    // path above (`scan_top_level_rules` + `convert_scanned_rule`) has
+    // already produced the `raw_ast` envelope below. We skip the
+    // cross-check entirely when `generated/ebnf.rs` hasn't been built
+    // yet (cold-clone bootstrap), letting the hand-written path bootstrap
+    // it without compile-time circular dependencies.
+    #[cfg(has_generated_ebnf_parser)]
     if !has_inline_semantic_annotations {
         let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
         if let Err(err) = parser.parse_full_grammar_file() {
@@ -52,6 +61,10 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
                 grammar_name, err
             );
         }
+    }
+    #[cfg(not(has_generated_ebnf_parser))]
+    {
+        let _ = (has_inline_semantic_annotations, has_multiline_annotations);
     }
     let source_file_value = source_file.unwrap_or("<memory>");
 

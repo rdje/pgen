@@ -464,6 +464,70 @@ regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@echo "✅ Generated: $(REGEX_PARSER)"
 	@echo "✅ Regex parser generated successfully!"
 
+# Regex parser FULL bootstrap — single-command path for cold clones.
+#
+# This is the entry point downstream consumers like RGX should use when
+# their PGEN submodule has been freshly cloned (or `make clean-all`'d) and
+# `generated/` is empty. It handles the chicken-and-egg between
+# `$(RUST_EBNF_FRONTEND_BIN)` (which compiles `generated/ebnf.rs` into
+# itself via the `ebnf_dual_run` feature) and the rest of the pipeline.
+#
+# Two-step strategy:
+#   1. If `generated/ebnf.rs` is missing, seed it via the Perl frontend
+#      (`tools/ebnf_to_json.pl` -> `generated/ebnf.json`) and the
+#      bootstrap-mode AST pipeline binary (`ast_pipeline_bootstrap`,
+#      built `--no-default-features --features bootstrap` so it does NOT
+#      depend on any `generated/*` files).
+#   2. Run the standard `regex_parser` target, which transitively pulls
+#      in everything else through the normal Make dependency graph.
+#
+# Idempotent. Running it again with `generated/ebnf.rs` already in place
+# skips the bootstrap seed and just runs the standard regen.
+# Regex parser CLEAN bootstrap — wipe everything then rebuild from
+# absolute scratch. Useful for downstream consumers like RGX when their
+# subs/pgen tree has gotten into a weird intermediate state and they want
+# a guaranteed-fresh rebuild. Combines `clean-all` + `regex_parser_bootstrap`.
+#
+# Sequence:
+#   1. `make clean-all` — removes the entire generated/ directory and
+#      runs `cargo clean` (drops all build artifacts under rust/target).
+#   2. `make regex_parser_bootstrap` — full cold-clone bootstrap.
+#
+# After this target completes, generated/regex_parser.rs is fresh and
+# RGX can `cargo build --features generated_parsers` against it. Both
+# steps together typically take 4-6 minutes on a modern laptop because
+# of the cargo full rebuild.
+.PHONY: regex_parser_fresh
+regex_parser_fresh:
+	@echo "🧹 Wiping all generated artifacts and Rust build cache..."
+	$(MAKE) clean-all
+	@echo "🚀 Bootstrapping regex parser from absolute scratch..."
+	$(MAKE) regex_parser_bootstrap
+	@echo "✅ Fresh rebuild complete. generated/regex_parser.rs is ready."
+
+.PHONY: regex_parser_bootstrap
+regex_parser_bootstrap:
+	@echo "🚀 Bootstrap regex parser from cold clone..."
+	@mkdir -p $(GENERATED_DIR)
+	@if [ ! -f $(GENERATED_DIR)/ebnf.rs ]; then \
+		echo "🌱 Seeding generated/ebnf.rs (one-time bootstrap, Rust frontend)..."; \
+		echo "  Step A: build ast_pipeline (compiles without generated/ebnf.rs"; \
+		echo "          because the cross-check is gated on has_generated_ebnf_parser)..."; \
+		cd $(RUST_DIR) && cargo build --features ebnf_dual_run --bin ast_pipeline; \
+		echo "  Step B: Rust EBNF frontend (grammars/ebnf.ebnf -> generated/ebnf.json)"; \
+		$(RUST_AST_PIPELINE) $(GRAMMARS_DIR)/ebnf.ebnf --emit-raw-ast-json $(GENERATED_DIR)/ebnf.json; \
+		echo "  Step C: ast_pipeline JSON -> generated/ebnf.rs"; \
+		$(RUST_AST_PIPELINE) --generate-parser --debug --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
+		echo "🌱 generated/ebnf.rs seeded."; \
+		echo "  Rebuilding ast_pipeline now that has_generated_ebnf_parser is set..."; \
+		cd $(RUST_DIR) && cargo build --features ebnf_dual_run --bin ast_pipeline; \
+	else \
+		echo "✓ generated/ebnf.rs already present — skipping seed step."; \
+	fi
+	@echo "🔁 Step D: standard regex_parser chain..."
+	$(MAKE) regex_parser
+	@echo "✅ Bootstrap complete. generated/regex_parser.rs is ready for --features generated_parsers builds."
+
 # Slice 3 / M2 differential validation gate. Proves the regex parser
 # hook's typed entry methods produce byte-equivalent JSON to the
 # legacy + `ParseContent::to_json_value()` reference path across the
