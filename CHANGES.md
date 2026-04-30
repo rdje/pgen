@@ -1,4 +1,72 @@
 # CHANGES.md
+## 2026-04-30 - Slice 15: collapse class_literal + class_safe_special to single regex — 6/8 closure on both paths
+
+### What landed
+Two more `/.../` regex rewrites in `grammars/regex.ebnf` targeting the rules that dominate `character_class` parsing:
+
+```
+class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
+              ↓
+class_literal  = /([A-Za-z0-9 \t\n\r\f\v\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_]|[^\x00-\x7F])/
+
+class_safe_special = '[' | '!' | '@' | '#' | '$' | ... | '_'   (30-way Or)
+                  ↓
+class_safe_special = /([\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_])/
+```
+
+`class_literal` was a 5-way Or over LEAF rules (`letter | digit | whitespace | class_safe_special | unicode_char`) — every alternative is char-class-equivalent. Collapsing it into a single regex char class eliminates one structural Or layer in `character_class` parsing.
+
+### Perf footprint
+
+**LEGACY path** (mimalloc, 5000/200):
+
+| pattern | slice 14 | slice 15 | delta | <50µs? |
+|---|---|---|---|---|
+| literal_simple | 10,958 | 10,125 | -8% | ✓ |
+| digit_sequence | 31,333 | 31,125 | ~0 | ✓ |
+| character_class | 73,292 | **36,583** | **-50%** | ✓ |
+| alternation | 25,917 | 26,333 | ~0 | ✓ |
+| capture_groups | 54,500 | 54,041 | ~0 | ✗ |
+| url_simple | 23,792 | 23,833 | ~0 | ✓ |
+| email_basic | 42,042 | 41,583 | -1% | ✓ |
+| anchor_complex | 80,583 | 80,250 | ~0 | ✗ |
+
+**TYPED path** (mimalloc, 1000/50):
+
+| pattern | slice 14 | slice 15 | delta | <50µs? |
+|---|---|---|---|---|
+| literal_simple | 17,458 | 10,083 | -42% | ✓ |
+| digit_sequence | 37,584 | 31,583 | -16% | ✓ |
+| character_class | 70,875 | **36,958** | **-48%** | ✓ |
+| alternation | 25,666 | 26,583 | ~0 | ✓ |
+| capture_groups | 52,667 | 54,500 | ~0 | ✗ |
+| url_simple | 23,500 | 23,916 | ~0 | ✓ |
+| email_basic | 41,208 | 42,958 | ~0 | ✓ |
+| anchor_complex | 78,625 | 81,084 | ~0 | ✗ |
+
+`character_class` dropped 48-50% on both paths. **6/8 patterns under PRIMARY 50µs on both paths** (was 5/8).
+
+### Why class_literal collapse was the right target
+The character_class test pattern (`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`) parses class_body = class_item* with each class_item being a 6-way Or over different rule shapes. For each char inside `[...]`, parsing tried up to 6 alternatives. Most chars matched class_literal (5-way Or → letter | digit | whitespace | class_safe_special | unicode_char), each alternative itself a leaf rule. That's a nested Or-of-Ors structure: 6 × 5 try_parse cycles per char in the worst case.
+
+After slice 15: class_literal is a single match_regex against a unified char class. One regex call replaces 5 nested try_parses. Cumulative savings on the character_class pattern's deep class_body = ~50%.
+
+### PGEN-RGX-0073 closure status
+**6/8 patterns under PRIMARY 50µs on both paths.** Two remaining:
+- `capture_groups` (~54µs, -4µs gap — very close)
+- `anchor_complex` (~80µs, -30µs gap)
+
+Both patterns spend their dominant time in `escape` / `escape_unit` / `any_char` (the escape-handling chain) and `atom`'s 25-way Or chain. Slice 16 candidates: rewrite `any_char` (currently `letter | digit | whitespace | special_char | unicode_char` 5-way Or over leaf rules) and `special_char` as `/.../` regex literals.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: 6/8 under PRIMARY 50µs typed path.
+- `cargo run --release --features generated_parsers,mimalloc_perf --bin regex_perf_probe -- --samples 5000 --warmup 200`: 6/8 under PRIMARY 50µs legacy path.
+
+### Files
+- [grammars/regex.ebnf](grammars/regex.ebnf): `class_literal` and `class_safe_special` rewritten as `/.../` regex literals.
+
 ## 2026-04-30 - Slice 14: regex hook audit cleanup + /.../ regex rewrites for slow Or-of-chars rules
 
 ### What landed

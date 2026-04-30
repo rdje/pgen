@@ -1,4 +1,64 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 15: collapse class_literal as single regex — 6/8 closure
+
+### What landed
+Two `/.../` regex rewrites in `grammars/regex.ebnf` targeting the structural Or-of-leaf-rules that dominated `character_class` parsing:
+
+- `class_literal = letter | digit | whitespace | class_safe_special | unicode_char` (5-way Or over leaf rules with char-class-equivalent alternatives) → `/([A-Za-z0-9 \t\n\r\f\v\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_]|[^\x00-\x7F])/`
+- `class_safe_special` (30-way Or of single chars) → `/([\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_])/`
+
+### Why this worked for character_class but not the others
+The character_class test pattern (`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`) parses with class_body = class_item* nested inside `[...]`. Each class_item is a 6-way Or; class_literal is one of those alternatives, itself a 5-way Or over leaf rules. That's an Or-of-Ors structure: ~30 try_parse cycles per char inside the brackets.
+
+class_literal collapse → single match_regex call replaces 5 nested try_parses per char. Savings compound on patterns with deep class_body (character_class spends most time inside `[...]`).
+
+For capture_groups and anchor_complex, the dominant cost is elsewhere (atom Or chain, escape chain), not character_class parsing. Hence the 50% drop on character_class but ~0 movement on capture_groups/anchor_complex.
+
+### Slice 15 perf footprint
+
+```
+LEGACY path (mimalloc, 5000/200):
+
+pattern              slice 14 legacy    slice 15 legacy    delta
+literal_simple              10,958             10,125         -8%
+digit_sequence              31,333             31,125         ~0
+character_class             73,292             36,583        -50%
+alternation                 25,917             26,333         ~0
+capture_groups              54,500             54,041         ~0
+url_simple                  23,792             23,833         ~0
+email_basic                 42,042             41,583         -1%
+anchor_complex              80,583             80,250         ~0
+
+TYPED path (mimalloc, 1000/50):
+
+pattern              slice 14 typed     slice 15 typed     delta
+literal_simple              17,458             10,083        -42%
+digit_sequence              37,584             31,583        -16%
+character_class             70,875             36,958        -48%
+alternation                 25,666             26,583         ~0
+capture_groups              52,667             54,500         ~0
+url_simple                  23,500             23,916         ~0
+email_basic                 41,208             42,958         ~0
+anchor_complex              78,625             81,084         ~0
+```
+
+**6/8 under PRIMARY 50µs on both paths** (was 5/8). Same 2 patterns over: capture_groups (~54µs, -4µs gap) and anchor_complex (~80µs, -30µs gap).
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: 6/8 under PRIMARY 50µs typed path.
+- Direct legacy probe (mimalloc, 5000/200): 6/8 under PRIMARY 50µs legacy path.
+
+### What's left (slice 16)
+For capture_groups and anchor_complex, the remaining bottlenecks are in the escape-handling chain (`escape → escape_unit → simple_escape → any_char`) and atom's 25-way Or chain. The escape chain has Or-of-leaf-rules at multiple layers — `any_char` is `letter | digit | whitespace | special_char | unicode_char` (5-way Or, same shape as old class_literal), and `special_char` is a 30-way Or of single chars. Slice 16 should rewrite `any_char` and `special_char` as `/.../` regex literals — same playbook that closed character_class.
+
+### Queued cleanup (slice 17 onward)
+Per owner direction (will execute after PGEN-RGX-0073 closure):
+1. Move parser-agnostic typed-emit logic from `rust/src/parser_hooks/regex.rs` into the pipeline.
+2. Express per-grammar policies via top-level EBNF annotations (`@enable_typed_emit`, `@semantic_value_gates_alternatives`, etc.).
+3. Remove `RegexParserHooks` registration; keep `ParserHooks` trait + `ParserHookRegistry` + `ParserImplContext` infrastructure as future-extensibility (do NOT delete).
+
 ## 2026-04-30 - Slice 14: hook audit cleanup + /.../ regex rewrites in regex.ebnf
 
 ### What landed

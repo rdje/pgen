@@ -134,9 +134,9 @@ empty_quoted_class_literal = "\\Q" "\\E"
 @generate: "ch == '" + escape_char($1) + "'"
 @semantic_value: {type: "literal", char: $1}
 @optimize: group_literals_for_switch($1)
-class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
+class_literal  = /([A-Za-z0-9 \t\n\r\f\v\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_]|[^\x00-\x7F])/
 
-class_safe_special = '[' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
+class_safe_special = /([\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_])/
 
 @generate: resolve_escape_pattern($1)
 @semantic_value: {type: "escape", pattern: $1}
