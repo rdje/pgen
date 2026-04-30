@@ -529,13 +529,13 @@ regex_typed_differential_gate: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 #    working tree returns to its baseline regardless of run outcome.
 .PHONY: regex_typed_perf_probe
 regex_typed_perf_probe: $(REGEX_JSON) $(RUST_AST_PIPELINE)
-	@echo "📊 Slice 4 regex_typed_perf_probe (typed-path baseline)"
+	@echo "📊 Slice 4+13 regex_typed_perf_probe (typed-path baseline, mimalloc)"
 	@echo "   Step 1/3: regenerating regex parser with --enable-parser-hooks"
 	$(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion --enable-parser-hooks $(REGEX_JSON) -o $(REGEX_PARSER)
-	@echo "   Step 2/3: building and running typed perf probe"
+	@echo "   Step 2/3: building and running typed perf probe (with mimalloc)"
 	@cd $(RUST_DIR) && \
 	    cargo build --release \
-	        --features generated_parsers,regex_typed_perf_probe \
+	        --features generated_parsers,regex_typed_perf_probe,mimalloc_perf \
 	        --bin regex_typed_perf_probe \
 	    && ./target/release/regex_typed_perf_probe; \
 	    PROBE_RESULT=$$?; \

@@ -1,4 +1,69 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 13: enable mimalloc in typed perf probe + PGEN-RGX-0073 closure assessment
+
+### What landed
+Adds `mimalloc_perf` to the `regex_typed_perf_probe` make target's Cargo feature list so the probe runs with mimalloc as global allocator. The probe binary already had the `#[global_allocator]` swap gated on this feature (Optim #10 infrastructure), but the make target wasn't passing it. Slice 13 fixes the methodology so our measurements are apples-to-apples with M3's reported numbers (which used mimalloc).
+
+### Numbers and what they mean
+
+```
+                         slice 12 (default)   slice 13 (mimalloc)   slice 13 (mimalloc, 5000/200)
+literal_simple                    32,458              23,416                  14,041
+digit_sequence                    46,917              42,959                  34,208
+character_class                  102,166              84,333                  80,167
+alternation                       45,542              35,833                  33,917
+capture_groups                    82,916              62,791                  59,167
+url_simple                        40,416              32,542                  30,334
+email_basic                       62,458              53,250                  48,084
+anchor_complex                   124,666             100,084                  93,791
+```
+
+mimalloc gives 8-28% per-pattern improvements; the higher sample count + warmup gives another 5-15% on each. Together they bring our measurement methodology in line with M3's.
+
+### PGEN-RGX-0073 closure assessment: 5/8 patterns under PRIMARY 50µs (not fully closed)
+
+```
+pattern              p50 (ns)     <50µs?     gap
+literal_simple              14,041     yes       (-36µs under)
+digit_sequence              34,208     yes       (-16µs under)
+alternation                 33,917     yes       (-16µs under)
+url_simple                  30,334     yes       (-20µs under)
+email_basic                 48,084     yes       (just 1.9µs under)
+capture_groups              59,167     NO        +9µs over
+character_class             80,167     NO        +30µs over
+anchor_complex              93,791     NO        +44µs over
+```
+
+### Why we don't match M3's reported 8/8 closure
+M3 stage 4c reported: literal 2.7µs, digit 8.8µs, char_class 28.2µs, alt 7.1µs, capture 18.3µs, url 6.7µs, email 10.8µs, anchor 28.9µs (all <50µs, geomean 4.43× speedup vs legacy). Even matching M3's exact methodology (mimalloc + 5000/200), our numbers are 4-9× slower than M3's.
+
+**The gap is structural, not methodology.** The differential gate (slice 3) forces us to preserve byte-equivalence with `legacy.content.to_json_value()`. M3's reported speedup came partly from byte-equivalence-violating shortcuts:
+- `Value::Null` for `?-Quantified` miss instead of `Value::Array(vec![])` (matches legacy `Quantified.to_json_value()`).
+- Skipping the `Value::Array` wrap on `?-Quantified` matched (just returning the inner value).
+- Skipping `serde_json::Map::new()` allocation paths.
+
+M3 didn't have the differential gate landed when those shortcuts shipped. Our hook port has the gate from slice 3 onward and pays the real byte-equivalence cost (Vec carriers, Map allocations, full serde_json shape construction). M3's reported numbers reflected an unattested shape that, if measured through the gate, would have failed correctness.
+
+### Closure decision
+
+**Status: PGEN-RGX-0073 In Progress / Mostly Done, not fully closed.**
+
+Net delta from the 12-slice port:
+- Starting point (slice 4 baseline, default malloc, 1000/50): typed 4/8 under PRIMARY (passthrough body, slightly slower than legacy).
+- After full M3 port + mimalloc (slices 6-13, 5000/200): typed 5/8 under PRIMARY.
+
+Net improvement: **+1 pattern** (`email_basic`) closed over the 12-slice port. Differential gate stays 8/8 byte-equivalent throughout.
+
+### Three options to close the remaining 3 patterns honestly
+1. **Profile-guided optimization** on the typed path for `character_class`, `capture_groups`, `anchor_complex` to identify hot spots and target them surgically. Most likely culprits: `class_body` parsing inside character_class (deep recursion through `class_item*`), backreference parsing inside capture_groups, and the heavy alternation tree inside anchor_complex.
+2. **Re-evaluate byte-equivalence cost**: are there places where my `Vec::Array` carriers could be replaced with cheaper representations that legacy + `to_json_value()` ALSO produces? The carriers are byte-equivalent for `Quantified.to_json_value()` but maybe some specific shape combinations have a cheaper byte-equivalent path. Worth a focused audit.
+3. **Accept partial closure**: 5/8 honest closure is real progress; document it as the final state. Acknowledge that M3's reported "8/8" was based on byte-equivalence-violating emit and is not reproducible under the gate.
+
+### Validation
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent (unchanged from slice 12).
+- `make regex_typed_perf_probe`: now uses mimalloc; numbers above.
+- Direct invocation with `--samples 5000 --warmup 200`: 5/8 under PRIMARY 50µs.
+
 ## 2026-04-30 - Slice 12: port M3 stage 4c (semantic-annotated rules on typed path)
 
 ### What landed

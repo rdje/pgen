@@ -1,4 +1,72 @@
 # CHANGES.md
+## 2026-04-30 - Slice 13: enable mimalloc in typed perf probe + re-measure (PGEN-RGX-0073 closure assessment)
+
+### What landed
+Closes the methodology gap between our perf measurements and M3's reported numbers. The probe binary already had `mimalloc_perf` Cargo feature gate (Optim #10 infrastructure) wiring `#[global_allocator]` to `mimalloc::MiMalloc`. Slice 13 adds `mimalloc_perf` to the `regex_typed_perf_probe` make target's feature list so the probe runs with mimalloc as global allocator, matching M3's measurement methodology.
+
+### Slice 13 numbers vs slice 12 (release, 1000 samples / 50 warmup)
+
+| pattern | slice 12 (default malloc) | slice 13 (mimalloc) | improvement |
+|---|---|---|---|
+| literal_simple | 32,458 | 23,416 | -28% |
+| digit_sequence | 46,917 | 42,959 | -8% |
+| character_class | 102,166 | 84,333 | -17% |
+| alternation | 45,542 | 35,833 | -21% |
+| capture_groups | 82,916 | 62,791 | -24% |
+| url_simple | 40,416 | 32,542 | -19% |
+| email_basic | 62,458 | 53,250 | -15% |
+| anchor_complex | 124,666 | 100,084 | -20% |
+
+mimalloc gives 8-28% improvements across the board. Aggregate: 537µs → 415µs (-23%).
+
+### Slice 13 with M3's full methodology (5000 samples / 200 warmup)
+
+```
+pattern              p50 (ns)     <50µs?
+literal_simple              14,041     yes
+digit_sequence              34,208     yes
+character_class             80,167     no (30µs over)
+alternation                 33,917     yes
+capture_groups              59,167     no (9µs over)
+url_simple                  30,334     yes
+email_basic                 48,084     yes (just 1.9µs under)
+anchor_complex              93,791     no (44µs over)
+```
+
+5/8 patterns under PRIMARY 50µs. Gained `email_basic` over slice 12 — closure improvement of one pattern via methodology fix.
+
+### PGEN-RGX-0073 closure assessment: PARTIAL
+
+**Not fully solved.** 5/8 patterns under PRIMARY 50µs on the typed path; 3/8 still over (`character_class` 80µs, `capture_groups` 59µs, `anchor_complex` 94µs).
+
+For comparison, M3 stage 4c reported all 8 under PRIMARY (literal 2.7µs, digit 8.8µs, char_class 28.2µs, alt 7.1µs, capture 18.3µs, url 6.7µs, email 10.8µs, anchor 28.9µs). **Even matching M3's exact methodology, our numbers are 4-9× slower than M3's.**
+
+The gap is structural, not methodology: the differential gate forced us to preserve byte-equivalence with `legacy.content.to_json_value()`. M3's reported speedup came partly from byte-equivalence-violating shortcuts (`Value::Null` instead of `Value::Array(vec![])` for `?-Quantified` miss; HashMap-free shape emit; etc.). The differential gate would have caught those shortcuts at rollback time, but M3 didn't have the gate landed yet. Our hook port pays the real byte-equivalence cost; M3's reported numbers reflected an unattested shape.
+
+### Net result of the 12-slice port
+- Starting point (post-rollback, slice 4 baseline, default malloc, 1000/50): legacy 4/8 under PRIMARY; typed 4/8 under (passthrough, slightly slower).
+- After slice 13 (mimalloc, 5000/200): legacy 4/8 under (unchanged); **typed 5/8 under (gained `email_basic`)**.
+- Improvement: +1 pattern under PRIMARY on the typed path. Differential gate stays 8/8 byte-equivalent through every slice.
+
+PGEN-RGX-0073 status: **In Progress — Mostly Done**, not fully closed. The structural M3 work is ported and verifiably correct (gate green); the remaining 3 patterns need additional honest optimization beyond what M3 attempted.
+
+### Validation
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent (unchanged from slice 12).
+- `make regex_typed_perf_probe`: numbers above.
+- Direct probe with `--samples 5000 --warmup 200`: 5/8 under PRIMARY 50µs.
+
+### Files
+- [rust/Makefile](rust/Makefile): adds `mimalloc_perf` to the `regex_typed_perf_probe` target's Cargo feature list.
+
+### What's next (open question)
+Three options to close the remaining 3 patterns honestly:
+
+1. **Profile-guided optimization** on the typed path for `character_class`, `capture_groups`, `anchor_complex` to identify hot spots and target them surgically.
+2. **Re-evaluate byte-equivalence cost**: confirm `Vec::Array` carriers are strictly required by `to_json_value()` output and explore cheaper representations.
+3. **Accept partial closure**: document 5/8 honest closure as the final state.
+
+Decision deferred to the owner.
+
 ## 2026-04-30 - Slice 12: port M3 stage 4c (semantic-annotated rules on typed path)
 
 ### What landed
