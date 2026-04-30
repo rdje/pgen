@@ -17,6 +17,7 @@ pub fn unparse_return_ast(ast: &UnifiedReturnAST) -> String {
             }
         }
         UnifiedReturnAST::BooleanLiteral { value } => format!("{}", value),
+        UnifiedReturnAST::NullLiteral => "null".to_string(),
         UnifiedReturnAST::Identifier { name } => name.clone(),
         UnifiedReturnAST::Array { elements } => {
             let elem_strs: Vec<String> = elements.iter().map(unparse_return_ast).collect();

@@ -413,6 +413,7 @@ impl AnnotationValidator {
             UnifiedReturnAST::StringLiteral { .. }
             | UnifiedReturnAST::NumberLiteral { .. }
             | UnifiedReturnAST::BooleanLiteral { .. }
+            | UnifiedReturnAST::NullLiteral
             | UnifiedReturnAST::Identifier { .. }
             | UnifiedReturnAST::Passthrough => {}
         }
@@ -2278,6 +2279,7 @@ impl AnnotationValidator {
             UnifiedReturnAST::StringLiteral { .. }
             | UnifiedReturnAST::NumberLiteral { .. }
             | UnifiedReturnAST::BooleanLiteral { .. }
+            | UnifiedReturnAST::NullLiteral
             | UnifiedReturnAST::Identifier { .. }
             | UnifiedReturnAST::Passthrough => 0,
         }

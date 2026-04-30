@@ -59,8 +59,21 @@ quoted_run_inner_piece = quoted_literal_char !"\\E"
 quantifier     = quant_base quant_suffix?
 quant_base     = "*" | "+" | "?" | counted_quantifier
 counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
-counted_quantifier_body = digits ws? ("," ws? digits?)?
-                      | "," ws? digits
+
+# `counted_quantifier_body` was originally:
+#   digits ws? ("," ws? digits?)?
+# | "," ws? digits
+# — two grammar branches but four logical cases (`{n}`, `{n,}`, `{n,m}`,
+# `{,m}`) compressed inside the optional sub-group of branch 1. To produce
+# a clean typed `{min, max}` shape per case the rule is now split into four
+# explicit branches, each with its own per-branch annotation. PEG-ordered
+# alternation tries each branch in order; the first match wins. The most
+# specific shapes come first so `{2,5}` matches the range form before
+# falling through to {2,} or {2}.
+counted_quantifier_body = digits "," digits ws?  -> {min: $1, max: $3}
+                      | digits "," ws?          -> {min: $1, max: null}
+                      | digits ws?              -> {min: $1, max: $1}
+                      | "," ws? digits          -> {min: 0,  max: $3}
 # Each branch surfaces its semantic name directly as a typed string,
 # so consumers don't need to compare against the literal `"?"` / `"+"`
 # tokens or know which suffix character means which thing. Used by

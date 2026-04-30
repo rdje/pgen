@@ -1,4 +1,79 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - regex.ebnf annotation slice 3: null literal + counted_quantifier_body → {min, max}
+
+### Why null came first
+
+Once we agreed on the `{min, max, greediness}` target for the typed `quantifier` shape, `max: null` for unbounded quantifiers (`{n,}`, `*`, `+`) became unavoidable. The return-annotation language already supports 5 of JSON's 6 value types (object, array, string, number, boolean) but not the 6th (null). Sentinel workarounds (`max: -1`, empty array, omit-when-null) all produced asymmetric / type-mixed shapes. Adding `null` explicitly as a language primitive — small parallel change to the `**` slice — is the cleanest fix.
+
+### Null literal mechanics
+
+- `UnifiedReturnAST::NullLiteral` variant. No payload (it's a unit value).
+- Grammar: `null_literal := 'null' -> {type: "null"}`.
+- Generated parser parses `null` as a primary expression keyword.
+- Codegen in `ast_return_transform.rs::generate_transform`:
+  ```rust
+  UnifiedReturnAST::NullLiteral => Ok(quote! {
+      ParseContent::Json(serde_json::Value::Null)
+  })
+  ```
+- Codegen in `generate_value_extraction` (object-field path):
+  ```rust
+  UnifiedReturnAST::NullLiteral => Ok(quote! { serde_json::Value::Null })
+  ```
+- All 8 exhaustive-match sites updated to handle the new variant. `parse_bootstrap` left alone — bootstrap grammars don't use `null`.
+
+### Integer-preserving NumberLiteral codegen (papercut found while testing slice 3)
+
+`generate_value_extraction` was emitting `serde_json::Value::from(#value)` for `NumberLiteral`, where `#value` is an f64. For an annotation literal `0`, the f64 stored is `0.0`, and `Value::from(0.0_f64)` serialises as `0.0`. Mixing `0.0` (literal) with `2` (from a `digits` capture, which uses `@transform: str::parse::<usize>` — i64) in the same field produced inconsistent typing: `{min: 0.0, max: 2}` vs `{min: 2, max: 5}`.
+
+Fix: when the f64 value has no fractional part and fits in i64, emit as `i64` instead. Same surface API but produces `serde_json::Value::Number(i64)` which serialises without the `.0` suffix.
+
+### counted_quantifier_body restructuring
+
+Original rule:
+```ebnf
+counted_quantifier_body = digits ws? ("," ws? digits?)?
+                        | "," ws? digits
+```
+2 grammar branches, 4 logical cases compressed inside the optional sub-group of branch 1:
+- `{n}` — digits only.
+- `{n,}` — digits + comma.
+- `{n,m}` — digits + comma + digits.
+- `{,m}` — comma + digits.
+
+To produce a clean per-case `{min, max}` shape via per-branch annotations, the rule was split into 4 explicit branches:
+
+```ebnf
+counted_quantifier_body = digits "," digits ws?  -> {min: $1, max: $3}
+                      | digits "," ws?          -> {min: $1, max: null}
+                      | digits ws?              -> {min: $1, max: $1}
+                      | "," ws? digits          -> {min: 0,  max: $3}
+```
+
+Most-specific shapes come first (PEG ordered choice). For `{2,5}`, branch 0 matches before branch 1/2 would. For `{2,}`, branch 0 fails (no second digits), branch 1 matches.
+
+### Verified
+
+- regex_parser regen: 14 declared annotations (was 10 — added 4 new counted_quantifier_body entries).
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 493 / 0.
+- Manifests updated:
+  - `regex_v1.json` adds 4 `counted_quantifier_body` entries.
+  - `return_annotation_v1.json` adds `null_literal` entry; `primary_expression` branch_index shifts 7→8 (new branch inserted alphabetically before parens-grouped branch).
+
+### Multi-line rule definition gotcha (recurrence)
+
+Initial attempt put the rule name on its own line:
+```ebnf
+counted_quantifier_body
+                      = digits "," digits ws?  -> ...
+```
+The EBNF frontend silently dropped this rule from the parsed output (same failure mode as the `piece_quoted_run_quantified` slice). Reformatted to keep the rule name and `=` on the same line — matches what the grammar tokenizer expects. Worth tracking as a UX rough edge in the EBNF frontend, but not in scope for this slice.
+
+### What didn't change
+
+- `counted_quantifier`, `quant_base`, `quantifier` — still emit raw shape. The next slices in the campaign.
+- Contract identity NOT bumped on this commit. The shape change is internal to `counted_quantifier_body` and bubbles into `quantifier`'s output but the consumer-visible publish surface for the typed `quantifier` lands when `quantifier` itself is annotated. Bump + new contract section will land then.
+
 ## 2026-04-30 - regex.ebnf annotation slice 2: quant_suffix → typed string + retroactive contract bumps + ledger cleanup
 
 ### Slice scope

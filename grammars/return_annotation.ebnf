@@ -30,6 +30,7 @@ primary_expression := object_literal
                     | string_literal
                     | number_literal
                     | boolean_literal
+                    | null_literal
                     | identifier
                     | '(' expression ')' -> $2
 
@@ -133,6 +134,13 @@ integer := /[-+]?[0-9]+/
 
 # Boolean literals
 boolean_literal := 'true' | 'false'
+
+# Null literal — JSON's sixth value type. Lowers to serde_json::Value::Null
+# at runtime. Used by typed-AST shape annotations to mark "unbounded" /
+# "absent" fields explicitly (e.g. `{min: $1, max: null}` for `{n,}`-style
+# quantifiers in regex.ebnf).
+null_literal := 'null'
+-> {type: "null"}
 
 # Identifiers for properties
 identifier := /[a-zA-Z_][a-zA-Z0-9_]*/

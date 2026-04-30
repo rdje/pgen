@@ -159,10 +159,11 @@ RULE := "terminal1" | "terminal2"
 |--------|-------------|---------|
 | `$N` | Positional reference to Nth element | `$1`, `$2`, `$3` |
 | `"string"` | String literal | `"array"`, `"object"` |
-| `number` | Number literal | `42`, `3.14` |
+| `number` | Number literal (integer-preserving when no fractional part) | `42`, `3.14`, `0` |
 | `true`/`false` | Boolean literal | `true`, `false` |
+| `null` | Null literal (lowers to `serde_json::Value::Null`) | `null` |
 | `[...]` | Array construction | `[$1, $2]` |
-| `{...}` | Object construction | `{type: "node", value: $1}` |
+| `{...}` | Object construction | `{type: "node", value: $1, optional: null}` |
 
 ### Special Operators
 

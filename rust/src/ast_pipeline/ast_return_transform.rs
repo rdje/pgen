@@ -31,6 +31,9 @@ impl AstReturnTransformer {
                 let bool_str = value.to_string();
                 Ok(quote! { ParseContent::Terminal(#bool_str) })
             }
+            UnifiedReturnAST::NullLiteral => Ok(quote! {
+                ParseContent::Json(serde_json::Value::Null)
+            }),
             UnifiedReturnAST::Identifier { name } => Ok(quote! { ParseContent::Terminal(#name) }),
             UnifiedReturnAST::Array { elements } => {
                 Self::generate_array_transform(elements, captured_vars)
@@ -364,10 +367,27 @@ impl AstReturnTransformer {
                 Ok(quote! { serde_json::Value::String(#value.to_string()) })
             }
             UnifiedReturnAST::NumberLiteral { value } => {
-                Ok(quote! { serde_json::Value::from(#value) })
+                // Preserve integer typing when the literal has no fractional
+                // part. `serde_json::Value::from(0.0_f64)` serialises as
+                // `0.0`; `Value::from(0_i64)` serialises as `0`. Most typed-
+                // AST shapes (e.g. min/max counts in counted_quantifier_body)
+                // want integers and would otherwise mix `0.0` (literal) with
+                // `2` (from a `digits` capture) in the same field.
+                if value.is_finite() && value.fract() == 0.0
+                    && *value >= i64::MIN as f64
+                    && *value <= i64::MAX as f64
+                {
+                    let int_value = *value as i64;
+                    Ok(quote! { serde_json::Value::from(#int_value) })
+                } else {
+                    Ok(quote! { serde_json::Value::from(#value) })
+                }
             }
             UnifiedReturnAST::BooleanLiteral { value } => {
                 Ok(quote! { serde_json::Value::Bool(#value) })
+            }
+            UnifiedReturnAST::NullLiteral => {
+                Ok(quote! { serde_json::Value::Null })
             }
             UnifiedReturnAST::Identifier { name } => {
                 Ok(quote! { serde_json::Value::String(#name.to_string()) })

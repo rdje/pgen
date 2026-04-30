@@ -77,6 +77,12 @@
         "normalized_text": "{type: \"flat_spread\", base: $1}"
       },
       {
+        "rule": "null_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"null\"}"
+      },
+      {
         "rule": "object_literal",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -108,7 +114,7 @@
       },
       {
         "rule": "primary_expression",
-        "branch_index": 7,
+        "branch_index": 8,
         "annotation_type": "return_scalar",
         "normalized_text": "$2"
       },

@@ -87,6 +87,7 @@ fn canonicalize_return_ast(ast: &UnifiedReturnAST) -> String {
             }
         }
         UnifiedReturnAST::BooleanLiteral { value } => value.to_string(),
+        UnifiedReturnAST::NullLiteral => "null".to_string(),
         UnifiedReturnAST::Identifier { name } => name.clone(),
         UnifiedReturnAST::Object { properties } => {
             let mut keys: Vec<&String> = properties.keys().collect();

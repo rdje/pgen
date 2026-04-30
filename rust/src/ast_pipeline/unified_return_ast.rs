@@ -43,6 +43,12 @@ pub enum UnifiedReturnAST {
     /// Boolean literal: true or false
     BooleanLiteral { value: bool },
 
+    /// Null literal: `null`. Lowers to `serde_json::Value::Null`. JSON's
+    /// sixth value type, alongside object/array/string/number/boolean.
+    /// Used by typed-AST shape annotations to mark "unbounded" / "absent"
+    /// fields explicitly (e.g. `max: null` for `{n,}`-style quantifiers).
+    NullLiteral,
+
     /// Identifier literal: foo, bar_baz
     Identifier { name: String },
 
@@ -187,6 +193,13 @@ impl UnifiedReturnAST {
                                 })?,
                             )?;
                             Ok(UnifiedReturnAST::FlattenSpread { base: Box::new(base) })
+                        }
+                        "null" => {
+                            // `null` is the typed shape emitted by
+                            // `null_literal := 'null' -> {type: "null"}` in
+                            // `grammars/return_annotation.ebnf`. Maps directly
+                            // to `UnifiedReturnAST::NullLiteral`.
+                            Ok(UnifiedReturnAST::NullLiteral)
                         }
                         "object" => {
                             let properties = map
@@ -616,6 +629,7 @@ impl UnifiedReturnAST {
                     .unwrap_or(serde_json::Value::Null))
             }
             UnifiedReturnAST::BooleanLiteral { value } => Ok(serde_json::Value::Bool(*value)),
+            UnifiedReturnAST::NullLiteral => Ok(serde_json::Value::Null),
             UnifiedReturnAST::Identifier { name } => Ok(serde_json::Value::String(name.clone())),
             UnifiedReturnAST::Passthrough => Ok(serde_json::Value::Null),
             UnifiedReturnAST::Object { properties } => {
@@ -637,6 +651,7 @@ impl UnifiedReturnAST {
                 }
                 Ok(serde_json::Value::Array(arr))
             }
+            UnifiedReturnAST::NullLiteral => Ok(serde_json::Value::Null),
             UnifiedReturnAST::Spread { base } => {
                 let mut map = serde_json::Map::new();
                 map.insert("type".to_string(), serde_json::Value::String("spread".to_string()));
@@ -1363,6 +1378,9 @@ impl UnifiedReturnAST {
             UnifiedReturnAST::BooleanLiteral { value } => {
                 format!("{}BooleanLiteral({})\n", indent_str, value)
             }
+            UnifiedReturnAST::NullLiteral => {
+                format!("{}NullLiteral\n", indent_str)
+            }
             UnifiedReturnAST::Identifier { name } => {
                 format!("{}Identifier({})\n", indent_str, name)
             }
@@ -1517,6 +1535,11 @@ impl UnifiedReturnAST {
             UnifiedReturnAST::BooleanLiteral { value } => Ok(format!(
                 "{}ParseContent::Terminal(r#\"{}\"#)",
                 indent, value
+            )),
+
+            UnifiedReturnAST::NullLiteral => Ok(format!(
+                "{}ParseContent::Json(serde_json::Value::Null)",
+                indent
             )),
 
             UnifiedReturnAST::Identifier { name } => {

@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-04-30 - regex.ebnf slices 3+4: `null` literal + typed `counted_quantifier_body` `{min, max}` shape
+
+### Coupled changes
+
+**1. New `null` literal in the return-annotation language.** JSON's sixth value type, alongside object/array/string/number/boolean. Required for typed shapes that need an "absent" / "unbounded" marker (e.g. unbounded quantifier max).
+
+- `UnifiedReturnAST::NullLiteral` variant in `rust/src/ast_pipeline/unified_return_ast.rs`.
+- Codegen in `rust/src/ast_pipeline/ast_return_transform.rs`: lowers to `serde_json::Value::Null`. Both `generate_transform` and `generate_value_extraction` (object-field path) handle it directly.
+- Grammar surface in `grammars/return_annotation.ebnf`: new `null_literal := 'null' -> {type: "null"}` alternative under `primary_expression`.
+- Typed-tree reader (`parse_typed_return_value`) recognizes `{type: "null"}` and lowers to `NullLiteral`.
+- All 8 exhaustive-match sites updated (`annotation_validator`, `auto_return_annotation_shape_gate`, `unified_return_ast::pretty_print`, `substitute_chain_template_to_typed_json`, legacy `generate_code`, `test_runner/normalization`, `test_runner/parsers`).
+- Bootstrap parser intentionally NOT extended (no bootstrap grammar uses null).
+
+**2. Integer-preserving `NumberLiteral` codegen.** While adding null, also fixed a related papercut: `serde_json::Value::from(0.0_f64)` serialises as `0.0`. For numeric annotation literals with no fractional part, the codegen now emits `i64` instead of `f64`, so an annotation `{min: 0, max: $1}` produces `"min": 0` (integer) in JSON output, consistent with the `i64` typing produced by `digits` (which uses `@transform: str::parse::<usize>`).
+
+**3. Typed `counted_quantifier_body` `{min, max}` shape.** Quantifier-subtree slice 3 of N. The original rule had 2 grammar branches with 4 logical cases (`{n}`, `{n,}`, `{n,m}`, `{,m}`) compressed inside the optional sub-group of branch 1. Restructured into 4 explicit branches, each with its own per-branch annotation:
+
+```ebnf
+counted_quantifier_body = digits "," digits ws?  -> {min: $1, max: $3}    # {n,m}
+                      | digits "," ws?          -> {min: $1, max: null}  # {n,}
+                      | digits ws?              -> {min: $1, max: $1}    # {n}
+                      | "," ws? digits          -> {min: 0,  max: $3}    # {,m}
+```
+
+PEG-ordered alternation tries each branch in order; first match wins. Empirical:
+- `a{2,5}` → `quantifier[...].counted_quantifier_body == {"min": 2, "max": 5}`.
+- `a{2,}` → `{"min": 2, "max": null}` (unbounded).
+- `a{2}` → `{"min": 2, "max": 2}`.
+- `a{,5}` → `{"min": 0, "max": 5}`.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 493 / 0.
+- Manifests updated:
+  - `rust/test_data/ast_shape_contract/return_annotation_v1.json` — new `null_literal` entry; `primary_expression` branch index shifted (7 → 8).
+  - `rust/test_data/ast_shape_contract/regex_v1.json` — 4 new `counted_quantifier_body` entries.
+
+### No contract bump in this commit
+Both changes affect AST shapes that haven't yet been published in a `1.1.x` release section. The contract identity bump and the consolidated AST-shape contract section will land on the slice that closes the quantifier subtree (`quant_base` and `quantifier` rules). Until then the regex parser produces the new shapes but the contract section still describes parser release `1.1.33` / contract `1.1.35`.
+
 ## 2026-04-30 - Cold-clone bootstrap: single `make regex_parser_bootstrap` target via Rust EBNF frontend (no Perl)
 
 ### What landed
