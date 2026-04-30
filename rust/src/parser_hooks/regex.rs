@@ -200,16 +200,239 @@ fn generate_typed_node_body(
         return generate_typed_annotated_body(ast_node, rule_name, annotations);
     }
 
+    // Slice 11 / M3-stage-5b: non-annotated rules go through the
+    // generic composer, which handles all five `ASTNode` shapes
+    // recursively and unlocks composite shapes (Or with Sequence
+    // alternatives, Sequence with non-Atom Quantified inner, etc.).
+    // The composer returns `None` for `Lookahead` and that falls back
+    // to the slice-2 passthrough.
+    let expr = generate_typed_value_expr(ast_node, rule_name, quote! { self })?;
+    Some(quote! { Ok(#expr) })
+}
+
+/// Slice 11 / M3-stage-5b: generic shape composer. Returns a
+/// `serde_json::Value`-producing expression for any non-annotated
+/// `ASTNode` shape, recursing into nested shapes. The `receiver`
+/// parameter is the parser receiver used inside the expression
+/// (`self` at top-level method bodies; `parser` inside `try_parse`
+/// closures, matching the legacy `let parser = p;` shadowing
+/// convention).
+///
+/// **What this unlocks vs slices 6-9:** composite shapes the per-shape
+/// emitters couldn't handle in isolation:
+///
+/// - `Or` whose alternatives include `Sequence` / `Quantified` / nested `Or`.
+/// - `Sequence` whose elements include `Quantified` over non-Atom inner,
+///   or nested `Sequence` / `Or`.
+/// - `Quantified` over non-Atom inner (`(group)*` where `(group)` is a
+///   `Sequence` or `Or`).
+///
+/// **Byte-equivalence vs M3 stage 5b:** M3's composer emitted
+/// `Value::Null` on `?`-Quantified miss, which diverged from legacy
+/// `ParseContent::Quantified(_, _).to_json_value()` (always
+/// `Value::Array`). The differential gate caught this at rollback
+/// time. Slice 11 emits `Value::Array(vec_of_at_most_one)` for `?`,
+/// keeping byte-equivalence with the legacy reference path. (The
+/// annotated rule path's `generate_typed_annotated_element_expr` is
+/// SEPARATE and still uses `Value::Null` on miss — that matches legacy
+/// positional-ref dereference semantics, which differ from raw
+/// Quantified content serialization.)
+///
+/// `Lookahead` returns `None` — it's rare at the rule-body level and
+/// needs separate semantics.
+fn generate_typed_value_expr(
+    ast_node: &ASTNode,
+    rule_name: &str,
+    receiver: TokenStream,
+) -> Option<TokenStream> {
     match ast_node {
-        ASTNode::Atom { value } => generate_typed_atom_body(value, rule_name),
-        ASTNode::Sequence { elements } => generate_typed_sequence_body(elements, rule_name),
-        ASTNode::Or { alternatives } => generate_typed_or_body(alternatives, rule_name),
+        ASTNode::Atom { value } => generate_typed_atom_value_expr(value, rule_name, receiver),
+        ASTNode::Sequence { elements } => {
+            generate_typed_sequence_value_expr(elements, rule_name, receiver)
+        }
+        ASTNode::Or { alternatives } => {
+            generate_typed_or_value_expr(alternatives, rule_name, receiver)
+        }
         ASTNode::Quantified {
             element,
             quantifier,
-        } => generate_typed_quantified_body(element, quantifier, rule_name),
-        // `Lookahead` is rare at the rule-body level and stays on
-        // passthrough until a concrete need surfaces.
+        } => generate_typed_quantified_value_expr(element, quantifier, rule_name, receiver),
+        ASTNode::Lookahead { .. } => None,
+    }
+}
+
+/// Slice 11 helper: Sequence value-expression. Recurses into the
+/// composer for non-Atom children. Produces a block expression
+/// yielding `Value::Array(child_typed_values)`.
+///
+/// **Byte-equivalence:** legacy `ParseContent::Sequence(nodes)
+/// .to_json_value()` is `Value::Array(nodes.iter().map(|n| n.content
+/// .to_json_value()).collect())`. So for each child the typed
+/// expression must produce exactly what `child.content.to_json_value()`
+/// produces. For `?`-Quantified children specifically: legacy
+/// produces `Value::Array(vec![<inner>])` matched / `Value::Array(vec![])`
+/// unmatched (because the child's content is `Quantified(_, _)` whose
+/// `to_json_value()` is always `Value::Array`). Slice 11 emits the
+/// carrier shape — same fix as slice 7's Sequence emit.
+fn generate_typed_sequence_value_expr(
+    elements: &[ASTNode],
+    rule_name: &str,
+    receiver: TokenStream,
+) -> Option<TokenStream> {
+    let count = elements.len();
+    let mut pushes: Vec<TokenStream> = Vec::with_capacity(count);
+    for elem in elements {
+        let push = match elem {
+            ASTNode::Quantified {
+                element: inner,
+                quantifier,
+            } if quantifier == "?" => {
+                let inner_expr =
+                    generate_typed_value_expr(inner, rule_name, quote! { parser })?;
+                quote! {
+                    let __pgen_oe_carrier: Vec<serde_json::Value> = if let Some(__pgen_oe_v) =
+                        #receiver.try_parse(|p| {
+                            let parser = p;
+                            Ok::<serde_json::Value, ParseError>(#inner_expr)
+                        })
+                    {
+                        vec![__pgen_oe_v]
+                    } else {
+                        Vec::new()
+                    };
+                    __pgen_seq_elements.push(serde_json::Value::Array(__pgen_oe_carrier));
+                }
+            }
+            _ => {
+                let elem_expr =
+                    generate_typed_value_expr(elem, rule_name, receiver.clone())?;
+                quote! {
+                    __pgen_seq_elements.push(#elem_expr);
+                }
+            }
+        };
+        pushes.push(push);
+    }
+    Some(quote! {
+        {
+            let mut __pgen_seq_elements: Vec<serde_json::Value> = Vec::with_capacity(#count);
+            #(#pushes)*
+            serde_json::Value::Array(__pgen_seq_elements)
+        }
+    })
+}
+
+/// Slice 11 helper: Or value-expression. Tries each alternative
+/// inside `try_parse`; the first alternative whose typed expression
+/// succeeds yields its value via labeled break. If every alternative
+/// fails, returns `Err(ParseError::Backtrack { position })` from the
+/// enclosing function/closure — that's the same semantics PEG
+/// alternation has when no branch matches.
+///
+/// **Byte-equivalence:** legacy `ParseContent::Alternative(child)
+/// .to_json_value()` is `child.content.to_json_value()` — the chosen
+/// alternative's content unwrapped. The composer returns the
+/// alternative's typed expression directly. Match.
+fn generate_typed_or_value_expr(
+    alternatives: &[ASTNode],
+    rule_name: &str,
+    receiver: TokenStream,
+) -> Option<TokenStream> {
+    let mut tries: Vec<TokenStream> = Vec::with_capacity(alternatives.len());
+    for alt in alternatives {
+        let alt_expr = generate_typed_value_expr(alt, rule_name, quote! { parser })?;
+        tries.push(quote! {
+            if let Some(__pgen_av) = #receiver.try_parse(|p| {
+                let parser = p;
+                Ok::<serde_json::Value, ParseError>(#alt_expr)
+            }) {
+                break 'pgen_or_block __pgen_av;
+            }
+        });
+    }
+    Some(quote! {
+        'pgen_or_block: {
+            #(#tries)*
+            return Err(ParseError::Backtrack {
+                position: #receiver.position,
+            });
+        }
+    })
+}
+
+/// Slice 11 helper: Quantified value-expression for `?`, `*`, `+`
+/// (over any inner shape via the composer). `{n,m}` and other forms
+/// return `None`.
+///
+/// **Byte-equivalence:** legacy `ParseContent::Quantified(nodes, _)
+/// .to_json_value()` is always `Value::Array(...)` regardless of the
+/// quantifier kind. Slice 11 emits:
+/// - `?` matched: `Value::Array(vec![<inner>])`
+/// - `?` unmatched: `Value::Array(vec![])`
+/// - `*`: `Value::Array(matches)` (zero or more)
+/// - `+`: `Value::Array(matches)` (one or more, first match required)
+///
+/// This is the M3 stage 5b byte-equivalence fix: M3's `?` emitted
+/// `Value::Null` on miss, diverging from legacy's `Value::Array`
+/// shape. The differential gate caught it at rollback time.
+fn generate_typed_quantified_value_expr(
+    element: &ASTNode,
+    quantifier: &str,
+    rule_name: &str,
+    receiver: TokenStream,
+) -> Option<TokenStream> {
+    match quantifier {
+        "?" => {
+            let inner = generate_typed_value_expr(element, rule_name, quote! { parser })?;
+            Some(quote! {
+                {
+                    let __pgen_q_carrier: Vec<serde_json::Value> = if let Some(__pgen_q_v) =
+                        #receiver.try_parse(|p| {
+                            let parser = p;
+                            Ok::<serde_json::Value, ParseError>(#inner)
+                        })
+                    {
+                        vec![__pgen_q_v]
+                    } else {
+                        Vec::new()
+                    };
+                    serde_json::Value::Array(__pgen_q_carrier)
+                }
+            })
+        }
+        "*" => {
+            let inner = generate_typed_value_expr(element, rule_name, quote! { parser })?;
+            Some(quote! {
+                {
+                    let mut __pgen_q_elements: Vec<serde_json::Value> = Vec::new();
+                    while let Some(__pgen_q_v) = #receiver.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#inner)
+                    }) {
+                        __pgen_q_elements.push(__pgen_q_v);
+                    }
+                    serde_json::Value::Array(__pgen_q_elements)
+                }
+            })
+        }
+        "+" => {
+            let inner_first =
+                generate_typed_value_expr(element, rule_name, receiver.clone())?;
+            let inner_loop = generate_typed_value_expr(element, rule_name, quote! { parser })?;
+            Some(quote! {
+                {
+                    let mut __pgen_q_elements: Vec<serde_json::Value> = Vec::new();
+                    __pgen_q_elements.push(#inner_first);
+                    while let Some(__pgen_q_v) = #receiver.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#inner_loop)
+                    }) {
+                        __pgen_q_elements.push(__pgen_q_v);
+                    }
+                    serde_json::Value::Array(__pgen_q_elements)
+                }
+            })
+        }
         _ => None,
     }
 }

@@ -1,4 +1,80 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 11: port M3 stage 5b (generic shape composer) into the regex hook
+
+### What landed
+M3 stage 5b (commit `139d52b`) re-homed in `rust/src/parser_hooks/regex.rs`. Adds the generic composer `generate_typed_value_expr(ast_node, rule_name, receiver)` that handles every `ASTNode` shape recursively. Slices 6-9's per-shape body emitters (Atom/Sequence/Or/Quantified) become specializations the composer can express; the dispatcher routes non-annotated rules through the composer.
+
+### Composite shapes now reach the typed path
+Before slice 11, several composite shapes fell through to the slice-2 passthrough because the per-shape emitters could only handle Atom inners:
+- The regex grammar's `alternation = alternative ("|" alternative)*` (Sequence with `*-Quantified-Sequence` inner).
+- `Or` rules whose alternatives include `Sequence` (e.g., `command = "if" expr "then" stmt | "while" expr stmt` style — not in regex but illustrative).
+- `Sequence` rules whose elements include nested `Sequence` / `Or`.
+
+These now emit shape-typed bodies through composer recursion.
+
+### Byte-equivalence fix vs M3 (fourth occurrence of the same pattern)
+M3's stage 5b composer emitted `Value::Null` on `?`-Quantified miss. Legacy `ParseContent::Quantified(_, _).to_json_value()` always returns `Value::Array(...)`. M3's emit diverged from `legacy.content.to_json_value()` — exactly the byte-equivalence bug the differential gate caught at rollback time.
+
+Slice 11 emits `Value::Array(vec_of_at_most_one)` carrier for the composer's `?-Quantified`, byte-equivalent to legacy. Slice 7 already applied this fix for Sequence's `?-Quantified-Atom` children, slice 9 for rule-body-level Quantified-Atom; slice 11 closes it for the composer's recursive case. The differential gate's 8/8 byte-equivalent confirms.
+
+The annotated path (slice 10's `generate_typed_annotated_element_expr`) stays separate and continues to use `Value::Null` on miss — that's legacy positional-ref dereference semantics, which differ from `Quantified.to_json_value()`. Both contexts are correct in their respective gates.
+
+### Perf footprint and the unexpected non-unlock
+
+```
+pattern              slice 10 typed   slice 11 typed   delta
+literal_simple              20,458           20,209   ~0%
+digit_sequence              47,917           47,459   ~0%
+character_class            105,959          104,791   ~0%
+alternation                 48,542           48,542   0%
+capture_groups              85,916           86,959   +1%
+url_simple                  42,958           42,250   ~0%
+email_basic                 64,250           63,292   ~0%
+anchor_complex             133,083          132,417   ~0%
+```
+
+p50 essentially flat. M3's stage 5b reported "1.4-5.6× speedups; 6/8 patterns under PRIMARY 50µs"; we don't see that.
+
+**Cause:** much of the regex grammar's hot-path goes through rules with `@semantic_value` annotations:
+- `negation = "^"` — `@semantic_value: $1 != null`
+- `class_body = class_item*` — `@semantic_value: flatten($1)`
+- `class_range`, `class_literal`, `class_atom`, `class_escape` — all carry `@semantic_value` or other semantic directives.
+- `escape`, `escape_unit` — semantic-typed.
+
+The dispatcher's first gate (`rule_has_no_semantic_annotations`) blocks these from typed emit. They fall back to passthrough, dragging their callers' typed paths back through legacy + `to_json_value()`. The character_class pattern in particular spends most of its time inside class_body / class_range / etc. — none of which are typed yet.
+
+**Slice 12 (M3 stage 4c)** extends typed dispatch to semantic-annotated rules. That's the unlock per M3 history (1374ff2: "8/8 patterns under 50us via typed entry, geomean 4.43x speedup"). One correctness call-out: `@predicate` and `@emit_fact` interact with parser runtime state (used by SV/VHDL to gate alternatives). For the regex grammar, `@semantic_value` is pure metadata that doesn't affect the parsed shape, so the typed path can safely skip it. For other grammars this would not be safe. The hook lives only for the `regex` grammar (registry lookup by EBNF name), so regex-specific reasoning is appropriate here.
+
+### Tail latency improved
+Slice 10's p99/max ballooned (anchor_complex max 72ms, capture_groups max 15ms, url_simple max 11ms). Slice 11's p99/max are all under 300µs:
+
+```
+pattern              slice 10 max     slice 11 max
+literal_simple        108,208          105,667
+digit_sequence        171,083          97,541
+character_class       206,125          242,000
+alternation           2,487,583        60,208     (-99%)
+capture_groups        15,088,666       190,250    (-99%)
+url_simple            11,228,833       68,625     (-99%)
+email_basic           3,180,250        170,208    (-95%)
+anchor_complex        71,972,917       209,375    (-99.7%)
+```
+
+The composer's tighter expression layout removes the nested HashMap allocation churn that drove slice 10's tails. This is a real perf win even though p50 is flat — much more predictable runtime per parse.
+
+### Methodology gap with M3
+M3 measured with `release + mimalloc + --warmup 200 --samples 5000`. Ours: `release + default_malloc + --warmup 50 --samples 1000`. The probe binary supports `mimalloc_perf` feature (Optim #10) but our make target doesn't pass it. Worth adding to close some of the gap independently of slice 12. Not blocking slice 12.
+
+### Files
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs):
+  - New `generate_typed_value_expr(ast_node, rule_name, receiver)` — generic composer.
+  - New `generate_typed_sequence_value_expr`, `generate_typed_or_value_expr`, `generate_typed_quantified_value_expr` — per-shape value-expression helpers that delegate back to the composer for inner shapes.
+  - `generate_typed_node_body` non-annotated branch now dispatches through the composer with `quote!{self}` receiver, wrapping in `Ok(#expr)`.
+  - Slice 6-9's `generate_typed_atom_body`, `generate_typed_sequence_body`, `generate_typed_or_body`, `generate_typed_quantified_body` retained as dead code (subsumed by composer; will be pruned in a follow-up cleanup).
+
+### What slice 12 does next
+Port M3 stage 4c (`1374ff2`, "PGEN-RGX-0073 PRIMARY achieved — 8/8 patterns under 50us"). Loosens the dispatcher's first gate so rules with semantic annotations whose AST shape is producible by typed emit also reach the typed path. The unlock pattern: regex-grammar `@semantic_value` is metadata that doesn't shape the parser's runtime state; its function is to compute a value used elsewhere (predicates, fact emission) but the rule's parsed AST output is unchanged whether the typed path applies @semantic_value at parse time or the legacy path applies it post-parse. Differential gate enforces this correctness end-to-end. Per M3 history, this slice closes the remaining 4/8 patterns to under 50µs.
+
 ## 2026-04-30 - Slice 10: port M3 stage 4b (annotation-aware typed emit) into the regex hook
 
 ### What landed
