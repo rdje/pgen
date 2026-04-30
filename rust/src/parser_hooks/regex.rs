@@ -63,7 +63,9 @@
 //! equivalent JSON output. Architecture first; perf optimization
 //! second.
 
-use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, ParserHooks, ParserImplContext, TokenValue};
+use crate::ast_pipeline::{
+    ASTNode, ASTValue, Annotations, ParserHooks, ParserImplContext, TokenValue, UnifiedReturnAST,
+};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -171,20 +173,31 @@ fn generate_typed_node_body(
     rule_name: &str,
     annotations: Option<&Annotations>,
 ) -> Option<TokenStream> {
-    // Slice 6 only dispatches non-annotated rules. Rules with semantic
-    // annotations (`@semantic_value`, `@predicate`, `@emit_fact`,
-    // `@validate`) or branch return annotations need the legacy path's
-    // semantic-runtime wrapper to fire; the typed body would skip
-    // those side-effects. Stage 4c (later slice) extends the dispatch
-    // to semantic-annotated rules once the byte-equivalence story for
-    // annotation-applied shapes is in place.
+    // Semantic annotations (`@semantic_value`, `@predicate`,
+    // `@emit_fact`, `@validate`) shape the parser's runtime state;
+    // the typed path doesn't yet apply them, so rules carrying any
+    // semantic annotation still fall back to passthrough. Slice 12
+    // (M3 stage 4c) extends the dispatch to semantic-annotated rules
+    // on the typed path.
     if !rule_has_no_semantic_annotations(rule_name, annotations) {
         return None;
     }
-    if let Some(annotations) = annotations
-        && annotations.branch_return_annotations.contains_key(rule_name)
-    {
-        return None;
+
+    // Slice 10 / M3-stage-4b: explicit return annotations
+    // (`return_object`, `return_array`, `return_scalar`) get a typed
+    // body that applies the annotation transform directly to typed
+    // sub-values, no `ParseNode` round-trip. The frontend stores
+    // per-branch return-annotation slots for every rule, but a `None`
+    // slot just means "no explicit annotation, fall back to the
+    // synthetic `-> $1` default". The check below counts only EXPLICIT
+    // (non-`None`) branch annotations — implicit `-> $1` is identity
+    // passthrough, exactly what the typed shape emit produces, so
+    // implicit-only rules stay on the typed shape-emit path.
+    let has_explicit_return_annotation = annotations
+        .and_then(|a| a.branch_return_annotations.get(rule_name))
+        .is_some_and(|branches| branches.iter().any(Option::is_some));
+    if has_explicit_return_annotation {
+        return generate_typed_annotated_body(ast_node, rule_name, annotations);
     }
 
     match ast_node {
@@ -197,6 +210,273 @@ fn generate_typed_node_body(
         } => generate_typed_quantified_body(element, quantifier, rule_name),
         // `Lookahead` is rare at the rule-body level and stays on
         // passthrough until a concrete need surfaces.
+        _ => None,
+    }
+}
+
+/// Slice 10 / M3-stage-4b: shape-typed body for rules with explicit
+/// return annotations (`return_scalar`, `return_object`, `return_array`).
+///
+/// **Two-phase emit:**
+/// 1. Parse phase: walk the rule body, parsing each top-level element
+///    into a numbered local `__pgen_v<i>` (1-based, matching `$N`
+///    positional refs in annotations). Failures propagate via `?`.
+/// 2. Build phase: walk the parsed `UnifiedReturnAST` and emit
+///    `serde_json::Value`-building code that references the locals
+///    by index.
+///
+/// **Body shape support:** `Sequence` (N elements at the top), `Atom`
+/// (1 element), `Quantified` (1 element with `?`/`*`/`+` over Atom
+/// inner). Or rules (per-branch annotations) and Lookahead deferred.
+///
+/// **Annotation shape support:** `PositionalRef`, `StringLiteral`,
+/// `NumberLiteral`, `BooleanLiteral`, `Object` (recursive), `Array`,
+/// `Passthrough` (treated as `$1`). PropertyAccess / ArrayAccess /
+/// Spread / QuantifiedExtraction / Identifier return `None` and the
+/// caller falls back to the slice-2 passthrough body.
+///
+/// **Byte-equivalence:** the legacy emit for annotated rules produces
+/// `ParseContent::Json(transformed_value)` whose `to_json_value()`
+/// returns `value.clone()`. The typed body builds the same JSON
+/// structure directly. Positional ref semantics: `$N` over a
+/// `?`-Quantified element returns the inner value or `Value::Null`
+/// (NOT `Value::Array(vec![])` — annotation-side positional refs
+/// dereference Quantified content rather than carry the array
+/// wrapper).
+fn generate_typed_annotated_body(
+    ast_node: &ASTNode,
+    rule_name: &str,
+    annotations: Option<&Annotations>,
+) -> Option<TokenStream> {
+    // For Or rules, each branch may carry its own annotation; the
+    // typed emit needs per-branch dispatch. Defer to slice 11+.
+    if matches!(ast_node, ASTNode::Or { .. }) {
+        return None;
+    }
+
+    // Resolve the rule's branch-0 annotation (Or rules are filtered
+    // above; non-Or rules have a single conceptual branch).
+    let branch_annotation = annotations?
+        .branch_return_annotations
+        .get(rule_name)
+        .and_then(|branches| branches.first().cloned())
+        .flatten()?;
+    let parsed_ast = branch_annotation.parsed_ast.as_ref()?;
+
+    // Determine top-level matched elements for `$N` indexing and emit
+    // the parse-phase code that stores each element's typed value in
+    // `__pgen_v<i>`.
+    let elements: Vec<&ASTNode> = match ast_node {
+        ASTNode::Sequence { elements } => elements.iter().collect(),
+        ASTNode::Atom { .. } => vec![ast_node],
+        ASTNode::Quantified { .. } => vec![ast_node],
+        ASTNode::Or { .. } => return None,
+        ASTNode::Lookahead { .. } => return None,
+    };
+
+    let mut parse_phase: Vec<TokenStream> = Vec::with_capacity(elements.len());
+    for (idx, elem) in elements.iter().enumerate() {
+        let v_ident = format_ident!("__pgen_v{}", idx + 1);
+        let elem_expr = generate_typed_annotated_element_expr(elem, rule_name)?;
+        parse_phase.push(quote! {
+            let #v_ident: serde_json::Value = #elem_expr;
+        });
+    }
+
+    let value_expr = generate_typed_annotation_value_expr(parsed_ast, elements.len())?;
+
+    Some(quote! {
+        #(#parse_phase)*
+        Ok(#value_expr)
+    })
+}
+
+/// Slice 10 / M3-stage-4b: per-element typed expression for the
+/// stage-4b parse phase. Returns an expression of type
+/// `serde_json::Value` (or `?`-propagating to `ParseError`). Each
+/// element corresponds to one positional `$N` slot.
+///
+/// **Positional-ref Quantified semantics:** `$N` references over a
+/// `?`-Quantified element produce the inner value on hit and
+/// `Value::Null` on miss (legacy positional ref dereferences the
+/// Quantified content rather than carrying the array wrapper).
+/// `*`/`+` produce `Value::Array(matches)`. This differs from
+/// rule-body-level Quantified emit (slice 9) which always wraps in
+/// `Value::Array` to match `ParseContent::Quantified.to_json_value()`.
+fn generate_typed_annotated_element_expr(
+    element: &ASTNode,
+    rule_name: &str,
+) -> Option<TokenStream> {
+    match element {
+        ASTNode::Atom { value } => {
+            generate_typed_atom_value_expr(value, rule_name, quote! { self })
+        }
+        ASTNode::Quantified {
+            element: inner,
+            quantifier,
+        } if quantifier == "?" => {
+            let inner_expr = generate_typed_annotated_element_expr_with_receiver(
+                inner,
+                rule_name,
+                quote! { parser },
+            )?;
+            Some(quote! {
+                if let Some(__pgen_qv) = self.try_parse(|p| {
+                    let parser = p;
+                    Ok::<serde_json::Value, ParseError>(#inner_expr)
+                }) {
+                    __pgen_qv
+                } else {
+                    serde_json::Value::Null
+                }
+            })
+        }
+        ASTNode::Quantified {
+            element: inner,
+            quantifier,
+        } if quantifier == "*" => {
+            let inner_expr = generate_typed_annotated_element_expr_with_receiver(
+                inner,
+                rule_name,
+                quote! { parser },
+            )?;
+            Some(quote! {
+                {
+                    let mut __pgen_qe: Vec<serde_json::Value> = Vec::new();
+                    while let Some(__pgen_qv) = self.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#inner_expr)
+                    }) {
+                        __pgen_qe.push(__pgen_qv);
+                    }
+                    serde_json::Value::Array(__pgen_qe)
+                }
+            })
+        }
+        ASTNode::Quantified {
+            element: inner,
+            quantifier,
+        } if quantifier == "+" => {
+            let inner_expr_self = generate_typed_annotated_element_expr_with_receiver(
+                inner,
+                rule_name,
+                quote! { self },
+            )?;
+            let inner_expr_parser = generate_typed_annotated_element_expr_with_receiver(
+                inner,
+                rule_name,
+                quote! { parser },
+            )?;
+            Some(quote! {
+                {
+                    let mut __pgen_qe: Vec<serde_json::Value> = Vec::new();
+                    __pgen_qe.push(#inner_expr_self);
+                    while let Some(__pgen_qv) = self.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#inner_expr_parser)
+                    }) {
+                        __pgen_qe.push(__pgen_qv);
+                    }
+                    serde_json::Value::Array(__pgen_qe)
+                }
+            })
+        }
+        _ => None,
+    }
+}
+
+/// Companion to [`generate_typed_annotated_element_expr`] that lets
+/// the caller supply the parser receiver (`self` at top-level,
+/// `parser` inside `try_parse` closures). Used by the `?`/`*`/`+`
+/// quantified arms when recursing into the inner element.
+fn generate_typed_annotated_element_expr_with_receiver(
+    element: &ASTNode,
+    rule_name: &str,
+    receiver: TokenStream,
+) -> Option<TokenStream> {
+    match element {
+        ASTNode::Atom { value } => generate_typed_atom_value_expr(value, rule_name, receiver),
+        _ => None,
+    }
+}
+
+/// Slice 10 / M3-stage-4b: build-phase emitter. Walks the parsed
+/// return-annotation AST and emits a `serde_json::Value`-producing
+/// expression that references `__pgen_v<i>` locals built in the
+/// parse phase.
+///
+/// **Annotation shape support:** `PositionalRef`, `StringLiteral`,
+/// `NumberLiteral`, `BooleanLiteral`, `Object`, `Array`, `Passthrough`.
+/// Returns `None` for `PropertyAccess`, `ArrayAccess`, `Spread`,
+/// `QuantifiedExtraction`, `Identifier` — those rules fall back to
+/// the slice-2 passthrough until a follow-up slice extends the
+/// emitter.
+fn generate_typed_annotation_value_expr(
+    ast: &UnifiedReturnAST,
+    num_elements: usize,
+) -> Option<TokenStream> {
+    match ast {
+        UnifiedReturnAST::PositionalRef { index } => {
+            if *index < 1 || *index > num_elements {
+                return None;
+            }
+            let v_ident = format_ident!("__pgen_v{}", index);
+            Some(quote! { #v_ident.clone() })
+        }
+        UnifiedReturnAST::StringLiteral { value } => Some(quote! {
+            serde_json::Value::String(#value.to_string())
+        }),
+        UnifiedReturnAST::NumberLiteral { value } => {
+            let lit = proc_macro2::Literal::f64_unsuffixed(*value);
+            Some(quote! {
+                serde_json::Value::Number(
+                    serde_json::Number::from_f64(#lit)
+                        .unwrap_or_else(|| serde_json::Number::from(0))
+                )
+            })
+        }
+        UnifiedReturnAST::BooleanLiteral { value } => {
+            let v = *value;
+            Some(quote! { serde_json::Value::Bool(#v) })
+        }
+        UnifiedReturnAST::Object { properties } => {
+            // Sort keys for deterministic emit order.
+            let mut keys: Vec<&String> = properties.keys().collect();
+            keys.sort();
+            let mut inserts: Vec<TokenStream> = Vec::with_capacity(keys.len());
+            for key in keys {
+                let value_ast = properties.get(key)?;
+                let value_expr = generate_typed_annotation_value_expr(value_ast, num_elements)?;
+                inserts.push(quote! {
+                    __pgen_obj.insert(#key.to_string(), #value_expr);
+                });
+            }
+            Some(quote! {
+                {
+                    let mut __pgen_obj = serde_json::Map::new();
+                    #(#inserts)*
+                    serde_json::Value::Object(__pgen_obj)
+                }
+            })
+        }
+        UnifiedReturnAST::Array { elements } => {
+            let element_exprs: Option<Vec<TokenStream>> = elements
+                .iter()
+                .map(|e| generate_typed_annotation_value_expr(e, num_elements))
+                .collect();
+            let element_exprs = element_exprs?;
+            Some(quote! {
+                serde_json::Value::Array(vec![#(#element_exprs),*])
+            })
+        }
+        UnifiedReturnAST::Passthrough => {
+            if num_elements < 1 {
+                return None;
+            }
+            Some(quote! { __pgen_v1.clone() })
+        }
+        // PropertyAccess, ArrayAccess, QuantifiedExtraction, Spread,
+        // Identifier — defer.
         _ => None,
     }
 }

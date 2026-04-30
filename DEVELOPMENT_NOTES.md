@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 10: port M3 stage 4b (annotation-aware typed emit) into the regex hook
+
+### What landed
+M3 stage 4b (commit `a25c71a`) re-homed in `rust/src/parser_hooks/regex.rs`. Adds shape-typed body emit for rules with explicit return annotations. The dispatcher routes annotated rules through a two-phase emit (parse → build) that constructs the annotation-transformed JSON directly instead of going through legacy + `to_json_value()`.
+
+### Dispatcher gate fix that came with the port
+The slice-6 dispatcher used `branch_return_annotations.contains_key(rule_name)` to filter annotated rules. This was over-restrictive: the frontend stores empty-slot entries (`Vec<Option<BranchAnnotation>>` with every slot `None`) for rules with only the implicit `-> $1` default. Those rules used to fall back to passthrough.
+
+Slice 10 changes the check to `branches.iter().any(Option::is_some)`, which detects only EXPLICIT annotations. Implicit-`-> $1` rules now reach the typed shape-emit path (they're identity passthrough, exactly what shape emit produces). Differential gate confirms 8/8 byte-equivalence — implicit-`-> $1` typed emit matches legacy `to_json_value()` byte-for-byte.
+
+### Annotation-aware emit
+Two helper functions for the parse phase:
+- `generate_typed_annotated_element_expr(element, rule_name)`: emits a typed expression for one positional `$N` slot. For Atoms: dispatches through `generate_typed_atom_value_expr`. For `?`/`*`/`+` Quantified: emits `try_parse` chains that produce `Value::Null` on `?` miss, `Value::Array(matches)` for `*`/`+`. **Note**: `?` produces `Value::Null` on miss here (positional-ref semantics dereference Quantified content), NOT `Value::Array(vec![])` like rule-body-level Quantified emit (slice 9). This is a real semantic distinction in the legacy code that the byte-equivalence gate enforces.
+- `generate_typed_annotated_element_expr_with_receiver(element, rule_name, receiver)`: companion for `try_parse` closure interiors.
+
+One helper for the build phase:
+- `generate_typed_annotation_value_expr(ast, num_elements)`: walks `UnifiedReturnAST` (PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, Object, Array, Passthrough) and emits Value-building code referencing `__pgen_v<i>` locals. Returns `None` for PropertyAccess/ArrayAccess/Spread/QuantifiedExtraction/Identifier (caller falls back to passthrough).
+
+### Slice 10 perf footprint
+
+```
+pattern              slice 9 typed   slice 10 typed   delta
+literal_simple              20,625           20,458   ~0%
+digit_sequence              47,875           47,917   ~0%
+character_class            105,167          105,959   ~0%
+alternation                 49,584           48,542   -2%
+capture_groups              84,750           85,916   ~0%
+url_simple                  42,791           42,958   ~0%
+email_basic                 64,000           64,250   ~0%
+anchor_complex             129,000          133,083   +3%
+```
+
+**p50s within noise** — significantly better than M3's expected ~6% regression. The byte-equivalence-preserving emit may avoid some of the wasted work M3 was doing (one hypothesis: M3 was emitting code that didn't quite match the legacy shape but spent extra cycles before discovering the divergence).
+
+### Tail-latency concern (p99 / max for some patterns)
+The p99 / max numbers are inflated:
+
+```
+pattern              p50         p99         max
+alternation          48,542      140,375     2,487,583       (2.5ms max)
+capture_groups       85,916      1,130,542   15,088,666      (15ms max)
+url_simple           42,958      243,750     11,228,833      (11ms max)
+email_basic          64,250      485,375     3,180,250       (3.2ms max)
+anchor_complex       133,083     2,960,459   71,972,917      (72ms max)
+```
+
+Mean is ~2× p50 for these — the upper tail dominates. Possible causes:
+
+1. **HashMap allocation churn**: every annotated-rule emit does `serde_json::Map::new()` then inserts. For deeply-nested annotated parses (which the regex grammar has — `regex` → `pattern` → ... → `piece` annotated, each level building objects), allocator pressure can produce stalls.
+2. **try_parse rollback cost**: nested annotated paths may trigger more rollbacks than passthrough did, with corresponding allocation/destruction churn.
+3. **Cold codegen paths**: 50 warmup iterations may not be enough to JIT/cache-warm all the new annotation-emit code.
+
+p50 is the comparison metric (M3 history reports p50) and is unaffected. The tail is worth flagging for follow-up — slice 11's generic shape composer may collapse nested HashMap creations, or it might not. Will measure next slice and decide whether to dig in or proceed.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: numbers above.
+
+### What slice 11 does next
+Port M3 stage 5b (commit `139d52b`, "generic shape composer"). Refactors the typed-emit plumbing to introduce `generate_typed_value_expr(ast_node, rule_name, receiver)` that handles any non-annotated `ASTNode` shape recursively. Stages 2-5's per-shape emitters become specializations of this composer. Composite shapes (e.g., Or with Sequence alternatives, Sequence with non-Atom Quantified inner) start emitting typed bodies. Per M3 history, this is the unlock: "typed delivers 1.4-5.6× speedups; 6/8 patterns under PRIMARY 50µs via typed entry."
+
 ## 2026-04-30 - Slice 9: port M3 stage 5 (typed Quantified body emit) into the regex hook
 
 ### What landed

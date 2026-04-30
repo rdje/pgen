@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-04-30 - Slice 10: port M3 stage 4b (annotation-aware typed emit) into the regex hook
+
+### What landed
+Stage 4b of the rolled-back Phase 2 M3 (`a25c71a`) re-homed inside `rust/src/parser_hooks/regex.rs`. For rules with explicit return annotations (`-> {...}`, `-> [...]`, `-> $N`, etc.), the hook now emits a typed body that builds the annotation-transformed JSON value directly instead of falling through to the slice-2 passthrough.
+
+### Two-phase emit
+1. **Parse phase**: walks the rule body, parsing each top-level element into a numbered local `__pgen_v<i>` (1-based) matching `$N` positional refs.
+2. **Build phase**: walks the parsed `UnifiedReturnAST` and emits Value-building code that references the locals.
+
+Body shape support: `Sequence` (N elements), `Atom` (1 element), `Quantified` (1 element with `?`/`*`/`+` over Atom inner). `Or` rules and `Lookahead` deferred to slice 11. Annotation shape support: `PositionalRef`, `StringLiteral`, `NumberLiteral`, `BooleanLiteral`, `Object` (recursive), `Array`, `Passthrough`. `PropertyAccess`, `ArrayAccess`, `Spread`, `QuantifiedExtraction`, `Identifier` deferred.
+
+### Dispatcher gate fix
+The slice-6 gate used `branch_return_annotations.contains_key(rule_name)` to detect annotated rules — but the frontend stores empty-slot entries (`Vec<Option<BranchAnnotation>>` where every slot is `None`) for rules with only the implicit `-> $1` default. Previously this fell back to passthrough. Slice 10 changes the check to `branches.iter().any(Option::is_some)`, allowing implicit-`-> $1` rules to reach the typed shape-emit path. This is byte-equivalent because implicit `-> $1` is identity passthrough — exactly what typed shape emit produces.
+
+### Byte-equivalence
+Differential gate: 8/8 byte-equivalent. The annotation-aware emit produces output identical to legacy `ParseContent::Json(transformed_value).to_json_value()`. Notable byte-equivalence call-out: for `?`-Quantified elements in the parse phase, the value extracted for `$N` reference is `Value::Null` on miss / inner value on hit — NOT `Value::Array(vec![])` like rule-body-level Quantified emit. This matches legacy positional-ref dereference semantics (which extract Quantified content rather than carrying the array wrapper).
+
+### Slice 10 numbers (release, 1000 samples / 50 warmup, p50 ns)
+
+| pattern | slice 9 typed | slice 10 typed | delta |
+|---|---|---|---|
+| literal_simple | 20,625 | 20,458 | ~0% |
+| digit_sequence | 47,875 | 47,917 | ~0% |
+| character_class | 105,167 | 105,959 | ~0% |
+| alternation | 49,584 | 48,542 | -2% |
+| capture_groups | 84,750 | 85,916 | ~0% |
+| url_simple | 42,791 | 42,958 | ~0% |
+| email_basic | 64,000 | 64,250 | ~0% |
+| anchor_complex | 129,000 | 133,083 | +3% |
+
+p50s mostly within noise — significantly better than M3's expected ~6% regression. The byte-equivalence-preserving emit avoids some of M3's wasted work.
+
+**Tail latency note**: p99 and max are inflated for several patterns (anchor_complex max 72ms, capture_groups max 15ms, url_simple max 11ms, email_basic max 3.2ms, alternation max 2.5ms). Mean is ~2× p50 for the affected patterns. Likely causes: `serde_json::Map::new()` allocation churn for annotated-rule emits, `try_parse` rollback cost inside nested annotated paths, or both. Slice 11's generic shape composer may naturally reduce the tail by collapsing nested HashMap creations; if not, follow-up profiling is in order. p50 (the comparison metric) is unaffected.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean (~10s incremental).
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: numbers above; no p50 regression vs slice 9.
+
+### Files
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs):
+  - Imports `UnifiedReturnAST`.
+  - Dispatcher gate in `generate_typed_node_body` now checks `branches.iter().any(Option::is_some)` for explicit annotations and routes them to `generate_typed_annotated_body`.
+  - New `generate_typed_annotated_body(ast_node, rule_name, annotations)` — main entry for annotated rules.
+  - New `generate_typed_annotated_element_expr(element, rule_name)` — top-level parse-phase element emit.
+  - New `generate_typed_annotated_element_expr_with_receiver(element, rule_name, receiver)` — companion for `try_parse` closures.
+  - New `generate_typed_annotation_value_expr(ast, num_elements)` — build-phase walker over `UnifiedReturnAST`.
+
+### What slice 11 does next
+Port M3 stage 5b (`139d52b`): generic shape composer. Introduces `generate_typed_value_expr(ast_node, rule_name, receiver)` handling any non-annotated `ASTNode` shape (Atom + Sequence + Or + Quantified + Lookahead) and refactors stages 2-5 to dispatch through this composer. This is what unlocks composite shapes (`Or` with Sequence alternatives, `Sequence` with non-Atom Quantified inner, etc.) and per M3 history is where the typed path actually starts beating legacy. M3 stage 5b: "typed delivers 1.4-5.6× speedups; 6/8 patterns under PRIMARY 50µs via typed entry."
+
 ## 2026-04-30 - Slice 9: port M3 stage 5 (typed Quantified body emit) into the regex hook
 
 ### What landed
