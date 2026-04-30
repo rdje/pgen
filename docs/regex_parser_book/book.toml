@@ -1,0 +1,19 @@
+[book]
+authors = ["PGEN Project"]
+language = "en"
+src = "src"
+title = "PGEN Regex Parser — Integration Reference"
+
+[build]
+build-dir = "../regex_parser_book-html"
+create-missing = false
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/richarddje/pgen"
+edit-url-template = "https://github.com/richarddje/pgen/edit/main/docs/regex_parser_book/{path}"
+
+[output.html.fold]
+enable = true
+level = 1

@@ -1,0 +1,117 @@
+# The Json Carrier
+
+`ParseContent::Json(serde_json::Value)` is the variant downstream consumers will spend most of their time inside. This chapter explains where it comes from, when it appears, and how consumers should treat it.
+
+## What it is
+
+A `Json(serde_json::Value)` is the runtime representation of the typed shape that a grammar rule's return annotation produces. It carries any of the six JSON value types:
+
+- `Value::Object(Map<String, Value>)` — for `-> {...}` annotations.
+- `Value::Array(Vec<Value>)` — for `-> [...]` annotations.
+- `Value::String(String)` — for `-> "..."` annotations.
+- `Value::Number(Number)` — for numeric literal annotations and integer-coerced `@transform` matches.
+- `Value::Bool(bool)` — for `-> true`/`-> false` annotations.
+
+At this release the annotation language does not yet support a `null` literal — future PGEN releases add it. Until then, "absent" is represented by an empty array `[]` (the byte-shape of an unmatched `?`-Quantified) or by omitting the field from the parent object.
+
+## When it appears
+
+The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit return annotation that lifts the rule's output into a typed shape. The current set of annotated rules in `grammars/regex.ebnf`:
+
+| Rule | Annotation | Json shape produced |
+|---|---|---|
+| `regex` | `-> {type: "regex", pattern: $1}` | Object `{type, pattern}` |
+| `pattern` | `-> $1` | Whatever `alternation` produced (transparent passthrough) |
+| `concatenation` | `-> [$1**]` | Array (flat, via `**` flatten-spread) |
+| `piece` (branch 0) | `-> $1` | Whatever `piece_quoted_run_quantified` produced |
+| `piece` (branch 1) | `-> {type: "piece", atom: $1, quantifier: $2}` | Object `{type, atom, quantifier}` |
+| `piece_quoted_run_quantified` | `-> [$2**, {type: "piece", atom: $3, quantifier: $5}]` | Array of piece-objects |
+| `quoted_run_inner_piece` | `-> {type: "piece", atom: $1, quantifier: []}` | Object `{type, atom, quantifier:[]}` |
+| `quant_suffix` (branch 0) | `-> "lazy"` | String `"lazy"` |
+| `quant_suffix` (branch 1) | `-> "possessive"` | String `"possessive"` |
+| `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
+| `posix_class` | `-> $1` | Whatever the matched element produced |
+
+Rules NOT in this list produce non-`Json` content (`Sequence`, `Quantified`, `Terminal`, `Alternative`) — they inherit the legacy recursive-envelope shape pending future annotation slices.
+
+## How a consumer should treat it
+
+### Pattern matching
+
+```rust
+use serde_json::Value;
+
+fn walk(node: &ParseNode) {
+    match &node.content {
+        ParseContent::Json(value) => walk_json(value),
+        ParseContent::Sequence(nodes) => nodes.iter().for_each(walk),
+        ParseContent::Alternative(boxed) => walk(boxed),
+        ParseContent::Quantified(nodes, _marker) => nodes.iter().for_each(walk),
+        ParseContent::Terminal(s) => leaf_terminal(s),
+        ParseContent::TransformedTerminal(s) => leaf_terminal(s),
+    }
+}
+
+fn walk_json(value: &Value) {
+    match value {
+        Value::Object(map) => {
+            // Most-common shape — inspect "type" discriminator.
+            match map.get("type").and_then(|v| v.as_str()) {
+                Some("regex") => /* {pattern: ...} */,
+                Some("piece") => /* {atom, quantifier} */,
+                Some(other) => /* unknown — log */,
+                None => /* untagged object — see per-rule shapes */,
+            }
+        }
+        Value::Array(items) => /* iterate */,
+        Value::String(s) => /* leaf string, e.g. "lazy" */,
+        Value::Number(n) => /* integer or float */,
+        Value::Bool(b) => /* true/false */,
+        Value::Null => /* explicit absence — e.g. unbounded max */,
+    }
+}
+```
+
+### Discriminator convention
+
+Most object-shaped `Json` values carry a `"type"` field as their discriminator. The current discriminators in regex output:
+
+- `"regex"` — emitted by the `regex` rule.
+- `"piece"` — emitted by all piece-emitting rules.
+
+Counted-quantifier bodies and quant_suffix outputs do NOT have `"type"` discriminators because their shape is unambiguous from context (they always appear inside a `quantifier` slot).
+
+When walking, treat `"type"` as the canonical discriminator when present. Don't rely on field-presence as a proxy for type — that will silently break when a future shape adds optional fields.
+
+### Mixed Json + Sequence in the same level
+
+The `concatenation` rule's `[$1**]` flatten-spread produces a `Sequence` of `ParseNode`s, where each child node may have its own `Json(piece_obj)` content. So when walking pattern's contents, you'll see:
+
+```text
+ParseNode { rule_name: "concatenation", content: Sequence([
+  ParseNode { rule_name: "...", content: Json({piece}) },
+  ParseNode { rule_name: "...", content: Json({piece}) },
+  ParseNode { rule_name: "...", content: Json({piece}) },
+])}
+```
+
+(The synthetic rule_names of children aren't important — they're codegen artifacts.) When you `to_json_value()` this, you get a flat array of piece-objects, which is what the regex JSON dump shows.
+
+For consumers walking the typed shape via `to_json_value()`, the Sequence wrapper is transparent — you just see the array. For consumers walking the ParseNode tree, you do have to descend through the Sequence to get to each piece's Json content.
+
+## Why typed-Json was chosen over typed Rust enums
+
+Two reasons:
+
+1. **Annotation flexibility.** The annotation language can produce arbitrary JSON shapes. Typed Rust enums would have required generating one Rust type per shape, which is intractable for grammars with rich return annotations.
+2. **Consumer ergonomics.** Most downstream consumers either serialize to JSON anyway or want to inspect by `as_str()` / `as_object()` etc. — `serde_json::Value` is the natural ergonomic choice.
+
+The downside is that consumers don't get compile-time type checking on the shape — they have to validate at runtime. For the regex grammar, the per-rule shape reference chapters serve as the de-facto schema documentation.
+
+## Why the Json variant exists at all (vs just emitting the inner Value)
+
+The `ParseContent` enum has to carry several shapes (raw `Sequence`, recursive `Alternative`, etc.). `Json` is the variant that says "this content is a fully-typed value, not a recursive AST shape." Wrapping it in a `Json` variant lets the same `ParseContent` enum carry both shapes. Consumers that want to flatten everything to JSON call `to_json_value()`.
+
+## Stability
+
+The set of `serde_json::Value` shapes a given rule emits is documented per-rule and per-release. The `Json` variant itself is stable across PGEN 1.1.x — once a rule is annotated, that rule's annotation is part of the contract. Removing or substantially changing the shape requires a contract version bump.

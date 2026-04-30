@@ -1,0 +1,326 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Glossary - PGEN Regex Parser — Integration Reference</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-7f187406.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-886313b4.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">PGEN Regex Parser — Integration Reference</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/richarddje/pgen" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/richarddje/pgen/edit/main/docs/regex_parser_book/src/glossary.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+<p>Definitions for terms used throughout this book and in the surrounding PGEN documentation. Where a term has both a PGEN-specific meaning and a general regex/parsing meaning, the PGEN-specific one is given.</p>
+<h2 id="annotation-language"><a class="header" href="#annotation-language">Annotation language</a></h2>
+<p>The expression language used inside <code>-&gt; ...</code> clauses in EBNF rules. Syntactic forms documented in <code>grammars/return_annotation.ebnf</code> and <code>grammars/builtin_return_annotation.ebnf</code>. Includes positional refs (<code>$1</code>, <code>$2</code>, …), object literals, array literals, string/number/boolean literals, the spread operator <code>*</code>, the flatten-spread <code>**</code>, and (in 1.1.34+) the <code>null</code> literal.</p>
+<h2 id="ast-envelope"><a class="header" href="#ast-envelope">AST envelope</a></h2>
+<p>The recursive <code>ParseNode { rule_name, content, span }</code> structure. “Envelope” = the structural shell that wraps every parser output. Pre-1.1.30 the envelope was the entire AST; 1.1.30+ adds typed-Json content as an inner shape.</p>
+<h2 id="atom"><a class="header" href="#atom">Atom</a></h2>
+<p>A grammar-level concept and a rule name in <code>regex.ebnf</code>. The <code>atom</code> rule’s right-hand side is a 25-way Or covering everything that can appear at a “single regex unit” position: a literal char, an escape, a character class, a group, an anchor, a backreference, etc. See <a href="rules-atom.html">Atom Subtree</a>.</p>
+<h2 id="atom-fallback"><a class="header" href="#atom-fallback">Atom-fallback</a></h2>
+<p>The behavior where <code>piece</code>’s branch 0 (<code>piece_quoted_run_quantified</code>) fails for degenerate inputs (zero or one quoted char) and the parser falls through to <code>piece</code>’s branch 1 (<code>atom quantifier?</code>), matching the entire <code>\Q...\E</code> block as a single <code>quoted_literal</code> atom. Documented in <a href="examples-quoted-literal.html">\Q…\E Quoted Literals</a>.</p>
+<h2 id="bootstrap-mode"><a class="header" href="#bootstrap-mode">Bootstrap mode</a></h2>
+<p>A build mode where the EBNF grammar parser (used to read other grammars) is itself built without a generated parser available. Activated by the <code>has_generated_ebnf_parser</code> cfg flag being absent (set in <code>build.rs</code> only when <code>generated/ebnf.rs</code> exists). Used in cold-clone builds. See <a href="build-recipe.html">Build Recipe</a>.</p>
+<h2 id="builtin-return-annotation-parser"><a class="header" href="#builtin-return-annotation-parser">Builtin return annotation parser</a></h2>
+<p>A hand-written parser in <code>rust/src/ast_pipeline/builtin_return_annotation_parser.rs</code> that handles the subset of the return-annotation language sufficient to bootstrap. Its accepted grammar is documented in <code>grammars/builtin_return_annotation.ebnf</code>. The full annotation language is parsed by the generated parser (built from <code>grammars/return_annotation.ebnf</code>) once available.</p>
+<h2 id="byte-equivalence"><a class="header" href="#byte-equivalence">Byte-equivalence</a></h2>
+<p>The invariant that <code>parse_full_regex(input).content.to_json_value() == parse_regex_typed(input)</code>. Maintained across every PGEN release. See <a href="schema-versioning.html">Schema Versioning</a>.</p>
+<h2 id="char-class--character-class"><a class="header" href="#char-class--character-class">Char class / character class</a></h2>
+<p>Both terms refer to <code>[abc]</code>-style regex syntax. The book uses “character class” in prose. The grammar rule is <code>char_class</code>. Inside character classes, sub-rules are prefixed with <code>class_</code> (e.g. <code>class_literal</code>, <code>class_range</code>).</p>
+<h2 id="class-item"><a class="header" href="#class-item">Class item</a></h2>
+<p>A single element within a character class body. Branches: <code>class_range</code>, <code>class_literal</code>, <code>class_escape</code>, <code>quoted_class_literal</code>, <code>posix_class</code>, <code>stray_class_end_quote</code>. See <a href="rules-char-class.html">Character Class Subtree</a>.</p>
+<h2 id="cold-clone--cold-clone-build"><a class="header" href="#cold-clone--cold-clone-build">Cold clone / cold-clone build</a></h2>
+<p>Building PGEN from a fresh <code>git clone</code>, where no <code>generated/*</code> files exist yet and no prior build state is available. The bootstrap recipe (<code>make regex_parser_bootstrap</code> or <code>make regex_parser_fresh</code>) handles this case. See <a href="build-recipe.html">Build Recipe</a>.</p>
+<h2 id="concatenation"><a class="header" href="#concatenation">Concatenation</a></h2>
+<p>A grammar rule and a regex concept. The <code>concatenation</code> rule produces a flat sequence of pieces — <code>concatenation = piece+ -&gt; [$1**]</code>. The <code>**</code> flatten-spread is what produces the flat array (without it, the output would be a deeply-nested chain of Quantified wrappers).</p>
+<h2 id="counted-quantifier"><a class="header" href="#counted-quantifier">Counted quantifier</a></h2>
+<p>A quantifier of the form <code>{n}</code>, <code>{n,}</code>, <code>{,m}</code>, or <code>{n,m}</code>. Parsed by the <code>counted_quantifier</code> rule, with body parsed by <code>counted_quantifier_body</code> (currently 2-branch raw envelope at this release; slice 3 in a later release adds typed <code>{min, max}</code> Json).</p>
+<h2 id="discriminator"><a class="header" href="#discriminator">Discriminator</a></h2>
+<p>The field in a Json object whose value tells the consumer which kind of object this is. In the regex AST, the convention is <code>"type"</code>: <code>"regex"</code>, <code>"piece"</code>, etc. See <a href="json-carrier.html">The Json Carrier</a>.</p>
+<h2 id="ebnf"><a class="header" href="#ebnf">EBNF</a></h2>
+<p>Extended Backus-Naur Form. PGEN’s grammar source language. The regex grammar lives at <code>grammars/regex.ebnf</code>. The grammar of EBNF itself lives at <code>grammars/ebnf.ebnf</code> (parsed by the generator-of-generators, called the EBNF frontend in this codebase).</p>
+<h2 id="ebnf-frontend"><a class="header" href="#ebnf-frontend">EBNF frontend</a></h2>
+<p>The Rust pipeline that reads a <code>.ebnf</code> file and produces an <code>IR</code> (intermediate representation) that downstream tools (like the AST pipeline / codegen) consume. Located in <code>rust/src/ebnf_frontend/</code>. Replaces the old <code>ebnf_to_json.pl</code> Perl frontend, which had limitations and is no longer used.</p>
+<h2 id="flatten-spread"><a class="header" href="#flatten-spread">Flatten-spread</a></h2>
+<p>The <code>**</code> operator in the return annotation language. Like <code>*</code> (spread), but unwraps one level of nested array structure. Used in <code>concatenation = piece+ -&gt; [$1**]</code> to produce a flat piece array instead of a nested-Quantified shape. Added in 1.1.31.</p>
+<h2 id="greediness-mode"><a class="header" href="#greediness-mode">Greediness mode</a></h2>
+<p>For quantifiers, the suffix that determines match strategy: nothing = greedy (default), <code>?</code> = lazy (minimum match), <code>+</code> = possessive (no backtrack). The <code>quant_suffix</code> rule emits <code>[]</code> (greedy), <code>"lazy"</code>, or <code>"possessive"</code> accordingly.</p>
+<h2 id="json-carrier"><a class="header" href="#json-carrier">Json carrier</a></h2>
+<p>The <code>ParseContent::Json(serde_json::Value)</code> variant. Carries the typed shape produced by a return annotation. See <a href="json-carrier.html">The Json Carrier</a>.</p>
+<h2 id="lookaround"><a class="header" href="#lookaround">Lookaround</a></h2>
+<p><code>(?=...)</code>, <code>(?!...)</code>, <code>(?&lt;=...)</code>, <code>(?&lt;!...)</code>, plus PCRE2’s non-atomic and alpha-form variants. Zero-width assertions matched without consuming input. See <a href="examples-groups-alt.html">Groups and Alternations</a>.</p>
+<h2 id="or-rule--alternation-rule"><a class="header" href="#or-rule--alternation-rule">Or rule / alternation rule</a></h2>
+<p>A grammar rule whose right-hand side is <code>A | B | C ...</code>. The codegen wraps the matched alternative in <code>ParseContent::Alternative(boxed)</code>. Annotated Or rules with per-branch <code>-&gt; ...</code> produce the branch-specific output (e.g. <code>quant_suffix</code> 2-branch Or both annotated to strings).</p>
+<h2 id="parsecontent"><a class="header" href="#parsecontent">ParseContent</a></h2>
+<p>The Rust enum carrying the inner content of a <code>ParseNode</code>. Six variants: <code>Terminal</code>, <code>TransformedTerminal</code>, <code>Json</code>, <code>Sequence</code>, <code>Alternative</code>, <code>Quantified</code>. See <a href="parse-content-variants.html">ParseContent Variants</a>.</p>
+<h2 id="parsenode"><a class="header" href="#parsenode">ParseNode</a></h2>
+<p>The Rust struct envelope: <code>{ rule_name, content, span }</code>. The unit of recursion in the AST. Top-level node is always <code>rule_name = "regex"</code> for regex parses.</p>
+<h2 id="parser-release"><a class="header" href="#parser-release">Parser release</a></h2>
+<p>A versioned release of the PGEN parser library. Tagged in git. Different from “schema version” — see <a href="schema-versioning.html">Schema Versioning</a>.</p>
+<h2 id="pcre2"><a class="header" href="#pcre2">PCRE2</a></h2>
+<p>Perl Compatible Regular Expressions, version 2. The reference implementation whose syntax the regex grammar targets. Authoritative documentation at <code>pcre2pattern(3)</code>.</p>
+<h2 id="peg"><a class="header" href="#peg">PEG</a></h2>
+<p>Parsing Expression Grammar. The parser semantic that PGEN implements. Key property: alternation is <strong>ordered</strong> — <code>A | B</code> tries A first; if A succeeds, B is never tried. This is unlike CFG/Yacc which may try all alternatives.</p>
+<h2 id="piece"><a class="header" href="#piece">Piece</a></h2>
+<p>A grammar rule and a regex concept. A <code>piece</code> is one regex unit: an atom optionally followed by a quantifier, OR (under PGEN-RGX-0074’s new branch) a quoted-run member. Pieces are the elements of a <code>concatenation</code>.</p>
+<h2 id="probe"><a class="header" href="#probe">Probe</a></h2>
+<p>The <code>parseability_probe</code> binary. A debugging/dumping tool that exposes the parser surface from the command line. The book and contract use probes to capture canonical AST shapes.</p>
+<h2 id="quantifier"><a class="header" href="#quantifier">Quantifier</a></h2>
+<p><code>*</code>, <code>+</code>, <code>?</code>, <code>{n}</code>, <code>{n,}</code>, <code>{,m}</code>, <code>{n,m}</code> plus suffix <code>?</code> (lazy) or <code>+</code> (possessive). Parsed by the <code>quantifier</code> rule.</p>
+<h2 id="quantified"><a class="header" href="#quantified">Quantified</a></h2>
+<p>A <code>ParseContent</code> variant: <code>Quantified(Vec&lt;ParseNode&gt;, &amp;'static str)</code>. Holds the children of a <code>?</code>/<code>*</code>/<code>+</code> grammar quantifier and the marker <code>"?"</code>, <code>"*"</code>, <code>"+"</code>. Distinct from regex-level quantifier — Quantified is the codegen’s output shape for grammar repetition.</p>
+<h2 id="quoted-run"><a class="header" href="#quoted-run">Quoted run</a></h2>
+<p>The PGEN-internal name for the inner contents of <code>\Q...\E</code>. The <code>piece_quoted_run_quantified</code> branch handles <code>\Q...\E quantifier</code>, splitting per-char so the quantifier binds to the last char only (per PCRE2 semantics).</p>
+<h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>
+<p>The pre-1.1.30 AST shape, where every rule produced a <code>Sequence</code> / <code>Alternative</code> / <code>Quantified</code> / <code>Terminal</code> envelope and consumers walked the structure recursively. Still present for unannotated rules; replaced by <code>Json</code> carrier for annotated rules. See <a href="migration-from-recursive-envelope.html">Migration</a>.</p>
+<h2 id="return-annotation"><a class="header" href="#return-annotation">Return annotation</a></h2>
+<p>The <code>-&gt; ...</code> clause attached to an EBNF rule’s right-hand side. Determines what the rule emits at runtime. Distinct from semantic annotations (<code>@xxx:</code>).</p>
+<h2 id="rgx"><a class="header" href="#rgx">RGX</a></h2>
+<p>A downstream consumer of the PGEN regex parser. RGX uses the regex parser’s AST as its source-of-truth representation for compiling/evaluating regex patterns. This book’s primary audience.</p>
+<h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
+<p>A version number tracking the AST output shape, distinct from the parser release version. Bumped on shape-affecting changes. See <a href="schema-versioning.html">Schema Versioning</a>.</p>
+<h2 id="semantic-annotation"><a class="header" href="#semantic-annotation">Semantic annotation</a></h2>
+<p>The <code>@xxx: ...</code> clause attached to an EBNF rule. Specifies semantic transforms (e.g. <code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code>) or runtime-validation predicates. Distinct from return annotations.</p>
+<h2 id="slice"><a class="header" href="#slice">Slice</a></h2>
+<p>A small, focused unit of work — typically one rule’s annotation or one bug fix. The campaign for task #40 (“Annotate regex.ebnf for full AST usability”) proceeds slice-by-slice, one rule per slice, with contract bumps per slice.</p>
+<h2 id="span"><a class="header" href="#span">Span</a></h2>
+<p>A <code>start..end</code> byte range in the original input. Every <code>ParseNode</code> carries one. Useful for source-location reporting; see <a href="ast-envelope.html">AST Envelope</a> for caveats on synthetic-node spans.</p>
+<h2 id="spread-operator"><a class="header" href="#spread-operator">Spread operator</a></h2>
+<p>The <code>*</code> operator in the return annotation language: <code>[$1, $2*]</code> means “include $1, then spread $2’s contents into the array.” Distinct from <code>**</code> (flatten-spread) which unwraps an extra layer.</p>
+<h2 id="tier-1--2--3-stability"><a class="header" href="#tier-1--2--3-stability">Tier 1 / 2 / 3 stability</a></h2>
+<p>The three-tier classification of stability guarantees. Tier 1 = stable surface API; Tier 2 = annotated rule shapes; Tier 3 = unannotated rule shapes. See <a href="schema-versioning.html">Schema Versioning</a>.</p>
+<h2 id="typed-parser-entry"><a class="header" href="#typed-parser-entry">Typed parser entry</a></h2>
+<p><code>crate::parse_regex_typed(input) -&gt; Result&lt;serde_json::Value, ParseError&gt;</code>. Returns the typed JSON value directly, skipping the <code>ParseNode</code> envelope. Equivalent to <code>parse_full_regex(input).content.to_json_value()</code> but more direct.</p>
+<h2 id="un-annotated-chain"><a class="header" href="#un-annotated-chain">Un-annotated chain</a></h2>
+<p>A descent through multiple rules that all use implicit <code>-&gt; $1</code> (single-positional pass-through). Produces nested Alternative-wrapped layers in the AST, e.g. <code>escape_unit → simple_escape → any_char → /char/</code> chains four wrappers around one terminal. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array.</p>
+<h2 id="unifiedreturnast"><a class="header" href="#unifiedreturnast">UnifiedReturnAST</a></h2>
+<p>The Rust enum representing parsed return-annotation expressions, defined in <code>rust/src/ast_pipeline/unified_return_ast.rs</code>. Variants: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral (1.1.34+), Object, Array, Spread, FlattenSpread, PropertyAccess, ArrayAccess, QuantifiedExtraction, Identifier, Passthrough.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="schema-versioning.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="changelog-index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="schema-versioning.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="changelog-index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

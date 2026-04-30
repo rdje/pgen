@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-05-01 - Standalone regex parser mdBook for downstream integrators (RGX-aligned at `6e5b0f23`)
+
+### What landed
+
+A new standalone mdBook lives at `docs/regex_parser_book/` — the canonical AST integration reference for downstream consumers of the regex parser, primarily RGX. The book is **deliberately aligned with the parser state at commit `6e5b0f23`** (PGEN-RGX-0074 fix + slices 1-2 of typed-shape work, parser release `1.1.33` / contract `1.1.35`) so RGX can pin to that PGEN version and have a book that exactly describes the AST it observes.
+
+Chapters (24 total):
+
+- Welcome + reading order.
+- Building & Running: Quickstart for downstream consumers, full Build Recipe (cold-clone via `make regex_parser_bootstrap` and `make regex_parser_fresh`), Public API surface.
+- AST Reference: Envelope structure, ParseContent's six variants, the Json carrier, walking patterns.
+- Per-Rule Shape Reference: top-level rules, piece + quoted-run family, quantifier, atom (25-way Or with discriminator table), character class, group family, modifier subtree, escape subtree, anchors/backrefs/misc.
+- Worked Examples: literals, quantifiers (all 7 PCRE2 forms × 3 greediness modes), char classes, groups + alternation, the `\Q...\E` family table (the PGEN-RGX-0074 surface), anchors, escapes (with classification function).
+- Migration: from-the-recursive-envelope (pre-1.1.30 walkers).
+- Reference: Schema versioning policy, glossary, changelog index.
+
+### Build & access
+
+- Build target: `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`). Gate script: `rust/scripts/regex_parser_book_gate.sh` — checks the required chapter set is present, asserts the build succeeds, and asserts the canonical HTML landing pages are present in the tracked output directory.
+- Source markdown: `docs/regex_parser_book/src/*.md` (tracked).
+- Rendered HTML output: `docs/regex_parser_book-html/` (sibling of source, **TRACKED in git** so the book is browsable directly on GitHub without consumers needing to install mdbook). Diverges from the platform book's convention (`docs/book-html/` is gitignored), specifically because RGX integration needs the HTML reachable via the PGEN submodule's tree on github.com.
+- Local browsing: `mdbook serve docs/regex_parser_book`.
+- **RGX consumes via the PGEN submodule**: it can either read the markdown source at `<pgen-checkout>/docs/regex_parser_book/src/*.md` directly, or browse the rendered HTML at `<pgen-checkout>/docs/regex_parser_book-html/index.html` (or via github.com when accessing the PGEN repo through the web UI). No build step required on the RGX side.
+
+The integration contract document now has a `## Companion Documentation` section pointing to the book.
+
+### Why book-and-contract instead of just-contract
+
+The contract document carries the legal-style versioned guarantees but is dense and version-pinned. The book covers the same ground with concrete probe outputs, walking recipes, and discriminator tables — the practical material consumers actually need. Where they disagree the contract wins for compliance, and the book disagreement should be reported as a docs bug.
+
+### Forward direction
+After the next regex parser release (which closes slices 3+4 — null literal + typed `counted_quantifier_body`), the book gets a follow-up commit that aligns it forward to the new shape. RGX, when it bumps its PGEN pin, reads the updated chapters in the same window as the contract bump.
+
 ## 2026-04-30 - regex.ebnf slices 3+4: `null` literal + typed `counted_quantifier_body` `{min, max}` shape
 
 ### Coupled changes

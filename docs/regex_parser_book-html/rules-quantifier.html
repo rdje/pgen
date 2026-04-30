@@ -1,0 +1,447 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Quantifier Subtree - PGEN Regex Parser — Integration Reference</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-7f187406.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-886313b4.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">PGEN Regex Parser — Integration Reference</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/richarddje/pgen" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/richarddje/pgen/edit/main/docs/regex_parser_book/src/rules-quantifier.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="quantifier-subtree"><a class="header" href="#quantifier-subtree">Quantifier Subtree</a></h1>
+<p>Six grammar rules cover quantifier syntax. <strong>At the parser release this book describes (post-PGEN-RGX-0074, after the cold-clone bootstrap landed), <code>digits</code> and <code>quant_suffix</code> are annotated. The remaining four (<code>quantifier</code>, <code>quant_base</code>, <code>counted_quantifier</code>, <code>counted_quantifier_body</code>) are not yet — they emit raw envelope shapes and will be annotated in successive future slices.</strong></p>
+<h2 id="quantifier"><a class="header" href="#quantifier"><code>quantifier</code></a></h2>
+<pre><code class="language-ebnf">quantifier = quant_base quant_suffix?
+</code></pre>
+<p><strong>Un-annotated.</strong> Output is the raw 2-element Sequence: <code>[&lt;quant_base&gt;, &lt;quant_suffix?&gt;]</code>.</p>
+<h3 id="current-shape"><a class="header" href="#current-shape">Current shape</a></h3>
+<pre><code class="language-json">[&lt;quant_base-content&gt;, &lt;quant_suffix?-content&gt;]
+</code></pre>
+<p><code>&lt;quant_base-content&gt;</code> is one of:</p>
+<ul>
+<li><code>"*"</code>, <code>"+"</code>, <code>"?"</code> — for shorthand quantifiers (raw terminals).</li>
+<li>A <code>Sequence</code> of <code>["{", ws?, &lt;counted_quantifier_body&gt;, ws?, "}"]</code> — for counted quantifiers.</li>
+</ul>
+<p><code>&lt;quant_suffix?-content&gt;</code> is one of:</p>
+<ul>
+<li><code>[]</code> — when no <code>?</code>/<code>+</code> suffix.</li>
+<li><code>"lazy"</code> — typed string from the annotated <code>quant_suffix</code> rule.</li>
+<li><code>"possessive"</code> — typed string from the annotated <code>quant_suffix</code> rule.</li>
+</ul>
+<h2 id="quant_base"><a class="header" href="#quant_base"><code>quant_base</code></a></h2>
+<pre><code class="language-ebnf">quant_base = "*" | "+" | "?" | counted_quantifier
+</code></pre>
+<p><strong>Un-annotated.</strong> Each branch emits the raw matched text or the un-annotated <code>counted_quantifier</code> Sequence.</p>
+<h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
+<ul>
+<li>Branch 0 (<code>*</code>): <code>Terminal("*")</code>. Visible in JSON as the bare string <code>"*"</code>.</li>
+<li>Branch 1 (<code>+</code>): <code>Terminal("+")</code>. Visible as <code>"+"</code>.</li>
+<li>Branch 2 (<code>?</code>): <code>Terminal("?")</code>. Visible as <code>"?"</code>.</li>
+<li>Branch 3 (<code>counted_quantifier</code>): nested counted quantifier shape — see below.</li>
+</ul>
+<h2 id="counted_quantifier"><a class="header" href="#counted_quantifier"><code>counted_quantifier</code></a></h2>
+<pre><code class="language-ebnf">counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+</code></pre>
+<p><strong>Un-annotated.</strong> Output is the raw 5-element Sequence: <code>["{", ws?, body, ws?, "}"]</code>.</p>
+<h2 id="counted_quantifier_body"><a class="header" href="#counted_quantifier_body"><code>counted_quantifier_body</code></a></h2>
+<pre><code class="language-ebnf">counted_quantifier_body = digits ws? ("," ws? digits?)?
+                        | "," ws? digits
+</code></pre>
+<p><strong>Un-annotated</strong> at this release. Two branches with four logical cases compressed inside the optional sub-group of branch 1. Each branch emits the raw Sequence of its body.</p>
+<h3 id="current-shape--branch-0"><a class="header" href="#current-shape--branch-0">Current shape — Branch 0</a></h3>
+<pre><code class="language-json">[
+  &lt;digits&gt;,                  // first count, typed integer (digits IS annotated)
+  &lt;ws-content&gt;,              // optional whitespace
+  &lt;optional [",", ws, digits?] sub-group&gt;
+]
+</code></pre>
+<p>For <code>{n}</code> (no comma): branch 0 matches with the optional sub-group empty, so the third slot is <code>[]</code>.
+For <code>{n,}</code> (comma, no second count): branch 0 matches with the sub-group present but its inner <code>digits?</code> empty.
+For <code>{n,m}</code> (full range): branch 0 matches with both digits present.</p>
+<h3 id="current-shape--branch-1"><a class="header" href="#current-shape--branch-1">Current shape — Branch 1</a></h3>
+<pre><code class="language-json">[",", &lt;ws-content&gt;, &lt;digits&gt;]
+</code></pre>
+<p>For <code>{,m}</code>: branch 1 matches.</p>
+<h3 id="walking-the-body-shape"><a class="header" href="#walking-the-body-shape">Walking the body shape</a></h3>
+<p>Because <code>digits</code> IS annotated to a typed integer at this release, the digit values inside <code>counted_quantifier_body</code> are direct <code>serde_json::Value::Number</code> integers — no concatenation needed.</p>
+<p>A consumer extracting count bounds:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_count_bounds(body: &amp;Value) -&gt; Option&lt;(u64, Option&lt;u64&gt;)&gt; {
+    let arr = body.as_array()?;
+    // Branch detection by first element shape:
+    //   Number → branch 0 (starts with digits).
+    //   String "," → branch 1 (starts with comma, {,m} form).
+    if matches!(arr.first(), Some(Value::String(s)) if s == ",") {
+        // Branch 1: {,m}
+        let max = arr.get(2)?.as_u64()?;
+        return Some((0, Some(max)));
+    }
+    // Branch 0 — first element is digits (a typed integer)
+    let min = arr.first()?.as_u64()?;
+    // arr[2] is the optional ("," ws? digits?)? sub-group
+    let sub = arr.get(2)?;
+    if let Some(sub_arr) = sub.as_array() {
+        if sub_arr.is_empty() {
+            return Some((min, Some(min))); // {n} — no comma
+        }
+        // sub_arr is the [",", ws?, digits?] inner Sequence
+        let inner_digits_slot = sub_arr.get(2)?;
+        // inner_digits_slot is the digits?'s Quantified-? slot
+        if let Some(inner_arr) = inner_digits_slot.as_array() {
+            if inner_arr.is_empty() {
+                return Some((min, None));     // {n,}
+            }
+            let max = inner_arr.first()?.as_u64()?;
+            return Some((min, Some(max)));     // {n,m}
+        }
+    }
+    None
+}
+<span class="boring">}</span></code></pre>
+<p>(The branching here is what motivated splitting <code>counted_quantifier_body</code> into 4 explicit branches in a future slice — when that lands, the consumer code becomes a single-line field lookup.)</p>
+<h2 id="quant_suffix"><a class="header" href="#quant_suffix"><code>quant_suffix</code></a></h2>
+<pre><code class="language-ebnf">quant_suffix = "?" -&gt; "lazy"
+             | "+" -&gt; "possessive"
+</code></pre>
+<p><strong>Annotated.</strong> Per-branch annotations emit semantic strings.</p>
+<h3 id="shape"><a class="header" href="#shape">Shape</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Branch</th><th>Source</th><th>Output</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td><code>"?"</code></td><td><code>Json(String("lazy"))</code></td></tr>
+<tr><td>1</td><td><code>"+"</code></td><td><code>Json(String("possessive"))</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>When the parent <code>quant_suffix?</code> slot doesn’t match (no suffix in the input), the slot is <code>[]</code> (empty array), produced by the un-annotated <code>?</code>-Quantified parent.</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th><code>quant_suffix?</code> slot</th></tr>
+</thead>
+<tbody>
+<tr><td><code>a*</code></td><td><code>[]</code> (no suffix)</td></tr>
+<tr><td><code>a*?</code></td><td><code>"lazy"</code> (matched <code>?</code>)</td></tr>
+<tr><td><code>a*+</code></td><td><code>"possessive"</code> (matched <code>+</code>)</td></tr>
+<tr><td><code>a+?</code></td><td><code>"lazy"</code></td></tr>
+<tr><td><code>a{2,5}?</code></td><td><code>"lazy"</code></td></tr>
+<tr><td><code>a{2,5}+</code></td><td><code>"possessive"</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="digits"><a class="header" href="#digits"><code>digits</code></a></h2>
+<pre><code class="language-ebnf">@transform: str::parse::&lt;usize&gt;().unwrap_or(0)
+digits = /([0-9]+)/
+</code></pre>
+<p><strong>Annotated.</strong> Emits a typed integer via <code>@transform</code>.</p>
+<h3 id="shape-1"><a class="header" href="#shape-1">Shape</a></h3>
+<p><code>Json(Number(&lt;usize&gt;))</code> — a non-negative integer.</p>
+<h3 id="where-it-appears"><a class="header" href="#where-it-appears">Where it appears</a></h3>
+<ul>
+<li>Inside <code>counted_quantifier_body</code> — the <code>min</code> and <code>max</code> digit slots, e.g. <code>{2,5}</code> produces typed integers <code>2</code> and <code>5</code>.</li>
+<li>Inside <code>version_number = digits ("." digits)?</code>.</li>
+<li>Inside <code>recursion_condition = "R" digits?</code>.</li>
+<li>Inside <code>callout_arg = digits | callout_string</code>.</li>
+<li>Inside <code>signed_digits = sign? digits</code>.</li>
+</ul>
+<p>The <code>digit</code> (per-char) rule used by <code>backreference_digits = nonzero_digit digit*</code> is a DIFFERENT rule and is not annotated — each digit is still a per-char Terminal.</p>
+<h2 id="related-rules-digit-hex_digits-octal_digits-nonzero_digit-hex_digit-octal_digit"><a class="header" href="#related-rules-digit-hex_digits-octal_digits-nonzero_digit-hex_digit-octal_digit">Related rules: <code>digit</code>, <code>hex_digits</code>, <code>octal_digits</code>, <code>nonzero_digit</code>, <code>hex_digit</code>, <code>octal_digit</code></a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Form</th><th>Annotated?</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>digit</code></td><td><code>/([0-9])/</code></td><td>NO</td><td><code>Terminal(&lt;char&gt;)</code></td></tr>
+<tr><td><code>hex_digit</code></td><td><code>/([0-9A-Fa-f])/</code></td><td>NO</td><td><code>Terminal(&lt;char&gt;)</code></td></tr>
+<tr><td><code>octal_digit</code></td><td><code>/([0-7])/</code></td><td>NO</td><td><code>Terminal(&lt;char&gt;)</code></td></tr>
+<tr><td><code>nonzero_digit</code></td><td><code>/([1-9])/</code></td><td>NO</td><td><code>Terminal(&lt;char&gt;)</code></td></tr>
+<tr><td><code>hex_digits</code></td><td><code>hex_digit+</code></td><td>NO</td><td>Quantified of digit terminals</td></tr>
+<tr><td><code>octal_digits</code></td><td><code>octal_digit+</code></td><td>NO</td><td>Quantified of digit terminals</td></tr>
+<tr><td><code>digits</code></td><td><code>/([0-9]+)/ + @transform</code></td><td><strong>YES</strong></td><td>typed integer</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>digits</code> is the lone annotated leaf in this group. The rest are un-annotated.</p>
+<h2 id="putting-it-together"><a class="header" href="#putting-it-together">Putting it together</a></h2>
+<p>Walking a piece’s <code>quantifier</code> slot at this release:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_quantifier(piece: &amp;Value) -&gt; Option&lt;Quantifier&gt; {
+    let q = piece.get("quantifier")?;
+    let arr = q.as_array()?;
+    if arr.is_empty() {
+        return None; // no quantifier
+    }
+    // arr[0] = quant_base (raw "*", "+", "?", or counted_quantifier Sequence)
+    // arr[1] = quant_suffix? — empty array, "lazy", or "possessive"
+    let base = &amp;arr[0];
+    let suffix = &amp;arr[1];
+
+    let (min, max) = match base {
+        Value::String(s) if s == "*" =&gt; (0, None),
+        Value::String(s) if s == "+" =&gt; (1, None),
+        Value::String(s) if s == "?" =&gt; (0, Some(1)),
+        Value::Array(seq) =&gt; {
+            // counted_quantifier — Sequence shape: ["{", ws?, body, ws?, "}"]
+            // Body is at index 2.
+            let body = seq.get(2)?;
+            extract_count_bounds(body)?
+        }
+        _ =&gt; return None,
+    };
+
+    let greediness = match suffix {
+        Value::String(s) if s == "lazy" =&gt; Greediness::Lazy,
+        Value::String(s) if s == "possessive" =&gt; Greediness::Possessive,
+        _ =&gt; Greediness::Greedy,
+    };
+
+    Some(Quantifier { min, max, greediness })
+}
+<span class="boring">}</span></code></pre>
+<h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
+<p>Future PGEN releases will annotate the remaining quantifier-subtree rules. Target shape for the unified <code>quantifier</code> rule:</p>
+<pre><code class="language-json">{
+  "type": "quantifier",
+  "min": 2,
+  "max": null,           // null = unbounded
+  "greediness": "greedy" // "greedy" | "lazy" | "possessive"
+}
+</code></pre>
+<p>The slices to land that target shape are tracked under task #40 in PGEN’s tracker. When RGX bumps PGEN to a release containing them, this book chapter will be updated. Until then, the per-rule walking above is operative.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="rules-piece.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="rules-atom.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="rules-piece.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="rules-atom.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

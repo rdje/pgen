@@ -260,6 +260,10 @@ Thumbs.db
 
 # mdBook generated output
 docs/book-html/
+# Note: docs/regex_parser_book-html/ is intentionally TRACKED in git so the
+# rendered regex parser integration book is browsable directly on GitHub
+# without requiring consumers (RGX) to install mdbook. Keep it in sync with
+# docs/regex_parser_book/src/ via `make regex_parser_book_gate`.
 
 # Logs
 *.log

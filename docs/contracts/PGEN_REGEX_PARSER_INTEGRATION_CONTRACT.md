@@ -28,6 +28,12 @@ This is the document downstream projects such as RGX should read first when deci
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
 
+## Companion Documentation — Regex Parser Integration mdBook
+- The regex-parser integration mdBook lives at `docs/regex_parser_book/` and is the **canonical AST reference** for downstream consumers (RGX in particular).
+- The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
+- Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
+- Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
 ## Release 1.1.33 / Contract 1.1.35 Highlights — quantifier-subtree typed-shape rollout (slice 2/N: `quant_suffix`)
 
 - Internal-driven shape work (no downstream report). Part of an ongoing campaign to make the regex AST fully typed — every field directly usable, no consumer-side parsing/extraction needed (per project doctrine).
