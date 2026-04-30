@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - regex.ebnf annotation slice 1: digits → typed integer
+
+### Doctrine
+Owner direction: each rule that needs annotation work gets its own slice/lane/task. "1 slice for 1 rule." Easier to revert one rule's change if it turns out wrong than untangling a multi-rule blob.
+
+### Slice scope
+One rule: `digits`.
+
+Before: `digits = digit+` — output is raw `Quantified` of `Terminal`-per-digit, e.g. for input `12` the rule emits `Quantified([Terminal("1"), Terminal("2")], "+")`.
+
+After: `digits = /([0-9]+)/` paired with `@transform: str::parse::<usize>().unwrap_or(0)`. Output is a typed integer directly. For input `12` the rule emits `12_usize` carried via `ParseContent::TransformedTerminal`-style typed scalar.
+
+`@transform` is the codegen-time semantic annotation that coerces a regex match's captured string via the named Rust expression. Same shape `return_annotation.ebnf::positive_integer` already uses.
+
+### Why digits first
+- It's the innermost helper rule in the quantifier subtree dependency graph (used by `counted_quantifier_body`, transitively by `counted_quantifier`, `quant_base`, `quantifier`).
+- Outer rules that reference `digits` are unannotated, so they emit raw shape; the only behavioral change is that wherever digits' content lands in their raw output, it's now a typed integer instead of a digit-array.
+- `digit` (the per-char rule) is left alone — used by `backreference_digits = nonzero_digit digit*` where each char matters individually.
+
+### What didn't change
+- `hex_digits`, `octal_digits` — these stay `hex_digit+` / `octal_digit+`. They're used in different contexts (PCRE2 `\xFF`, `\o{777}`) where the content might or might not be best-typed as int. Each will be its own slice when we get to them.
+- No contract version bump. `digits` is an internal helper; nothing externally visible changed yet. Publish-visible shape lands on the `quantifier` rule slice that closes this subtree.
+
+### Verified
+- `make regex_parser`: clean regen.
+- `cargo test --lib --features generated_parsers`: 493 passed / 0 failed.
+- Empirical dump of `\Qab*\E{2,}`: `quantifier`'s digit positions are now `2` (integer) instead of `[["2"]]` (raw `Quantified(Terminal)`).
+
 ## 2026-04-30 - PGEN-RGX-0074: `\Q...\E` quantifier attachment + new `**` flatten-spread primitive
 
 ### Why this was non-trivial

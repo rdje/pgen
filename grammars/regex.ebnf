@@ -498,7 +498,16 @@ any_char       = /([A-Za-z0-9 \t\n\r\f\v!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~]
 special_char   = /([!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~])/
 
 # Lexical helpers
-digits         = digit+
+#
+# `digits` is rewritten from `digit+` to a single regex `/([0-9]+)/` paired
+# with a `@transform: str::parse::<usize>().unwrap_or(0)` semantic
+# annotation so the parser surfaces a typed integer at this rule directly,
+# instead of leaking a raw `Quantified(Terminal-per-char)` shape that
+# every consumer would have to walk and parse. Other rules referencing
+# `digit` (e.g. `backreference_digits = nonzero_digit digit*`) are
+# unaffected — they keep using the per-char `digit` rule.
+@transform: str::parse::<usize>().unwrap_or(0)
+digits         = /([0-9]+)/
 hex_digits     = hex_digit+
 octal_digits   = octal_digit+
 ws             = whitespace+

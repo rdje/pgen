@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-04-30 - regex.ebnf: typed `digits` (integer) — quantifier-subtree slice 1/N
+
+### What landed
+First slice of task #40 — "Annotate regex.ebnf for full AST usability". One rule per slice cadence per owner direction.
+
+`grammars/regex.ebnf::digits` rewritten from `digit+` to `/([0-9]+)/` with `@transform: str::parse::<usize>().unwrap_or(0)`. Output is now a typed integer at the rule directly, instead of a raw `Quantified(Terminal-per-char)` shape that every consumer would have to walk and re-parse.
+
+Empirical proof on `\Qab*\E{2,}` family table: the `quantifier` field's inner digit positions now contain integer `2` instead of `[["2"]]` — same shape, simpler payload.
+
+### Affected rules (only digits in this slice)
+Other rules that reference `digit` (e.g. `backreference_digits = nonzero_digit digit*`) are unaffected — they still use the per-char `digit` rule.
+
+Other rules that reference `digits` (`counted_quantifier_body`, `version_number`, `recursion_condition`, `callout_arg`) now see digit-integers under their raw shape; their own typed shape is queued as future slices in the quantifier subtree.
+
+### No contract bump in this slice
+`digits` is an internal helper; no consumer-visible publish surface changes yet. Contract identity bump and ledger row land on the slice that publishes a consumer-visible shape change (the `quantifier` rule slice, last in the chain).
+
+### Verified
+- regex_parser regen: clean.
+- `cargo test --lib --features generated_parsers`: 493 passed / 0 failed (unchanged).
+- regex_v1.json shape-contract manifest unchanged (this slice adds a `@transform` semantic annotation, not a return annotation; the manifest tracks return-annotation declarations).
+
 ## 2026-04-30 - PGEN-RGX-0074: `\Q...\E` quantifier-attachment fix + `**` flatten-spread operator
 
 ### What landed
