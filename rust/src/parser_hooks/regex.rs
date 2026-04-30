@@ -191,7 +191,12 @@ fn generate_typed_node_body(
         ASTNode::Atom { value } => generate_typed_atom_body(value, rule_name),
         ASTNode::Sequence { elements } => generate_typed_sequence_body(elements, rule_name),
         ASTNode::Or { alternatives } => generate_typed_or_body(alternatives, rule_name),
-        // Stages 5+ add `Quantified` and `Lookahead`.
+        ASTNode::Quantified {
+            element,
+            quantifier,
+        } => generate_typed_quantified_body(element, quantifier, rule_name),
+        // `Lookahead` is rare at the rule-body level and stays on
+        // passthrough until a concrete need surfaces.
         _ => None,
     }
 }
@@ -344,6 +349,95 @@ fn generate_typed_sequence_body(elements: &[ASTNode], rule_name: &str) -> Option
         #(#element_pushes)*
         Ok(serde_json::Value::Array(elements))
     })
+}
+
+/// Slice 9 / M3-stage-5: shape-typed body for `ASTNode::Quantified`
+/// at the rule-body level.
+///
+/// Three quantifiers handled, each requiring the inner element to be
+/// `ASTNode::Atom`:
+/// - `?` — optional. Emits `Value::Array(vec![v])` on hit /
+///   `Value::Array(vec![])` on miss.
+/// - `*` — zero-or-more. Loops `try_parse`; emits
+///   `Value::Array(matches)`.
+/// - `+` — one-or-more. Requires a first match (no `try_parse`), then
+///   loops; emits `Value::Array(matches)`.
+///
+/// **Byte-equivalence fix vs M3:** M3's stage 5 emit for `?` returned
+/// `Value::Null` on miss and the bare matched value on hit. Legacy
+/// `ParseContent::Quantified(_, _).to_json_value()` always serializes
+/// to `Value::Array(...)` regardless of quantifier kind — `?` matched
+/// gives `Value::Array(vec![v])`, unmatched gives `Value::Array(vec![])`.
+/// Slice 9 emits the carrier shape, the same way slice 7 fixed the
+/// `Quantified-?-Atom` child case inside Sequence emit. The `*` and
+/// `+` cases already produced `Value::Array` correctly in M3 and are
+/// ported as-is.
+///
+/// Returns `None` for `{n,m}` (bounded count, deferred to a separate
+/// slice that handles min/max enforcement) and for non-Atom inners
+/// (nested `Sequence` / `Or` / etc., deferred to slice 11's generic
+/// shape composer).
+fn generate_typed_quantified_body(
+    element: &ASTNode,
+    quantifier: &str,
+    rule_name: &str,
+) -> Option<TokenStream> {
+    let ASTNode::Atom { value } = element else {
+        return None;
+    };
+    match quantifier {
+        "?" => {
+            let expr_parser =
+                generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
+            Some(quote! {
+                let __pgen_q_carrier: Vec<serde_json::Value> = if let Some(__pgen_q_v) =
+                    self.try_parse(|p| {
+                        let parser = p;
+                        Ok::<serde_json::Value, ParseError>(#expr_parser)
+                    })
+                {
+                    vec![__pgen_q_v]
+                } else {
+                    Vec::new()
+                };
+                Ok(serde_json::Value::Array(__pgen_q_carrier))
+            })
+        }
+        "*" => {
+            let expr_parser =
+                generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
+            Some(quote! {
+                let mut __pgen_q_elements: Vec<serde_json::Value> = Vec::new();
+                while let Some(__pgen_q_v) = self.try_parse(|p| {
+                    let parser = p;
+                    Ok::<serde_json::Value, ParseError>(#expr_parser)
+                }) {
+                    __pgen_q_elements.push(__pgen_q_v);
+                }
+                Ok(serde_json::Value::Array(__pgen_q_elements))
+            })
+        }
+        "+" => {
+            let expr_self = generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
+            let expr_parser =
+                generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
+            Some(quote! {
+                let mut __pgen_q_elements: Vec<serde_json::Value> = Vec::new();
+                let __pgen_q_first = #expr_self;
+                __pgen_q_elements.push(__pgen_q_first);
+                while let Some(__pgen_q_v) = self.try_parse(|p| {
+                    let parser = p;
+                    Ok::<serde_json::Value, ParseError>(#expr_parser)
+                }) {
+                    __pgen_q_elements.push(__pgen_q_v);
+                }
+                Ok(serde_json::Value::Array(__pgen_q_elements))
+            })
+        }
+        // {n,m} and other forms deferred to a later slice (min/max
+        // enforcement is a separate concern).
+        _ => None,
+    }
 }
 
 /// Slice 8 / M3-stage-4: shape-typed body for `ASTNode::Or`.

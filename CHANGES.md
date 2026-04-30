@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-04-30 - Slice 9: port M3 stage 5 (typed Quantified body emit) into the regex hook
+
+### What landed
+Stage 5 of the rolled-back Phase 2 M3 (`b6d7f28`) re-homed inside `rust/src/parser_hooks/regex.rs`. Adds shape-typed body emit for `ASTNode::Quantified` rules at the rule-body level with `?` / `*` / `+` quantifiers, each requiring `ASTNode::Atom` inner. Builds `Value::Array(child_typed_values)` directly without `ParseNode::Quantified` allocation.
+
+### Byte-equivalence fix vs M3
+M3 stage 5's `?` quantifier emit returned `Value::Null` on miss and the bare matched value on hit. Legacy `ParseContent::Quantified(_, _).to_json_value()` always serializes to `Value::Array(...)` regardless of quantifier kind. So byte-equivalent emit is:
+
+- `?` matched → `Value::Array(vec![<inner-typed>])`
+- `?` unmatched → `Value::Array(vec![])`
+
+Slice 9 emits the carrier shape (same fix as slice 7 applied for the `?-Atom` child case inside Sequence). The `*` and `+` cases already produced `Value::Array` correctly in M3 and are ported as-is.
+
+### Differential gate result
+8/8 byte-equivalent. The `?` carrier fix is verified across the 8-pattern bug corpus — including `regex` rule's `pattern?` body and any other `Quantified-?` rule-body in the regex grammar.
+
+### Slice 9 numbers (release, 1000 samples / 50 warmup, p50 ns)
+
+| pattern | slice 8 typed | slice 9 typed | delta |
+|---|---|---|---|
+| literal_simple | 20,792 | 20,625 | ~0% |
+| digit_sequence | 48,375 | 47,875 | ~0% |
+| character_class | 108,459 | 105,167 | -3% |
+| alternation | 49,375 | 49,584 | ~0% |
+| capture_groups | 85,875 | 84,750 | ~0% |
+| url_simple | 43,291 | 42,791 | ~0% |
+| email_basic | 64,541 | 64,000 | ~0% |
+| anchor_complex | 133,333 | 129,000 | -3% |
+
+Modest improvements on `character_class` and `anchor_complex` (-3%), otherwise noise. Pattern coverage at PRIMARY 50µs is unchanged at 4/8 (`literal_simple`, `digit_sequence`, `alternation`, `url_simple`). The ?-Quantified-Atom rule-body emit only fires for the regex grammar's entry rule `regex = pattern?`, but `regex` has the `-> {type: "regex", pattern: $1}` annotation so falls back to passthrough — slice 9's emit doesn't reach the hot path on `parse_regex_typed`. The real perf unlock comes in slice 10 (M3 stage 4b: annotation-aware emit) which is where annotated rules (`regex`, `pattern`, `piece`, `posix_class`, etc.) start emitting typed bodies that build their annotated shape directly.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean (~12s incremental).
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: numbers above.
+
+### Files
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs):
+  - New `generate_typed_quantified_body(element, quantifier, rule_name)` — emits `?`/`*`/`+` with `Value::Array` carrier shape.
+  - `generate_typed_node_body` extended to dispatch `ASTNode::Quantified`.
+
+### What slice 10 does next
+Port M3 stage 4b (`a25c71a`): annotation-aware typed emit. Adds shape-typed body emit for rules with explicit return annotations (`return_scalar`, `return_object`, `return_array`). The dispatcher routes annotated rules through a new typed-annotated path that:
+
+1. **Parse phase**: walks the rule body, parsing each top-level element into a numbered local (`__pgen_v1`, `__pgen_v2`, ...) matching the `$N` positional refs.
+2. **Build phase**: walks the parsed `UnifiedReturnAST` and emits Value-building code that references the locals.
+
+This is where annotated rules like `regex = pattern? -> {type: "regex", pattern: $1}` start emitting typed bodies that build `{type: "regex", pattern: <typed pattern>}` directly. Per M3 history, slice 10 ALONE is a slight perf regression (~6% slower) because the parse_alternation_typed path still falls back; slice 11 (generic shape composer) is the actual unlock.
+
 ## 2026-04-30 - Slice 8: port M3 stage 4 (typed Or body emit) into the regex hook
 
 ### What landed

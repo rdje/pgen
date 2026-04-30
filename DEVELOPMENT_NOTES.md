@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 9: port M3 stage 5 (typed Quantified body emit) into the regex hook
+
+### What landed
+M3 stage 5 (commit `b6d7f28`) re-homed in `rust/src/parser_hooks/regex.rs`. Adds shape-typed body emit for `ASTNode::Quantified` rules at the rule-body level with `?` / `*` / `+` quantifiers, each requiring `ASTNode::Atom` inner. `{n,m}` deferred (needs min/max enforcement); `Lookahead` deferred (rare at rule-body level).
+
+### Byte-equivalence fix vs M3 (third occurrence of the same bug)
+M3 stage 5's `?` quantifier emit produced `Value::Null` on miss and the bare matched value on hit. Legacy `ParseContent::Quantified(_, _).to_json_value()` always serializes to `Value::Array(...)`, regardless of the quantifier kind:
+
+- `?` matched: `Value::Array(vec![<inner-typed>])`
+- `?` unmatched: `Value::Array(vec![])`
+- `*` / `+`: `Value::Array(vec![all_matches])`
+
+Slice 9 fixes the `?` case the same way slice 7 fixed it inside Sequence emit. The `*` and `+` cases were already correct in M3 and are ported as-is. Differential gate: 8/8 byte-equivalent.
+
+### Slice 9 numbers (release, 1000 samples / 50 warmup, p50 ns)
+
+```
+pattern              slice 8 typed    slice 9 typed    delta
+literal_simple              20,792           20,625    ~0%
+digit_sequence              48,375           47,875    ~0%
+character_class            108,459          105,167    -3%
+alternation                 49,375           49,584    ~0%
+capture_groups              85,875           84,750    ~0%
+url_simple                  43,291           42,791    ~0%
+email_basic                 64,541           64,000    ~0%
+anchor_complex             133,333          129,000    -3%
+```
+
+Modest -3% on `character_class` and `anchor_complex`, otherwise noise. Pattern coverage at PRIMARY 50µs unchanged: 4/8 (`literal_simple`, `digit_sequence`, `alternation`, `url_simple`). The ?-Quantified-Atom rule-body emit only fires for the regex grammar's entry rule `regex = pattern?`, but `regex` has the `-> {...}` annotation so falls back to passthrough. Slice 9's emit doesn't reach the hot path on `parse_regex_typed` for any of the 8 patterns.
+
+### What about non-annotated rules?
+After slice 9, the typed-body coverage for non-annotated rules in the regex grammar should be very high (M3 history says ~74%). The remaining 26% are either:
+
+- Explicitly annotated rules (~8 in the regex grammar: `regex`, `pattern`, `piece`, `posix_class`, `negation`, `class_body`, `class_range`, `class_literal`, `class_atom`, `class_escape`, etc.).
+- Composite shapes (e.g., `Or` with non-Atom alternative, `Sequence` with `*`/`+` over non-Atom inner).
+
+The annotated rules are exactly what slice 10 (M3 4b: annotation-aware emit) addresses. The composite shapes are what slice 11 (M3 5b: generic shape composer) addresses. Together those two slices push coverage above 95% AND start short-circuiting `parse_regex_typed` out of the legacy passthrough on the hot path. That's the perf unlock.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent.
+- `make regex_typed_perf_probe`: numbers above.
+
+### What slice 10 does next
+Port M3 stage 4b (commit `a25c71a`, "annotation-aware typed emit"). The dispatcher's gate currently filters out rules with semantic / branch return annotations; slice 10 adds a parallel path that handles return-annotated rules (`return_scalar`, `return_object`, `return_array`). Per M3 history, this slice is a slight perf regression (~6% slower) **on its own** because the connecting tissue (slice 11's generic shape composer) hasn't landed; slice 11 makes it pay off.
+
 ## 2026-04-30 - Slice 8: port M3 stage 4 (typed Or body emit) into the regex hook
 
 ### What landed
