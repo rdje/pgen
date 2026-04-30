@@ -58,6 +58,17 @@ pub enum UnifiedReturnAST {
     /// Unpacks a sequence into individual elements
     Spread { base: Box<UnifiedReturnAST> },
 
+    /// Flatten-spread (recursive-spread) operator: $4** in [$1, $4**]
+    /// Like `Spread`, but additionally unwraps any pushed child whose
+    /// `content` is itself a `Sequence`/`Quantified` — pushing that child's
+    /// children inline instead of the wrapper. One level of recursion.
+    /// Used when a child rule may produce either a single value OR an array
+    /// of values that should appear flat under the parent's accumulator
+    /// (e.g. `\Q...\E quantifier?` in `regex.ebnf`'s `piece` rule, where
+    /// the quoted-run-with-quantifier branch returns a Sequence of pieces
+    /// that must flatten into `concatenation = piece+`'s output).
+    FlattenSpread { base: Box<UnifiedReturnAST> },
+
     /// Property access: $1.value
     PropertyAccess {
         base: Box<UnifiedReturnAST>,
@@ -163,6 +174,19 @@ impl UnifiedReturnAST {
                                 })?,
                             )?;
                             Ok(UnifiedReturnAST::Spread { base: Box::new(base) })
+                        }
+                        "flat_spread" => {
+                            // `flat_spread` is the typed shape emitted by
+                            // `flat_spread_expression := spreadable_expression '**'
+                            //  -> {type: "flat_spread", base: $1}` in
+                            // `grammars/return_annotation.ebnf`. Maps directly
+                            // to `UnifiedReturnAST::FlattenSpread`.
+                            let base = Self::parse_typed_return_value(
+                                map.get("base").ok_or_else(|| {
+                                    "typed flat_spread missing 'base' field".to_string()
+                                })?,
+                            )?;
+                            Ok(UnifiedReturnAST::FlattenSpread { base: Box::new(base) })
                         }
                         "object" => {
                             let properties = map
@@ -616,6 +640,18 @@ impl UnifiedReturnAST {
             UnifiedReturnAST::Spread { base } => {
                 let mut map = serde_json::Map::new();
                 map.insert("type".to_string(), serde_json::Value::String("spread".to_string()));
+                map.insert(
+                    "base".to_string(),
+                    Self::substitute_chain_template_to_typed_json(base, running, captures)?,
+                );
+                Ok(serde_json::Value::Object(map))
+            }
+            UnifiedReturnAST::FlattenSpread { base } => {
+                let mut map = serde_json::Map::new();
+                map.insert(
+                    "type".to_string(),
+                    serde_json::Value::String("flat_spread".to_string()),
+                );
                 map.insert(
                     "base".to_string(),
                     Self::substitute_chain_template_to_typed_json(base, running, captures)?,
@@ -1365,6 +1401,15 @@ impl UnifiedReturnAST {
                     indent_str
                 )
             }
+            UnifiedReturnAST::FlattenSpread { base } => {
+                format!(
+                    "{}FlattenSpread {{\n{}  base: \n{}{}}}\n",
+                    indent_str,
+                    indent_str,
+                    base.pretty_print(indent + 2),
+                    indent_str
+                )
+            }
             UnifiedReturnAST::PropertyAccess { base, property } => {
                 format!(
                     "{}PropertyAccess {{\n{}  base: \n{}{}  property: {}\n{}}}\n",
@@ -1636,9 +1681,12 @@ impl UnifiedReturnAST {
                 Ok(code)
             }
 
-            UnifiedReturnAST::Spread { base } => {
-                // Spread is typically used within arrays, handled above
-                // If used standalone, just return the base
+            UnifiedReturnAST::Spread { base } | UnifiedReturnAST::FlattenSpread { base } => {
+                // Spread / FlattenSpread are typically used within arrays —
+                // their array-context emit lives in generate_array_transform
+                // (ast_return_transform.rs). If used standalone here, just
+                // return the base. This `generate_code` path is the legacy
+                // pre-AST emit and is no longer on the active codegen lane.
                 base.generate_code(captured_vars, indent, logger)
             }
 

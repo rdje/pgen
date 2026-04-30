@@ -79,6 +79,12 @@
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
+        "rule": "concatenation",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1**]"
+      },
+      {
         "rule": "pattern",
         "branch_index": 0,
         "annotation_type": "return_scalar",
@@ -87,14 +93,32 @@
       {
         "rule": "piece",
         "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
+      },
+      {
+        "rule": "piece",
+        "branch_index": 1,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"piece\", atom: $1, quantifier: $2}"
+      },
+      {
+        "rule": "piece_quoted_run_quantified",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$2**, {type: \"piece\", atom: $3, quantifier: $5}]"
       },
       {
         "rule": "posix_class",
         "branch_index": 0,
         "annotation_type": "return_scalar",
         "normalized_text": "$1"
+      },
+      {
+        "rule": "quoted_run_inner_piece",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"piece\", atom: $1, quantifier: []}"
       },
       {
         "rule": "regex",

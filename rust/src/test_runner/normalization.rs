@@ -108,6 +108,9 @@ fn canonicalize_return_ast(ast: &UnifiedReturnAST) -> String {
             format!("[{}]", parts.join(", "))
         }
         UnifiedReturnAST::Spread { base } => format!("{}*", canonicalize_return_ast(base)),
+        UnifiedReturnAST::FlattenSpread { base } => {
+            format!("{}**", canonicalize_return_ast(base))
+        }
         UnifiedReturnAST::PropertyAccess { base, property } => {
             format!("{}.{}", canonicalize_return_ast(base), property)
         }

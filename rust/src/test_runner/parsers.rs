@@ -35,6 +35,7 @@ pub fn unparse_return_ast(ast: &UnifiedReturnAST) -> String {
             format!("{{{}}}", prop_strs.join(", "))
         }
         UnifiedReturnAST::Spread { base } => format!("{}*", unparse_return_ast(base)),
+        UnifiedReturnAST::FlattenSpread { base } => format!("{}**", unparse_return_ast(base)),
         UnifiedReturnAST::PropertyAccess { base, property } => {
             format!("{}.{}", unparse_return_ast(base), property)
         }

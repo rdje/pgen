@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-04-30 - PGEN-RGX-0074: `\Q...\E` quantifier-attachment fix + `**` flatten-spread operator
+
+### What landed
+Two parser-agnostic changes that together close the long-standing PGEN-RGX-0074 correctness bug:
+
+**1. New `**` flatten-spread operator** in the return-annotation language.
+
+- `UnifiedReturnAST::FlattenSpread { base }` variant in `rust/src/ast_pipeline/unified_return_ast.rs`.
+- Codegen in `rust/src/ast_pipeline/ast_return_transform.rs::generate_array_transform`: like `Spread` but for each pushed child whose `content` is `Sequence`/`Quantified`, unwraps one level so a child rule may produce either a single value OR an array of values that appear flat in the parent's accumulator.
+- Grammar surface in `grammars/return_annotation.ebnf`: new `flat_spread_expression := spreadable_expression '**' -> {type: "flat_spread", base: $1}` alternative listed BEFORE `spread_expression` so PEG-ordered alternation matches `**` greedily.
+- Typed-tree shape `{type: "flat_spread", base: ...}` recognized by `parse_generated_return_annotation`.
+- Bootstrap parser (`unified_return_ast.rs::parse_bootstrap`) intentionally NOT extended — bootstrap chain doesn't use `**`. Tooling that calls `parse_bootstrap` on grammars that DO use `**` (e.g. `auto_return_annotation_shape_gate`) gracefully maps to `ShapeKind::Passthrough`.
+
+**2. `\Q...\E` quantifier-attachment fix** in `grammars/regex.ebnf`.
+
+- New piece-level alternative `piece_quoted_run_quantified = "\\Q" quoted_run_inner_piece* quoted_literal_char "\\E" quantifier -> [$2**, {type:"piece", atom:$3, quantifier:$5}]`. Tried BEFORE the existing `atom quantifier?` branch; for `\Q...\E quantifier` patterns it emits N independent pieces (one per prefix char + one quantified piece for the trailing char), per PCRE2 §"Backslash".
+- `quoted_run_inner_piece = quoted_literal_char !"\\E" -> {type:"piece", atom:$1, quantifier:[]}`. Negative lookahead keeps the greedy `*` from over-consuming the trailing char.
+- `concatenation = piece+ -> [$1**]`. Flattens piece arrays into a flat accumulator across the rule.
+- Degenerate `\Qx\E` and `\Q\E` cases fall through to the original `atom quantifier?` branch unchanged.
+
+### Verified
+- Family table for PGEN-RGX-0074 all match PCRE2 semantics:
+  - `\Qab*\E{2,}` -> 3 pieces (a, b, *{2,})
+  - `\Qabc\E{2}` -> 3 pieces (a, b, c{2})
+  - `\Qab\E{3}` -> 2 pieces (a, b{3})
+  - `\Qa\E{3}` -> 1 piece (degenerate)
+  - `\Q\E{2}` -> 1 piece (atom-fallback)
+- `cargo test --lib --features generated_parsers` 493 passed / 0 failed (unchanged from prior slice).
+- Per-grammar regenerations: regex_parser, return_annotation_parser, semantic_annotation_parser, json_parser, ebnf, vhdl_parser, systemverilog_parser, systemverilog_preprocessor_parser, rtl_const_expr_parser, rtl_frontend_parser — all 10 grammars now use the codegen with `FlattenSpread` support (only regex.ebnf currently uses `**`).
+- `regex_v1.json` shape-contract manifest updated to track 8 declared annotations (was 4); new entries cover `concatenation`, `piece` branch 0 + branch 1, `piece_quoted_run_quantified`, and `quoted_run_inner_piece`.
+
+### Documentation sync
+- `grammars/return_annotation.ebnf` — `**` syntax declared with rationale.
+- `docs/RETURN_ANNOTATIONS_REFERENCE.md` — `**` operator added to syntax reference + examples.
+- `docs/book/src/annotation-system.md` — flatten-spread chapter section.
+- `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` — release `1.1.31` / contract `1.1.33` highlights section.
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` — `REGEX-0075` row.
+
+### Bootstrap parser caveat
+`parse_bootstrap` in `unified_return_ast.rs` still parses `$N**` as nested `Spread(Spread(...))` (existing behavior; pinned by an existing test). This divergence is benign because no bootstrap-chain grammar uses `**`. Tooling that calls `parse_bootstrap` on a `**`-using annotation gracefully degrades to `ShapeKind::Unknown` / `Passthrough`. If a future bootstrap grammar needs `**`, that's a separate slice to align spec/impl.
+
+### Quantifier shape note
+The fix corrects ATTACHMENT (which char does the quantifier bind to). The quantifier subtree itself (`quantifier`, `quant_base`, `counted_quantifier`, `counted_quantifier_body`, `quant_suffix`, `digits`) still emits raw parse-tree shape because none of those rules carry return annotations. Comprehensive AST-shape typing across `regex.ebnf` is a separate follow-up — task #40, "Annotate regex.ebnf for full AST usability".
+
 ## 2026-04-30 - Codegen: tighten implicit `-> $1` default — exclude Quantified bodies
 
 ### What landed

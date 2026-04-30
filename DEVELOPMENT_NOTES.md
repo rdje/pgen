@@ -1,4 +1,83 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - PGEN-RGX-0074: `\Q...\E` quantifier attachment + new `**` flatten-spread primitive
+
+### Why this was non-trivial
+`grammars/regex.ebnf` shapes pieces under `concatenation = piece+`. Each iteration of `+` produces ONE piece. A `\Q...\E quantifier` input semantically expands into multiple pieces (per PCRE2 §"Backslash" — quantifier binds to the LAST char only), so the rule needed to emit MULTIPLE piece objects from one rule match AND have those objects appear flat under the parent's `piece+` accumulator.
+
+The existing `*` spread operator in the return-annotation language pushes each child of a Sequence/Quantified into the parent array but does NOT recursively unwrap if the pushed child's `content` is itself a Sequence/Quantified. So a piece that returns `Sequence([piece, piece, piece])` would land as ONE element in the parent's array (a nested array), not as three flat pieces.
+
+### What landed
+A new return-annotation primitive `**` (flatten-spread) plus a regex.ebnf change that uses it.
+
+#### `**` operator
+- `UnifiedReturnAST::FlattenSpread { base }` variant added to `rust/src/ast_pipeline/unified_return_ast.rs`. Sibling to `Spread`.
+- Codegen in `rust/src/ast_pipeline/ast_return_transform.rs::generate_array_transform`:
+  ```rust
+  UnifiedReturnAST::FlattenSpread { base } => {
+      // Like Spread, but if a pushed child's content is itself
+      // Sequence/Quantified, unwrap one level and push its children inline.
+      match #base_code {
+          ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
+              for node in nodes {
+                  match node.content {
+                      ParseContent::Sequence(inner_nodes)
+                      | ParseContent::Quantified(inner_nodes, _) => {
+                          for inner_node in inner_nodes {
+                              array_elements.push(inner_node);
+                          }
+                      }
+                      other_content => array_elements.push(ParseNode {
+                          rule_name: node.rule_name,
+                          content: other_content,
+                          span: node.span,
+                      }),
+                  }
+              }
+          }
+          other => array_elements.push(...wrap...),
+      }
+  }
+  ```
+- Grammar surface in `grammars/return_annotation.ebnf`: new `flat_spread_expression := spreadable_expression '**' -> {type: "flat_spread", base: $1}`. Listed BEFORE `spread_expression` in the `expression` alt-list because PEG-ordered alternation requires `**` to match before `*` would consume only the first star.
+- Typed-tree reader: `parse_typed_return_value` recognizes `{type: "flat_spread", base: ...}` and lowers to `FlattenSpread`.
+- All `Spread`-handling sites that needed exhaustiveness updated: `annotation_validator.rs::max_positional_ref` and `validate_return_ast`, `unified_return_ast.rs::substitute_chain_template_to_typed_json` and `pretty_print` and the legacy `generate_code` path, `auto_return_annotation_shape_gate.rs::derive_shape_kind_from_ast`, `test_runner/normalization.rs::canonicalize_return_ast`, `test_runner/parsers.rs::unparse_return_ast`.
+- Bootstrap parser (`parse_bootstrap`) in `unified_return_ast.rs` intentionally NOT extended. Bootstrap-chain grammars don't use `**`, so spec/impl alignment is benign. The existing test on line 2858 that asserted `$2::1**` parses as nested `Spread(Spread(...))` stays as-is (documents the bootstrap parser's quirky pre-`**` interpretation; not load-bearing for any bootstrap grammar).
+
+#### `\Q...\E` attachment fix
+- Added piece-level alternative in `grammars/regex.ebnf`:
+  ```ebnf
+  piece          = piece_quoted_run_quantified -> $1
+                 | atom quantifier?
+  -> {type: "piece", atom: $1, quantifier: $2}
+
+  piece_quoted_run_quantified = "\\Q" quoted_run_inner_piece* quoted_literal_char "\\E" quantifier
+  -> [$2**, {type: "piece", atom: $3, quantifier: $5}]
+
+  quoted_run_inner_piece = quoted_literal_char !"\\E"
+  -> {type: "piece", atom: $1, quantifier: []}
+  ```
+- The negative lookahead `!"\\E"` on `quoted_run_inner_piece` was essential — without it, the greedy `*` consumed all chars including the trailing one, leaving nothing for the `quoted_literal_char` slot before `\E`.
+- `concatenation = piece+ -> [$1**]` flattens the piece-array result of the new branch into a flat piece accumulator.
+- Branch ordering: `piece_quoted_run_quantified` is FIRST so PEG tries it before `atom quantifier?`. The piece rule uses `longest_match` mode so when both branches produce same-length parses (the `\Q...\E quantifier` case), tie-breaking with "left" associativity picks the first branch — which is now the multi-piece-emitting one.
+
+### Stab-and-test diagnostic flow
+The first regen of `piece_quoted_run_quantified` produced a stub `parse_piece_quoted_run_quantified` that just returned `Backtrack`. Root cause: I'd written the rule definition split across two lines (rule name on one, body on the next) — the EBNF frontend treated the rule name as a forward-reference and never saw the definition. Reformatting to a single line `piece_quoted_run_quantified = "\\Q" ... quantifier` fixed it.
+
+The second regen produced a real parse function but the dump still showed the buggy single-piece shape. Used `--trace --trace-log-file` per owner direction to inspect runtime behavior; found that branch 0 was being entered and `quoted_run_inner_piece` was succeeding for `a` and `b`. The actual issue was that the rebuilt probe binary wasn't picking up the regen yet — re-running after a fresh `cargo build --release --bin parseability_probe` gave the correct multi-piece output.
+
+### Affected manifests / test data
+- `rust/test_data/ast_shape_contract/regex_v1.json` — declared-annotation inventory updated from 4 entries to 8 (added `concatenation`, `piece` branch 1, `piece_quoted_run_quantified`, `quoted_run_inner_piece`).
+
+### Doc sync
+- `docs/RETURN_ANNOTATIONS_REFERENCE.md` — `**` operator + examples.
+- `docs/book/src/annotation-system.md` — flatten-spread section.
+- `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` — release `1.1.31` / contract `1.1.33` section + identity bump.
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` — `REGEX-0075` row.
+
+### Open follow-ups
+- Task #38 — fix EBNF parens-grouped-Or branch-attribution (the pre-existing `extract_rule_annotations` bug surfaced earlier).
+- Task #40 — "Annotate regex.ebnf for full AST usability" — comprehensive return-annotation work across the regex grammar so every field in the output is fully typed (the quantifier subtree, the atom subtree, the class subtree). Doctrine: AST content shall be readily usable, no consumer-side parsing/extraction required. Multi-slice; designed shape per subtree before each pass.
+
 ## 2026-04-30 - Codegen: tighten implicit `-> $1` default — exclude Quantified bodies
 
 ### Why this matters

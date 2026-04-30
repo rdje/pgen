@@ -11,10 +11,49 @@ pattern        = alternation
 -> $1
 alternation    = alternative ("|" alternative)*
 alternative    = concatenation?
+# `[$1**]` flatten-spread: for `\Q...\E quantifier?` patterns, the
+# `piece_quoted_run_quantified` branch returns a Sequence of pieces (one
+# per quoted-run char, with the trailing quantifier bound only to the
+# last char per PCRE2 semantics — see PGEN-RGX-0074). Flatten-spread
+# unwraps that Sequence so all pieces appear inline under
+# `concatenation`'s output, matching the shape of any other multi-piece
+# pattern (e.g. `ab\*{2,}`).
 concatenation  = piece+
+-> [$1**]
 
-piece          = atom quantifier?
+# `\Q...\E quantifier` is matched here BEFORE the normal `atom
+# quantifier?` branch, so the multi-piece path wins when applicable.
+# PCRE2 rule (pcre2pattern(3) §"Backslash"): a quantifier following
+# `\Q...\E` applies only to the LAST char of the literal sequence; the
+# rest are independent literal pieces. This branch encodes that rule.
+piece          = piece_quoted_run_quantified -> $1
+               | atom quantifier?
 -> {type: "piece", atom: $1, quantifier: $2}
+
+# Match `\Q` + (zero or more prefix chars) + (one trailing char) + `\E`
+# + a required quantifier. The annotation flat-emits `[prefix*, last]`
+# as separate piece objects; flatten-spread on `concatenation` unwraps
+# this into the parent's piece accumulator. The trailing
+# `quoted_literal_char` is required (i.e. the run must contain at
+# least one char) so the `last` piece is well-defined; degenerate
+# `\Q\E quantifier?` falls through to the second `piece` branch
+# (`atom quantifier?` -> `quoted_literal` matches `\Q\E`).
+piece_quoted_run_quantified = "\\Q" quoted_run_inner_piece* quoted_literal_char "\\E" quantifier
+-> [$2**, {type: "piece", atom: $3, quantifier: $5}]
+
+# Each prefix char inside the quoted run becomes its own piece object
+# with no quantifier. The empty-array `[]` placeholder for the
+# `quantifier` field matches the byte-shape that an unmatched `?`
+# Quantified produces in any other piece, so consumers see a uniform
+# `{type: "piece", atom, quantifier}` shape across all pieces.
+#
+# The trailing `!"\\E"` is a negative lookahead that prevents the
+# `quoted_run_inner_piece*` quantifier in `piece_quoted_run_quantified`
+# from greedily consuming the LAST char of the quoted run — that char
+# must be left for the explicit `quoted_literal_char` slot so it can
+# be paired with the trailing quantifier.
+quoted_run_inner_piece = quoted_literal_char !"\\E"
+-> {type: "piece", atom: $1, quantifier: []}
 
 # Quantifiers (with lazy and possessive variants)
 quantifier     = quant_base quant_suffix?

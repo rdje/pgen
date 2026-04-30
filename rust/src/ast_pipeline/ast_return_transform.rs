@@ -41,6 +41,14 @@ impl AstReturnTransformer {
             UnifiedReturnAST::Spread { base } => {
                 Self::generate_spread_transform(base, captured_vars)
             }
+            UnifiedReturnAST::FlattenSpread { base } => {
+                // Outside an array literal a flatten-spread degenerates to
+                // the same shape-preserving identity as Spread — the
+                // recursive-unwrap step is meaningful only when each pushed
+                // child is appended into a parent accumulator (which happens
+                // in `generate_array_transform`'s Spread/FlattenSpread arm).
+                Self::generate_spread_transform(base, captured_vars)
+            }
             UnifiedReturnAST::PropertyAccess { base, property } => {
                 Self::generate_property_access(base, property, captured_vars)
             }
@@ -183,6 +191,45 @@ impl AstReturnTransformer {
                             other => {
                                 array_elements.push(ParseNode {
                                     rule_name: "spread_element",
+                                    content: other,
+                                    span: 0..0,
+                                });
+                            }
+                        }
+                    });
+                }
+                UnifiedReturnAST::FlattenSpread { base } => {
+                    // `[$N**]` — like Spread, but for each pushed child node,
+                    // if its `content` is itself a `Sequence`/`Quantified`,
+                    // unwrap one level and push that wrapper's children
+                    // inline. Used when a child rule may produce either a
+                    // single value OR an array of values that should appear
+                    // flat under the parent's accumulator.
+                    let base_code = Self::generate_transform(base, captured_vars, "")?;
+                    element_codes.push(quote! {
+                        match #base_code {
+                            ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
+                                for node in nodes {
+                                    match node.content {
+                                        ParseContent::Sequence(inner_nodes)
+                                        | ParseContent::Quantified(inner_nodes, _) => {
+                                            for inner_node in inner_nodes {
+                                                array_elements.push(inner_node);
+                                            }
+                                        }
+                                        other_content => {
+                                            array_elements.push(ParseNode {
+                                                rule_name: node.rule_name,
+                                                content: other_content,
+                                                span: node.span,
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            other => {
+                                array_elements.push(ParseNode {
+                                    rule_name: "flatten_spread_element",
                                     content: other,
                                     span: 0..0,
                                 });

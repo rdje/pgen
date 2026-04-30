@@ -396,7 +396,7 @@ impl AnnotationValidator {
                     );
                 }
             }
-            UnifiedReturnAST::Spread { base } => {
+            UnifiedReturnAST::Spread { base } | UnifiedReturnAST::FlattenSpread { base } => {
                 if matches!(base.as_ref(), UnifiedReturnAST::Passthrough) {
                     report.diagnostics.push(AnnotationDiagnostic {
                         code: "W_RET_SPREAD_PASSTHROUGH",
@@ -2259,6 +2259,7 @@ impl AnnotationValidator {
         match ast {
             UnifiedReturnAST::PositionalRef { index } => *index,
             UnifiedReturnAST::Spread { base }
+            | UnifiedReturnAST::FlattenSpread { base }
             | UnifiedReturnAST::PropertyAccess { base, .. }
             | UnifiedReturnAST::QuantifiedExtraction { base, .. } => self.max_positional_ref(base),
             UnifiedReturnAST::ArrayAccess { base, index } => self

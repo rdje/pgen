@@ -16,7 +16,8 @@ return_annotation := arrow expression
 arrow := '->'
 
 # Top-level expression
-expression := spread_expression
+expression := flat_spread_expression
+            | spread_expression
             | extraction_expression
             | property_access_expression
             | array_access_expression
@@ -54,8 +55,24 @@ extraction_target := positive_integer  # Index extraction (1-based)
 positive_integer := /[1-9][0-9]*/
 
 # =====================================
-# SPREAD OPERATOR
+# SPREAD OPERATORS
 # =====================================
+
+# Flatten-spread (recursive-spread) expression: $2**, [$1, $2**].
+# Like the regular `*` spread, but additionally unwraps any pushed
+# child whose `content` is itself a `Sequence`/`Quantified` — pushing
+# that wrapper's children inline. Used when a child rule may produce
+# either a single value OR an array of values that must appear flat
+# under the parent's accumulator (e.g. `\Q...\E quantifier?` in
+# `regex.ebnf`'s `piece` rule, where the quoted-run-with-quantifier
+# branch returns a Sequence of pieces that must flatten into
+# `concatenation = piece+`'s output).
+#
+# Listed BEFORE `spread_expression` because PEG-style alternation is
+# ordered: `**` must match before `*` would consume only the first
+# star and leave the second one stranded.
+flat_spread_expression := spreadable_expression '**'
+-> {type: "flat_spread", base: $1}
 
 # Spread expression: $2*, [$1, $2*]
 spread_expression := spreadable_expression '*'

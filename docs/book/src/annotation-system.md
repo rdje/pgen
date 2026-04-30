@@ -91,6 +91,45 @@ Annotation support is not considered real just because syntax exists. It is expe
 - round-trip or comparable contract evidence,
 - maintained aggregate gates.
 
+## Spread Operators: `*` and `**`
+
+Return annotations support two spread variants for unpacking multi-element values into an array literal.
+
+### `*` — single-level spread
+
+```ebnf
+items := first rest* -> [$1, $2*]
+# If `rest` matched [a, b, c], result is [first, a, b, c].
+```
+
+`$N*` iterates the Sequence/Quantified bound to `$N` and pushes each child node into the parent array. Each pushed node retains its own `content` — no recursion. This is the right operator for "flatten one level of repetition into a sibling array."
+
+### `**` — flatten-spread (recursive-spread)
+
+```ebnf
+concatenation = piece+ -> [$1**]
+
+piece = piece_quoted_run_quantified -> $1
+      | atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}
+
+piece_quoted_run_quantified
+   = "\\Q" quoted_run_inner_piece* quoted_literal_char "\\E" quantifier
+   -> [$2**, {type: "piece", atom: $3, quantifier: $5}]
+```
+
+`$N**` is like `$N*`, but for each pushed child whose `content` is itself a `Sequence`/`Quantified`, it unwraps **one level** and pushes that wrapper's children inline. This is the operator to reach for when a child rule may produce *either* a single value *or* an array of values that should appear flat under the parent's accumulator.
+
+The `regex.ebnf` example above is the canonical motivating case (PGEN-RGX-0074): the `piece` rule has two branches, one returning a single piece object (`{type:"piece", ...}`) and one returning an array of piece objects (the multi-char `\Q...\E quantifier` case). At the parent level, `concatenation = piece+ -> [$1**]` flattens both shapes uniformly so consumers see a flat array of pieces regardless of which `piece` branch matched.
+
+### When to pick which
+
+- **Use `*`** when the spread base's iterations are themselves your final array elements (the typical case — e.g. `(',' item)*` extracted-and-spread).
+- **Use `**`** only when one of the iterations may itself wrap another array of items that need to flatten. Don't reach for it preemptively — `*` is the correct default and covers most patterns.
+
+### Bootstrap caveat
+
+The hand-written bootstrap parser (`UnifiedReturnAST::parse_bootstrap` in `rust/src/ast_pipeline/unified_return_ast.rs`) historically parses `$N**` as nested `Spread(Spread($N))` — semantically different from `FlattenSpread`. Bootstrap-chain grammars (`return_annotation.ebnf`, `semantic_annotation.ebnf`, `builtin_*.ebnf`) do not use `**`, so this divergence is benign. Tooling that calls `parse_bootstrap` on a `**`-using annotation (e.g. `auto_return_annotation_shape_gate`) maps to `ShapeKind::Passthrough` and skips shape verification gracefully. If a future bootstrap grammar needs `**`, the bootstrap parser will need to be aligned in a separate slice.
+
 ## Implicit `-> $1` default — what it does and what it doesn't
 
 When a rule body is a **single Atom** (one terminal, one regex, one rule-reference) or a **single-element Sequence**, and the author has not declared a return annotation, the codegen synthesizes an implicit `-> $1` so the matched value flows through cleanly. This is what lets `boolean_literal := 'true' | 'false'` produce a clean string output without forcing per-branch `-> $1` everywhere.

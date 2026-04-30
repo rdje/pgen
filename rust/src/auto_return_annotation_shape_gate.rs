@@ -105,6 +105,7 @@ fn derive_shape_kind_from_ast(ast: &UnifiedReturnAST) -> ShapeKind {
         | UnifiedReturnAST::PropertyAccess { .. }
         | UnifiedReturnAST::ArrayAccess { .. }
         | UnifiedReturnAST::Spread { .. }
+        | UnifiedReturnAST::FlattenSpread { .. }
         | UnifiedReturnAST::Passthrough => ShapeKind::Passthrough,
         UnifiedReturnAST::NumberLiteral { .. }
         | UnifiedReturnAST::BooleanLiteral { .. }

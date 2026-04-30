@@ -71,6 +71,12 @@
         "normalized_text": "{ type: \"extraction\", base: $1, target: $3, spread: $4 }"
       },
       {
+        "rule": "flat_spread_expression",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"flat_spread\", base: $1}"
+      },
+      {
         "rule": "object_literal",
         "branch_index": 0,
         "annotation_type": "return_object",

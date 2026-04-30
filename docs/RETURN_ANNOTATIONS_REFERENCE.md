@@ -168,7 +168,8 @@ RULE := "terminal1" | "terminal2"
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `*` | Spread operator | `$2*` spreads all elements of $2 |
+| `*` | Spread operator (single-level) | `$2*` spreads all elements of $2 |
+| `**` | Flatten-spread (recursive one-level unwrap) | `$2**` spreads $2 and unwraps each child whose content is itself Sequence/Quantified |
 | `::` | Extraction operator | `$2::3` extracts element 3 from each in $2 |
 | `.` | Property access | `$1.value` accesses the value property |
 | `[N]` | Array indexing | `$1[0]` accesses first element |
@@ -239,6 +240,38 @@ items := first rest* -> [$1, $2*]
 merged := list1 list2 -> [...$1, ...$2]  # Explicit spread syntax (future)
 merged := list1 list2 -> [$1*, $2*]      # Current syntax
 ```
+
+`*` does NOT recursively unwrap. If the spread base contains nodes whose `content` is itself `Sequence`/`Quantified`, those nested wrappers stay intact in the resulting array — each pushed element keeps its own structure. Use `**` if you need one extra level of unwrapping.
+
+### Flatten-Spread Operator (`**`)
+
+`**` is the recursive-spread variant. It spreads like `*` and additionally unwraps any pushed child whose `content` is itself `Sequence`/`Quantified`, pushing that wrapper's children inline (one level of recursion only).
+
+Use `**` when a child rule may produce *either* a single value *or* an array of values that should appear flat under the parent's accumulator.
+
+```ebnf
+# Canonical motivating case (from grammars/regex.ebnf, PGEN-RGX-0074):
+# `piece` has two branches — one returns a single piece object, the other
+# returns an array of piece objects. `concatenation` flattens both shapes
+# uniformly so consumers see a flat array regardless of which branch matched.
+concatenation = piece+ -> [$1**]
+
+piece = piece_quoted_run_quantified -> $1
+      | atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}
+
+piece_quoted_run_quantified
+   = "\\Q" quoted_run_inner_piece* quoted_literal_char "\\E" quantifier
+   -> [$2**, {type: "piece", atom: $3, quantifier: $5}]
+```
+
+#### When `*` vs `**`
+
+- `*`: the spread base's iterations are themselves your final array elements. This is the common case (e.g. `(',' item)*` extracted-and-spread).
+- `**`: only when one of the iterations may itself wrap another array of items that need to flatten. `**` is more powerful but you should not reach for it preemptively — `*` is the correct default.
+
+#### Bootstrap caveat
+
+The hand-written bootstrap parser in `rust/src/ast_pipeline/unified_return_ast.rs::parse_bootstrap` historically parses `$N**` as nested `Spread(Spread($N))` — semantically different from `FlattenSpread`. Bootstrap-chain grammars (`return_annotation.ebnf`, `semantic_annotation.ebnf`, `builtin_*.ebnf`) do not use `**`, so this divergence is benign. If a future bootstrap grammar needs `**`, the bootstrap parser will need to be aligned in a separate slice.
 
 ### Nested Arrays
 
@@ -431,7 +464,8 @@ enum UnifiedReturnAST {
     Object { properties: HashMap<String, Box<UnifiedReturnAST>> },
     
     // Operators
-    Spread { base: Box<UnifiedReturnAST> },
+    Spread { base: Box<UnifiedReturnAST> },          // $N* — single-level
+    FlattenSpread { base: Box<UnifiedReturnAST> },   // $N** — recursive one-level
     PropertyAccess { base: Box<UnifiedReturnAST>, property: String },
     ArrayAccess { base: Box<UnifiedReturnAST>, index: Box<UnifiedReturnAST> },
     
@@ -534,7 +568,8 @@ statement := 'if' '(' condition ')' block 'else' block -> {
 | `$N` | Position reference | `$1`, `$2`, `$3` |
 | `[...]` | Array | `[$1, $2]` |
 | `{...}` | Object | `{key: $1, val: $2}` |
-| `*` | Spread | `$2*` |
+| `*` | Spread (single-level) | `$2*` |
+| `**` | Flatten-spread (recursive one-level unwrap) | `$2**` |
 | `::` | Extract from quantified | `$2::1*` |
 | `"..."` | String literal | `"keyword"` |
 

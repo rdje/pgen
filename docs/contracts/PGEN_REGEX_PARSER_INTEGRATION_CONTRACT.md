@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.32`
+  - `1.1.33`
 - Parser release version:
-  - `1.1.30`
+  - `1.1.31`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -27,6 +27,28 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.31 / Contract 1.1.33 Highlights — PGEN-RGX-0074 `\Q...\E` quantifier-attachment correctness
+
+- `1.1.31` closes RGX correctness report **PGEN-RGX-0074** (ledger row `REGEX-0075`).
+- Per `pcre2pattern(3)` §"Backslash", a quantifier following `\Q...\E` applies only to the **last character** of the literal sequence; PGEN previously bound the quantifier to the entire quoted block.
+- AST shape change for `\Q...\E quantifier?` patterns (consumer-visible):
+  - **Before:** one `piece` with `atom = quoted_literal(\Q...\E)` and the trailing quantifier attached to the whole block.
+  - **After:** N pieces under the parent `concatenation` — one independent `{type:"piece", atom, quantifier:[]}` per prefix char and one final `{type:"piece", atom:<last>, quantifier:<the trailing quantifier>}` for the last char.
+  - Single-char `\Qx\E quantifier?` and empty `\Q\E quantifier?` remain handled by the original `atom quantifier?` branch (no behavior change for those degenerate cases).
+- Family-table proof, all matching PCRE2 semantics: `\Qab*\E{2,}` -> 3 pieces (a, b, *{2,}); `\Qabc\E{2}` -> 3 pieces (a, b, c{2}); `\Qab\E{3}` -> 2 pieces (a, b{3}); `\Qa\E{3}` -> 1 piece; `\Q\E{2}` -> 1 piece (atom-fallback).
+- Parser-agnostic implementation:
+  - New `**` (flatten-spread) primitive added to the return-annotation language (`grammars/return_annotation.ebnf`). Like single-`*` spread, but for each pushed child whose `content` is `Sequence`/`Quantified`, unwraps one level so a child rule may produce either a single value OR an array of values that appear flat in the parent's accumulator.
+  - New `piece` rule alternative `piece_quoted_run_quantified = "\\Q" quoted_run_inner_piece* quoted_literal_char "\\E" quantifier -> [$2**, {type:"piece", atom:$3, quantifier:$5}]`. The trailing `!"\\E"` negative lookahead in `quoted_run_inner_piece` keeps the greedy `*` from over-consuming the last char.
+  - `concatenation = piece+ -> [$1**]` flattens piece arrays into a flat piece accumulator.
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_regex()`, `parser.parse_full_regex()`, `parse_regex_typed()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged. `ParseContent::to_json_value() -> serde_json::Value` produces the corrected attachment shape across the family.
+- **Quantifier-shape typing remains a separate slice** (tracked under task #40 — "Annotate regex.ebnf for full AST usability"). This release fixes attachment correctness; the quantifier subtree (`quantifier`, `quant_base`, `counted_quantifier`, `counted_quantifier_body`, `quant_suffix`, `digits`) still leaks raw parse-tree shape pending the dedicated typing slice.
+- Recommended RGX integration steps:
+  1. Update PGEN dependency to the post-`1.1.31` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` (default emit).
+  3. Audit any code that walks `pattern[*]` expecting a single piece for `\Q...\E quantifier?` inputs — the AST now exposes N pieces with attachment on the last only.
+  4. Run existing tests; the new pieces shape matches PCRE2 semantics so behavioral tests should align.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.30 / Contract 1.1.32 Highlights — PGEN-RGX-0073 perf closure
 - `1.1.30` is the PGEN-RGX-0073 perf-closure release over parser release `1.1.29`; regex AST dump schema version stays `1` and JSON output via `ParseContent::to_json_value()` is byte-equivalent to `1.1.29`.
