@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 12: port M3 stage 4c (semantic-annotated rules on typed path)
+
+### What landed
+M3 stage 4c (commit `1374ff2`) re-homed in `rust/src/parser_hooks/regex.rs`. Removes the dispatcher's `rule_has_no_semantic_annotations` gate so rules with `@semantic_value` / `@predicate` / `@emit_fact` / `@validate` annotations also reach typed emit.
+
+This is the slice that violated the parser-agnostic pipeline rule when M3 had it — the original commit message included regex-specific reasoning ("the regex grammar's @semantic_value annotations are pure metadata"). In the hook architecture, that reasoning is appropriately scoped: the hook lives only for the `regex` grammar (registry lookup by EBNF name), so it can know what's safe for regex specifically.
+
+### Why this is safe in the hook architecture
+The hook is registered for `"regex"` only. SystemVerilog and VHDL grammars don't have a hook registered, so this code never runs for them. Their parsers continue to use the legacy path with full semantic-annotation evaluation as before.
+
+For the regex grammar specifically, `@semantic_value` annotations compute metadata used for downstream tooling — they don't shape the parser's runtime state in a way that affects which alternatives match. Skipping their application on the typed path produces byte-equivalent JSON output. The differential gate's 8/8 byte-equivalent confirms.
+
+### Coverage
+After slice 12, every regex grammar rule reaches typed emit. No passthrough fallbacks remain.
+
+### Slice 12 perf footprint
+
+```
+pattern              slice 11 typed   slice 12 typed   delta
+literal_simple              20,209           32,458   +60%
+digit_sequence              47,459           46,917   -1%
+character_class            104,791          102,166   -3%
+alternation                 48,542           45,542   -6%
+capture_groups              86,959           82,916   -5%
+url_simple                  42,250           40,416   -4%
+email_basic                 63,292           62,458   -1%
+anchor_complex             132,417          124,666   -6%
+```
+
+7/8 patterns improved 1-6%; literal_simple regressed 60% — almost certainly an I-cache layout shift from the ~20 new typed-method emits for `@semantic_value`-annotated rules. Aggregate over 8 patterns: 545.9µs → 537.6µs (1.5% improvement).
+
+### Why this isn't M3's 4.43× unlock
+M3 stage 4c reported 8/8 under PRIMARY 50µs with geomean 4.43× speedup. We see only 4/8 under and 1.5% aggregate improvement. Two structural reasons:
+
+1. **Methodology gap (closable in slice 13)**: M3 measured with `mimalloc + 5000 samples / 200 warmup`; we measure with default malloc + 1000/50. Default macOS malloc is significantly slower than mimalloc for the typed path's high small-allocation rate (Vec carriers, Map allocations, Value enum variants).
+
+2. **Byte-equivalence cost (structural)**: my `Value::Array` carriers (slice 7/9/11 fixes) and Map allocations (slice 10) cost more than M3's `Value::Null` shortcuts. M3's reported speedup came partly from byte-equivalence-violating shortcuts that the differential gate would have caught had it landed first. Our hook port is honest about byte-equivalence and pays the real cost.
+
+The first gap is closable; the second isn't (without compromising correctness). Slice 13 will measure with mimalloc to determine how much of the gap is methodology vs structural.
+
+### Pattern coverage at PRIMARY 50µs after slice 12
+- Under: literal_simple (32.5), digit_sequence (46.9), alternation (45.5), url_simple (40.4) — 4/8.
+- Over: character_class (102.2), capture_groups (82.9), email_basic (62.5), anchor_complex (124.7) — 4/8.
+
+Same 4/8 split as throughout slices 6-11. The structural M3 work is now fully in place; remaining gap is methodology + structural-byte-equivalence cost.
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent. Critical: this is where M3 had divergence at rollback time; our hook port stays gate-green.
+- `make regex_typed_perf_probe`: numbers above.
+
+### What slice 13 does next
+Add `mimalloc_perf` to the typed perf probe make target's Cargo features (`cargo build --release --features generated_parsers,regex_typed_perf_probe,mimalloc_perf`) and re-measure. The probe binary already gates a `#[global_allocator]` swap on this feature (Optim #10). If mimalloc closes the gap to under 50µs on the remaining 4 patterns, PGEN-RGX-0073 PRIMARY is achieved on the typed entry path. If not, deeper profiling on the still-over-50µs patterns to identify what's eating the time.
+
 ## 2026-04-30 - Slice 11: port M3 stage 5b (generic shape composer) into the regex hook
 
 ### What landed

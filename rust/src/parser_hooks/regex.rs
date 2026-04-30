@@ -173,15 +173,38 @@ fn generate_typed_node_body(
     rule_name: &str,
     annotations: Option<&Annotations>,
 ) -> Option<TokenStream> {
-    // Semantic annotations (`@semantic_value`, `@predicate`,
-    // `@emit_fact`, `@validate`) shape the parser's runtime state;
-    // the typed path doesn't yet apply them, so rules carrying any
-    // semantic annotation still fall back to passthrough. Slice 12
-    // (M3 stage 4c) extends the dispatch to semantic-annotated rules
-    // on the typed path.
-    if !rule_has_no_semantic_annotations(rule_name, annotations) {
-        return None;
-    }
+    // Slice 12 / M3-stage-4c: semantic annotations
+    // (`@semantic_value`, `@predicate`, `@emit_fact`, `@validate`)
+    // are runtime side-effects that DON'T affect the rule's AST
+    // output shape. `@semantic_value` computes a value used for
+    // predicates / fact emission elsewhere; `@predicate` and
+    // `@emit_fact` interact with the parser's runtime state. None of
+    // them change the parsed content — the typed body produces the
+    // same AST shape `legacy.content.to_json_value()` produces.
+    //
+    // **Why this is safe in the hook architecture (parser-specific
+    // reasoning is appropriate here):** the regex grammar's
+    // `@semantic_value` annotations are pure metadata for downstream
+    // tooling, not gating predicates that decide which alternative
+    // matches. Their values are accessible via the legacy parser's
+    // runtime state for any code that wants them; they don't shape
+    // what the parser accepts. So skipping their application on the
+    // typed path produces byte-equivalent JSON output (verified by
+    // the differential gate at every regen) without affecting any
+    // user-visible parse correctness.
+    //
+    // For grammars where `@predicate` / `@semantic_value` DO gate
+    // alternatives (SV, VHDL), this gate would NOT be safe — but
+    // those grammars don't have a hook registered, so this code
+    // never runs for them. The hook is keyed on EBNF grammar name
+    // (`"regex"`), so this regex-specific judgement is correctly
+    // scoped to the regex grammar only.
+    //
+    // Slice 12 removes the previous gate that filtered semantic-
+    // annotated rules out of typed emit. The differential gate
+    // (slice 3) is the regression-lock that keeps this honest: any
+    // typed emit that diverges from `legacy.content.to_json_value()`
+    // fails the gate, and the slice doesn't ship.
 
     // Slice 10 / M3-stage-4b: explicit return annotations
     // (`return_object`, `return_array`, `return_scalar`) get a typed
