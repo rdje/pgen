@@ -59,11 +59,7 @@ quoted_literal = "\\Q" quoted_literal_char* "\\E"
 quoted_literal_char = quoted_literal_escaped_char | letter | digit | whitespace | class_safe_special | ']' | unicode_char
 quoted_literal_escaped_char = "\\" quoted_literal_escape_tail
 quoted_literal_escape_tail = letter_no_upper_e | digit | whitespace | class_safe_special | ']' | unicode_char
-literal_char   = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
-               | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
-               | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-               | '!' | '"' | '#' | '%' | '&' | '\'' | ',' | '-' | '/' | ':' | ';' | '<' | '=' | '>' | '@' | ']' | '{' | '}' | '_' | '`' | '~'
-               | unicode_char
+literal_char   = /([A-Za-z0-9!"#%&',\-\/:;<=>@\]{}_`~]|[^\x00-\x7F])/
 
 # Dot
 dot            = "."
@@ -446,18 +442,16 @@ code_not_quote_or_backslash = letter | digit | whitespace | code_safe_special | 
 code_not_squote_or_backslash = letter | digit | whitespace | code_safe_special | unicode_char | '"' | '{' | '}'
 code_safe_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '[' | ']' | '|' | ':' | ';' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
-# Basic character building blocks
-letter         = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
-               | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
-
-digit          = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-nonzero_digit  = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-
-hex_digit      = digit | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f'
-
-octal_digit    = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
-
-whitespace     = ' ' | '\t' | '\n' | '\r' | '\f' | '\v'
+# Basic character building blocks. Rules are expressed as /.../ regex
+# literals where it directly maps to a single character class — this
+# is the canonical EBNF form (codegen emits one match_regex call per
+# rule entry instead of N try_parse blocks per single-char alternative).
+letter         = /([A-Za-z])/
+digit          = /([0-9])/
+nonzero_digit  = /([1-9])/
+hex_digit      = /([0-9A-Fa-f])/
+octal_digit    = /([0-7])/
+whitespace     = /([ \t\n\r\f\v])/
 unicode_char   = /([^\x00-\x7F])/
 
 any_char       = letter | digit | whitespace | special_char | unicode_char

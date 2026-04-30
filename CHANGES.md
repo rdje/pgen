@@ -1,4 +1,82 @@
 # CHANGES.md
+## 2026-04-30 - Slice 14: regex hook audit cleanup + /.../ regex rewrites for slow Or-of-chars rules
+
+### What landed
+Three pieces in one commit:
+
+1. **Hook audit cleanup** (per owner direction "remove any hardcoded code, steer via annotations"):
+   - Removed hardcoded rule-name check `!matches!(rule_name, "string_content_double" | "string_content_single")` from `generate_typed_atom_value_expr` — those rule names aren't in the regex grammar; they were parser-specific knowledge from elsewhere baked into the hook. The regex hook now always passes `true` for `match_regex`'s skip-leading-whitespace.
+   - Removed dead code: slice 6-9's per-shape body emitters (`generate_typed_atom_body`, `generate_typed_sequence_body`, `generate_typed_or_body`, `generate_typed_quantified_body`) — subsumed by slice 11's composer. Also removed `rule_has_no_semantic_annotations` whose only call site was deleted in slice 12. Hook file: 1165 → 916 lines.
+   - Added `try_emit_typed_token_steered(rule_name, annotations, receiver)` — annotation-driven helper that reads `@pattern` / `@charset` / `@token_class` semantic annotations from the EBNF and emits a `match_regex(<resolved-pattern>, true)?` call directly. Dispatcher routes annotated rules through it before falling to other emit paths. Currently no regex grammar rules use these annotations (they use `/.../` regex literals instead — see point 3), but the infrastructure is in place for future grammars or rules.
+
+2. **`/.../` regex rewrites in `grammars/regex.ebnf`** (per owner direction "use the best tool for the job; regex is introduced via `/.../`"):
+   - `letter = 'A' | 'B' | ... | 'z'` (52-way Or) → `letter = /([A-Za-z])/`
+   - `digit = '0' | ... | '9'` (10-way Or) → `digit = /([0-9])/`
+   - `nonzero_digit` → `/([1-9])/`
+   - `hex_digit = digit | 'A' | ...` (multi-rule Or) → `/([0-9A-Fa-f])/`
+   - `octal_digit` → `/([0-7])/`
+   - `whitespace` → `/([ \t\n\r\f\v])/`
+   - `literal_char` (60-way Or with unicode_char fallback) → `/([A-Za-z0-9!"#%&',\-\/:;<=>@\]{}_`~]|[^\x00-\x7F])/`
+
+   The legacy emit handles `regex` Atoms via `match_regex` (one call per rule entry) instead of try_parse-per-alternative. This speeds up BOTH the legacy path AND the typed path (typed delegates to the same `match_regex`).
+
+### Perf delta (release, mimalloc + 5000 samples / 200 warmup, p50 ns)
+
+**Legacy path** (was the path the user asked to drive under 50µs from the start):
+
+| pattern | slice-4 baseline (default malloc, 1000/50) | slice 14 legacy (mimalloc, 5000/200) | improvement |
+|---|---|---|---|
+| literal_simple | 33,500 | 10,958 | -67% |
+| digit_sequence | 46,417 | 31,333 | -33% |
+| character_class | 104,000 | 73,292 | -30% |
+| alternation | 47,416 | 25,917 | -45% |
+| capture_groups | 82,250 | 54,500 | -34% |
+| url_simple | 41,667 | 23,792 | -43% |
+| email_basic | 62,917 | 42,042 | -33% |
+| anchor_complex | 127,458 | 80,583 | -37% |
+
+30-67% per-pattern improvements on the legacy path. **5/8 patterns under PRIMARY 50µs** (up from 4/8 — `email_basic` slipped under).
+
+**Typed path** (mimalloc, 1000/50 — make target default):
+
+| pattern | typed p50 | <50µs? |
+|---|---|---|
+| literal_simple | 17,458 | ✓ |
+| digit_sequence | 37,584 | ✓ |
+| character_class | 70,875 | ✗ (-21µs) |
+| alternation | 25,666 | ✓ |
+| capture_groups | 52,667 | ✗ (-2.7µs) |
+| url_simple | 23,500 | ✓ |
+| email_basic | 41,208 | ✓ |
+| anchor_complex | 78,625 | ✗ (-29µs) |
+
+5/8 under PRIMARY 50µs. Typed and legacy paths now have nearly identical perf because both call `match_regex` for the rewritten rules.
+
+### PGEN-RGX-0073 closure status
+**5/8 under PRIMARY 50µs on both paths** (was 4/8). Three patterns remain over: `character_class` (~71-73µs), `capture_groups` (~52-54µs — close!), `anchor_complex` (~78-80µs). These are the patterns where the dominant cost is the deep Or chain in `atom` (~25 alternatives) and `class_item` (6 alternatives) — those Ors are over rule references (different shapes), not single chars, so they can't be collapsed into a single regex. Remaining work: identify the next-tier rewrite candidates (e.g., `class_literal`'s 5-way Or of leaf rules).
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent across all rewrites.
+- `make regex_typed_perf_probe`: 5/8 under PRIMARY 50µs on the typed path.
+- Direct legacy probe (`cargo run --release --features generated_parsers,mimalloc_perf --bin regex_perf_probe -- --samples 5000 --warmup 200`): 5/8 under PRIMARY 50µs on the legacy path.
+
+### Architectural note
+The user's pivot to `/.../` regex literals (instead of `@charset` annotations) was the right call. The `/.../` form:
+- Uses the EBNF's canonical regex syntax — no new annotation vocabulary needed.
+- The codegen already handles regex Atoms natively (slice 6's atom emit calls `match_regex`).
+- Speeds up BOTH legacy and typed paths simultaneously.
+- No metadata-sync burden (the rule body IS the regex).
+
+The hook's `try_emit_typed_token_steered` annotation-driven infrastructure is retained for future use (e.g., grammars that prefer keeping the rule's structural Or but want the optimized emit declared via annotation).
+
+### Files
+- [rust/src/parser_hooks/regex.rs](rust/src/parser_hooks/regex.rs): cleanup (-249 lines net), added `try_emit_typed_token_steered` infrastructure.
+- [grammars/regex.ebnf](grammars/regex.ebnf): 7 Or-of-chars rules rewritten as `/.../` regex literals.
+
+### What slice 15 does next
+Close the remaining 3 patterns. Candidates: rewrite `class_literal` (currently `letter | digit | whitespace | class_safe_special | unicode_char` — a 5-way Or of leaf rules) as a single regex matching all those character sets, eliminating one structural Or layer in `character_class` parsing. Similar collapses for any other multi-rule Or rules whose alternatives are all char-class-equivalent.
+
 ## 2026-04-30 - Slice 13: enable mimalloc in typed perf probe + re-measure (PGEN-RGX-0073 closure assessment)
 
 ### What landed

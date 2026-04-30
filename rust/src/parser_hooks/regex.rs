@@ -64,7 +64,9 @@
 //! second.
 
 use crate::ast_pipeline::{
-    ASTNode, ASTValue, Annotations, ParserHooks, ParserImplContext, TokenValue, UnifiedReturnAST,
+    ASTNode, ASTValue, Annotations, ParserHooks, ParserImplContext, SemanticAnnotation, TokenValue,
+    UnifiedReturnAST, extract_semantic_directive, parse_semantic_charset, parse_semantic_pattern,
+    parse_semantic_token_class,
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -173,6 +175,17 @@ fn generate_typed_node_body(
     rule_name: &str,
     annotations: Option<&Annotations>,
 ) -> Option<TokenStream> {
+    // Slice 14: token-steering check. If the rule has `@pattern`,
+    // `@charset`, or `@token_class` semantic annotations declared in
+    // the EBNF, those annotations are the source of truth for the
+    // typed body — emit a single `match_regex(<resolved-pattern>, true)?`
+    // wrapped in `Value::String`, regardless of the rule's AST shape.
+    // This is THE canonical optimization path: optimizations are
+    // declared in the grammar, not inferred in the hook.
+    if let Some(expr) = try_emit_typed_token_steered(rule_name, annotations, &quote! { self }) {
+        return Some(quote! { Ok(#expr) });
+    }
+
     // Slice 12 / M3-stage-4c: semantic annotations
     // (`@semantic_value`, `@predicate`, `@emit_fact`, `@validate`)
     // are runtime side-effects that DON'T affect the rule's AST
@@ -381,6 +394,92 @@ fn generate_typed_or_value_expr(
             });
         }
     })
+}
+
+/// Slice 14: token-steering emit driven by EBNF semantic annotations.
+///
+/// When a rule carries `@pattern`, `@charset`, or `@token_class`
+/// semantic annotations, those annotations declare the rule's
+/// optimized regex form. The hook reads them and emits a single
+/// `match_regex(<resolved-pattern>, true)?` call wrapped in
+/// `Value::String`. This skips the generic per-shape emit (Or
+/// try_parse chain, Sequence loop, etc.) entirely.
+///
+/// **Architectural rule (per owner direction):** the hook code is
+/// never hardcoded from thin air; it's steered by EBNF annotations.
+/// To declare a rule as a charset / token class, add the appropriate
+/// `@charset: "[abc...]"`, `@pattern: "..."`, or
+/// `@token_class: identifier` annotation to the rule in the
+/// grammar source. The hook's emit follows the declaration; nothing
+/// is inferred from the Or alternatives' character literals.
+///
+/// **Priority** (matches `rule_token_steering_policy` in the
+/// pipeline-side helper for consistency):
+/// 1. `@pattern` — explicit regex pattern wins.
+/// 2. `@charset` — explicit character class.
+/// 3. `@token_class` — known token class regex.
+///
+/// **Byte-equivalence:** the legacy parser also reads these
+/// annotations via `effective_regex_pattern` for `regex` Atoms; for
+/// other shapes (Or, Sequence) the legacy emit ignores them today
+/// but the rule's output is still a string match. The typed emit
+/// produces `Value::String(matched)` matching what
+/// `legacy.content.to_json_value()` produces for a `Terminal(matched)`.
+/// The differential gate enforces byte-equivalence end-to-end.
+fn try_emit_typed_token_steered(
+    rule_name: &str,
+    annotations: Option<&Annotations>,
+    receiver: &TokenStream,
+) -> Option<TokenStream> {
+    let annotations = annotations?;
+    let entries = annotations.semantic_annotations.get(rule_name)?;
+
+    let mut explicit_pattern: Option<String> = None;
+    let mut charset_pattern: Option<String> = None;
+    let mut token_class_pattern: Option<String> = None;
+
+    for annotation in entries {
+        let Some((name, payload)) = extract_semantic_annotation_directive(annotation) else {
+            continue;
+        };
+        match name.as_str() {
+            "pattern" => {
+                if let Some(parsed) = parse_semantic_pattern(&payload) {
+                    explicit_pattern = Some(parsed);
+                }
+            }
+            "charset" => {
+                if let Some(parsed) = parse_semantic_charset(&payload) {
+                    charset_pattern = Some(parsed);
+                }
+            }
+            "token_class" => {
+                if let Some(parsed) = parse_semantic_token_class(&payload) {
+                    token_class_pattern = Some(parsed.regex_pattern().to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let pattern = explicit_pattern.or(charset_pattern).or(token_class_pattern)?;
+
+    Some(quote! {
+        {
+            let __pgen_steered_matched = #receiver.match_regex(#pattern, true)?;
+            serde_json::Value::String(__pgen_steered_matched.to_string())
+        }
+    })
+}
+
+/// Extracts (directive_name, payload_text) from a `SemanticAnnotation`.
+/// Mirrors the private `AstBasedGenerator::semantic_directive_parts`
+/// helper; replicated locally so the hook stays self-contained.
+fn extract_semantic_annotation_directive(
+    annotation: &SemanticAnnotation,
+) -> Option<(String, String)> {
+    let payload = annotation.ast().payload_text();
+    extract_semantic_directive(payload)
 }
 
 /// Slice 11 helper: Quantified value-expression for `?`, `*`, `+`
@@ -727,14 +826,6 @@ fn generate_typed_annotation_value_expr(
     }
 }
 
-/// Slice 6 / M3-stage-2: shape-typed body (statement form) for
-/// `ASTNode::Atom`. Wraps [`generate_typed_atom_value_expr`] with
-/// `Ok(...)` to produce a method-body-shaped statement.
-fn generate_typed_atom_body(value: &ASTValue, rule_name: &str) -> Option<TokenStream> {
-    let expr = generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
-    Some(quote! { Ok(#expr) })
-}
-
 /// Slice 6 / M3-stage-2 (refactored in slice 7): shape-typed
 /// **expression** (not statement body) for `ASTNode::Atom`. Returns
 /// a block expression that produces `serde_json::Value` (or short-
@@ -776,22 +867,16 @@ fn generate_typed_atom_value_expr(
             }
         }),
         "regex" => {
-            // Inherits the same skip-leading-whitespace policy as the
-            // legacy `match_regex` call sites in the regex grammar.
-            // The two exceptions are `string_content_double` and
-            // `string_content_single` — string-body rules that must
-            // not consume leading whitespace because that whitespace
-            // would belong to the string literal's contents. Other
-            // regex-grammar rules either don't have these subtypes or
-            // are happy to skip leading whitespace.
-            let skip_leading_whitespace =
-                !matches!(rule_name, "string_content_double" | "string_content_single");
+            // The regex grammar has no rules that need to opt out of
+            // skip-leading-whitespace on `match_regex` (no string-body
+            // rules where whitespace belongs to the literal). Always
+            // skip; if a future EBNF change introduces a rule that
+            // needs skip_ws=false, declare that explicitly via a
+            // semantic annotation rather than hardcoding the rule
+            // name here.
             Some(quote! {
                 {
-                    let __pgen_typed_matched = #receiver.match_regex(
-                        #token_value,
-                        #skip_leading_whitespace,
-                    )?;
+                    let __pgen_typed_matched = #receiver.match_regex(#token_value, true)?;
                     serde_json::Value::String(__pgen_typed_matched.to_string())
                 }
             })
@@ -804,241 +889,6 @@ fn generate_typed_atom_value_expr(
         }
         _ => None,
     }
-}
-
-/// Slice 7 / M3-stage-3: shape-typed body for `ASTNode::Sequence`.
-///
-/// Builds `Value::Array(child_typed_values)` by parsing each child in
-/// order. Stage 3 handles two child shapes:
-/// - `ASTNode::Atom`: inline the typed atom expression and push the
-///   resulting `Value`.
-/// - `ASTNode::Quantified` with quantifier `"?"` whose inner element
-///   is an `Atom`: wrap in `try_parse` and push a
-///   `Value::Array(...)` carrier matching what
-///   `ParseContent::Quantified(_, "?").to_json_value()` produces on
-///   the legacy path.
-///
-/// **Byte-equivalence for `?`-Quantified-Atom:** legacy
-/// `ParseContent::Quantified(nodes, _)` always serializes via
-/// `to_json_value()` to `Value::Array`. So matched gives
-/// `Value::Array(vec![<inner-typed>])` and unmatched gives
-/// `Value::Array(vec![])` — NOT a bare matched value or `Value::Null`.
-/// (M3's stage 3 emitted `Value::Null` on miss, which was the
-/// byte-equivalence divergence the differential gate caught at
-/// rollback time. Slice 7 fixes this.)
-///
-/// Returns `None` if any child is a shape stage 3 doesn't yet handle
-/// (nested `Or` / `Sequence` / `Lookahead` / `Quantified` with non-`?`
-/// quantifier or non-`Atom` inner). In that case the caller falls
-/// back to the passthrough body.
-fn generate_typed_sequence_body(elements: &[ASTNode], rule_name: &str) -> Option<TokenStream> {
-    let element_count = elements.len();
-    let mut element_pushes: Vec<TokenStream> = Vec::with_capacity(element_count);
-    for elem in elements {
-        let push = match elem {
-            ASTNode::Atom { value } => {
-                let expr = generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
-                quote! {
-                    elements.push(#expr);
-                }
-            }
-            ASTNode::Quantified {
-                element,
-                quantifier,
-            } if quantifier == "?" => {
-                let ASTNode::Atom { value } = element.as_ref() else {
-                    return None;
-                };
-                let inner_expr =
-                    generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
-                quote! {
-                    let __pgen_optional_carrier: Vec<serde_json::Value> = if let Some(__pgen_v) =
-                        self.try_parse(|p| {
-                            let parser = p;
-                            Ok::<serde_json::Value, ParseError>(#inner_expr)
-                        })
-                    {
-                        vec![__pgen_v]
-                    } else {
-                        Vec::new()
-                    };
-                    elements.push(serde_json::Value::Array(__pgen_optional_carrier));
-                }
-            }
-            _ => return None,
-        };
-        element_pushes.push(push);
-    }
-
-    Some(quote! {
-        let mut elements: Vec<serde_json::Value> = Vec::with_capacity(#element_count);
-        #(#element_pushes)*
-        Ok(serde_json::Value::Array(elements))
-    })
-}
-
-/// Slice 9 / M3-stage-5: shape-typed body for `ASTNode::Quantified`
-/// at the rule-body level.
-///
-/// Three quantifiers handled, each requiring the inner element to be
-/// `ASTNode::Atom`:
-/// - `?` — optional. Emits `Value::Array(vec![v])` on hit /
-///   `Value::Array(vec![])` on miss.
-/// - `*` — zero-or-more. Loops `try_parse`; emits
-///   `Value::Array(matches)`.
-/// - `+` — one-or-more. Requires a first match (no `try_parse`), then
-///   loops; emits `Value::Array(matches)`.
-///
-/// **Byte-equivalence fix vs M3:** M3's stage 5 emit for `?` returned
-/// `Value::Null` on miss and the bare matched value on hit. Legacy
-/// `ParseContent::Quantified(_, _).to_json_value()` always serializes
-/// to `Value::Array(...)` regardless of quantifier kind — `?` matched
-/// gives `Value::Array(vec![v])`, unmatched gives `Value::Array(vec![])`.
-/// Slice 9 emits the carrier shape, the same way slice 7 fixed the
-/// `Quantified-?-Atom` child case inside Sequence emit. The `*` and
-/// `+` cases already produced `Value::Array` correctly in M3 and are
-/// ported as-is.
-///
-/// Returns `None` for `{n,m}` (bounded count, deferred to a separate
-/// slice that handles min/max enforcement) and for non-Atom inners
-/// (nested `Sequence` / `Or` / etc., deferred to slice 11's generic
-/// shape composer).
-fn generate_typed_quantified_body(
-    element: &ASTNode,
-    quantifier: &str,
-    rule_name: &str,
-) -> Option<TokenStream> {
-    let ASTNode::Atom { value } = element else {
-        return None;
-    };
-    match quantifier {
-        "?" => {
-            let expr_parser =
-                generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
-            Some(quote! {
-                let __pgen_q_carrier: Vec<serde_json::Value> = if let Some(__pgen_q_v) =
-                    self.try_parse(|p| {
-                        let parser = p;
-                        Ok::<serde_json::Value, ParseError>(#expr_parser)
-                    })
-                {
-                    vec![__pgen_q_v]
-                } else {
-                    Vec::new()
-                };
-                Ok(serde_json::Value::Array(__pgen_q_carrier))
-            })
-        }
-        "*" => {
-            let expr_parser =
-                generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
-            Some(quote! {
-                let mut __pgen_q_elements: Vec<serde_json::Value> = Vec::new();
-                while let Some(__pgen_q_v) = self.try_parse(|p| {
-                    let parser = p;
-                    Ok::<serde_json::Value, ParseError>(#expr_parser)
-                }) {
-                    __pgen_q_elements.push(__pgen_q_v);
-                }
-                Ok(serde_json::Value::Array(__pgen_q_elements))
-            })
-        }
-        "+" => {
-            let expr_self = generate_typed_atom_value_expr(value, rule_name, quote! { self })?;
-            let expr_parser =
-                generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
-            Some(quote! {
-                let mut __pgen_q_elements: Vec<serde_json::Value> = Vec::new();
-                let __pgen_q_first = #expr_self;
-                __pgen_q_elements.push(__pgen_q_first);
-                while let Some(__pgen_q_v) = self.try_parse(|p| {
-                    let parser = p;
-                    Ok::<serde_json::Value, ParseError>(#expr_parser)
-                }) {
-                    __pgen_q_elements.push(__pgen_q_v);
-                }
-                Ok(serde_json::Value::Array(__pgen_q_elements))
-            })
-        }
-        // {n,m} and other forms deferred to a later slice (min/max
-        // enforcement is a separate concern).
-        _ => None,
-    }
-}
-
-/// Slice 8 / M3-stage-4: shape-typed body for `ASTNode::Or`.
-///
-/// For Or rules whose alternatives are all `ASTNode::Atom`, emits a
-/// sequence of `try_parse` blocks: each tries the next alternative,
-/// and the first successful one returns its typed value. If all
-/// alternatives fail, returns `Err(ParseError::Backtrack { position:
-/// self.position })` so the caller's outer Or / Sequence can retry at
-/// that position.
-///
-/// **Byte-equivalence:** legacy `ParseContent::Alternative(child)
-/// .to_json_value()` returns `child.content.to_json_value()` — i.e.
-/// the chosen alternative's content unwrapped. The typed emit returns
-/// the alternative's typed value directly. Match.
-///
-/// The dispatcher's gate at `generate_typed_node_body` already
-/// filters out rules with semantic or branch return annotations, so
-/// the Or rules that reach this function either have no annotations
-/// at all OR rely on the implicit `-> $1` default for single-element
-/// branches (which is synthesized at codegen time by the generator,
-/// not stored in `branch_return_annotations`). The typed semantics —
-/// return the alternative's typed value — match the implicit `-> $1`
-/// passthrough, so the typed path is equivalent.
-///
-/// Returns `None` if any alternative is not an `ASTNode::Atom` (e.g.
-/// nested Sequence / Or / Quantified / Lookahead). Stages 5+ extend
-/// the supported alternative shapes.
-fn generate_typed_or_body(alternatives: &[ASTNode], rule_name: &str) -> Option<TokenStream> {
-    let mut try_blocks: Vec<TokenStream> = Vec::with_capacity(alternatives.len());
-    for alt in alternatives {
-        let ASTNode::Atom { value } = alt else {
-            return None;
-        };
-        let expr = generate_typed_atom_value_expr(value, rule_name, quote! { parser })?;
-        try_blocks.push(quote! {
-            if let Some(__pgen_or_v) = self.try_parse(|p| {
-                let parser = p;
-                Ok::<serde_json::Value, ParseError>(#expr)
-            }) {
-                return Ok(__pgen_or_v);
-            }
-        });
-    }
-    Some(quote! {
-        #(#try_blocks)*
-        Err(ParseError::Backtrack { position: self.position })
-    })
-}
-
-/// Slice 6 / M3-stage-2: rule has no semantic annotations of any kind
-/// (direct, branch-level, or branch-mid-sequence). Mirrors the helper
-/// of the same name on `AstBasedGenerator` (which is private to the
-/// pipeline crate); kept duplicated here so the hook stays self-
-/// contained without exposing internal generator state.
-fn rule_has_no_semantic_annotations(
-    rule_name: &str,
-    annotations: Option<&Annotations>,
-) -> bool {
-    let Some(annotations) = annotations else {
-        return true;
-    };
-    let direct_empty = annotations
-        .semantic_annotations
-        .get(rule_name)
-        .is_none_or(|v| v.is_empty());
-    let branch_empty = annotations
-        .branch_semantic_annotations
-        .get(rule_name)
-        .is_none_or(|branches| branches.iter().all(|b| b.is_empty()));
-    let mid_seq_empty = annotations
-        .branch_mid_sequence_semantic_annotations
-        .get(rule_name)
-        .is_none_or(|branches| branches.iter().all(|b| b.is_empty()));
-    direct_empty && branch_empty && mid_seq_empty
 }
 
 #[cfg(test)]
