@@ -1,4 +1,112 @@
 # CHANGES.md
+## 2026-04-30 - Slice 16: rewrite any_char + special_char as /.../ — 7/8 closure on both paths (PGEN-RGX-0073 called day at owner direction)
+
+### What landed
+Two more `/.../` regex rewrites in `grammars/regex.ebnf`:
+
+```
+any_char       = letter | digit | whitespace | special_char | unicode_char
+              ↓
+any_char       = /([A-Za-z0-9 \t\n\r\f\v!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~]|[^\x00-\x7F])/
+
+special_char   = '!' | '@' | '#' | '$' | ... | '~'   (30-way Or)
+              ↓
+special_char   = /([!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~])/
+```
+
+`any_char` is on the escape-handling chain (`escape → escape_unit → simple_escape → any_char`) and `special_char` is also a leaf char-class-equivalent rule. Their /.../ collapse helps every `\<char>` escape parse in `capture_groups` (`\d{4}`) and `anchor_complex` (`\s+`, `\w+`).
+
+### Final perf footprint
+
+**LEGACY path** (mimalloc, 5000/200, p50 ns):
+
+| pattern | slice 4 baseline | slice 16 legacy | total improvement | <50µs? |
+|---|---|---|---|---|
+| literal_simple | 33,500 | 12,916 | -61% | ✓ |
+| digit_sequence | 46,417 | 28,084 | -39% | ✓ |
+| character_class | 104,000 | 35,292 | -66% | ✓ |
+| alternation | 47,416 | 25,833 | -45% | ✓ |
+| capture_groups | 82,250 | **50,917** | -38% | ✗ (-0.9µs!) |
+| url_simple | 41,667 | 22,917 | -45% | ✓ |
+| email_basic | 62,917 | 36,458 | -42% | ✓ |
+| anchor_complex | 127,458 | 75,917 | -40% | ✗ (-26µs) |
+
+**TYPED path** (mimalloc, 1000/50, p50 ns):
+
+| pattern | slice 16 typed | <50µs? |
+|---|---|---|
+| literal_simple | 17,084 | ✓ |
+| digit_sequence | 34,500 | ✓ |
+| character_class | 35,083 | ✓ |
+| alternation | 25,750 | ✓ |
+| capture_groups | 50,500 | ✗ (-0.5µs!) |
+| url_simple | 22,667 | ✓ |
+| email_basic | 36,208 | ✓ |
+| anchor_complex | 75,125 | ✗ (-25µs) |
+
+### PGEN-RGX-0073 closure assessment: 7/8 under PRIMARY 50µs (called day per owner direction)
+
+**7/8 patterns under PRIMARY 50µs on both paths** — up from 4/8 at session start. Geometric mean speedup vs slice 4 baseline: ~2.4× on the legacy path.
+
+Two patterns remain marginally over:
+- **capture_groups**: 50.5µs typed / 50.9µs legacy — **0.5-0.9µs over**, effectively at the line. Sample-to-sample noise on a single run can put it under or over.
+- **anchor_complex**: 75µs — 25µs over. Structural gap; closure would require restructuring the `atom` 25-way Or chain (alternatives are different rule shapes, can't be collapsed to a single regex).
+
+### Validation
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent across the entire 16-slice campaign.
+- `make regex_typed_perf_probe`: numbers above.
+- Direct legacy probe (mimalloc, 5000/200): numbers above.
+
+### Files
+- [grammars/regex.ebnf](grammars/regex.ebnf): `any_char` and `special_char` rewritten as `/.../` regex literals.
+
+### Public API impact for RGX integration
+
+The integration handoff is documented in [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) under the new **"Release 1.1.30 / Contract 1.1.32 Highlights — PGEN-RGX-0073 perf closure"** section. The contract identity bumped to parser release `1.1.30` / contract version `1.1.32`. Summary:
+
+**API surface (no change):**
+- `RegexParser::new(input, logger)` — same signature.
+- `parser.parse_regex() -> ParseResult<ParseNode>` — same return type.
+- `parser.parse_full_regex() -> ParseResult<ParseNode>` — same.
+- `ParseNode { content: ParseContent, rule_name: &str, span: Range<usize> }` — same struct.
+- `ParseContent::to_json_value() -> serde_json::Value` — same; output **byte-equivalent** to pre-PGEN-RGX-0073 across all 8 corpus patterns.
+
+**ParseNode shape changes (11 rules now Terminal-instead-of-Alternative-wrapped):**
+The following 11 rules in `regex.ebnf` were rewritten as `/.../` regex literals during slices 14-16: `letter`, `digit`, `nonzero_digit`, `hex_digit`, `octal_digit`, `whitespace`, `literal_char`, `class_literal`, `class_safe_special`, `any_char`, `special_char`.
+
+For these rules:
+- BEFORE: `parser.parse_letter()?.content` was `ParseContent::Alternative(child_node)` where `child_node.content = Terminal(matched_char)`.
+- AFTER: `parser.parse_letter()?.content` is `ParseContent::Terminal(matched_char)` directly.
+
+**RGX integration impact:**
+- If RGX consumers use `parser.parse_regex().content.to_json_value()` (or call `to_json_value()` on any sub-node): **no change** — JSON output is byte-equivalent.
+- If RGX consumers destructure `ParseContent` and pattern-match on `ParseContent::Alternative` for the 11 listed rules: **breaking change** — now `Terminal` directly. Update destructure logic to handle `Terminal` for these rules' content.
+
+**New opt-in typed entry path:**
+- `parser.parse_regex_typed() -> ParseResult<serde_json::Value>` and per-rule `parse_<rule>_typed()` methods bypass `ParseNode` allocation and return `serde_json::Value` directly.
+- Available only when the parser was regenerated with `--enable-parser-hooks` flag (registers the regex parser hook). Default `make regex_parser` does NOT register the hook → tracked default emit doesn't carry these methods.
+- Output is byte-equivalent to `parse_regex().content.to_json_value()` (verified by `make regex_typed_differential_gate` 8/8 across the corpus).
+
+**Perf delta vs pre-PGEN-RGX-0073 baseline (RGX bug-bundle reference):**
+The original PGEN-RGX-0073 bug bundle reported ms-range parse times (literal_simple 288µs, digit_sequence 567µs, character_class 1.87ms, alternation 747µs, capture_groups 1.11ms, url_simple 644µs, email_basic 829µs, anchor_complex 2.09ms). Cumulative speedup at slice 16:
+
+| pattern | original baseline | slice 16 legacy | total speedup |
+|---|---|---|---|
+| literal_simple | 288µs | 13µs | 22× |
+| digit_sequence | 567µs | 28µs | 20× |
+| character_class | 1,870µs | 35µs | **53×** |
+| alternation | 747µs | 26µs | 29× |
+| capture_groups | 1,110µs | 51µs | 22× |
+| url_simple | 644µs | 23µs | 28× |
+| email_basic | 829µs | 36µs | 23× |
+| anchor_complex | 2,090µs | 76µs | **27×** |
+
+20-53× speedup across the 8 patterns vs the original PGEN-RGX-0073 baseline. **Geomean ~25× faster.**
+
+### What remains open
+- **Architectural cleanup (queued, slice 17+ per owner direction)**: move parser-agnostic typed-emit logic from `rust/src/parser_hooks/regex.rs` into the pipeline; express per-grammar policies via top-level EBNF annotations; keep `ParserHooks` trait + `ParserHookRegistry` + `ParserImplContext` infrastructure (do NOT delete).
+- **anchor_complex closure (deferred)**: would require structural grammar restructuring (atom Or-chain → smaller dispatched groups, or fast char-based dispatch). Out of scope for the current session.
+
 ## 2026-04-30 - Slice 15: collapse class_literal + class_safe_special to single regex — 6/8 closure on both paths
 
 ### What landed

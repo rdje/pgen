@@ -454,9 +454,9 @@ octal_digit    = /([0-7])/
 whitespace     = /([ \t\n\r\f\v])/
 unicode_char   = /([^\x00-\x7F])/
 
-any_char       = letter | digit | whitespace | special_char | unicode_char
+any_char       = /([A-Za-z0-9 \t\n\r\f\v!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~]|[^\x00-\x7F])/
 
-special_char   = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~'
+special_char   = /([!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~])/
 
 # Lexical helpers
 digits         = digit+

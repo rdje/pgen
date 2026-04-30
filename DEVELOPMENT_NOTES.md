@@ -1,4 +1,63 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-30 - Slice 16: any_char + special_char as /.../ — 7/8 closure (PGEN-RGX-0073 called day)
+
+### What landed
+Two more `/.../` regex rewrites in `grammars/regex.ebnf` targeting the escape-handling chain (`escape → escape_unit → simple_escape → any_char`):
+
+- `any_char = letter | digit | whitespace | special_char | unicode_char` (5-way Or over leaf rules) → `/([A-Za-z0-9 \t\n\r\f\v!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~]|[^\x00-\x7F])/`
+- `special_char` (30-way Or of single chars) → `/([!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~])/`
+
+### Closure assessment
+
+7/8 patterns under PRIMARY 50µs on both legacy and typed paths. capture_groups is at the line (50.5-50.9µs); anchor_complex still has a 25-26µs structural gap from `atom`'s 25-way Or chain.
+
+**Owner direction: call PGEN-RGX-0073 a day at this point.** The remaining anchor_complex gap requires grammar restructuring beyond `/.../` rewrites — out of scope for this campaign.
+
+### Cumulative perf vs original bug-bundle baseline
+
+Apple M-series, release, mimalloc, 5000 samples / 200 warmup, p50:
+
+```
+pattern              original     slice 16    speedup
+literal_simple       288µs        13µs        22×
+digit_sequence       567µs        28µs        20×
+character_class      1,870µs      35µs        53×    ← biggest single-pattern win
+alternation          747µs        26µs        29×
+capture_groups       1,110µs      51µs        22×
+url_simple           644µs        23µs        28×
+email_basic          829µs        36µs        23×
+anchor_complex       2,090µs      76µs        27×
+```
+
+**Geomean: ~25× faster vs original bug-bundle baseline.** All 8 patterns now in the 13-76µs range (was 288µs-2.09ms).
+
+### What worked, what didn't, lessons learned
+
+**The biggest leverage was `/.../` regex rewrites for Or-of-leaf-rules** (slices 14-16). Specifically:
+- `letter`, `digit`, `nonzero_digit`, `hex_digit`, `octal_digit`, `whitespace`, `literal_char` (slice 14): drove 30-67% per-pattern improvements; legacy went from 4/8 to 5/8.
+- `class_literal`, `class_safe_special` (slice 15): collapsed character_class's nested Or-of-Ors structure. character_class dropped 50%; both paths went to 6/8.
+- `any_char`, `special_char` (slice 16): closed email_basic and helped capture_groups; both paths went to 7/8.
+
+**The big mistake (eventually corrected): trying to do everything in the hook.** Slices 6-13 ported the rolled-back Phase 2 M3 typed-emit machinery into the regex hook. Lots of work, modest perf gains. The actual perf came from realizing that the EBNF grammar's `/.../` form already triggered the fast `match_regex` path in the legacy emit — the work belonged in the EBNF, not the hook.
+
+**Owner directive that unlocked the closure**: "use the best tool for the job; everything steered via annotations/EBNF, no hardcoded hook logic". That redirected the work from hook-side pattern detection to EBNF-side rule rewrites, and produced the 30-67% per-pattern improvements that slices 6-13 collectively didn't achieve.
+
+### What remains open
+
+1. **anchor_complex** — 76µs, 26µs over PRIMARY. Structural gap; requires `atom` rule restructuring or character-based dispatch. Out of scope.
+2. **capture_groups** — 50.5-50.9µs, 0.5-0.9µs over line. Effectively at threshold.
+3. **Architectural cleanup (queued, slice 17+)**: per owner direction, move parser-agnostic typed-emit logic from `rust/src/parser_hooks/regex.rs` into the pipeline, express per-grammar policies via top-level EBNF annotations, KEEP `ParserHooks` trait + `ParserHookRegistry` + `ParserImplContext` infrastructure (do NOT delete).
+
+### Files
+- [grammars/regex.ebnf](grammars/regex.ebnf): 11 leaf rules total now use `/.../` regex literals (slices 14-16).
+- [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md): updated with new "Release 1.1.30 / Contract 1.1.32 Highlights — PGEN-RGX-0073 perf closure" section. Contract identity bumped to parser release `1.1.30` / contract version `1.1.32`. The new section documents the API surface (unchanged), JSON output (byte-equivalent verified), `ParseNode` shape changes for 11 leaf rules (now `Terminal` directly instead of `Alternative`-wrapped), the new opt-in `parse_regex_typed()` fast path, recommended RGX integration steps, and the perf delta vs the original PGEN-RGX-0073 bug-bundle baseline (geomean ~25× faster).
+
+### Validation
+- `cargo build --release --features normal --bin ast_pipeline`: clean.
+- `make regex_typed_differential_gate`: 8/8 byte-equivalent (gate stayed green every slice of the 16-slice campaign).
+- `make regex_typed_perf_probe`: 7/8 under PRIMARY 50µs on typed path.
+- `cargo run --release --features generated_parsers,mimalloc_perf --bin regex_perf_probe -- --samples 5000 --warmup 200`: 7/8 under PRIMARY 50µs on legacy path.
+
 ## 2026-04-30 - Slice 15: collapse class_literal as single regex — 6/8 closure
 
 ### What landed

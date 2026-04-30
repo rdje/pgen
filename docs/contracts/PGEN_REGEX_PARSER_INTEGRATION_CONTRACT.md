@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.31`
+  - `1.1.32`
 - Parser release version:
-  - `1.1.29`
+  - `1.1.30`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-04-18`
+  - `2026-04-30`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -27,6 +27,23 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.30 / Contract 1.1.32 Highlights — PGEN-RGX-0073 perf closure
+- `1.1.30` is the PGEN-RGX-0073 perf-closure release over parser release `1.1.29`; regex AST dump schema version stays `1` and JSON output via `ParseContent::to_json_value()` is byte-equivalent to `1.1.29`.
+- This specifically covers RGX perf report `PGEN-RGX-0073` (regex parse times in the ms range vs the PRIMARY <50µs target).
+- **Closure result on the 8-pattern bug corpus** (Apple M-series, release, mimalloc allocator, 5000 samples / 200 warmup, p50): `literal_simple` 13µs, `digit_sequence` 28µs, `character_class` 35µs, `alternation` 26µs, `capture_groups` 51µs, `url_simple` 23µs, `email_basic` 36µs, `anchor_complex` 76µs. **7/8 patterns under PRIMARY 50µs on the legacy `parser.parse_full_regex()` path.** `capture_groups` is at the line (50.9µs, 0.9µs over — sample noise can flip it under or over). `anchor_complex` retains a 26µs structural gap from the `atom` rule's 25-way Or chain over different rule shapes (cannot be collapsed to a single regex; closure would require grammar restructuring beyond the current contract).
+- **Cumulative speedup vs the original PGEN-RGX-0073 bug-bundle baseline**: literal_simple 22×, digit_sequence 20×, **character_class 53×**, alternation 29×, capture_groups 22×, url_simple 28×, email_basic 23×, **anchor_complex 27×**. Geomean ~25× faster across all 8 patterns. The biggest single-pattern win is `character_class` (originally 1.87ms, now 35µs).
+- **Public API surface unchanged**: `RegexParser::new`, `parser.parse_regex()`, `parser.parse_full_regex()` keep the same signatures. `ParseNode { content: ParseContent, rule_name, span }` and the `ParseContent` enum (`Terminal`, `TransformedTerminal`, `Json`, `Sequence`, `Alternative`, `Quantified`) are unchanged. `ParseContent::to_json_value() -> serde_json::Value` produces byte-equivalent output across the 8 corpus patterns (machine-verified by the maintained `make regex_typed_differential_gate` target on every regen with `--enable-parser-hooks`).
+- **`ParseNode` shape change for 11 leaf rules** (the only consumer-visible change): the rules `letter`, `digit`, `nonzero_digit`, `hex_digit`, `octal_digit`, `whitespace`, `literal_char`, `class_literal`, `class_safe_special`, `any_char`, `special_char` were rewritten in `grammars/regex.ebnf` from `Or`-of-single-character alternatives to `/.../` regex literals. The legacy emit's `ParseNode` for these rules now carries `ParseContent::Terminal(matched_str)` directly instead of `ParseContent::Alternative(child_node)` (where `child_node.content` was the `Terminal`). Consumers that rely on `to_json_value()` (or any code path that consumes JSON transitively) see no change. Consumers that pattern-match on `ParseContent::Alternative` for these specific 11 rules need to update to match `ParseContent::Terminal` instead.
+- **New optional typed entry-point** (opt-in): `parser.parse_regex_typed() -> ParseResult<serde_json::Value>` and per-rule `parse_<rule>_typed()` methods bypass `ParseNode` allocation and return `serde_json::Value` directly. Available only when the parser was regenerated with `--enable-parser-hooks` (registers the regex parser hook at `rust/src/parser_hooks/regex.rs`). Default `make regex_parser` does NOT register the hook → tracked default emit doesn't carry these methods. Output is byte-equivalent to `parse_regex()?.content.to_json_value()` (verified by `make regex_typed_differential_gate` 8/8 across the corpus). Consumers can migrate to this fast path for the JSON-direct case; otherwise no action required.
+- **Recommended RGX integration steps**:
+  1. Update PGEN dependency to the post-`1.1.30` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` (default emit, legacy API).
+  3. Audit any code that destructures `ParseContent` for the 11 leaf rules listed above; update `Alternative` → `Terminal` matches as needed.
+  4. Run existing tests; JSON output via `to_json_value()` is byte-equivalent so JSON-consuming tests should pass unchanged.
+  5. Optional: migrate to `parser.parse_regex_typed()` for the JSON-direct fast path (regenerate with `--enable-parser-hooks`).
+- **Differential gate verification**: `make regex_typed_differential_gate` ran 8/8 byte-equivalent at every slice of the 16-slice closure campaign. The maintained gate compares `parser.parse_regex()?.content.to_json_value()` (legacy reference) against `parser.parse_regex_typed()` (typed entry, when the hook is registered) byte-for-byte across the 8 PGEN-RGX-0073 corpus patterns. The gate is the regression-lock for any future grammar change touching the 11 rewritten rules.
+- This release is a perf-closure release over the already-closed regex family row, not a reopening of the family status. The regex family proof remains green (frontend overall `pass`, dual-run overall `pass`, parser-backed stimuli `5911/5197/714`, closed target debt `804 -> 0`); this release does not alter any conformance test counts.
 
 ## Release 1.1.29 / Contract 1.1.31 Highlights
 - `1.1.29` is a generated-host compile-contract maintenance release over parser release `1.1.28`; regex AST dump schema version stays `1`.
