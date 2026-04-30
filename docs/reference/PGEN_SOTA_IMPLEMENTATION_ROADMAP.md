@@ -3886,6 +3886,45 @@ Initial Phase U milestones:
 - reuse semantic-bundle export as shared compiler and elaborator substrate,
 - add first elaborator-oriented scaffolding for constant-expression capture, substitution, dependency, and connectivity handoff.
 
+### Phase V (Planned): Per-Parser Standalone Integration mdBooks
+Objective: give every PGEN-generated parser its own dedicated, standalone integration mdBook so downstream consumers (RGX, PNR, future RTLSyn/Liberty/SDC consumers, etc.) get a single canonical AST reference per parser — exhaustive, example-driven, version-aligned, and accessible via the PGEN submodule on github.com without requiring local mdbook installation.
+
+Motivation:
+- The existing per-parser integration contracts (`docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) carry the legal-style versioned guarantees but are dense and hard to consume as integration tutorials.
+- The platform-wide `docs/book/` covers PGEN broadly; it does not focus on per-parser AST surfaces.
+- Empirically, the regex parser book (`docs/regex_parser_book/`, landed 2026-05-01) demonstrated that a dedicated standalone book is what downstream integrators actually need to walk runtime AST shapes — concrete probe outputs, discriminator tables, walking recipes — with the contract document staying authoritative on guarantees.
+
+Phase V execution rule:
+- one book per generated parser, each living at `docs/<parser>_parser_book/`.
+- each book is *deliberately aligned* with a specific parser-release pin (the same pin its primary downstream consumer is using), with forward-alignment landing in follow-up commits as the parser releases roll forward.
+- source markdown is tracked at `docs/<parser>_parser_book/src/*.md`; rendered HTML is tracked at sibling `docs/<parser>_parser_book-html/` (so consumers can browse on github.com without installing mdbook locally — diverges from the platform book's `docs/book-html/` gitignored convention specifically for downstream-integration browsability).
+- chapter set follows the regex book's template: Welcome → Building & Running (quickstart, build recipe, public API) → AST Reference (envelope structure, ParseContent variants, walking patterns) → Per-Rule Shape Reference → Worked Examples (probe outputs for every grammar feature) → Migration → Reference (schema versioning, glossary, changelog index).
+- gate per book: `make <parser>_parser_book_gate` calls a script that asserts the chapter set is present, builds the book via mdbook, and asserts canonical HTML landing pages exist in the tracked output directory.
+- contract document updates: each parser's integration contract gains a `## Companion Documentation` section pointing to its book (regex contract already has this).
+
+Priority order (by likely consumer demand):
+- `return_annotation` and `semantic_annotation` — internal annotation languages; smaller surface; useful for grammar authors.
+- `json` — small grammar, simple shape; easy follow-on.
+- `ebnf` — the meta-grammar parser; useful for new-grammar authors.
+- `rtl_const_expr` — RTLSyn integration enabler.
+- `vhdl`, `systemverilog`, `systemverilog_preprocessor` — large language parsers; each is a substantial book on its own. **SV/SV-preprocessor lane is paused** under prior project direction; book work for that family stays paused with it.
+
+Initial Phase V milestones:
+- regex parser book (LANDED 2026-05-01) — sets the template and the build/gate pattern.
+- return-annotation parser book.
+- semantic-annotation parser book.
+- json parser book.
+- ebnf parser book.
+- rtl_const_expr parser book.
+- (paused) vhdl, systemverilog, systemverilog_preprocessor parser books.
+
+Per-book Phase-V completion bar:
+- chapter set covers every grammar rule at least by reference (per-rule shape table or worked example).
+- public API section matches the parser's stable API surface (`<parser>::parse_*` functions, top-level node shape, span semantics).
+- worked examples cover every distinct shape the grammar can emit (with concrete `parseability_probe` JSON outputs).
+- migration section if the parser has had pre-typed-shape consumers.
+- gate target green and wired into local CI surface.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
