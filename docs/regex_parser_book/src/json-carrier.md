@@ -43,6 +43,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `name_ref` (branch 1, quote) | `-> $2` | Whatever `name` produced (typed name string) |
 | `braced_name_ref` | `-> $3` | Whatever `name` produced (typed name string) |
 | `name` | regex literal `/(...)/` | Terminal of the matched name string (clean, no chain) |
+| `subroutine_ref` (branch 0, braced) | `-> $1` | Whatever `braced_subroutine_ref` produced |
+| `subroutine_ref` (branch 1, angle) | `-> $2` | Whatever `signed_digits_or_name` produced (string for name, or `[<sign?>, <int>]` for digits) |
+| `subroutine_ref` (branch 2, quote) | `-> $2` | Same as branch 1 |
+| `subroutine_ref` (branch 3, signed_digits) | `-> $1` | Whatever `signed_digits` produced (raw `[<sign?>, <digit-int>]`) |
+| `braced_subroutine_ref` | `-> $3` | Whatever `signed_digits_or_name` produced |
 | `posix_class` | `-> {type: "posix_class", name: $3, negated: $2}` | Object `{type:"posix_class", name:<str>, negated:<true \| []>}` |
 | `posix_negation` | `-> true` | Boolean `true` (matched), or `[]` from the un-matched `posix_negation?` slot |
 | `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |

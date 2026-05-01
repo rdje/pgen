@@ -191,11 +191,18 @@ backreference_digits = /([1-9][0-9]*)/
 name_ref       = "<" name ">"  -> $2
                | "'" name "'"  -> $2
 braced_name_ref = "{" brace_ws? name brace_ws? "}" -> $3
-subroutine_ref = braced_subroutine_ref
-              | "<" signed_digits_or_name ">"
-              | "'" signed_digits_or_name "'"
-              | signed_digits
-braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}"
+# Subroutine reference — surfaces the inner content (signed-digits or
+# name) directly, dropping the angle/quote/brace delimiters.
+# `signed_digits_or_name` and `signed_digits` themselves remain
+# un-annotated for now; consumers see either a clean string (when
+# `name` matches) or the raw `[<sign?>, <digit>]` 2-element shape
+# (when `signed_digits` matches). A follow-up slice will type
+# `signed_digits_or_name` for clean discrimination.
+subroutine_ref = braced_subroutine_ref          -> $1
+              | "<" signed_digits_or_name ">"   -> $2
+              | "'" signed_digits_or_name "'"   -> $2
+              | signed_digits                   -> $1
+braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}" -> $3
 signed_digits_or_name = signed_digits | name
 signed_digits = sign? digits
 sign           = "+" | "-"

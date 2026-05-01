@@ -1,4 +1,58 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 12/N: subroutine_ref cleanup (closes backref family)
+
+### What landed
+
+Two grammar changes that drop the angle/quote/brace delimiters from `\g<...>` family backreferences:
+
+```ebnf
+subroutine_ref = braced_subroutine_ref          -> $1
+              | "<" signed_digits_or_name ">"   -> $2
+              | "'" signed_digits_or_name "'"   -> $2
+              | signed_digits                   -> $1
+braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}" -> $3
+```
+
+### Empirical AST shape change
+
+| Source | Before | After |
+|---|---|---|
+| `\g<name>` | `ref: ["<", "name", ">"]` | `ref: "name"` |
+| `\g'name'` | `ref: ["'", "name", "'"]` | `ref: "name"` |
+| `\g{name}` | `ref: ["{", _, "name", _, "}"]` | `ref: "name"` |
+| `\g<1>` | `ref: ["<", [[], 1], ">"]` | `ref: [[], 1]` |
+| `\g<-2>` | `ref: ["<", ["-", 2], ">"]` | `ref: ["-", 2]` |
+| `\g{42}` | `ref: ["{", _, [[], 42], _, "}"]` | `ref: [[], 42]` |
+
+### Backreference family — typing closed
+
+All 4 backreference kinds now produce clean inner values:
+- `kind:"named"` / `kind:"named_braced"` → `ref:<string>`.
+- `kind:"numeric"` → `index:<int>`.
+- `kind:"subroutine"` → `ref:<string>` (named form) OR `[<sign?>, <digit-int>]` (numeric form).
+
+### Limitation — signed_digits still raw
+
+`signed_digits = sign? digits` is un-annotated. Numeric subroutine refs surface as `[<sign?-Quantified>, <typed-int>]`. Consumer dispatch by `ref.is_string()` (named) vs `ref.is_array()` (numeric). Future sub-slice will type `signed_digits` to `{sign:<"+"|"-"|null>, value:<int>}` for cleaner ergonomics.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json`: 5 new entries (4 `subroutine_ref` branches + 1 `braced_subroutine_ref`).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over `\g<1>`, `\g<-2>`, `\g<name>`, `\g{name}`, `\g{42}`, `\g+1`, `\g42` — all surface clean inner.
+
+### Contract bump
+
+Parser release `1.1.41` → `1.1.42`. Contract `1.1.43` → `1.1.44`. New section "Release 1.1.42 / Contract 1.1.44 Highlights" in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.42 / 1.1.44 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.16.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 5 new entries (subroutine_ref ×4 + braced_subroutine_ref).
+
+### Atom subtree progress
+4/25 atom alternatives directly typed; named-ref + subroutine-ref family fully cleaned (closes backreference deep typing modulo the signed_digits sub-slice). Remaining: literal, whitespace_literal, dot, quoted_literal, escape, char_class outer, group/modifier/conditional/lookaround families.
+
 ## 2026-05-01 - regex.ebnf slice 11/N: named-ref cleanup (clean name strings)
 
 ### What landed

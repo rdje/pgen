@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.43`
+  - `1.1.44`
 - Parser release version:
-  - `1.1.41`
+  - `1.1.42`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,29 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.42 / Contract 1.1.44 Highlights — atom subtree slice 12: subroutine_ref cleanup (closes backref family)
+
+- **Internal-driven shape work** (no downstream report). Direct follow-up to slice 11 — closes the named/subroutine-reference family typing started in slice 10.
+- **Rules changed:**
+  - `subroutine_ref` in `grammars/regex.ebnf` — 4 per-branch annotations (`-> $1` / `-> $2` / `-> $2` / `-> $1`) to drop the angle/quote/brace delimiters and surface the inner `signed_digits_or_name` directly.
+  - `braced_subroutine_ref` in `grammars/regex.ebnf` — annotated `-> $3` to extract from `{...}` wrappers.
+- **AST shape change (consumer-visible):** `\g<...>` family backreferences now surface clean inner values:
+  - `\g<name>` → `ref:"name"` (was `["<", "name", ">"]`).
+  - `\g{42}` → `ref:[[], 42]` (was `["{", _, [[], 42], _, "}"]`).
+  - `\g<-2>` → `ref:["-", 2]` (was `["<", ["-", 2], ">"]`).
+  - `\g+1` → `ref:["+", 1]` (already raw signed_digits, unchanged).
+- **Backreference family typing closed.** All 4 backreference kinds now produce clean inner values:
+  - `kind:"named"` / `kind:"named_braced"` → `ref:<string>`.
+  - `kind:"numeric"` → `index:<int>` (typed integer).
+  - `kind:"subroutine"` → `ref:<string>` (named form) OR `[<sign?>, <digit-int>]` (numeric form).
+- **Limitation — `signed_digits` still raw.** `signed_digits = sign? digits` is un-annotated; numeric subroutine refs surface as `[<sign?-Quantified>, <typed-int>]`. Consumer dispatch by `ref.is_string()` (named) vs `ref.is_array()` (numeric). Future sub-slice will type `signed_digits` to `{sign:<"+"|"-"|null>, value:<int>}` for cleaner ergonomics.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.42` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked subroutine_ref's wrappers (`["<", <inner>, ">"]` etc.) to read the inner directly. For named refs: `obj.ref.as_str()`. For numeric refs: walk `obj.ref.as_array()` for `[<sign>, <int>]`.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.41 / Contract 1.1.43 Highlights — atom subtree slice 11: named-ref cleanup (clean name strings)
 

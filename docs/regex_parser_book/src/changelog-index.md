@@ -23,6 +23,45 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.42 / Contract 1.1.44 — Atom subtree slice 12: subroutine_ref cleanup (closes backref family)
+
+**What changed:** the `subroutine_ref` rule's 4 branches each got per-branch annotations to drop the angle/quote/brace delimiters and surface the inner `signed_digits_or_name` directly. `braced_subroutine_ref` annotated similarly:
+
+```ebnf
+subroutine_ref = braced_subroutine_ref          -> $1
+              | "<" signed_digits_or_name ">"   -> $2
+              | "'" signed_digits_or_name "'"   -> $2
+              | signed_digits                   -> $1
+braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}" -> $3
+```
+
+**Consumer impact:** **breaking but correct** — `\g<...>` family backreferences now surface clean inner values:
+
+| Source | Before | After |
+|---|---|---|
+| `\g<name>` | `ref: ["<", "name", ">"]` (slice 11 cleaned inner) | `ref: "name"` |
+| `\g'name'` | `ref: ["'", "name", "'"]` | `ref: "name"` |
+| `\g{name}` | `ref: ["{", _, "name", _, "}"]` | `ref: "name"` |
+| `\g<1>` | `ref: ["<", [[], 1], ">"]` | `ref: [[], 1]` |
+| `\g<-2>` | `ref: ["<", ["-", 2], ">"]` | `ref: ["-", 2]` |
+| `\g{42}` | `ref: ["{", _, [[], 42], _, "}"]` | `ref: [[], 42]` |
+| `\g+1` | `ref: ["+", 1]` (already raw signed_digits) | `ref: ["+", 1]` (unchanged) |
+
+**Backreference family closed for naming:**
+- `kind:"named"` / `kind:"named_braced"` → `ref` is a clean string.
+- `kind:"numeric"` → `index` is a typed integer.
+- `kind:"subroutine"` → `ref` is either a clean string (named form) or `[<sign?>, <digit-int>]` (numeric form).
+
+**Limitation — `signed_digits` still raw.** `signed_digits = sign? digits` is still un-annotated, so `\g<1>` produces `ref: [[], 1]` — a 2-element array `[<sign?-Quantified>, <typed integer>]`. Consumer dispatches by:
+- `obj.ref.is_string()` → it's a name.
+- `obj.ref.is_array()` → it's signed_digits; walk `[<sign>, <int>]`.
+
+A future sub-slice will type `signed_digits` to `{sign: <"+"|"-"|null>, value: <int>}` for cleaner consumer ergonomics.
+
+**Atom subtree progress:** 4/25 alternatives directly typed; named-ref + subroutine-ref family fully cleaned (closes backreference deep typing modulo the signed_digits sub-slice).
+
+**Contract section:** "Release 1.1.42 / Contract 1.1.44 Highlights".
+
 ### 1.1.41 / Contract 1.1.43 — Atom subtree slice 11: named-ref cleanup (clean name strings)
 
 **What changed:** three grammar changes that surface clean name strings everywhere a name appears:

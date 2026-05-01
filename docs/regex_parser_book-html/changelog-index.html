@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-99d8e19e.js";
+            window.path_to_searchindex_js = "searchindex-e5b8f86e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,45 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1142--contract-1144--atom-subtree-slice-12-subroutine_ref-cleanup-closes-backref-family"><a class="header" href="#1142--contract-1144--atom-subtree-slice-12-subroutine_ref-cleanup-closes-backref-family">1.1.42 / Contract 1.1.44 — Atom subtree slice 12: subroutine_ref cleanup (closes backref family)</a></h3>
+<p><strong>What changed:</strong> the <code>subroutine_ref</code> rule’s 4 branches each got per-branch annotations to drop the angle/quote/brace delimiters and surface the inner <code>signed_digits_or_name</code> directly. <code>braced_subroutine_ref</code> annotated similarly:</p>
+<pre><code class="language-ebnf">subroutine_ref = braced_subroutine_ref          -&gt; $1
+              | "&lt;" signed_digits_or_name "&gt;"   -&gt; $2
+              | "'" signed_digits_or_name "'"   -&gt; $2
+              | signed_digits                   -&gt; $1
+braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}" -&gt; $3
+</code></pre>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — <code>\g&lt;...&gt;</code> family backreferences now surface clean inner values:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\g&lt;name&gt;</code></td><td><code>ref: ["&lt;", "name", "&gt;"]</code> (slice 11 cleaned inner)</td><td><code>ref: "name"</code></td></tr>
+<tr><td><code>\g'name'</code></td><td><code>ref: ["'", "name", "'"]</code></td><td><code>ref: "name"</code></td></tr>
+<tr><td><code>\g{name}</code></td><td><code>ref: ["{", _, "name", _, "}"]</code></td><td><code>ref: "name"</code></td></tr>
+<tr><td><code>\g&lt;1&gt;</code></td><td><code>ref: ["&lt;", [[], 1], "&gt;"]</code></td><td><code>ref: [[], 1]</code></td></tr>
+<tr><td><code>\g&lt;-2&gt;</code></td><td><code>ref: ["&lt;", ["-", 2], "&gt;"]</code></td><td><code>ref: ["-", 2]</code></td></tr>
+<tr><td><code>\g{42}</code></td><td><code>ref: ["{", _, [[], 42], _, "}"]</code></td><td><code>ref: [[], 42]</code></td></tr>
+<tr><td><code>\g+1</code></td><td><code>ref: ["+", 1]</code> (already raw signed_digits)</td><td><code>ref: ["+", 1]</code> (unchanged)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Backreference family closed for naming:</strong></p>
+<ul>
+<li><code>kind:"named"</code> / <code>kind:"named_braced"</code> → <code>ref</code> is a clean string.</li>
+<li><code>kind:"numeric"</code> → <code>index</code> is a typed integer.</li>
+<li><code>kind:"subroutine"</code> → <code>ref</code> is either a clean string (named form) or <code>[&lt;sign?&gt;, &lt;digit-int&gt;]</code> (numeric form).</li>
+</ul>
+<p><strong>Limitation — <code>signed_digits</code> still raw.</strong> <code>signed_digits = sign? digits</code> is still un-annotated, so <code>\g&lt;1&gt;</code> produces <code>ref: [[], 1]</code> — a 2-element array <code>[&lt;sign?-Quantified&gt;, &lt;typed integer&gt;]</code>. Consumer dispatches by:</p>
+<ul>
+<li><code>obj.ref.is_string()</code> → it’s a name.</li>
+<li><code>obj.ref.is_array()</code> → it’s signed_digits; walk <code>[&lt;sign&gt;, &lt;int&gt;]</code>.</li>
+</ul>
+<p>A future sub-slice will type <code>signed_digits</code> to <code>{sign: &lt;"+"|"-"|null&gt;, value: &lt;int&gt;}</code> for cleaner consumer ergonomics.</p>
+<p><strong>Atom subtree progress:</strong> 4/25 alternatives directly typed; named-ref + subroutine-ref family fully cleaned (closes backreference deep typing modulo the signed_digits sub-slice).</p>
+<p><strong>Contract section:</strong> “Release 1.1.42 / Contract 1.1.44 Highlights”.</p>
 <h3 id="1141--contract-1143--atom-subtree-slice-11-named-ref-cleanup-clean-name-strings"><a class="header" href="#1141--contract-1143--atom-subtree-slice-11-named-ref-cleanup-clean-name-strings">1.1.41 / Contract 1.1.43 — Atom subtree slice 11: named-ref cleanup (clean name strings)</a></h3>
 <p><strong>What changed:</strong> three grammar changes that surface clean name strings everywhere a name appears:</p>
 <ol>

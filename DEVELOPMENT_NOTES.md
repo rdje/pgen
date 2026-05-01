@@ -1,4 +1,75 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 12/N — subroutine_ref cleanup (closes backref family)
+
+### What landed
+
+Direct follow-up to slice 11. Two grammar changes in `grammars/regex.ebnf`:
+
+```ebnf
+subroutine_ref = braced_subroutine_ref          -> $1
+              | "<" signed_digits_or_name ">"   -> $2
+              | "'" signed_digits_or_name "'"   -> $2
+              | signed_digits                   -> $1
+braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}" -> $3
+```
+
+Drops the angle/quote/brace delimiters from `\g<...>` family backreferences. Inner content now surfaces directly via `ref` field.
+
+### Empirical
+- `\g<name>` → `ref:"name"` (was `["<", "name", ">"]`).
+- `\g{name}` → `ref:"name"` (was `["{", _, "name", _, "}"]`).
+- `\g<1>` → `ref:[[], 1]` (was `["<", [[], 1], ">"]`).
+- `\g<-2>` → `ref:["-", 2]` (was `["<", ["-", 2], ">"]`).
+- `\g{42}` → `ref:[[], 42]` (was `["{", _, [[], 42], _, "}"]`).
+- `\g+1` → `ref:["+", 1]` (already raw signed_digits, unchanged).
+
+### Backreference family — typing closed
+All 4 backreference kinds produce clean inner values:
+- `kind:"numeric"` → `index:<int>` (typed integer via `backreference_digits`).
+- `kind:"named"` / `kind:"named_braced"` → `ref:<string>` (slice 11 cleanup of `name`/`name_ref`/`braced_name_ref`).
+- `kind:"subroutine"` → `ref:<string>` (named form) OR `[<sign?>, <digit-int>]` (numeric form, this slice).
+
+Consumer dispatch:
+```rust
+match obj.get("kind").and_then(|v| v.as_str())? {
+    "numeric" => Backref::Numeric(obj.get("index")?.as_u64()?),
+    "named" | "named_braced" => Backref::Named(obj.get("ref")?.as_str()?.to_string()),
+    "subroutine" => {
+        let r = obj.get("ref")?;
+        if let Some(name) = r.as_str() {
+            Backref::Subroutine(SubKind::Named(name.to_string()))
+        } else if let Some(arr) = r.as_array() {
+            // arr = [<sign?>, <digit-int>]
+            let sign = arr[0].as_str();  // "+", "-", or absent
+            let value = arr[1].as_u64()?;
+            Backref::Subroutine(SubKind::Numeric { sign: sign.map(|s| s.to_string()), value })
+        } else { return None; }
+    }
+    _ => return None,
+}
+```
+
+### Limitation — signed_digits still raw
+
+`signed_digits = sign? digits` is un-annotated. `\g<1>` produces `[[], 1]` (empty sign + integer 1) — a 2-element array `[<sign?-Quantified>, <typed-int>]`. Consumer ergonomics could be cleaner with `{sign:<"+"|"-"|null>, value:<int>}` but that requires typing both `signed_digits` and `sign`. Saved as a follow-up sub-slice.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 495 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json` — 5 new entries (4 `subroutine_ref` branches + 1 `braced_subroutine_ref`).
+- `make regex_parser_book_gate` — green.
+- Empirical sweep across all subroutine_ref forms.
+
+### Contract bump
+Parser release `1.1.41` → `1.1.42`. Contract `1.1.43` → `1.1.44`. New section in integration contract. Regex AST schema version stays `1`.
+
+### Live-book sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.42 / 1.1.44 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.16.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 5 new entries.
+
+### Atom subtree progress
+4/25 atom alternatives directly typed; named-ref + subroutine-ref family fully cleaned (closes backreference deep typing modulo the signed_digits sub-slice). Remaining: literal, whitespace_literal, dot, quoted_literal, escape, char_class outer, group/modifier/conditional/lookaround families.
+
 ## 2026-05-01 - regex.ebnf slice 11/N — named-ref cleanup (clean name strings)
 
 ### What landed
