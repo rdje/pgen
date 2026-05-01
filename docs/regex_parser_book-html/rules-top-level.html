@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2045ecf1.js";
+            window.path_to_searchindex_js = "searchindex-105acf98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -183,10 +183,11 @@
                         <h1 id="top-level-rules-regex-pattern-alternation-alternative-concatenation"><a class="header" href="#top-level-rules-regex-pattern-alternation-alternative-concatenation">Top-Level Rules: regex, pattern, alternation, alternative, concatenation</a></h1>
 <p>These five rules together describe how the top-level structure of a regex is shaped. Reading order: outermost (<code>regex</code>) inward to where pieces live (<code>concatenation</code>).</p>
 <h2 id="regex"><a class="header" href="#regex"><code>regex</code></a></h2>
-<pre><code class="language-ebnf">regex = pattern?
+<pre><code class="language-ebnf">regex = pattern
 -&gt; {type: "regex", pattern: $1}
 </code></pre>
 <p>The entry rule. Always emits <code>Json(Object({"type": "regex", "pattern": &lt;pattern-content&gt;}))</code>.</p>
+<p>(Pre-1.1.34 the rule was <code>regex = pattern?</code> — the trailing <code>?</code> was redundant: <code>pattern → alternation → alternative = concatenation?</code> already handles emptiness, and the <code>?</code> only existed to compensate for a since-fixed codegen bug — see <a href="changelog-index.html#1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation">PGEN-RGX-0075 in the changelog</a>.)</p>
 <h3 id="shape"><a class="header" href="#shape">Shape</a></h3>
 <div class="table-wrapper">
 <table>
@@ -195,7 +196,7 @@
 </thead>
 <tbody>
 <tr><td><code>type</code></td><td><code>"regex"</code> (string literal)</td><td>Discriminator.</td></tr>
-<tr><td><code>pattern</code></td><td>array</td><td>The structural body. See <code>pattern</code> below. For an empty input, this is <code>[]</code>.</td></tr>
+<tr><td><code>pattern</code></td><td>array</td><td>The structural body, always a 2-tuple <code>[&lt;head_alternative&gt;, &lt;tail&gt;]</code>. See <code>pattern</code> below. For an empty input, head is <code>[[]]</code> and tail is <code>[]</code>.</td></tr>
 </tbody>
 </table>
 </div>

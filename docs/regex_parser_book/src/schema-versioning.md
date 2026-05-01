@@ -130,6 +130,7 @@ When you upgrade PGEN, this test will fail loudly on any shape change. Re-baseli
 | 0.8.1 | post-1.1.33 main | `counted_quantifier` → `-> $3` lifts body's typed shape (slice 4). |
 | 0.8.2 | post-1.1.33 main | `quant_base` → per-branch `-> $1` annotations (slice 5). Lock-in only; JSON output unchanged. |
 | 0.8.3 | post-1.1.33 main | Task #38 fix: parens-grouped-Or trailing annotations broadcast to every inner alternative. Affects `string_literal` in return_annotation grammar (single-quoted strings now produce typed `{type:"string"...}`). Regex grammar consumer-impact: none directly; `quant_base` refactored to the factored form. |
+| 0.9.0 | 1.1.34 | **Breaking but correct:** PGEN-RGX-0075 fix — `$N` codegen no longer peels `elements[0]` from a Quantified base. Multi-piece concatenations now surface every piece in `regex.pattern[0][0]` (was: only the first piece). Compensating grammar change: `regex = pattern` (was `regex = pattern?`). Top-level pattern shape `[<head_alt>, <tail>]` unchanged. |
 
 (Numbers above match the contract document at the time this book was written. The contract is authoritative for the current state — consult it for the live version.)
 

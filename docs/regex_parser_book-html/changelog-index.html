@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2045ecf1.js";
+            window.path_to_searchindex_js = "searchindex-105acf98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,12 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation"><a class="header" href="#1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation">1.1.34 / Contract 1.1.36 — PGEN-RGX-0075 typed-shape correctness for multi-piece concatenation</a></h3>
+<p><strong>What changed:</strong> The <code>$N</code> PositionalRef codegen no longer peels <code>elements[0]</code> from a <code>Quantified</code> base when the rule body has a single capture position. With this fix, <code>concatenation = piece+ -&gt; [$1**]</code> correctly resolves <code>$1</code> to the whole <code>Quantified</code> (every piece), so <code>**</code> flattens all of them into the array.</p>
+<p>Compensating grammar change: <code>regex = pattern -&gt; ...</code> (was <code>regex = pattern? -&gt; ...</code>). The inner <code>alternative = concatenation?</code> already handles the empty-input case, so the outer <code>?</code> was redundant and only existed to prop up the buggy auto-peel behaviour.</p>
+<p><strong>Consumer impact:</strong> <strong>breaking but in the right direction</strong> — anyone walking <code>regex.pattern[0][0]</code> for a multi-piece concatenation now sees every piece. Pre-fix, <code>"abc"</code> produced <code>pattern[0][0] == [piece_a]</code> (1 piece, buggy); post-fix, <code>pattern[0][0] == [piece_a, piece_b, piece_c]</code> (3 pieces, correct). The top-level pattern shape <code>[&lt;head_alt&gt;, &lt;tail&gt;]</code> is unchanged. RGX caught this when <code>Regex::compile("abc")</code> matched only <code>"a"</code> instead of <code>"abc"</code>.</p>
+<p><strong>Bug history:</strong> the <code>\Q...\E</code> family table covered <code>\Qab*\E{2,}</code> (3 pieces — passed incidentally because <code>piece_quoted_run_quantified</code>’s annotation pre-built a multi-element Sequence that <code>**</code> happened to flatten correctly), but no test asserted plain <code>"abc"</code> → 3 pieces in the typed output. PGEN-RGX-0074’s empirical evidence focused on <code>\Q...\E</code> cases, which masked the underlying <code>$1</code>-extraction bug. Fixed in this release with a regression-lock test (<code>regex_parser_pgen_rgx_0075_multi_piece_concatenation_surfaces_all_pieces</code>) pinning the empirical shape for <code>"a"</code>, <code>"ab"</code>, <code>"abc"</code>, <code>"hello"</code>.</p>
+<p><strong>Contract section:</strong> “Release 1.1.34 / Contract 1.1.36 Highlights”.</p>
 <h3 id="post-1133-main--task-38-fix-parens-grouped-or-trailing-annotation-broadcast"><a class="header" href="#post-1133-main--task-38-fix-parens-grouped-or-trailing-annotation-broadcast">Post-1.1.33 main — Task #38 fix: parens-grouped-Or trailing-annotation broadcast</a></h3>
 <p><strong>What changed:</strong> the codegen now correctly applies a trailing return annotation on a parens-grouped Or to <strong>every</strong> alternative inside the group, not just the first. Affects both <code>extract_rule_annotations</code> (rust/src/ast_pipeline/mod.rs) and the cross-checker <code>extract_declared_annotations_from_json</code> (rust/src/ast_shape_contract.rs).</p>
 <p>Pre-fix behaviour: <code>RULE = (A | B | C) -&gt; ann</code> applied <code>ann</code> to branch 0 only; branches 1, 2 silently fell through to raw passthrough. Documented in <code>parse_string_literal</code> of the return_annotation grammar — single-quoted strings produced raw <code>Sequence</code> instead of the typed <code>{type:"string", value:...}</code> that double-quoted strings produced.</p>

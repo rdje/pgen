@@ -2950,6 +2950,61 @@ mod tests {
         }
     }
 
+    /// PGEN-RGX-0075 regression — multi-piece concatenation must surface
+    /// every piece in the typed `regex.pattern` field. Pre-fix, the
+    /// `concatenation = piece+ -> [$1**]` annotation silently dropped
+    /// every piece past the first because the `$N` codegen incorrectly
+    /// peeled `elements[0]` from a Quantified base. RGX caught this when
+    /// `Regex::compile("abc")` matched only `"a"` instead of `"abc"`.
+    /// Pinning the empirical shape so the bug cannot regress silently.
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0075_multi_piece_concatenation_surfaces_all_pieces() {
+        let cases = [
+            ("a", 1usize, &["a"][..]),
+            ("ab", 2, &["a", "b"][..]),
+            ("abc", 3, &["a", "b", "c"][..]),
+            ("hello", 5, &["h", "e", "l", "l", "o"][..]),
+        ];
+
+        for (input, expected_count, expected_atoms) in cases {
+            let dump = regex_ast_dump_json(input);
+            let pieces = dump
+                .pointer("/content/Json/pattern/0/0")
+                .and_then(|v| v.as_array())
+                .unwrap_or_else(|| {
+                    panic!(
+                        "input {:?}: pattern[0][0] is not an array — typed-shape regression?\n\
+                         full dump: {}",
+                        input,
+                        serde_json::to_string_pretty(&dump).unwrap_or_default()
+                    )
+                });
+            assert_eq!(
+                pieces.len(),
+                expected_count,
+                "input {:?}: expected {} pieces, got {} — PGEN-RGX-0075 regressed?\n\
+                 pattern: {}",
+                input,
+                expected_count,
+                pieces.len(),
+                serde_json::to_string_pretty(&dump["content"]["Json"]["pattern"])
+                    .unwrap_or_default()
+            );
+            for (idx, expected_atom) in expected_atoms.iter().enumerate() {
+                let actual_atom = pieces[idx]
+                    .pointer("/atom")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                assert_eq!(
+                    actual_atom, *expected_atom,
+                    "input {:?}: piece[{}].atom expected {:?}, got {:?}",
+                    input, idx, expected_atom, actual_atom
+                );
+            }
+        }
+    }
+
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     fn run_with_regex_worker_stack<F: FnOnce() + Send + 'static>(f: F) {
         std::thread::Builder::new()

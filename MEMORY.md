@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-01 (+0200, task: task-38-fix-parens-grouped-or-trailing-annotation-broadcast)
+Last updated: 2026-05-01 (+0200, task: pgen-rgx-0075-multi-piece-concatenation-typed-shape-correctness)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,20 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **PGEN-RGX-0075 closed: multi-piece concatenation typed-shape correctness.** RGX bug report — `concatenation = piece+ -> [$1**]` was producing only the first piece for plain inputs like `"abc"`; subsequent pieces silently dropped. Root cause: `$N` PositionalRef codegen in `rust/src/ast_pipeline/ast_return_transform.rs` peeled `elements[0].content.clone()` from a Quantified base when `captured_vars.len() == 1`, treating Quantified-bodied rules like single-element Sequence wrappers (violating the platform-book annotation-system doctrine that `$1` on a Quantified body is "the whole capture group"). Fix: removed the Quantified peel-arm in three sites (`generate_positional_ref`, `generate_value_extraction`, `generate_quantified_extraction`); Quantified bases fall through to `other.clone()`. Compensating grammar change: `regex = pattern -> ...` (was `pattern? -> ...`); the pre-fix `?` propped up the buggy auto-peel — inner `alternative = concatenation?` already handles emptiness. New regression-lock test `regex_parser_pgen_rgx_0075_multi_piece_concatenation_surfaces_all_pieces` pins `"a"`/`"ab"`/`"abc"`/`"hello"`. 494/0 tests. Why the `\Q...\E` corpus didn't catch it: `\Qab*\E{2,}` produces 3 pieces correctly because `piece_quoted_run_quantified`'s annotation pre-builds a Sequence-of-3 inside a single piece, which the buggy `elements[0]` extraction picked AND `**` then flattened correctly; the bug only showed on plain literal concatenations where `piece+` matched multiple top-level pieces. Contract bump: parser release `1.1.34` / contract `1.1.36`. New section in integration contract; new `REGEX-0075` ledger entry. Regex AST schema version stays `1`. Live-docs sync: regex parser book chapters [changelog-index.md, schema-versioning.md, rules-top-level.md] + activity docs + cross-doc refs. RGX integration: walking `regex.pattern[0][0]` now sees all pieces; RGX's lib suite (~73% pass pre-fix) should recover to baseline post-bump. Push policy this session: hold pushes until owner authorizes, with 30-commit safety cap.
+
+### Earlier this session (in chronological order)
+1. Standalone regex parser mdBook landed at `docs/regex_parser_book/` aligned with parser state at commit `6e5b0f23` (PGEN-RGX-0074 + slices 1-2). 24 chapters; source markdown + rendered HTML both tracked.
+2. Phase V added to roadmap: per-parser standalone integration mdBooks for every PGEN-generated parser following the regex book template.
+3. Slice 4: `counted_quantifier = "{" ws? counted_quantifier_body ws? "}" -> $3`; live-book sync (book promoted to live-docs status, tracks main HEAD).
+4. Slice 5: `quant_base` per-branch `-> $1` annotations (workaround pending #38 fix).
+5. Task #38 closed: parens-grouped-Or trailing-annotation broadcast — fixed both extractors (`extract_rule_annotations` in `mod.rs` and the cross-checker `extract_declared_annotations_from_json` in `ast_shape_contract.rs`); `quant_base` refactored to factored form.
+6. PGEN-RGX-0075 closed (this commit): multi-piece concatenation typed-shape correctness.
+
+## Earlier session: 2026-04-30 — Task #38 closed (initial fix-and-sync commit)
+- (Earlier intermediate state covered in DEVELOPMENT_NOTES.md history.)
+
+## Old session note (kept for context):
 - **Task #38 closed: parens-grouped-Or trailing-annotation broadcast.** Both extractors (`extract_rule_annotations` in `rust/src/ast_pipeline/mod.rs` and the cross-checker `extract_declared_annotations_from_json` in `rust/src/ast_shape_contract.rs`) now correctly broadcast a return annotation that immediately follows a `group_close` to every alternative inside the just-closed group. Pre-fix only branch 0 received the annotation. Mechanism: track `group_open_branch_stack` (push branch_idx at every `(`), pop at `)` setting `last_closed_group_range`; on the next `return_*` token, broadcast to that range; cleared by any non-annotation token. Removed the `group_depth == 0` filter on `|` so inner branches advance branch_idx (which is what makes the broadcast range meaningful).
 - Empirical proof: `string_literal := ('"' ... | "'" ... ) -> {type:"string", ...}` in `grammars/return_annotation.ebnf` was producing typed Json for double-quoted strings but raw Sequence for single-quoted; now both produce typed Json.
 - Subsequent grammar refactor: `quant_base` in `grammars/regex.ebnf` flipped from slice-5 per-branch workaround to factored form `( "*" | "+" | "?" | counted_quantifier ) -> $1`.

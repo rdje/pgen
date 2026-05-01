@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.35`
+  - `1.1.36`
 - Parser release version:
-  - `1.1.33`
+  - `1.1.34`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-04-30`
+  - `2026-05-01`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -33,6 +33,21 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.34 / Contract 1.1.36 Highlights — PGEN-RGX-0075 typed-shape correctness for multi-piece concatenation
+
+- **Driven by RGX bug report PGEN-RGX-0075** (`/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0075.yaml`).
+- **What was wrong:** for inputs like `"abc"`, the typed `regex.pattern` field surfaced only the first piece — `"b"` and `"c"` were silently dropped. Span correctly covered the full input (so the parser DID match all three pieces), but the typed-shape rendering of `concatenation = piece+ -> [$1**]` collapsed to a 1-element array instead of the documented 3-element flat array.
+- **Root cause:** the `$N` codegen in `rust/src/ast_pipeline/ast_return_transform.rs` peeled `elements[0].content.clone()` from a `Quantified` base when `captured_vars.len() == 1`, treating the Quantified like a single-element Sequence wrapper. This violated the doctrine in `docs/book/src/annotation-system.md` which says `$1` on a Quantified body is "the whole capture group". The fix removes the `Quantified` peel-arm in three codegen sites (`generate_positional_ref`, `generate_value_extraction`, `generate_quantified_extraction`); Quantified bases now fall through to `other.clone()`, passing the whole Quantified content to the caller (e.g. flatten-spread `[$1**]` then iterates correctly).
+- **Grammar adjustment (compensating change):** the regex entry rule `regex = pattern? -> {type: "regex", pattern: $1}` previously relied on the buggy auto-peel to unwrap the `Quantified-?`. With the codegen fix, `$1` correctly returned the wrapper `[pattern_value]` instead of the bare pattern. Rule changed to `regex = pattern -> ...` (the inner `alternative = concatenation?` already handles emptiness, so `pattern` is total). Empty input still parses successfully with span `0..0`.
+- **AST shape (consumer-visible):**
+  - Before fix: input `"abc"` → `pattern: [[[ {atom:"a",...} ]], []]` (single-piece array — buggy).
+  - After fix: input `"abc"` → `pattern: [[[ {atom:"a",...}, {atom:"b",...}, {atom:"c",...} ]], []]` (all three pieces — correct).
+  - Top-level pattern shape `[<head_alt>, <tail>]` is **unchanged** thanks to the compensating grammar change. The fix purely surfaces the missing pieces.
+- **No public API surface change.** `RegexParser::new`, `parser.parse_full_regex()`, `parser.parse_regex()`, `parse_regex_typed()`, `parse_regex_default_ast_dump_named()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- **Regression-lock test:** `regex_parser_pgen_rgx_0075_multi_piece_concatenation_surfaces_all_pieces` in `rust/src/embedding_api.rs` pins the empirical shape for `"a"`, `"ab"`, `"abc"`, `"hello"`. The bug cannot return without the test failing.
+- **RGX integration impact:** consumers walking `regex.pattern[0][0]` get the documented flat array of all pieces. The earlier observation "RGX lib tests dropped to ~73% pass rate purely from this single PGEN issue" should be addressed when RGX bumps PGEN to a release containing this fix and re-runs the test suite.
+- Regex AST schema version stays `1` — the byte-shape change is a buggy-to-correct fix within the schema, not a structural redesign.
 
 ## Release 1.1.33 / Contract 1.1.35 Highlights — quantifier-subtree typed-shape rollout (slice 2/N: `quant_suffix`)
 

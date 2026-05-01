@@ -5,18 +5,20 @@ These five rules together describe how the top-level structure of a regex is sha
 ## `regex`
 
 ```ebnf
-regex = pattern?
+regex = pattern
 -> {type: "regex", pattern: $1}
 ```
 
 The entry rule. Always emits `Json(Object({"type": "regex", "pattern": <pattern-content>}))`.
+
+(Pre-1.1.34 the rule was `regex = pattern?` — the trailing `?` was redundant: `pattern → alternation → alternative = concatenation?` already handles emptiness, and the `?` only existed to compensate for a since-fixed codegen bug — see [PGEN-RGX-0075 in the changelog](changelog-index.md#1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation).)
 
 ### Shape
 
 | Field | Type | Notes |
 |---|---|---|
 | `type` | `"regex"` (string literal) | Discriminator. |
-| `pattern` | array | The structural body. See `pattern` below. For an empty input, this is `[]`. |
+| `pattern` | array | The structural body, always a 2-tuple `[<head_alternative>, <tail>]`. See `pattern` below. For an empty input, head is `[[]]` and tail is `[]`. |
 
 ### Example — input `a`
 

@@ -128,13 +128,20 @@ impl AstReturnTransformer {
             // showed Vec::clone + ParseNode::clone summing to ~4.4% of
             // self-time on the regex parser.
             if element_index == 0 {
+                // PGEN-RGX-0075: do NOT peel `elements[0]` from a Quantified
+                // base when the rule body has a single capture position. For a
+                // rule like `RULE = X+ -> [$1**]`, $1 must resolve to the
+                // whole Quantified (every iteration), not just the first
+                // match. This mirrors the implicit `-> $1` default policy
+                // (annotation-system.md) which excludes Quantified bodies for
+                // exactly the same reason: $1 on a Quantified is "the whole
+                // capture group", not its first element. Multi-element
+                // Sequence wrapping (the codegen's synthetic packaging) is
+                // still peeled here because that wrap is artificial.
                 return Ok(quote! {
                     {
                         match &#base_expr {
                             ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                elements[0usize].content.clone()
-                            }
-                            ParseContent::Quantified(elements, _) if !elements.is_empty() => {
                                 elements[0usize].content.clone()
                             }
                             ParseContent::Alternative(node) => node.content.clone(),
@@ -143,13 +150,15 @@ impl AstReturnTransformer {
                     }
                 });
             }
+            // Multi-positional access ($2, $3, ...): the rule body is a
+            // multi-element Sequence; index into the matched slot. A slot may
+            // itself be a Quantified, in which case `elements[N].content`
+            // gives the whole Quantified content (passing through correctly
+            // — same Quantified-is-the-whole-capture rule).
             return Ok(quote! {
                 {
                     match &#base_expr {
                         ParseContent::Sequence(elements) if elements.len() > #element_index => {
-                            elements[#element_index].content.clone()
-                        }
-                        ParseContent::Quantified(elements, _) if elements.len() > #element_index => {
                             elements[#element_index].content.clone()
                         }
                         _ => ParseContent::Terminal("<invalid_sequence_access>"),
@@ -319,17 +328,16 @@ impl AstReturnTransformer {
                 if captured_vars.len() == 1 {
                     let base_expr = Self::parse_capture_expr(&captured_vars[0]);
                     let element_index = index - 1;
-                    // Optim #12: same outer-clone-elimination as in
-                    // `generate_positional_ref` above, but for the
-                    // value-extraction path used inside object literals.
+                    // PGEN-RGX-0075: same fix as in `generate_positional_ref` —
+                    // never peel `elements[0]` from a Quantified base. $1 on a
+                    // Quantified body is "the whole capture group". Multi-
+                    // element Sequence wrapping (artificial codegen packaging)
+                    // is still peeled.
                     if element_index == 0 {
                         return Ok(Self::parse_content_to_json_value(quote! {
                             {
                                 match &#base_expr {
                                     ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                        elements[0usize].content.clone()
-                                    }
-                                    ParseContent::Quantified(elements, _) if !elements.is_empty() => {
                                         elements[0usize].content.clone()
                                     }
                                     ParseContent::Alternative(node) => node.content.clone(),
@@ -342,9 +350,6 @@ impl AstReturnTransformer {
                         {
                             match &#base_expr {
                                 ParseContent::Sequence(elements) if elements.len() > #element_index => {
-                                    elements[#element_index].content.clone()
-                                }
-                                ParseContent::Quantified(elements, _) if elements.len() > #element_index => {
                                     elements[#element_index].content.clone()
                                 }
                                 _ => ParseContent::Terminal("<invalid_sequence_access>"),
@@ -514,16 +519,16 @@ impl AstReturnTransformer {
                 if captured_vars.len() == 1 {
                     let single = Self::parse_capture_expr(&captured_vars[0]);
                     let element_index = *index - 1;
-                    // Optim #12: same outer-clone-elimination as in
-                    // `generate_positional_ref` and `generate_value_extraction`.
+                    // PGEN-RGX-0075: same fix as elsewhere — never peel
+                    // `elements[0]` from a Quantified base. $1 on a Quantified
+                    // body is the whole capture group; for `$1*`/`$1+` etc.
+                    // the embedded extraction operator iterates the whole
+                    // Quantified directly.
                     if element_index == 0 {
                         quote! {
                             {
                                 match &#single {
                                     ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                        elements[0usize].content.clone()
-                                    }
-                                    ParseContent::Quantified(elements, _) if !elements.is_empty() => {
                                         elements[0usize].content.clone()
                                     }
                                     ParseContent::Alternative(node) => node.content.clone(),
@@ -536,9 +541,6 @@ impl AstReturnTransformer {
                             {
                                 match &#single {
                                     ParseContent::Sequence(elements) if elements.len() > #element_index => {
-                                        elements[#element_index].content.clone()
-                                    }
-                                    ParseContent::Quantified(elements, _) if elements.len() > #element_index => {
                                         elements[#element_index].content.clone()
                                     }
                                     _ => ParseContent::Terminal("<invalid_extraction_base>"),

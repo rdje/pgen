@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - PGEN-RGX-0075: typed-shape correctness for multi-piece concatenation
+
+### What landed
+
+RGX bug report PGEN-RGX-0075 surfaced this: the typed `regex.pattern` field for `"abc"` contained only one piece. Span correctly covered all 3 chars (parser DID match all pieces) but the typed-shape rendering of `concatenation = piece+ -> [$1**]` collapsed.
+
+**Root cause** in `rust/src/ast_pipeline/ast_return_transform.rs`: the `$N` PositionalRef codegen, for a single-position rule body (`captured_vars.len() == 1`), was peeling `elements[0].content.clone()` from BOTH `Sequence` AND `Quantified` bases. For Quantified bodies, that's wrong — `$1` should be "the whole capture group" per the doctrine in `docs/book/src/annotation-system.md`.
+
+For `concatenation = piece+ -> [$1**]`:
+- `result = Quantified([piece_a, piece_b, piece_c], "+")`.
+- Pre-fix `$1` → `elements[0].content.clone()` = piece_a's Json content (a `Json` value).
+- `[$1**]` → `**` flatten-spread saw `Json` (not Sequence/Quantified), hit `other` arm, pushed 1 element.
+- Result: array with 1 piece. piece_b and piece_c discarded.
+
+**Fix**: removed the Quantified peel-arm in three codegen sites. Quantified bases fall through to `other.clone()`, returning the whole Quantified content. Then `**` correctly iterates and flattens.
+
+**Compensating grammar change**: `regex = pattern -> ...` (was `regex = pattern? -> ...`). The pre-fix `?` propped up the buggy auto-peel by adding a Quantified-? wrapper that the buggy code unwrapped. With the codegen fix, `$1` correctly returned the whole Quantified-? wrapping, but consumers of `regex.pattern` got `[pattern_value]` (a 1-elt array) instead of `pattern_value` (the documented 2-tuple `[head, tail]`). Removing the `?` restores the documented top-level shape — the inner `alternative = concatenation?` already handles emptiness, so removing the outer `?` doesn't break empty-input parsing.
+
+### Why the `\Q...\E` cases didn't catch the bug
+
+`\Qab*\E{2,}` → `concatenation` matches a SINGLE piece (the whole `\Q...\E` block), but that piece's content is a Sequence-of-3 sub-pieces (built by `piece_quoted_run_quantified`'s `[$2**, {...}]` annotation). When `[$1**]` ran, `$1` extracted that piece's Sequence-of-3 (via `elements[0].content.clone()` of the Quantified containing 1 element), then `**` flattened it to 3 array entries. The output looked correct.
+
+The PGEN-RGX-0074 fix's empirical evidence focused on the `\Q...\E` family table (which all incidentally passed). No test asserted plain `"abc"` → 3 pieces. Bug shipped under that blind spot.
+
+### New regression test
+
+`regex_parser_pgen_rgx_0075_multi_piece_concatenation_surfaces_all_pieces` in `rust/src/embedding_api.rs` — pins empirical shape for `"a"`, `"ab"`, `"abc"`, `"hello"`. Asserts piece count AND atom values inside `regex.pattern[0][0]`. Test catches both the "drops pieces" failure mode and the "wrong atom" failure mode.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 494 / 0.
+- Empirical probe sweep — `"a"` 1 piece, `"ab"` 2 pieces, `"abc"` 3 pieces, `"hello"` 5 pieces, `"a*"` 1 piece (with quantifier), `"[a-z]"` class, `"a|b"` 2 alternatives, `"(abc)"` group, `"\\d+"` escape with quantifier, `"foo\\Kbar"` 7 pieces (correct), `""` empty (span 0..0).
+- `make regex_parser_book_gate` — green.
+
+### Contract bump
+
+Parser release `1.1.33` → `1.1.34`. Contract `1.1.35` → `1.1.36`. New section "Release 1.1.34 / Contract 1.1.36 Highlights — PGEN-RGX-0075 typed-shape correctness for multi-piece concatenation" in the integration contract. New `REGEX-0075` row in the bug ledger.
+
+### Live-docs sync
+
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.34 entry above the #38 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline 0.9.0 row.
+- `docs/regex_parser_book/src/rules-top-level.md` — `regex` rule's grammar block updated; history note explaining why the `?` was dropped.
+
+### RGX integration impact
+
+Pre-fix RGX lib suite was at 817/1119 (~73%) due to this single bug. Post-fix consumers walking `regex.pattern[0][0]` get every piece. Expected recovery to baseline once RGX bumps PGEN pin and re-runs.
+
+### Why this matters for project doctrine
+
+The fix is a doctrine-alignment fix: the platform-book annotation-system already documented the correct semantic ($1 on a Quantified body = whole capture group). The codegen wasn't following its own doctrine. Two halves of the doctrine that need to stay aligned:
+1. **Synthetic `-> $1` default**: doesn't fire on Quantified bodies (already correct after the 2026-04-30 tightening commit).
+2. **Explicit `$N` extraction**: must also respect "the whole capture group" reading on Quantified bases (now correct after this fix).
+
+Slice campaign confidence: the typed-shape annotation work's slice 9-16 PGEN-RGX-0073 perf closure introduced this regression, and PGEN-RGX-0074's `\Q...\E` work didn't catch it because its test corpus was specialized. This commit closes the gap with a regression-lock test that future slices can't skip.
+
 ## 2026-05-01 - Task #38 fix: parens-grouped-Or trailing-annotation broadcast
 
 ### What landed

@@ -2,8 +2,13 @@
 # Supports embedded code blocks via (?{...}) constructs (intended for Lua/JS hooks)
 # Properly handles balanced braces and string literals in code blocks
 
-# Entry point
-regex          = pattern?
+# Entry point. The body is `pattern` (not `pattern?`) — emptiness is
+# already handled by the inner `alternative = concatenation?` rule so the
+# pattern reference is total. With `pattern?` here the annotation `$1`
+# would (correctly) resolve to the whole `Quantified-?` wrapper instead
+# of the inner pattern content (per the doctrine that `$N` on a
+# Quantified body is "the whole capture group" — see annotation-system.md).
+regex          = pattern
 -> {type: "regex", pattern: $1}
 
 # Alternation and concatenation
