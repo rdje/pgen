@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-db44b383.js";
+            window.path_to_searchindex_js = "searchindex-32dbe099.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -212,6 +212,7 @@
 <tr><td><code>counted_quantifier_body</code> (branch 1)</td><td><code>-&gt; {min: $1, max: null}</code></td><td>Object <code>{min, max:null}</code> (<code>{n,}</code> unbounded form)</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 2)</td><td><code>-&gt; {min: $1, max: $1}</code></td><td>Object <code>{min, max}</code> (<code>{n}</code> form, max == min)</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 3)</td><td><code>-&gt; {min: 0, max: $3}</code></td><td>Object <code>{min:0, max}</code> (<code>{,m}</code> form)</td></tr>
+<tr><td><code>quant_base</code> (all 4 branches)</td><td><code>-&gt; $1</code> (per branch)</td><td>Whatever the matched alternative produced — string <code>"*"</code>/<code>"+"</code>/<code>"?"</code> or typed <code>{min,max}</code> from <code>counted_quantifier</code></td></tr>
 <tr><td><code>quant_suffix</code> (branch 0)</td><td><code>-&gt; "lazy"</code></td><td>String <code>"lazy"</code></td></tr>
 <tr><td><code>quant_suffix</code> (branch 1)</td><td><code>-&gt; "possessive"</code></td><td>String <code>"possessive"</code></td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>

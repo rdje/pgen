@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 5 (`quant_base` per-branch annotations) + #38 design surface
+
+### What landed
+Slice 5 of the quantifier-subtree campaign. `quant_base` got per-branch `-> $1` annotations:
+
+```ebnf
+quant_base = "*"                -> $1
+           | "+"                -> $1
+           | "?"                -> $1
+           | counted_quantifier -> $1
+```
+
+JSON output byte-identical to pre-slice-5 — this is a structural lock-in, not a shape change.
+
+### Owner-driven design discussion: factored form blocked by #38
+Owner asked why the annotation isn't factored as `( "*" | "+" | "?" | counted_quantifier ) -> $1`. Answer: task #38 — `extract_rule_annotations` in `rust/src/ast_pipeline/mod.rs:1962` only increments `branch_idx` for `|` at `group_depth == 0`. For a top-level rule of the form `RULE = (A | B | C) -> ann`, `branch_idx` stays at 0 throughout the parens-grouped Or, the trailing annotation lands on branch 0, and codegen leaves branches 1-2 with raw passthrough. Owner has flagged this as a contract violation requiring fix. The fix is non-trivial:
+
+- Removing the `group_depth == 0` filter alone is insufficient — `RULE = A | B -> ann` (no parens) per PEG precedence binds `-> ann` to B only, so per-branch tracking is correct in that case.
+- The fix needs to **detect** the "annotation follows `group_close`" pattern and **broadcast** the annotation to all branches that were inside the just-closed group.
+- Disambiguation: nested groups (`((A|B)|C) -> ann`), grouped-with-suffix-only (`(A|B)C -> ann`), groups that aren't followed by annotations.
+- Cross-grammar effect: any grammar using `(A|B) -> ann` would be affected — needs regen + manifest updates for json, regex, return_annotation, semantic_annotation, ebnf, etc.
+
+#38 lands as its own slice (next).
+
+### Live book sync (slice 5)
+- `rules-quantifier.md` — `quant_base` flipped to annotated; banner updated to "post-slices-1-through-5"; future direction lists only the remaining `quantifier` slice.
+- `json-carrier.md` — annotated rules table gains `quant_base (all 4 branches)` row.
+- `schema-versioning.md` — version timeline gains 0.8.2.
+- `changelog-index.md` — slice 5 entry; #38 blocker captured inline; future-slices table updated.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 493 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json` — 4 new `quant_base` entries (alphabetic order, between `posix_class` and `quant_suffix`).
+- `make regex_parser_book_gate` — green.
+- Empirical probes: `a*` → `["*", []]`, `a{2,5}` → `[{"min":2,"max":5}, []]` — byte-identical to pre-slice-5.
+
+### Why no contract bump
+Same as slices 3+4: `quant_base` is intermediate; the bump consolidates with slice 6 (outer `quantifier` rule).
+
 ## 2026-05-01 - regex.ebnf slice 4 (`counted_quantifier` typed) + first live-book sync
 
 ### What landed

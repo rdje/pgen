@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-db44b383.js";
+            window.path_to_searchindex_js = "searchindex-32dbe099.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="quantifier-subtree"><a class="header" href="#quantifier-subtree">Quantifier Subtree</a></h1>
-<p>Six grammar rules cover quantifier syntax. <strong>At the parser release this book describes (current main HEAD, post-slices-1-through-4), <code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, and <code>counted_quantifier</code> are annotated. Two remain un-annotated: the outer <code>quantifier</code> and the <code>quant_base</code> Or rule. Those will be annotated in successive future slices.</strong></p>
+<p>Six grammar rules cover quantifier syntax. <strong>At the parser release this book describes (current main HEAD, post-slices-1-through-5), <code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, <code>counted_quantifier</code>, and <code>quant_base</code> are annotated. Only the outer <code>quantifier</code> rule remains un-annotated; that closes in slice 6, which also carries the consolidated contract identity bump for slices 3-6.</strong></p>
 <h2 id="quantifier"><a class="header" href="#quantifier"><code>quantifier</code></a></h2>
 <pre><code class="language-ebnf">quantifier = quant_base quant_suffix?
 </code></pre>
@@ -201,15 +201,19 @@
 <li><code>"possessive"</code> — typed string from the annotated <code>quant_suffix</code> rule.</li>
 </ul>
 <h2 id="quant_base"><a class="header" href="#quant_base"><code>quant_base</code></a></h2>
-<pre><code class="language-ebnf">quant_base = "*" | "+" | "?" | counted_quantifier
+<pre><code class="language-ebnf">quant_base = "*"                -&gt; $1
+           | "+"                -&gt; $1
+           | "?"                -&gt; $1
+           | counted_quantifier -&gt; $1
 </code></pre>
-<p><strong>Un-annotated.</strong> Each branch emits the raw matched text or the typed <code>counted_quantifier</code> shape passed straight through.</p>
+<p><strong>Annotated.</strong> Each branch emits its matched element via positional passthrough (<code>-&gt; $1</code>). The shorthand branches pass through the literal terminal text; the counted-quantifier branch passes through the typed <code>{min, max}</code> object.</p>
+<p>This slice didn’t change the consumer-visible JSON output — pre-annotation the same bytes were emitted via codegen defaults. The annotation locks the rule’s emission into the typed-shape contract (Tier-2 stable) instead of relying on default fall-through.</p>
 <h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
 <ul>
-<li>Branch 0 (<code>*</code>): <code>Terminal("*")</code>. Visible in JSON as the bare string <code>"*"</code>.</li>
-<li>Branch 1 (<code>+</code>): <code>Terminal("+")</code>. Visible as <code>"+"</code>.</li>
-<li>Branch 2 (<code>?</code>): <code>Terminal("?")</code>. Visible as <code>"?"</code>.</li>
-<li>Branch 3 (<code>counted_quantifier</code>): the typed <code>{min, max}</code> object directly (because <code>counted_quantifier</code> itself lifts the body’s typed shape).</li>
+<li>Branch 0 (<code>*</code>): JSON string <code>"*"</code>.</li>
+<li>Branch 1 (<code>+</code>): JSON string <code>"+"</code>.</li>
+<li>Branch 2 (<code>?</code>): JSON string <code>"?"</code>.</li>
+<li>Branch 3 (<code>counted_quantifier</code>): the typed <code>{min, max}</code> object directly (since <code>counted_quantifier</code> itself lifts the body’s typed shape via <code>-&gt; $3</code>).</li>
 </ul>
 <h2 id="counted_quantifier"><a class="header" href="#counted_quantifier"><code>counted_quantifier</code></a></h2>
 <pre><code class="language-ebnf">counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
@@ -366,9 +370,8 @@ digits = /([0-9]+)/
 <span class="boring">}</span></code></pre>
 <p>The dispatch is now: shorthand quantifiers come through as bare strings; counted quantifiers come through as typed <code>{min, max}</code> objects. No structural digging into Sequence wrappers required.</p>
 <h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>Two slices remain in the quantifier-subtree campaign:</p>
+<p>One slice remains in the quantifier-subtree campaign:</p>
 <ul>
-<li><code>quant_base</code> annotation. Goal: emit <code>"*"</code>/<code>"+"</code>/<code>"?"</code> as typed strings (no shape change to consumers — they’re already strings — but cleaner once it’s official) and lift <code>counted_quantifier</code>’s typed object straight through.</li>
 <li><code>quantifier</code> annotation. Goal: combine <code>quant_base</code> and <code>quant_suffix?</code> into a single typed object:</li>
 </ul>
 <pre><code class="language-json">{
@@ -378,7 +381,7 @@ digits = /([0-9]+)/
   "greediness": "greedy"
 }
 </code></pre>
-<p>When that final slice lands, the consumer’s <code>extract_quantifier</code> walker collapses to a 4-line field read. The slices are tracked under task #40 in PGEN’s tracker.</p>
+<p>When that final slice lands, the consumer’s <code>extract_quantifier</code> walker collapses to a 4-line field read. The slice is tracked under task #40 in PGEN’s tracker.</p>
 
                     </main>
 

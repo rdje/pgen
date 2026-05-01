@@ -1,6 +1,6 @@
 # Quantifier Subtree
 
-Six grammar rules cover quantifier syntax. **At the parser release this book describes (current main HEAD, post-slices-1-through-4), `digits`, `quant_suffix`, `counted_quantifier_body`, and `counted_quantifier` are annotated. Two remain un-annotated: the outer `quantifier` and the `quant_base` Or rule. Those will be annotated in successive future slices.**
+Six grammar rules cover quantifier syntax. **At the parser release this book describes (current main HEAD, post-slices-1-through-5), `digits`, `quant_suffix`, `counted_quantifier_body`, `counted_quantifier`, and `quant_base` are annotated. Only the outer `quantifier` rule remains un-annotated; that closes in slice 6, which also carries the consolidated contract identity bump for slices 3-6.**
 
 ## `quantifier`
 
@@ -28,17 +28,22 @@ quantifier = quant_base quant_suffix?
 ## `quant_base`
 
 ```ebnf
-quant_base = "*" | "+" | "?" | counted_quantifier
+quant_base = "*"                -> $1
+           | "+"                -> $1
+           | "?"                -> $1
+           | counted_quantifier -> $1
 ```
 
-**Un-annotated.** Each branch emits the raw matched text or the typed `counted_quantifier` shape passed straight through.
+**Annotated.** Each branch emits its matched element via positional passthrough (`-> $1`). The shorthand branches pass through the literal terminal text; the counted-quantifier branch passes through the typed `{min, max}` object.
+
+This slice didn't change the consumer-visible JSON output — pre-annotation the same bytes were emitted via codegen defaults. The annotation locks the rule's emission into the typed-shape contract (Tier-2 stable) instead of relying on default fall-through.
 
 ### Current shape
 
-- Branch 0 (`*`): `Terminal("*")`. Visible in JSON as the bare string `"*"`.
-- Branch 1 (`+`): `Terminal("+")`. Visible as `"+"`.
-- Branch 2 (`?`): `Terminal("?")`. Visible as `"?"`.
-- Branch 3 (`counted_quantifier`): the typed `{min, max}` object directly (because `counted_quantifier` itself lifts the body's typed shape).
+- Branch 0 (`*`): JSON string `"*"`.
+- Branch 1 (`+`): JSON string `"+"`.
+- Branch 2 (`?`): JSON string `"?"`.
+- Branch 3 (`counted_quantifier`): the typed `{min, max}` object directly (since `counted_quantifier` itself lifts the body's typed shape via `-> $3`).
 
 ## `counted_quantifier`
 
@@ -210,9 +215,8 @@ The dispatch is now: shorthand quantifiers come through as bare strings; counted
 
 ## Future direction
 
-Two slices remain in the quantifier-subtree campaign:
+One slice remains in the quantifier-subtree campaign:
 
-- `quant_base` annotation. Goal: emit `"*"`/`"+"`/`"?"` as typed strings (no shape change to consumers — they're already strings — but cleaner once it's official) and lift `counted_quantifier`'s typed object straight through.
 - `quantifier` annotation. Goal: combine `quant_base` and `quant_suffix?` into a single typed object:
 
 ```json
@@ -224,4 +228,4 @@ Two slices remain in the quantifier-subtree campaign:
 }
 ```
 
-When that final slice lands, the consumer's `extract_quantifier` walker collapses to a 4-line field read. The slices are tracked under task #40 in PGEN's tracker.
+When that final slice lands, the consumer's `extract_quantifier` walker collapses to a 4-line field read. The slice is tracked under task #40 in PGEN's tracker.

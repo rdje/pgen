@@ -128,6 +128,7 @@ When you upgrade PGEN, this test will fail loudly on any shape change. Re-baseli
 | 0.7.2 | 1.1.33 | `quant_suffix` → enum string (slice 2). |
 | 0.8.0 | post-1.1.33 main | `counted_quantifier_body` → typed `{min, max}` (slice 3). New `null` literal in the annotation language. |
 | 0.8.1 | post-1.1.33 main | `counted_quantifier` → `-> $3` lifts body's typed shape (slice 4). |
+| 0.8.2 | post-1.1.33 main | `quant_base` → per-branch `-> $1` annotations (slice 5). Lock-in only; JSON output unchanged. |
 
 (Numbers above match the contract document at the time this book was written. The contract is authoritative for the current state — consult it for the live version.)
 

@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 5/N: `quant_base` per-branch `-> $1` annotations
+
+### What landed
+
+Quantifier-subtree slice 5 of N. `quant_base = "*" | "+" | "?" | counted_quantifier` got per-branch `-> $1` annotations on every alternative. Each branch now formally emits via positional passthrough — locking the rule's shape into the typed-rule contract instead of relying on codegen defaults.
+
+```ebnf
+quant_base = "*"                -> $1
+           | "+"                -> $1
+           | "?"                -> $1
+           | counted_quantifier -> $1
+```
+
+**Consumer impact: none** — JSON output is byte-identical to pre-slice-5. Empirical: `a*` still emits `quantifier: ["*", []]`; `a{2,5}` still emits `quantifier: [{"min":2,"max":5}, []]`. The change is structural (rule moves from "raw envelope via codegen default" to "annotated, Tier-2 stable").
+
+### Why per-branch instead of factored
+
+The natural way to write this is `quant_base = ( "*" | "+" | "?" | counted_quantifier ) -> $1` — single shared annotation. Blocked by task #38: `extract_rule_annotations` in `rust/src/ast_pipeline/mod.rs` only attributes the trailing annotation to branch 0 of a parens-grouped Or; branches 1-3 silently fall through to raw passthrough. Per-branch annotations are the explicit workaround. Once #38 lands as its own slice, this rule will be refactored to the factored form.
+
+### Live book sync
+
+- `rules-quantifier.md` — `quant_base` flipped to "annotated"; current-shape table replaces "Terminal(...)" descriptions with "JSON string ..." for the shorthand branches; future-direction shrinks to a single remaining slice.
+- `json-carrier.md` — annotated rules table gains a `quant_base (all 4 branches)` row.
+- `schema-versioning.md` — version timeline gains 0.8.2.
+- `changelog-index.md` — slice 5 entry added; future-slices table updated; #38 blocker captured inline.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 493 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json` — 4 new `quant_base` entries (branches 0-3, all return_scalar `"$1"`).
+- `make regex_parser_book_gate` green.
+- Empirical probe: `a*` and `a{2,5}` both produce identical bytes vs pre-slice-5.
+
+### No contract bump
+Same rationale as slices 3+4: `quant_base` is intermediate. Bump and consolidated AST-shape contract section land on the slice that closes the outer `quantifier` rule (slice 6).
+
 ## 2026-05-01 - regex.ebnf slice 4/N: typed `counted_quantifier` (`-> $3`) + book live-sync
 
 ### What landed

@@ -23,6 +23,16 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### Post-1.1.33 main — quant_base annotated (slice 5/N)
+
+**What changed:** `quant_base = "*" | "+" | "?" | counted_quantifier` got per-branch `-> $1` annotations on every alternative. Each branch now formally emits via positional passthrough — locking the rule's shape into the typed-rule contract instead of relying on codegen defaults.
+
+**Consumer impact:** **none** — JSON output is byte-identical to pre-slice-5. Empirical: `a*` still emits `quantifier: ["*", []]`; `a{2,5}` still emits `quantifier: [{"min":2,"max":5}, []]`. The change is to the rule's emission status (from "raw envelope via codegen default" to "annotated, Tier-2 stable").
+
+**Why factored form was rejected:** the natural way to write this would be `quant_base = ( "*" | "+" | "?" | counted_quantifier ) -> $1` — single shared annotation. Blocked by task #38 (`extract_rule_annotations` only attributes the trailing annotation to branch 0 of the parens-grouped Or; branches 1-3 silently fall through to raw passthrough). Per-branch annotations are the workaround until #38 lands; once it does, this rule will be refactored to the factored form.
+
+**Contract section:** pending bump (will land with the slice that closes `quantifier`).
+
 ### Post-1.1.33 main — counted_quantifier typed (slice 4/N)
 
 **What changed:** `counted_quantifier` rule got `-> $3` annotation, lifting `counted_quantifier_body`'s typed `{min, max}` straight through and dropping the surrounding `{`/`}`/whitespace tokens. The brace tokens carry no semantic information beyond "this is a counted quantifier" — context the surrounding `quant_base` already conveys.
@@ -83,7 +93,6 @@ Upcoming slice campaign work (task #40 — "Annotate regex.ebnf for full AST usa
 
 | Slice | Target rule | Expected AST change |
 |---|---|---|
-| 5 | `quant_base` | Lift counted-quantifier passthrough; clarify shorthand string emission |
 | 6 | `quantifier` | Combine quant_base + quant_suffix? into typed `{type:"quantifier", min, max, greediness}` |
 | 7+ | atom subtree, char class, group family, escape subtree, ... | One rule per slice |
 
