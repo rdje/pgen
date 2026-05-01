@@ -205,7 +205,7 @@ Input: `a*?`
         [[
           {
             "atom": "a",
-            "quantifier": ["*", "lazy"],
+            "quantifier": {"type": "quantifier", "min": 0, "max": null, "greediness": "lazy"},
             "type": "piece"
           }
         ]],

@@ -204,7 +204,7 @@ For input `\d+`:
       ]
     ]
   ],
-  "quantifier": ["+", []],
+  "quantifier": {"type": "quantifier", "min": 1, "max": null, "greediness": []},
   "type": "piece"
 }
 ```

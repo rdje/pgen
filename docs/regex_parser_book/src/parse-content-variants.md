@@ -163,7 +163,7 @@ The `&'static str` is the quantifier marker — `"*"`, `"+"`, or `"?"` — exact
 
 Example — for input `a` (no trailing quantifier), `piece`'s `quantifier?` slot emits `Quantified([], "?")`, which serializes as `"quantifier": []` in the typed shape.
 
-For `a*`, the `quant_base` rule matches `*` and the typed `quantifier` shape today carries `["*", []]` (raw — `quantifier` itself is not yet annotated; only `quant_suffix` and `digits` are at this release).
+For `a*`, the typed `quantifier` shape carries the fully-typed `{"type":"quantifier","min":0,"max":null,"greediness":[]}` (annotated as of slice 6, post-1.1.34). The whole quantifier subtree is annotated — see [Quantifier Subtree](rules-quantifier.md).
 
 ## Special interactions
 

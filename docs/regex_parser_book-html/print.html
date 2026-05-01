@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-60e9e69c.js";
+            window.path_to_searchindex_js = "searchindex-a1c2f544.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -801,7 +801,7 @@ assert!(contract.supports_regex_generated_backend);
 <li><code>+</code>-quantified rule bodies: one or more matches. Vec has at least one element.</li>
 </ul>
 <p>Example — for input <code>a</code> (no trailing quantifier), <code>piece</code>’s <code>quantifier?</code> slot emits <code>Quantified([], "?")</code>, which serializes as <code>"quantifier": []</code> in the typed shape.</p>
-<p>For <code>a*</code>, the <code>quant_base</code> rule matches <code>*</code> and the typed <code>quantifier</code> shape today carries <code>["*", []]</code> (raw — <code>quantifier</code> itself is not yet annotated; only <code>quant_suffix</code> and <code>digits</code> are at this release).</p>
+<p>For <code>a*</code>, the typed <code>quantifier</code> shape carries the fully-typed <code>{"type":"quantifier","min":0,"max":null,"greediness":[]}</code> (annotated as of slice 6, post-1.1.34). The whole quantifier subtree is annotated — see <a href="#quantifier-subtree">Quantifier Subtree</a>.</p>
 <h2 id="special-interactions"><a class="header" href="#special-interactions">Special interactions</a></h2>
 <p>Consumers should be aware of three interactions between variants:</p>
 <h3 id="1-to_json_value-collapses-everything-to-serde_jsonvalue"><a class="header" href="#1-to_json_value-collapses-everything-to-serde_jsonvalue">1. <code>to_json_value()</code> collapses everything to <code>serde_json::Value</code></a></h3>
@@ -1132,7 +1132,7 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
         [[
           {
             "atom": "a",
-            "quantifier": ["*", "lazy"],
+            "quantifier": {"type": "quantifier", "min": 0, "max": null, "greediness": "lazy"},
             "type": "piece"
           }
         ]],
@@ -1952,7 +1952,7 @@ digits = /([0-9]+)/
 <p>Once <code>atom</code> is annotated, the discriminator becomes a clean <code>kind</code> field lookup. Until then, the structural-prefix dispatch above is the way.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="character-class-subtree"><a class="header" href="#character-class-subtree">Character Class Subtree</a></h1>
-<p>PCRE2 character classes (<code>[abc]</code>, <code>[a-z]</code>, <code>[^a-z]</code>, <code>[[:alpha:]]</code>, etc.) live under <code>char_class</code>. Many sub-rules. None currently annotated — all emit raw envelope shapes.</p>
+<p>PCRE2 character classes (<code>[abc]</code>, <code>[a-z]</code>, <code>[^a-z]</code>, <code>[[:alpha:]]</code>, etc.) live under <code>char_class</code>. Many sub-rules. As of slice 8 (post-1.1.36), <code>posix_class</code> and <code>posix_negation</code> are annotated — <code>posix_class</code> emits a typed <code>{type:"posix_class", name, negated}</code> object directly. The remaining sub-rules (<code>char_class</code> outer, <code>class_body</code>, <code>class_item</code>, <code>class_range</code>, <code>class_atom</code>, <code>class_literal</code>, <code>class_escape</code>, <code>quoted_class_literal</code>, <code>stray_class_end_quote</code>) are still un-annotated and emit raw envelope shapes pending future task #40 slices.</p>
 <h2 id="char_class-1"><a class="header" href="#char_class-1"><code>char_class</code></a></h2>
 <pre><code class="language-ebnf">char_class = "[" negation? class_initial_close? class_body "]"
 </code></pre>
@@ -2006,7 +2006,7 @@ class_body = class_item*
            | class_literal
            | class_escape
 </code></pre>
-<p>6-way Or, <strong>un-annotated</strong>. Each branch’s content varies.</p>
+<p>6-way Or, <strong>un-annotated</strong> at the rule level — each branch’s content varies. Note: branch 0 (<code>posix_class</code>) IS annotated as a typed <code>{type:"posix_class", name, negated}</code> object since slice 8; the other branches still emit raw envelope shapes.</p>
 <h3 id="branches-1"><a class="header" href="#branches-1">Branches</a></h3>
 <div class="table-wrapper">
 <table>
@@ -2014,7 +2014,7 @@ class_body = class_item*
 <tr><th>Branch</th><th>Form</th><th>Shape (current)</th></tr>
 </thead>
 <tbody>
-<tr><td>0</td><td><code>[:alpha:]</code>, etc.</td><td>nested <code>posix_class</code> Sequence</td></tr>
+<tr><td>0</td><td><code>[:alpha:]</code>, etc.</td><td>typed <code>{"type":"posix_class","name":&lt;str&gt;,"negated":&lt;true | []&gt;}</code> object (slice 8)</td></tr>
 <tr><td>1</td><td>stray <code>\E</code> (PCRE2 zero-width marker)</td><td><code>Terminal("\\E")</code></td></tr>
 <tr><td>2</td><td><code>a-z</code>, etc.</td><td>nested <code>class_range</code> Sequence</td></tr>
 <tr><td>3</td><td><code>\Q...\E</code> inside class</td><td>nested <code>quoted_class_literal</code> Sequence</td></tr>
@@ -2028,11 +2028,13 @@ class_body = class_item*
 </span><span class="boring">fn main() {
 </span>fn classify_class_item(item: &amp;Value) -&gt; ClassItemKind {
     match item {
+        // posix_class is now annotated as a typed object {type:"posix_class",...}
+        Value::Object(map) if map.get("type").and_then(|v| v.as_str()) == Some("posix_class")
+            =&gt; ClassItemKind::PosixClass,
         Value::String(s) if s == "\\E" =&gt; ClassItemKind::StrayEndQuote,
         Value::String(s) if s.len() == 1 =&gt; ClassItemKind::Literal(s),
         Value::Array(arr) =&gt; {
             match arr.first() {
-                Some(Value::String(s)) if s == "[:" =&gt; ClassItemKind::PosixClass,
                 Some(Value::String(s)) if s == "\\Q" =&gt; ClassItemKind::QuotedLiteral,
                 Some(Value::String(s)) if s == "\\" =&gt; ClassItemKind::Escape,
                 _ if arr.len() &gt;= 5 =&gt; ClassItemKind::Range,  // class_range has class_atom-class_atom shape
@@ -2652,7 +2654,7 @@ escape = "\\" escape_unit
       ]
     ]
   ],
-  "quantifier": ["+", []],
+  "quantifier": {"type": "quantifier", "min": 1, "max": null, "greediness": []},
   "type": "piece"
 }
 </code></pre>

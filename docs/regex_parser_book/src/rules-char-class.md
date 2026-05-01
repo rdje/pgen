@@ -1,6 +1,6 @@
 # Character Class Subtree
 
-PCRE2 character classes (`[abc]`, `[a-z]`, `[^a-z]`, `[[:alpha:]]`, etc.) live under `char_class`. Many sub-rules. None currently annotated — all emit raw envelope shapes.
+PCRE2 character classes (`[abc]`, `[a-z]`, `[^a-z]`, `[[:alpha:]]`, etc.) live under `char_class`. Many sub-rules. As of slice 8 (post-1.1.36), `posix_class` and `posix_negation` are annotated — `posix_class` emits a typed `{type:"posix_class", name, negated}` object directly. The remaining sub-rules (`char_class` outer, `class_body`, `class_item`, `class_range`, `class_atom`, `class_literal`, `class_escape`, `quoted_class_literal`, `stray_class_end_quote`) are still un-annotated and emit raw envelope shapes pending future task #40 slices.
 
 ## `char_class`
 
@@ -82,13 +82,13 @@ class_item = posix_class
            | class_escape
 ```
 
-6-way Or, **un-annotated**. Each branch's content varies.
+6-way Or, **un-annotated** at the rule level — each branch's content varies. Note: branch 0 (`posix_class`) IS annotated as a typed `{type:"posix_class", name, negated}` object since slice 8; the other branches still emit raw envelope shapes.
 
 ### Branches
 
 | Branch | Form | Shape (current) |
 |---|---|---|
-| 0 | `[:alpha:]`, etc. | nested `posix_class` Sequence |
+| 0 | `[:alpha:]`, etc. | typed `{"type":"posix_class","name":<str>,"negated":<true \| []>}` object (slice 8) |
 | 1 | stray `\E` (PCRE2 zero-width marker) | `Terminal("\\E")` |
 | 2 | `a-z`, etc. | nested `class_range` Sequence |
 | 3 | `\Q...\E` inside class | nested `quoted_class_literal` Sequence |
@@ -100,11 +100,13 @@ class_item = posix_class
 ```rust
 fn classify_class_item(item: &Value) -> ClassItemKind {
     match item {
+        // posix_class is now annotated as a typed object {type:"posix_class",...}
+        Value::Object(map) if map.get("type").and_then(|v| v.as_str()) == Some("posix_class")
+            => ClassItemKind::PosixClass,
         Value::String(s) if s == "\\E" => ClassItemKind::StrayEndQuote,
         Value::String(s) if s.len() == 1 => ClassItemKind::Literal(s),
         Value::Array(arr) => {
             match arr.first() {
-                Some(Value::String(s)) if s == "[:" => ClassItemKind::PosixClass,
                 Some(Value::String(s)) if s == "\\Q" => ClassItemKind::QuotedLiteral,
                 Some(Value::String(s)) if s == "\\" => ClassItemKind::Escape,
                 _ if arr.len() >= 5 => ClassItemKind::Range,  // class_range has class_atom-class_atom shape

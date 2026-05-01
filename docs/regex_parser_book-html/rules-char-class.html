@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-60e9e69c.js";
+            window.path_to_searchindex_js = "searchindex-a1c2f544.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="character-class-subtree"><a class="header" href="#character-class-subtree">Character Class Subtree</a></h1>
-<p>PCRE2 character classes (<code>[abc]</code>, <code>[a-z]</code>, <code>[^a-z]</code>, <code>[[:alpha:]]</code>, etc.) live under <code>char_class</code>. Many sub-rules. None currently annotated — all emit raw envelope shapes.</p>
+<p>PCRE2 character classes (<code>[abc]</code>, <code>[a-z]</code>, <code>[^a-z]</code>, <code>[[:alpha:]]</code>, etc.) live under <code>char_class</code>. Many sub-rules. As of slice 8 (post-1.1.36), <code>posix_class</code> and <code>posix_negation</code> are annotated — <code>posix_class</code> emits a typed <code>{type:"posix_class", name, negated}</code> object directly. The remaining sub-rules (<code>char_class</code> outer, <code>class_body</code>, <code>class_item</code>, <code>class_range</code>, <code>class_atom</code>, <code>class_literal</code>, <code>class_escape</code>, <code>quoted_class_literal</code>, <code>stray_class_end_quote</code>) are still un-annotated and emit raw envelope shapes pending future task #40 slices.</p>
 <h2 id="char_class"><a class="header" href="#char_class"><code>char_class</code></a></h2>
 <pre><code class="language-ebnf">char_class = "[" negation? class_initial_close? class_body "]"
 </code></pre>
@@ -235,7 +235,7 @@ class_body = class_item*
            | class_literal
            | class_escape
 </code></pre>
-<p>6-way Or, <strong>un-annotated</strong>. Each branch’s content varies.</p>
+<p>6-way Or, <strong>un-annotated</strong> at the rule level — each branch’s content varies. Note: branch 0 (<code>posix_class</code>) IS annotated as a typed <code>{type:"posix_class", name, negated}</code> object since slice 8; the other branches still emit raw envelope shapes.</p>
 <h3 id="branches"><a class="header" href="#branches">Branches</a></h3>
 <div class="table-wrapper">
 <table>
@@ -243,7 +243,7 @@ class_body = class_item*
 <tr><th>Branch</th><th>Form</th><th>Shape (current)</th></tr>
 </thead>
 <tbody>
-<tr><td>0</td><td><code>[:alpha:]</code>, etc.</td><td>nested <code>posix_class</code> Sequence</td></tr>
+<tr><td>0</td><td><code>[:alpha:]</code>, etc.</td><td>typed <code>{"type":"posix_class","name":&lt;str&gt;,"negated":&lt;true | []&gt;}</code> object (slice 8)</td></tr>
 <tr><td>1</td><td>stray <code>\E</code> (PCRE2 zero-width marker)</td><td><code>Terminal("\\E")</code></td></tr>
 <tr><td>2</td><td><code>a-z</code>, etc.</td><td>nested <code>class_range</code> Sequence</td></tr>
 <tr><td>3</td><td><code>\Q...\E</code> inside class</td><td>nested <code>quoted_class_literal</code> Sequence</td></tr>
@@ -257,11 +257,13 @@ class_body = class_item*
 </span><span class="boring">fn main() {
 </span>fn classify_class_item(item: &amp;Value) -&gt; ClassItemKind {
     match item {
+        // posix_class is now annotated as a typed object {type:"posix_class",...}
+        Value::Object(map) if map.get("type").and_then(|v| v.as_str()) == Some("posix_class")
+            =&gt; ClassItemKind::PosixClass,
         Value::String(s) if s == "\\E" =&gt; ClassItemKind::StrayEndQuote,
         Value::String(s) if s.len() == 1 =&gt; ClassItemKind::Literal(s),
         Value::Array(arr) =&gt; {
             match arr.first() {
-                Some(Value::String(s)) if s == "[:" =&gt; ClassItemKind::PosixClass,
                 Some(Value::String(s)) if s == "\\Q" =&gt; ClassItemKind::QuotedLiteral,
                 Some(Value::String(s)) if s == "\\" =&gt; ClassItemKind::Escape,
                 _ if arr.len() &gt;= 5 =&gt; ClassItemKind::Range,  // class_range has class_atom-class_atom shape
