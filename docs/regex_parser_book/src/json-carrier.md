@@ -58,6 +58,10 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `unicode_escape` | `-> {type:"escape", kind:"unicode", digits:$2}` | Object `{type:"escape", kind:"unicode", digits:<hex-string>}` |
 | `hex_digits` | regex literal `/([0-9A-Fa-f]+)/` | Terminal of the matched hex string (was `hex_digit+` chain) |
 | `hex_escape_short_payload` | regex literal `/([0-9A-Fa-f]{1,2})/` | Terminal of the matched 1-2 hex digits |
+| `octal_escape` (branch 0, braced `\o{...}`) | `-> {type:"escape", kind:"octal", digits:$3}` | Object `{type:"escape", kind:"octal", digits:<octal-string>}` |
+| `octal_escape` (branch 1, bare `\NNN` in classes) | `-> {type:"escape", kind:"octal", digits:$1}` | Object `{type:"escape", kind:"octal", digits:<octal-string>}`. Note: at atom-level, bare `\NNN` is shadowed by the `backreference` numeric branch under PEG ordering — pre-existing. |
+| `octal_digits` | regex literal `/([0-7]+)/` | Terminal of the matched octal string (was `octal_digit+` chain) |
+| `octal_escape_short_payload` | regex literal `/([0-7]{1,3})/` | Terminal of the matched 1-3 octal digits |
 | `posix_class` | `-> {type: "posix_class", name: $3, negated: $2}` | Object `{type:"posix_class", name:<str>, negated:<true \| []>}` |
 | `posix_negation` | `-> true` | Boolean `true` (matched), or `[]` from the un-matched `posix_negation?` slot |
 | `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |

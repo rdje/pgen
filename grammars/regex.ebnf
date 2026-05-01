@@ -408,11 +408,24 @@ hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
 unicode_escape = "u{" hex_digits "}" -> {type: "escape", kind: "unicode", digits: $2}
 
 @type: "octal_escape"
-@description: "Octal escape sequence \777"
+@description: "Octal escape sequence \777 or \o{777}"
 @constraint: "must be valid octal digits 0-7"
 @precedence: {level: 9}
-octal_escape   = "o{" brace_ws? octal_digits brace_ws? "}" | octal_digit octal_digit? octal_digit?
-octal_digits   = octal_digit+
+# `digits` is the raw octal-string. Consumers parse to int themselves
+# via `usize::from_str_radix(digits, 8)`. Decoding via `@transform`
+# would require extending the codegen's transform machinery beyond
+# its current `str::parse::<TYPE>().unwrap_or(DEFAULT)` shape (it
+# can't currently express `from_str_radix(s, 8)`); saved as a
+# separate codegen-feature slice. Same shape as `hex_escape` /
+# `unicode_escape` after slice 15. The 1-3-digit bare form goes
+# through `octal_escape_short_payload` so the annotation can use a
+# single positional ref (`$1`) — chained `octal_digit
+# octal_digit? octal_digit?` would otherwise emit a 3-element
+# Sequence that the annotation language can't concat in one
+# expression.
+octal_escape   = "o{" brace_ws? octal_digits brace_ws? "}"  -> {type: "escape", kind: "octal", digits: $3}
+               | octal_escape_short_payload                  -> {type: "escape", kind: "octal", digits: $1}
+octal_escape_short_payload = /([0-7]{1,3})/
 
 @type: "control_escape"
 @description: "Control character escape \cA"
@@ -649,5 +662,9 @@ digits         = /([0-9]+)/
 # emits a clean string Terminal of the matched hex chars. Used by
 # `hex_escape` (braced form) and `unicode_escape`.
 hex_digits     = /([0-9A-Fa-f]+)/
-octal_digits   = octal_digit+
+# `octal_digits` rewritten from `octal_digit+` (multi-element chain
+# emitting `[first_digit, [rest_digits]]`) to a regex literal that
+# emits a clean string Terminal of the matched octal chars. Used
+# by `octal_escape` (braced form).
+octal_digits   = /([0-7]+)/
 ws             = whitespace+

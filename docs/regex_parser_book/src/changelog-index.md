@@ -23,6 +23,35 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.46 / Contract 1.1.48 — Atom subtree slice 16: escape subtree continues (octal)
+
+**What changed:** `octal_escape` per-branch annotations now emit typed `{type:"escape", kind:"octal", digits:<octal-string>}` objects. New `octal_escape_short_payload` regex literal for the 1-3-digit bare form. `octal_digits` rewritten from `octal_digit+` chain to regex literal.
+
+```ebnf
+octal_escape = "o{" brace_ws? octal_digits brace_ws? "}"  -> {type: "escape", kind: "octal", digits: $3}
+             | octal_escape_short_payload                  -> {type: "escape", kind: "octal", digits: $1}
+octal_escape_short_payload = /([0-7]{1,3})/
+
+# rewritten from `octal_digit+` chain:
+octal_digits = /([0-7]+)/
+```
+
+**Before / after:**
+
+| Source | Before (post-slice-15) | After |
+|---|---|---|
+| `\o{777}` (atom) | `["\\", ["o{", [], <digits chain>, [], "}"]]` | `{type:"escape", kind:"octal", digits:"777"}` |
+| `\o{7777}` (atom) | similar 5-level chain | `{type:"escape", kind:"octal", digits:"7777"}` |
+| `[\377]` (in class via `class_range_escape_unit`) | `["\\", ["3", ["7"], ["7"]]]` | `{type:"escape", kind:"octal", digits:"377"}` |
+
+**Important caveat — bare `\NNN` at atom-level:** Outside of character classes, `\377` and similar bare-digit forms are parsed as `{type:"backreference", kind:"numeric", index:377}` under the existing PEG-ordered atom alternation (numeric-backref branch shadows bare-octal). Pre-existing behavior; not changed by this slice. PEG cannot express PCRE2's contextual disambiguation ("if NNN ≤ 9 OR there are NNN capture groups, treat as backref; else octal") directly. Disambiguation is left to consumers via post-parse semantic analysis if/when they need atom-level bare-octal support.
+
+**`digits` is a string, not an int.** Consumers parse with `usize::from_str_radix(digits, 8)`. Same constraint as hex/unicode; extending `@transform` is a separate codegen-feature slice.
+
+**Atom subtree campaign progress:** 5/25 atom alternatives directly typed; **6/7 escape_unit branches typed** (single_byte, simple, control, hex, unicode, octal). Only remaining un-typed escape_unit branch: `property_escape`.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.46 / Contract 1.1.48 Highlights".
+
 ### 1.1.45 / Contract 1.1.47 — Atom subtree slice 15: escape subtree continues (hex/unicode)
 
 **What changed:** `hex_escape` and `unicode_escape` now emit typed `{type:"escape", kind:<form>, digits:<hex-string>}` objects:

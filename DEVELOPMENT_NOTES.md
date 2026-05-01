@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 16/N — escape subtree continues (octal)
+
+### What landed
+
+```ebnf
+octal_escape   = "o{" brace_ws? octal_digits brace_ws? "}"  -> {type: "escape", kind: "octal", digits: $3}
+               | octal_escape_short_payload                  -> {type: "escape", kind: "octal", digits: $1}
+octal_escape_short_payload = /([0-7]{1,3})/
+
+# rewritten from `octal_digit+` chain:
+octal_digits = /([0-7]+)/
+```
+
+Also removed a duplicate inline `octal_digits` definition at line 415 of the previous grammar (was defined twice; canonical version stays in the char-categories section, line ~652).
+
+### Symmetric to slice 15 (hex/unicode)
+
+Same pattern as slice 15:
+- Rewrite `octal_digits` from a multi-element `octal_digit+` chain to a regex literal `/([0-7]+)/` so it emits a clean string Terminal.
+- Introduce `octal_escape_short_payload = /([0-7]{1,3})/` so the bare 1-3-digit form has a single capturable expression for the annotation's `$1`.
+- Per-branch annotations on `octal_escape` produce typed `{type:"escape", kind:"octal", digits:<octal-string>}` objects.
+
+### Caveat — bare `\NNN` at atom-level
+
+Outside of character classes, `\377` and similar bare-digit forms are parsed as `{type:"backreference", kind:"numeric", index:377}` under the existing PEG-ordered atom alternation (the `backreference` branch precedes `escape` in `atom`'s alternatives, and `\NNN` matches `backreference_digits` first). Pre-existing behavior; not changed by this slice.
+
+PCRE2 actually disambiguates `\NNN` between numeric backref and bare octal **contextually**: "if NNN ≤ 9 OR there are NNN capture groups, treat as backref; else octal". PEG cannot express this contextual logic directly — the disambiguation requires post-parse semantic analysis. So the bare-octal `octal_escape_short_payload` branch is currently only reachable through `class_range_escape_unit` (inside `[...]` classes), where there's no `backreference` competing branch.
+
+If atom-level bare-octal support becomes needed, options are:
+1. Drop the bare-octal branch from `escape_unit` and let consumers do their own backref-vs-octal disambiguation post-parse.
+2. Add a parser-level lookahead/predicate (would need codegen extension).
+3. Move bare-octal disambiguation into the host-side compile validator (which already runs after the AST pass).
+
+None of these are slice 16 work.
+
+### Empirical
+- `\o{777}` → `{type:"escape",kind:"octal",digits:"777"}`.
+- `\o{7777}` → `{type:"escape",kind:"octal",digits:"7777"}`.
+- `\o{1}` → `{type:"escape",kind:"octal",digits:"1"}`.
+- `[\377]` → class body contains `{type:"escape",kind:"octal",digits:"377"}`.
+- `\377` (atom-level, no class) → `{type:"backreference",kind:"numeric",index:377}` (pre-existing PEG ordering).
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 2 new manifest entries (`octal_escape` ×2, alphabetically inserted between `name_ref` and `pattern`).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.45` → `1.1.46`. Contract `1.1.47` → `1.1.48`.
+- New "Release 1.1.46 / Contract 1.1.48 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md` (new row), `schema-versioning.md` (0.20.0), `json-carrier.md` (4 new entries), `examples-escapes.md` (chapter intro + octal sections rewritten + dispatcher pattern updated to 6/7 typed branches).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- 5/25 atom alternatives directly typed.
+- **6/7 escape_unit branches typed** (single_byte, simple, control, hex, unicode, octal).
+- Only remaining un-typed escape_unit branch: `property_escape`.
+
 ## 2026-05-01 - regex.ebnf slice 15/N — escape subtree continues (hex/unicode)
 
 ### What landed

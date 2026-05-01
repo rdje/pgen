@@ -1,6 +1,6 @@
 # Examples: Escapes
 
-Concrete probe outputs for PCRE2 escape sequences. As of slice 15 (post-1.1.45), the `escape` rule is a transparent wrapper (`-> $2`) and 5 of the 7 `escape_unit` sub-rules emit typed `{type:"escape", kind:<form>, ...}` objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15). Octal/property branches still emit raw shapes pending follow-up slices.
+Concrete probe outputs for PCRE2 escape sequences. As of slice 16 (post-1.1.46), the `escape` rule is a transparent wrapper (`-> $2`) and 6 of the 7 `escape_unit` sub-rules emit typed `{type:"escape", kind:<form>, ...}` objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15), octal (slice 16). Only `property_escape` still emits a raw shape pending the follow-up slice.
 
 ## Shorthand escapes — `\d`, `\w`, `\s`, `\.`, `\\`, etc.
 
@@ -97,39 +97,48 @@ PGEN's `@transform` machinery is currently hard-coded to `str::parse::<TYPE>().u
 
 ```json
 {
-  "atom": [
-    "\\",
-    [
-      "o{",
-      [],
-      [<octal_digits — chars: "7", "7", "7">],
-      [],
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "octal", "digits": "777"},
   ...
 }
 ```
 
-5-element Sequence.
+For `\o{7777}` (longer): `digits:"7777"`. For `\o{1}`: `digits:"1"`.
 
 ## Octal escape (bare 1-3 digit) — `\377`
+
+**At atom-level**, bare `\NNN` is parsed as a numeric backreference (PEG-ordering: the `backreference` branch in `atom` precedes `escape`):
+
+```json
+{
+  "atom": {"type": "backreference", "kind": "numeric", "index": 377},
+  ...
+}
+```
+
+This is pre-existing behavior — PCRE2 disambiguates `\NNN` between numeric backref and bare octal contextually ("if NNN ≤ 9 OR there are NNN capture groups, treat as backref; else octal"), which PEG cannot express directly. Disambiguation is left to consumers via post-parse semantic analysis if/when atom-level bare-octal support is needed.
+
+**Inside character classes**, the `class_range_escape_unit` path reaches the bare-octal branch and emits the typed shape:
 
 ```json
 {
   "atom": [
-    "\\",
+    "[",
+    [],
+    [],
     [
-      "3",                     // first octal digit (REQUIRED)
-      ["7"],                   // second (optional, Quantified-?)
-      ["7"]                    // third (optional, Quantified-?)
-    ]
+      {"type": "escape", "kind": "octal", "digits": "377"}
+    ],
+    "]"
   ],
   ...
 }
 ```
 
-3-element Sequence inside `escape_unit`. Each octal_digit is a single char.
+That is `[\377]` parses with the bare-octal escape typed inside the class body.
+
+## `digits` is a string for octal too
+
+Same convention as hex/unicode — consumers parse with `usize::from_str_radix(obj.digits, 8)`.
 
 ## Control escape — `\cA`
 
@@ -192,11 +201,11 @@ PCRE2's `\C` matches one code unit. Typed `{type:"escape", kind:"single_byte"}` 
 
 ## Identifying escape kind from the AST shape
 
-The `escape_unit` is an Or with 7 branches. As of slice 15, 5 of those branches emit typed `{type:"escape", kind:<form>, ...}` objects directly — consumers can dispatch on `kind`. The 2 remaining branches (octal, property) still emit raw structural shapes; consumers fall through to a structural-prefix check for those.
+The `escape_unit` is an Or with 7 branches. As of slice 16, 6 of those branches emit typed `{type:"escape", kind:<form>, ...}` objects directly — consumers can dispatch on `kind`. The remaining `property_escape` branch still emits a raw structural shape; consumers fall through to a structural-prefix check.
 
 ```rust
 fn classify_escape(escape_atom: &Value) -> Option<EscapeKind> {
-    // Typed branches: simple, single_byte, control, hex, unicode
+    // Typed branches: simple, single_byte, control, hex, unicode, octal
     if let Some(obj) = escape_atom.as_object() {
         if obj.get("type").and_then(|v| v.as_str()) == Some("escape") {
             return match obj.get("kind").and_then(|v| v.as_str())? {
@@ -205,18 +214,15 @@ fn classify_escape(escape_atom: &Value) -> Option<EscapeKind> {
                 "control"     => Some(EscapeKind::Control),
                 "hex"         => Some(EscapeKind::Hex),
                 "unicode"     => Some(EscapeKind::Unicode),
+                "octal"       => Some(EscapeKind::Octal),
                 _             => None,
             };
         }
     }
 
-    // Untyped raw-shape branches: octal, property
+    // Untyped raw-shape branch: property
     let arr = escape_atom.as_array()?;
     match arr.first() {
-        Some(Value::String(s)) if s == "o{" => Some(EscapeKind::Octal(OctalForm::Braced)),
-        Some(Value::String(s)) if s.chars().all(|c| ('0'..='7').contains(&c)) => {
-            Some(EscapeKind::Octal(OctalForm::Bare))
-        }
         Some(Value::String(s)) if s == "p{" || s == "P{" => {
             Some(EscapeKind::Property(PropertyForm::Braced))
         }
@@ -230,4 +236,4 @@ fn classify_escape(escape_atom: &Value) -> Option<EscapeKind> {
 
 ## Future direction
 
-Remaining task #40 escape-subtree slices will type the octal_escape and property_escape branches. Once those land, the structural fallback above will be removed.
+The remaining task #40 escape-subtree slice will type `property_escape`. Once that lands, the structural fallback above will be removed and the dispatcher reduces to a single object-shape check on `kind`.

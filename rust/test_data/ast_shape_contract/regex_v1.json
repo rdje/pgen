@@ -241,6 +241,18 @@
         "normalized_text": "$2"
       },
       {
+        "rule": "octal_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"octal\", digits: $3}"
+      },
+      {
+        "rule": "octal_escape",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"octal\", digits: $1}"
+      },
+      {
         "rule": "pattern",
         "branch_index": 0,
         "annotation_type": "return_scalar",

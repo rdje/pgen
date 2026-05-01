@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.47`
+  - `1.1.48`
 - Parser release version:
-  - `1.1.45`
+  - `1.1.46`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,27 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.46 / Contract 1.1.48 Highlights — atom subtree slice 16: escape subtree continues (octal)
+
+- **Internal-driven shape work** (no downstream report). Continues the escape-subtree typed-shape campaign from slice 15.
+- **Rules changed:**
+  - `octal_escape` per-branch annotations producing typed `{type:"escape", kind:"octal", digits:<octal-string>}`.
+  - New `octal_escape_short_payload = /([0-7]{1,3})/` regex literal for the bare 1-3-digit form.
+  - `octal_digits` rewritten from `octal_digit+` chain to `/([0-7]+)/` regex literal.
+  - Removed duplicate inline `octal_digits` definition near `octal_escape` (was defined twice; kept the canonical definition in the char-categories section).
+- **AST shape change (consumer-visible):**
+  - Braced `\o{NNN...}` → `{type:"escape", kind:"octal", digits:"NNN..."}`.
+  - Bare `\NNN` *inside character classes* (where the `class_range_escape_unit` path reaches the bare octal branch) → `{type:"escape", kind:"octal", digits:"NNN"}`.
+  - Bare `\NNN` at atom-level remains parsed as `backreference` (`{type:"backreference", kind:"numeric", index:NNN}`) under the existing PEG ordering — the numeric backref branch shadows the bare-octal branch in `atom`. Pre-existing behavior; not changed by this slice. Disambiguating numeric-backref vs bare-octal at atom-level requires PCRE2-style contextual logic ("if NNN ≤ 9 OR there are NNN capture groups, treat as backref; else octal") that PEG cannot express directly — separate slice if/when warranted.
+- **`digits` is a string, not an int.** Consumers parse with `usize::from_str_radix(digits, 8)`. Same constraint as hex/unicode; extending `@transform` to support `from_str_radix` is a separate codegen-feature slice.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.46` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["o{", ..., <digits chain>, ..., "}"]` shape for braced-octal escapes to use typed `obj.kind == "octal"` dispatch + `obj.digits` field read. Parse with `usize::from_str_radix(obj.digits, 8)`.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- Atom subtree campaign progress: 5/25 alternatives directly typed; 6/7 escape_unit branches typed. Only remaining un-typed escape_unit branch: `property_escape`.
 
 ## Release 1.1.45 / Contract 1.1.47 Highlights — atom subtree slice 15: escape subtree continues (hex/unicode)
 

@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 16/N: escape subtree continues (octal)
+
+### What landed
+
+```ebnf
+octal_escape = "o{" brace_ws? octal_digits brace_ws? "}"  -> {type: "escape", kind: "octal", digits: $3}
+             | octal_escape_short_payload                  -> {type: "escape", kind: "octal", digits: $1}
+octal_escape_short_payload = /([0-7]{1,3})/
+
+# rewritten from `octal_digit+` chain:
+octal_digits = /([0-7]+)/
+```
+
+Also removed a duplicate inline `octal_digits` definition near `octal_escape` (was defined twice; canonical version stays in the char-categories section).
+
+### Empirical AST shape change
+
+| Source | Before (post-slice-15) | After |
+|---|---|---|
+| `\o{777}` (atom) | `["\\", ["o{", [], <chain>, [], "}"]]` | `{type:"escape", kind:"octal", digits:"777"}` |
+| `\o{7777}` | similar 5-level chain | `{type:"escape", kind:"octal", digits:"7777"}` |
+| `\o{1}` | similar | `{type:"escape", kind:"octal", digits:"1"}` |
+| `[\377]` (in class) | `[..., ["\\", ["3", ["7"], ["7"]]], ...]` | `[..., {type:"escape", kind:"octal", digits:"377"}, ...]` |
+
+### Caveat — bare `\NNN` at atom-level
+
+Outside of character classes, `\377` and similar bare-digit forms are parsed as `{type:"backreference", kind:"numeric", index:377}` under the existing PEG-ordered atom alternation (numeric-backref branch shadows bare-octal). Pre-existing behavior; not changed by this slice. PEG cannot express PCRE2's contextual disambiguation directly. Disambiguation is left to consumers via post-parse semantic analysis if/when atom-level bare-octal support is needed.
+
+### `digits` is a string
+
+Same convention as hex/unicode (slice 15). Consumers parse to int via `usize::from_str_radix(obj.digits, 8)`.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- Manifest gets 2 new entries (`octal_escape` ×2).
+- `make regex_parser_book_gate` green.
+- Empirical sweep: braced `\o{777}` / `\o{7777}` / `\o{1}` typed; bare `\377` in class typed; bare `\377` at atom-level still numeric-backref (unchanged from pre-slice-16).
+
+### Contract bump
+
+Parser release `1.1.45` → `1.1.46`. Contract `1.1.47` → `1.1.48`. New "Release 1.1.46 / Contract 1.1.48 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.46 / 1.1.48 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.20.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 4 new entries (octal_escape ×2 + octal_digits + octal_escape_short_payload).
+- `docs/regex_parser_book/src/examples-escapes.md` — chapter intro + octal sections rewritten + dispatcher pattern updated (now 6 typed branches, 1 raw).
+
+### Atom subtree progress
+5/25 atom alternatives directly typed; **6/7 escape_unit branches typed** (single_byte, simple, control, hex, unicode, octal). Only remaining: `property_escape`.
+
 ## 2026-05-01 - PGEN-RGX-0078 logged (acknowledged / deferred, non-blocking)
 
 RGX filed PGEN-RGX-0078 — methodology-correction follow-up to PGEN-RGX-0073. 0073 closed against PGEN's absolute <50µs PRIMARY target at release `1.1.30`. 0078 files the integration-side metric explicitly: PCRE2-relative ratio (RGX ROADMAP target <5x of PCRE2 compile).
