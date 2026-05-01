@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aaa8a997.js";
+            window.path_to_searchindex_js = "searchindex-12d785de.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -234,6 +234,11 @@
 <tr><td><code>simple_escape</code></td><td><code>-&gt; {type:"escape", kind:"shorthand", char:$1}</code></td><td>Object <code>{type:"escape", kind:"shorthand", char:&lt;char&gt;}</code></td></tr>
 <tr><td><code>single_byte_escape</code></td><td><code>-&gt; {type:"escape", kind:"single_byte"}</code></td><td>Object <code>{type:"escape", kind:"single_byte"}</code></td></tr>
 <tr><td><code>control_escape</code></td><td><code>-&gt; {type:"escape", kind:"control", char:$2}</code></td><td>Object <code>{type:"escape", kind:"control", char:&lt;char&gt;}</code></td></tr>
+<tr><td><code>hex_escape</code> (branch 0, short <code>\xNN</code>)</td><td><code>-&gt; {type:"escape", kind:"hex", digits:$2}</code></td><td>Object <code>{type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code></td></tr>
+<tr><td><code>hex_escape</code> (branch 1, braced <code>\x{...}</code>)</td><td><code>-&gt; {type:"escape", kind:"hex", digits:$3}</code></td><td>Object <code>{type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code></td></tr>
+<tr><td><code>unicode_escape</code></td><td><code>-&gt; {type:"escape", kind:"unicode", digits:$2}</code></td><td>Object <code>{type:"escape", kind:"unicode", digits:&lt;hex-string&gt;}</code></td></tr>
+<tr><td><code>hex_digits</code></td><td>regex literal <code>/([0-9A-Fa-f]+)/</code></td><td>Terminal of the matched hex string (was <code>hex_digit+</code> chain)</td></tr>
+<tr><td><code>hex_escape_short_payload</code></td><td>regex literal <code>/([0-9A-Fa-f]{1,2})/</code></td><td>Terminal of the matched 1-2 hex digits</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; {type: "posix_class", name: $3, negated: $2}</code></td><td>Object <code>{type:"posix_class", name:&lt;str&gt;, negated:&lt;true | []&gt;}</code></td></tr>
 <tr><td><code>posix_negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), or <code>[]</code> from the un-matched <code>posix_negation?</code> slot</td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>

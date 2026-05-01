@@ -217,6 +217,18 @@
         "normalized_text": "$2"
       },
       {
+        "rule": "hex_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"hex\", digits: $2}"
+      },
+      {
+        "rule": "hex_escape",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"hex\", digits: $3}"
+      },
+      {
         "rule": "name_ref",
         "branch_index": 0,
         "annotation_type": "return_scalar",
@@ -371,6 +383,12 @@
         "branch_index": 3,
         "annotation_type": "return_scalar",
         "normalized_text": "$1"
+      },
+      {
+        "rule": "unicode_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"unicode\", digits: $2}"
       }
     ]
   }

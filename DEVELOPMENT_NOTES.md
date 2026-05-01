@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 15/N — escape subtree continues (hex/unicode)
+
+### What landed
+
+```ebnf
+hex_escape     = "x" hex_escape_short_payload                    -> {type: "escape", kind: "hex", digits: $2}
+               | "x{" brace_ws? hex_digits brace_ws? "}"         -> {type: "escape", kind: "hex", digits: $3}
+hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
+
+unicode_escape = "u{" hex_digits "}" -> {type: "escape", kind: "unicode", digits: $2}
+
+# rewrite for clean string Terminal:
+hex_digits     = /([0-9A-Fa-f]+)/
+```
+
+### Design choice — `digits` is a string, not an int
+
+Decoding hex digits to a numeric codepoint via the rule's `@transform` would require extending the codegen's transform machinery beyond its current `str::parse::<TYPE>().unwrap_or(DEFAULT)` shape (it can't currently express `from_str_radix(s, 16)`). Saved as a separate codegen-feature slice. For now `digits` is the raw hex string; consumers parse with `usize::from_str_radix(obj.digits, 16)`.
+
+### Design choice — `hex_escape_short_payload` regex literal
+
+The short form `\xN` / `\xNN` had the EBNF chain `hex_digit hex_digit?` which under generated runtime emits a 4-level Sequence/Quantified chain. Extracting the digits via positional `$2`/`$3` over that chain would require concatenation of multi-element pieces in annotation language — which it doesn't directly support. Instead, introduced `hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/` as a regex-literal rule that matches the same 1-2-digit window in one shot. PCRE2's runtime upper bound (the host validator's max-2-digit check for `\xNN`) is preserved by the `{1,2}` quantifier in the regex literal.
+
+### Design choice — `hex_digits` rewrite
+
+Was: `hex_digits = hex_digit+`. Generates a Quantified-`+` of hex_digit terminals — Sequence-of-Sequences in JSON. Becomes: `hex_digits = /([0-9A-Fa-f]+)/`. Generates a clean string Terminal. Used in both `hex_escape` braced and `unicode_escape`. Side benefit: `hex_digit` rule is no longer invoked anywhere — left in place for now (no harm) but a future sweep could remove it.
+
+### Empirical
+- `\xF` → `{type:"escape",kind:"hex",digits:"F"}`.
+- `\xFF` → `{type:"escape",kind:"hex",digits:"FF"}`.
+- `\x{1F}` → `{type:"escape",kind:"hex",digits:"1F"}`.
+- `\x{1F600}` → `{type:"escape",kind:"hex",digits:"1F600"}`.
+- `\x{ABC}` → `{type:"escape",kind:"hex",digits:"ABC"}`.
+
+### Validator quirk — `\u{...}`
+
+PGEN's host-side compile validator currently rejects `\u{...}` escapes ("unsupported regex escape `\u`"). Reproduced before slice 15 changes (via `git stash`) → pre-existing. The annotation IS in place and correct when the validator allows the escape through; for inputs the validator rejects, no AST is produced. Out of scope for this slice; tracked for a future host-validator update.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 3 new manifest entries in `rust/test_data/ast_shape_contract/regex_v1.json` (hex_escape ×2 + unicode_escape).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 5 hex inputs.
+
+### Bumps
+- Parser release `1.1.44` → `1.1.45`. Contract `1.1.46` → `1.1.47`.
+- New "Release 1.1.45 / Contract 1.1.47 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md` (1.1.45 row), `schema-versioning.md` (0.19.0 row), `json-carrier.md` (5 new entries), `examples-escapes.md` (hex/unicode sections rewritten).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- 5/25 atom alternatives directly typed.
+- 5/7 escape_unit branches typed (single_byte, simple, control, hex, unicode).
+- Remaining escape_unit branches: octal_escape, property_escape.
+
 ## 2026-05-01 - regex.ebnf slice 14/N — escape subtree starts (simple/single_byte/control)
 
 ### What landed

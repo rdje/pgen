@@ -386,13 +386,26 @@ simple_escape  = any_char -> {type: "escape", kind: "shorthand", char: $1}
 @description: "Hex escape sequences \xFF or \x{FFFF}"
 @constraint: "must be valid hexadecimal digits"
 @precedence: {level: 9}
-hex_escape     = "x" hex_digit hex_digit? | "x{" brace_ws? hex_digits brace_ws? "}"
+# `hex_escape` — typed `{type:"escape", kind:"hex", digits:<hex-string>}`.
+# The `digits` field is the matched hex string (1-2 chars for the
+# short `\xNN` form, 1+ chars for the braced `\x{NNN}` form).
+# Consumers parse with `usize::from_str_radix(digits, 16)`. Int
+# decoding via the rule's own `@transform` would require extending the
+# transform machinery to support `from_str_radix`-style transforms;
+# saved as a separate codegen-feature slice.
+hex_escape     = "x" hex_escape_short_payload                    -> {type: "escape", kind: "hex", digits: $2}
+               | "x{" brace_ws? hex_digits brace_ws? "}"         -> {type: "escape", kind: "hex", digits: $3}
+
+# Short-form payload: 1-2 hex digits (PCRE2 `\xNN` semantics — extras
+# are treated as literal text). Regex literal so it emits a clean
+# string Terminal.
+hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
 
 @type: "unicode_escape"
 @description: "Unicode escape sequence \u{FFFF}"
 @constraint: "must be valid Unicode code point"
 @precedence: {level: 9}
-unicode_escape = "u{" hex_digits "}"
+unicode_escape = "u{" hex_digits "}" -> {type: "escape", kind: "unicode", digits: $2}
 
 @type: "octal_escape"
 @description: "Octal escape sequence \777"
@@ -631,6 +644,10 @@ special_char   = /([!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~])/
 # unaffected — they keep using the per-char `digit` rule.
 @transform: str::parse::<usize>().unwrap_or(0)
 digits         = /([0-9]+)/
-hex_digits     = hex_digit+
+# `hex_digits` rewritten from `hex_digit+` (multi-element chain
+# emitting `[first_digit, [rest_digits]]`) to a regex literal that
+# emits a clean string Terminal of the matched hex chars. Used by
+# `hex_escape` (braced form) and `unicode_escape`.
+hex_digits     = /([0-9A-Fa-f]+)/
 octal_digits   = octal_digit+
 ws             = whitespace+

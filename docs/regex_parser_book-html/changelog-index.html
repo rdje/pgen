@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aaa8a997.js";
+            window.path_to_searchindex_js = "searchindex-12d785de.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,38 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1145--contract-1147--atom-subtree-slice-15-escape-subtree-continues-hexunicode"><a class="header" href="#1145--contract-1147--atom-subtree-slice-15-escape-subtree-continues-hexunicode">1.1.45 / Contract 1.1.47 — Atom subtree slice 15: escape subtree continues (hex/unicode)</a></h3>
+<p><strong>What changed:</strong> <code>hex_escape</code> and <code>unicode_escape</code> now emit typed <code>{type:"escape", kind:&lt;form&gt;, digits:&lt;hex-string&gt;}</code> objects:</p>
+<pre><code class="language-ebnf">hex_escape = "x" hex_escape_short_payload                    -&gt; {type: "escape", kind: "hex", digits: $2}
+           | "x{" brace_ws? hex_digits brace_ws? "}"         -&gt; {type: "escape", kind: "hex", digits: $3}
+hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
+
+unicode_escape = "u{" hex_digits "}" -&gt; {type: "escape", kind: "unicode", digits: $2}
+
+# hex_digits rewritten from `hex_digit+` (multi-element chain) to a regex literal:
+hex_digits = /([0-9A-Fa-f]+)/
+</code></pre>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — hex and unicode escape atoms now read as field accesses:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\xF</code></td><td><code>["\\", ["x", "F", []]]</code> (3-elem chain)</td><td><code>{type:"escape", kind:"hex", digits:"F"}</code></td></tr>
+<tr><td><code>\xFF</code></td><td><code>["\\", ["x", "F", [["F"]]]]</code></td><td><code>{type:"escape", kind:"hex", digits:"FF"}</code></td></tr>
+<tr><td><code>\x{1F}</code></td><td><code>["\\", ["x{", [], &lt;hex_digits chain&gt;, [], "}"]]</code></td><td><code>{type:"escape", kind:"hex", digits:"1F"}</code></td></tr>
+<tr><td><code>\x{1F600}</code></td><td>similar</td><td><code>{type:"escape", kind:"hex", digits:"1F600"}</code></td></tr>
+<tr><td><code>\u{41}</code></td><td><code>["\\", ["u{", &lt;hex_digits chain&gt;, "}"]]</code></td><td><code>{type:"escape", kind:"unicode", digits:"41"}</code></td></tr>
+<tr><td><code>\u{1F600}</code></td><td>similar</td><td><code>{type:"escape", kind:"unicode", digits:"1F600"}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>digits</code> is a string, not an int.</strong> Consumers parse with <code>usize::from_str_radix(digits, 16)</code>. Int decoding via the rule’s <code>@transform</code> would require extending the transform machinery (currently <code>@transform</code> is hard-coded to <code>str::parse::&lt;TYPE&gt;().unwrap_or(DEFAULT)</code>-style; <code>from_str_radix</code> needs a different signature). Saved as a separate codegen-feature slice.</p>
+<p><strong><code>hex_digits</code> rewrite</strong> (was <code>hex_digit+</code>, now <code>/([0-9A-Fa-f]+)/</code>) cascades to clean strings everywhere <code>hex_digits</code> is used (the braced hex/unicode forms above). The standalone <code>hex_digit</code> rule is retained for any rule that still uses it directly.</p>
+<p><strong>Atom subtree progress:</strong> 5/25 alternatives directly typed; 5/7 escape_unit branches typed (single_byte, simple, control, hex, unicode). Remaining escape_unit branches: octal_escape, property_escape.</p>
+<p><strong>Note on <code>\u</code> validator rejection:</strong> PGEN’s host-side compile validator currently rejects <code>\u{...}</code> escapes (“unsupported regex escape <code>\u</code>”). The annotation works correctly when the validator allows the escape through; for inputs the validator rejects, no AST is produced. That validator behavior is pre-existing and out of scope for this slice.</p>
+<p><strong>Contract section:</strong> “Release 1.1.45 / Contract 1.1.47 Highlights”.</p>
 <h3 id="1144--contract-1146--atom-subtree-slice-14-escape-subtree-starts-simplesingle_bytecontrol"><a class="header" href="#1144--contract-1146--atom-subtree-slice-14-escape-subtree-starts-simplesingle_bytecontrol">1.1.44 / Contract 1.1.46 — Atom subtree slice 14: escape subtree starts (simple/single_byte/control)</a></h3>
 <p><strong>What changed:</strong> the <code>escape</code> rule and 3 of its 7 sub-rules got typed annotations:</p>
 <pre><code class="language-ebnf">escape         = "\\" escape_unit -&gt; $2

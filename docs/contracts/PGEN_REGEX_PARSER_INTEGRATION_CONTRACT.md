@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.46`
+  - `1.1.47`
 - Parser release version:
-  - `1.1.44`
+  - `1.1.45`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,27 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.45 / Contract 1.1.47 Highlights — atom subtree slice 15: escape subtree continues (hex/unicode)
+
+- **Internal-driven shape work** (no downstream report). Continues the escape-subtree typed-shape campaign from slice 14.
+- **Rules changed:**
+  - `hex_escape` per-branch annotations producing typed `{type:"escape", kind:"hex", digits:<hex-string>}`.
+  - `unicode_escape` annotated `-> {type:"escape", kind:"unicode", digits:<hex-string>}`.
+  - New `hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/` regex literal for the short `\xNN` form.
+  - `hex_digits` rewritten from `hex_digit+` (multi-element chain) to `/([0-9A-Fa-f]+)/` (regex literal emitting clean string Terminal).
+- **AST shape change (consumer-visible):** PCRE2 `\xF`/`\xFF`/`\x{NNN...}` and `\u{NNN...}` atoms now emit typed `{type, kind, digits}` objects.
+  - Before: `\xFF` → `["\\", ["x", "F", [["F"]]]]` (4-level chain).
+  - After: `\xFF` → `{type:"escape", kind:"hex", digits:"FF"}` (typed object).
+- **`digits` is a string, not an int.** Consumers parse with `usize::from_str_radix(digits, 16)`. The rule's `@transform` is currently hard-coded to `str::parse::<TYPE>().unwrap_or(DEFAULT)`-style which doesn't accommodate `from_str_radix(s, 16)`. Extending the transform machinery is a separate codegen-feature slice.
+- **`\u{...}` validator note:** PGEN's host-side compile validator currently rejects `\u{...}` escapes ("unsupported regex escape `\u`"). The annotation IS in place and works correctly when the validator permits the escape; for inputs the validator rejects, no AST is produced. That validator behavior is pre-existing and out of scope for this slice.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.45` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["\\", ["x", ...]]` shape for hex escapes to use typed `obj.kind == "hex"` dispatch + `obj.digits` field read. Parse with `usize::from_str_radix(obj.digits, 16)`.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- Atom subtree campaign progress: 5/25 alternatives directly typed; 5/7 escape_unit branches typed.
 
 ## Release 1.1.44 / Contract 1.1.46 Highlights — atom subtree slice 14: escape subtree starts (simple/single_byte/control)
 

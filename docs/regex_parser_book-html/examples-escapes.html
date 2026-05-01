@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aaa8a997.js";
+            window.path_to_searchindex_js = "searchindex-12d785de.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-escapes"><a class="header" href="#examples-escapes">Examples: Escapes</a></h1>
-<p>Concrete probe outputs for PCRE2 escape sequences. As of slice 14 (post-1.1.43), the <code>escape</code> rule is a transparent wrapper (<code>-&gt; $2</code>) and 3 of the 7 <code>escape_unit</code> sub-rules emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly. Hex/unicode/octal/property branches still emit raw shapes pending follow-up slices.</p>
+<p>Concrete probe outputs for PCRE2 escape sequences. As of slice 15 (post-1.1.45), the <code>escape</code> rule is a transparent wrapper (<code>-&gt; $2</code>) and 5 of the 7 <code>escape_unit</code> sub-rules emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15). Octal/property branches still emit raw shapes pending follow-up slices.</p>
 <h2 id="shorthand-escapes--d-w-s---etc"><a class="header" href="#shorthand-escapes--d-w-s---etc">Shorthand escapes — <code>\d</code>, <code>\w</code>, <code>\s</code>, <code>\.</code>, <code>\\</code>, etc.</a></h2>
 <p>These all flow through <code>simple_escape</code> (the catch-all branch of <code>escape_unit</code>):</p>
 <pre><code class="language-ebnf">simple_escape  = any_char -&gt; {type: "escape", kind: "shorthand", char: $1}
@@ -206,64 +206,39 @@
 <p>For <code>\\</code> (escaped backslash): <code>char:"\\"</code> (the literal backslash char).</p>
 <h2 id="hex-escape-1-2-digit-form--xff"><a class="header" href="#hex-escape-1-2-digit-form--xff">Hex escape (1-2 digit form) — <code>\xFF</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "x",
-      "F",
-      [["F"]]   // hex_digit? Quantified-?, optional second digit
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "hex", "digits": "FF"},
   ...
 }
 </code></pre>
-<p>3-element Sequence inside the <code>escape_unit</code>: <code>["x", &lt;hex_digit&gt;, &lt;hex_digit?&gt;]</code>.</p>
+<p>For <code>\xF</code> (single digit): <code>digits:"F"</code>. The <code>hex_escape_short_payload</code> regex literal <code>/([0-9A-Fa-f]{1,2})/</code> accepts 1 or 2 hex digits.</p>
 <h2 id="hex-escape-braced-form--x1f"><a class="header" href="#hex-escape-braced-form--x1f">Hex escape (braced form) — <code>\x{1F}</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "x{",
-      [],                       // brace_ws? — empty
-      [["1"], ["F"]],           // hex_digits — Quantified of digit terminals
-      [],                       // brace_ws? — empty
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "hex", "digits": "1F"},
   ...
 }
 </code></pre>
-<p>5-element Sequence. The <code>hex_digits</code> at index 2 is a Quantified-<code>+</code> of single-char hex_digit terminals; consumers concatenate to recover the hex string.</p>
+<p>The braced form accepts any number of hex digits via <code>hex_digits = /([0-9A-Fa-f]+)/</code>, with optional whitespace inside the braces (PCRE2’s <code>brace_ws</code> allowance).</p>
 <h2 id="hex-escape-long-codepoint--x1f600-"><a class="header" href="#hex-escape-long-codepoint--x1f600-">Hex escape (long codepoint) — <code>\x{1F600}</code> (😀)</a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "x{",
-      [],
-      [["1"], ["F"], ["6"], ["0"], ["0"]],
-      [],
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "hex", "digits": "1F600"},
   ...
 }
 </code></pre>
-<p>5 hex_digits. Concatenate to <code>"1F600"</code>, parse as hex int = 128512 = U+1F600 = 😀.</p>
+<p>Consumers parse the codepoint with <code>usize::from_str_radix(obj.digits, 16)</code>.</p>
+<h2 id="digits-is-a-string-not-an-int"><a class="header" href="#digits-is-a-string-not-an-int"><code>digits</code> is a string, not an int</a></h2>
+<p>The hex/unicode <code>digits</code> field carries the raw hex string. Decode to a numeric codepoint yourself:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let cp = usize::from_str_radix(obj["digits"].as_str().unwrap(), 16).unwrap();
+<span class="boring">}</span></code></pre>
+<p>PGEN’s <code>@transform</code> machinery is currently hard-coded to <code>str::parse::&lt;TYPE&gt;().unwrap_or(DEFAULT)</code>-style and can’t express <code>from_str_radix(s, 16)</code>. Extending it is a separate codegen-feature slice.</p>
 <h2 id="unicode-escape--u1f600"><a class="header" href="#unicode-escape--u1f600">Unicode escape — <code>\u{1F600}</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "u{",
-      [&lt;hex_digits&gt;],
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "unicode", "digits": "1F600"},
   ...
 }
 </code></pre>
-<p>3-element Sequence (no whitespace allowance — note the differences from <code>\x{...}</code> shape).</p>
+<p><strong>Validator note:</strong> PGEN’s host-side compile validator currently rejects <code>\u{...}</code> escapes (“unsupported regex escape <code>\u</code>”). The annotation IS in place and correct when the validator allows the escape through; for inputs the validator rejects, no AST is produced. That validator behavior is pre-existing and tracked separately from the slice 15 shape work.</p>
 <h2 id="octal-escape-braced--o777"><a class="header" href="#octal-escape-braced--o777">Octal escape (braced) — <code>\o{777}</code></a></h2>
 <pre><code class="language-json">{
   "atom": [
@@ -337,55 +312,43 @@
 </code></pre>
 <p>PCRE2’s <code>\C</code> matches one code unit. Typed <code>{type:"escape", kind:"single_byte"}</code> — no <code>char</code> field since the char is fixed (always uppercase <code>C</code>).</p>
 <h2 id="identifying-escape-kind-from-the-ast-shape"><a class="header" href="#identifying-escape-kind-from-the-ast-shape">Identifying escape kind from the AST shape</a></h2>
-<p>The <code>escape_unit</code> is an Or with 7 branches. At this release, none are annotated, so the consumer dispatches by structural signature on the inner content (the second element of the outer <code>["\\", &lt;unit&gt;]</code> Sequence):</p>
+<p>The <code>escape_unit</code> is an Or with 7 branches. As of slice 15, 5 of those branches emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly — consumers can dispatch on <code>kind</code>. The 2 remaining branches (octal, property) still emit raw structural shapes; consumers fall through to a structural-prefix check for those.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn classify_escape(escape_atom: &amp;Value) -&gt; Option&lt;EscapeKind&gt; {
-    let arr = escape_atom.as_array()?;
-    let unit = arr.get(1)?;
-
-    match unit {
-        // single_byte_escape: Terminal "C"
-        Value::String(s) if s == "C" =&gt; Some(EscapeKind::SingleByte),
-
-        Value::Array(seq) =&gt; {
-            match seq.first() {
-                // hex_escape — starts with "x" or "x{"
-                Some(Value::String(s)) if s == "x" =&gt; Some(EscapeKind::Hex(HexForm::Short)),
-                Some(Value::String(s)) if s == "x{" =&gt; Some(EscapeKind::Hex(HexForm::Braced)),
-
-                // unicode_escape — starts with "u{"
-                Some(Value::String(s)) if s == "u{" =&gt; Some(EscapeKind::Unicode),
-
-                // octal_escape — starts with "o{" or with a digit
-                Some(Value::String(s)) if s == "o{" =&gt; Some(EscapeKind::Octal(OctalForm::Braced)),
-                Some(Value::String(s)) if s.chars().all(|c| ('0'..='7').contains(&amp;c)) =&gt; {
-                    Some(EscapeKind::Octal(OctalForm::Bare))
-                }
-
-                // control_escape — starts with "c"
-                Some(Value::String(s)) if s == "c" =&gt; Some(EscapeKind::Control),
-
-                // property_escape — starts with "p{", "P{", "p", or "P"
-                Some(Value::String(s)) if s == "p{" || s == "P{" =&gt; {
-                    Some(EscapeKind::Property(PropertyForm::Braced))
-                }
-                Some(Value::String(s)) if s == "p" || s == "P" =&gt; {
-                    Some(EscapeKind::Property(PropertyForm::Short))
-                }
-
-                // simple_escape — anything else; deeply nested, leaf is the char
-                _ =&gt; Some(EscapeKind::Simple),
-            }
+    // Typed branches: simple, single_byte, control, hex, unicode
+    if let Some(obj) = escape_atom.as_object() {
+        if obj.get("type").and_then(|v| v.as_str()) == Some("escape") {
+            return match obj.get("kind").and_then(|v| v.as_str())? {
+                "shorthand"   =&gt; Some(EscapeKind::Simple),
+                "single_byte" =&gt; Some(EscapeKind::SingleByte),
+                "control"     =&gt; Some(EscapeKind::Control),
+                "hex"         =&gt; Some(EscapeKind::Hex),
+                "unicode"     =&gt; Some(EscapeKind::Unicode),
+                _             =&gt; None,
+            };
         }
+    }
 
+    // Untyped raw-shape branches: octal, property
+    let arr = escape_atom.as_array()?;
+    match arr.first() {
+        Some(Value::String(s)) if s == "o{" =&gt; Some(EscapeKind::Octal(OctalForm::Braced)),
+        Some(Value::String(s)) if s.chars().all(|c| ('0'..='7').contains(&amp;c)) =&gt; {
+            Some(EscapeKind::Octal(OctalForm::Bare))
+        }
+        Some(Value::String(s)) if s == "p{" || s == "P{" =&gt; {
+            Some(EscapeKind::Property(PropertyForm::Braced))
+        }
+        Some(Value::String(s)) if s == "p" || s == "P" =&gt; {
+            Some(EscapeKind::Property(PropertyForm::Short))
+        }
         _ =&gt; None,
     }
 }
 <span class="boring">}</span></code></pre>
-<p>The simple_escape’s char is recovered by descending the nested Alternative wrappers until reaching a string leaf — see <a href="walking-the-ast.html">Walking the AST</a> for the descent pattern.</p>
 <h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>Future task #40 escape-subtree slice will produce shapes like <code>{type: "escape", kind: "simple", char: "d"}</code>, <code>{type: "escape", kind: "hex", value: 31}</code>, etc. Until then, the structural-prefix dispatch above is the way.</p>
+<p>Remaining task #40 escape-subtree slices will type the octal_escape and property_escape branches. Once those land, the structural fallback above will be removed.</p>
 
                     </main>
 

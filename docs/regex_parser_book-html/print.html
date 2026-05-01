@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aaa8a997.js";
+            window.path_to_searchindex_js = "searchindex-12d785de.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -888,6 +888,11 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>simple_escape</code></td><td><code>-&gt; {type:"escape", kind:"shorthand", char:$1}</code></td><td>Object <code>{type:"escape", kind:"shorthand", char:&lt;char&gt;}</code></td></tr>
 <tr><td><code>single_byte_escape</code></td><td><code>-&gt; {type:"escape", kind:"single_byte"}</code></td><td>Object <code>{type:"escape", kind:"single_byte"}</code></td></tr>
 <tr><td><code>control_escape</code></td><td><code>-&gt; {type:"escape", kind:"control", char:$2}</code></td><td>Object <code>{type:"escape", kind:"control", char:&lt;char&gt;}</code></td></tr>
+<tr><td><code>hex_escape</code> (branch 0, short <code>\xNN</code>)</td><td><code>-&gt; {type:"escape", kind:"hex", digits:$2}</code></td><td>Object <code>{type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code></td></tr>
+<tr><td><code>hex_escape</code> (branch 1, braced <code>\x{...}</code>)</td><td><code>-&gt; {type:"escape", kind:"hex", digits:$3}</code></td><td>Object <code>{type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code></td></tr>
+<tr><td><code>unicode_escape</code></td><td><code>-&gt; {type:"escape", kind:"unicode", digits:$2}</code></td><td>Object <code>{type:"escape", kind:"unicode", digits:&lt;hex-string&gt;}</code></td></tr>
+<tr><td><code>hex_digits</code></td><td>regex literal <code>/([0-9A-Fa-f]+)/</code></td><td>Terminal of the matched hex string (was <code>hex_digit+</code> chain)</td></tr>
+<tr><td><code>hex_escape_short_payload</code></td><td>regex literal <code>/([0-9A-Fa-f]{1,2})/</code></td><td>Terminal of the matched 1-2 hex digits</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; {type: "posix_class", name: $3, negated: $2}</code></td><td>Object <code>{type:"posix_class", name:&lt;str&gt;, negated:&lt;true | []&gt;}</code></td></tr>
 <tr><td><code>posix_negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), or <code>[]</code> from the un-matched <code>posix_negation?</code> slot</td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>
@@ -4111,7 +4116,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <p>The kind names are stable identifiers — they do not depend on the source escape text and won’t change if PCRE2 syntax evolves.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-escapes"><a class="header" href="#examples-escapes">Examples: Escapes</a></h1>
-<p>Concrete probe outputs for PCRE2 escape sequences. As of slice 14 (post-1.1.43), the <code>escape</code> rule is a transparent wrapper (<code>-&gt; $2</code>) and 3 of the 7 <code>escape_unit</code> sub-rules emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly. Hex/unicode/octal/property branches still emit raw shapes pending follow-up slices.</p>
+<p>Concrete probe outputs for PCRE2 escape sequences. As of slice 15 (post-1.1.45), the <code>escape</code> rule is a transparent wrapper (<code>-&gt; $2</code>) and 5 of the 7 <code>escape_unit</code> sub-rules emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15). Octal/property branches still emit raw shapes pending follow-up slices.</p>
 <h2 id="shorthand-escapes--d-w-s---etc"><a class="header" href="#shorthand-escapes--d-w-s---etc">Shorthand escapes — <code>\d</code>, <code>\w</code>, <code>\s</code>, <code>\.</code>, <code>\\</code>, etc.</a></h2>
 <p>These all flow through <code>simple_escape</code> (the catch-all branch of <code>escape_unit</code>):</p>
 <pre><code class="language-ebnf">simple_escape  = any_char -&gt; {type: "escape", kind: "shorthand", char: $1}
@@ -4136,64 +4141,39 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <p>For <code>\\</code> (escaped backslash): <code>char:"\\"</code> (the literal backslash char).</p>
 <h2 id="hex-escape-1-2-digit-form--xff"><a class="header" href="#hex-escape-1-2-digit-form--xff">Hex escape (1-2 digit form) — <code>\xFF</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "x",
-      "F",
-      [["F"]]   // hex_digit? Quantified-?, optional second digit
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "hex", "digits": "FF"},
   ...
 }
 </code></pre>
-<p>3-element Sequence inside the <code>escape_unit</code>: <code>["x", &lt;hex_digit&gt;, &lt;hex_digit?&gt;]</code>.</p>
+<p>For <code>\xF</code> (single digit): <code>digits:"F"</code>. The <code>hex_escape_short_payload</code> regex literal <code>/([0-9A-Fa-f]{1,2})/</code> accepts 1 or 2 hex digits.</p>
 <h2 id="hex-escape-braced-form--x1f"><a class="header" href="#hex-escape-braced-form--x1f">Hex escape (braced form) — <code>\x{1F}</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "x{",
-      [],                       // brace_ws? — empty
-      [["1"], ["F"]],           // hex_digits — Quantified of digit terminals
-      [],                       // brace_ws? — empty
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "hex", "digits": "1F"},
   ...
 }
 </code></pre>
-<p>5-element Sequence. The <code>hex_digits</code> at index 2 is a Quantified-<code>+</code> of single-char hex_digit terminals; consumers concatenate to recover the hex string.</p>
+<p>The braced form accepts any number of hex digits via <code>hex_digits = /([0-9A-Fa-f]+)/</code>, with optional whitespace inside the braces (PCRE2’s <code>brace_ws</code> allowance).</p>
 <h2 id="hex-escape-long-codepoint--x1f600-"><a class="header" href="#hex-escape-long-codepoint--x1f600-">Hex escape (long codepoint) — <code>\x{1F600}</code> (😀)</a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "x{",
-      [],
-      [["1"], ["F"], ["6"], ["0"], ["0"]],
-      [],
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "hex", "digits": "1F600"},
   ...
 }
 </code></pre>
-<p>5 hex_digits. Concatenate to <code>"1F600"</code>, parse as hex int = 128512 = U+1F600 = 😀.</p>
+<p>Consumers parse the codepoint with <code>usize::from_str_radix(obj.digits, 16)</code>.</p>
+<h2 id="digits-is-a-string-not-an-int"><a class="header" href="#digits-is-a-string-not-an-int"><code>digits</code> is a string, not an int</a></h2>
+<p>The hex/unicode <code>digits</code> field carries the raw hex string. Decode to a numeric codepoint yourself:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let cp = usize::from_str_radix(obj["digits"].as_str().unwrap(), 16).unwrap();
+<span class="boring">}</span></code></pre>
+<p>PGEN’s <code>@transform</code> machinery is currently hard-coded to <code>str::parse::&lt;TYPE&gt;().unwrap_or(DEFAULT)</code>-style and can’t express <code>from_str_radix(s, 16)</code>. Extending it is a separate codegen-feature slice.</p>
 <h2 id="unicode-escape--u1f600"><a class="header" href="#unicode-escape--u1f600">Unicode escape — <code>\u{1F600}</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "u{",
-      [&lt;hex_digits&gt;],
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "unicode", "digits": "1F600"},
   ...
 }
 </code></pre>
-<p>3-element Sequence (no whitespace allowance — note the differences from <code>\x{...}</code> shape).</p>
+<p><strong>Validator note:</strong> PGEN’s host-side compile validator currently rejects <code>\u{...}</code> escapes (“unsupported regex escape <code>\u</code>”). The annotation IS in place and correct when the validator allows the escape through; for inputs the validator rejects, no AST is produced. That validator behavior is pre-existing and tracked separately from the slice 15 shape work.</p>
 <h2 id="octal-escape-braced--o777"><a class="header" href="#octal-escape-braced--o777">Octal escape (braced) — <code>\o{777}</code></a></h2>
 <pre><code class="language-json">{
   "atom": [
@@ -4267,55 +4247,43 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 </code></pre>
 <p>PCRE2’s <code>\C</code> matches one code unit. Typed <code>{type:"escape", kind:"single_byte"}</code> — no <code>char</code> field since the char is fixed (always uppercase <code>C</code>).</p>
 <h2 id="identifying-escape-kind-from-the-ast-shape"><a class="header" href="#identifying-escape-kind-from-the-ast-shape">Identifying escape kind from the AST shape</a></h2>
-<p>The <code>escape_unit</code> is an Or with 7 branches. At this release, none are annotated, so the consumer dispatches by structural signature on the inner content (the second element of the outer <code>["\\", &lt;unit&gt;]</code> Sequence):</p>
+<p>The <code>escape_unit</code> is an Or with 7 branches. As of slice 15, 5 of those branches emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly — consumers can dispatch on <code>kind</code>. The 2 remaining branches (octal, property) still emit raw structural shapes; consumers fall through to a structural-prefix check for those.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn classify_escape(escape_atom: &amp;Value) -&gt; Option&lt;EscapeKind&gt; {
-    let arr = escape_atom.as_array()?;
-    let unit = arr.get(1)?;
-
-    match unit {
-        // single_byte_escape: Terminal "C"
-        Value::String(s) if s == "C" =&gt; Some(EscapeKind::SingleByte),
-
-        Value::Array(seq) =&gt; {
-            match seq.first() {
-                // hex_escape — starts with "x" or "x{"
-                Some(Value::String(s)) if s == "x" =&gt; Some(EscapeKind::Hex(HexForm::Short)),
-                Some(Value::String(s)) if s == "x{" =&gt; Some(EscapeKind::Hex(HexForm::Braced)),
-
-                // unicode_escape — starts with "u{"
-                Some(Value::String(s)) if s == "u{" =&gt; Some(EscapeKind::Unicode),
-
-                // octal_escape — starts with "o{" or with a digit
-                Some(Value::String(s)) if s == "o{" =&gt; Some(EscapeKind::Octal(OctalForm::Braced)),
-                Some(Value::String(s)) if s.chars().all(|c| ('0'..='7').contains(&amp;c)) =&gt; {
-                    Some(EscapeKind::Octal(OctalForm::Bare))
-                }
-
-                // control_escape — starts with "c"
-                Some(Value::String(s)) if s == "c" =&gt; Some(EscapeKind::Control),
-
-                // property_escape — starts with "p{", "P{", "p", or "P"
-                Some(Value::String(s)) if s == "p{" || s == "P{" =&gt; {
-                    Some(EscapeKind::Property(PropertyForm::Braced))
-                }
-                Some(Value::String(s)) if s == "p" || s == "P" =&gt; {
-                    Some(EscapeKind::Property(PropertyForm::Short))
-                }
-
-                // simple_escape — anything else; deeply nested, leaf is the char
-                _ =&gt; Some(EscapeKind::Simple),
-            }
+    // Typed branches: simple, single_byte, control, hex, unicode
+    if let Some(obj) = escape_atom.as_object() {
+        if obj.get("type").and_then(|v| v.as_str()) == Some("escape") {
+            return match obj.get("kind").and_then(|v| v.as_str())? {
+                "shorthand"   =&gt; Some(EscapeKind::Simple),
+                "single_byte" =&gt; Some(EscapeKind::SingleByte),
+                "control"     =&gt; Some(EscapeKind::Control),
+                "hex"         =&gt; Some(EscapeKind::Hex),
+                "unicode"     =&gt; Some(EscapeKind::Unicode),
+                _             =&gt; None,
+            };
         }
+    }
 
+    // Untyped raw-shape branches: octal, property
+    let arr = escape_atom.as_array()?;
+    match arr.first() {
+        Some(Value::String(s)) if s == "o{" =&gt; Some(EscapeKind::Octal(OctalForm::Braced)),
+        Some(Value::String(s)) if s.chars().all(|c| ('0'..='7').contains(&amp;c)) =&gt; {
+            Some(EscapeKind::Octal(OctalForm::Bare))
+        }
+        Some(Value::String(s)) if s == "p{" || s == "P{" =&gt; {
+            Some(EscapeKind::Property(PropertyForm::Braced))
+        }
+        Some(Value::String(s)) if s == "p" || s == "P" =&gt; {
+            Some(EscapeKind::Property(PropertyForm::Short))
+        }
         _ =&gt; None,
     }
 }
 <span class="boring">}</span></code></pre>
-<p>The simple_escape’s char is recovered by descending the nested Alternative wrappers until reaching a string leaf — see <a href="#walking-the-ast">Walking the AST</a> for the descent pattern.</p>
 <h2 id="future-direction-3"><a class="header" href="#future-direction-3">Future direction</a></h2>
-<p>Future task #40 escape-subtree slice will produce shapes like <code>{type: "escape", kind: "simple", char: "d"}</code>, <code>{type: "escape", kind: "hex", value: 31}</code>, etc. Until then, the structural-prefix dispatch above is the way.</p>
+<p>Remaining task #40 escape-subtree slices will type the octal_escape and property_escape branches. Once those land, the structural fallback above will be removed.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="from-the-recursive-envelope-pre-1130"><a class="header" href="#from-the-recursive-envelope-pre-1130">From the Recursive Envelope (pre-1.1.30)</a></h1>
 <p>This chapter is for consumers who built against PGEN regex parser releases <strong>before 1.1.30</strong> and need to migrate to the current annotated shape. If you are starting fresh, you can skip this chapter — go straight to <a href="#walking-the-ast">Walking the AST</a>.</p>
@@ -4592,6 +4560,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.16.0</td><td>1.1.42</td><td><strong>Breaking but correct:</strong> atom subtree slice 12 (subroutine_ref cleanup). <code>subroutine_ref</code> annotated per-branch (<code>-&gt; $1</code>/<code>-&gt; $2</code>/<code>-&gt; $2</code>/<code>-&gt; $1</code>) to drop the angle/quote/brace delimiters and surface the inner <code>signed_digits_or_name</code> directly. <code>braced_subroutine_ref</code> annotated <code>-&gt; $3</code>. Backreference <code>subroutine</code> form now emits clean values: <code>\g&lt;name&gt;</code>/<code>\g'name'</code>/<code>\g{name}</code> → <code>ref:"name"</code>; <code>\g&lt;1&gt;</code>/<code>\g{42}</code>/<code>\g42</code> → <code>ref:[&lt;sign?&gt;, &lt;int&gt;]</code>; <code>\g+1</code>/<code>\g-2</code> → <code>ref:[&lt;sign&gt;, &lt;int&gt;]</code>. Closes the backreference family typing — all 4 backreference forms now produce clean inner values. <code>signed_digits</code> and <code>sign</code> rules remain un-annotated (raw <code>[&lt;sign?&gt;, &lt;digit-int&gt;]</code> for numeric refs); typing them is a separate sub-slice.</td></tr>
 <tr><td>0.17.0</td><td>1.1.43</td><td><strong>Breaking but correct:</strong> atom subtree slice 13 (signed_digits typing). <code>signed_digits</code> annotated <code>-&gt; {sign: $1, value: $2}</code> so numeric subroutine refs surface a typed <code>{sign, value}</code> object instead of <code>[&lt;sign?&gt;, &lt;int&gt;]</code>. <code>sign</code> is <code>"+"</code>/<code>"-"</code> when matched, <code>[]</code> when un-matched (consumer maps <code>[]</code> → null/unsigned). <code>value</code> is the typed integer. Backreference family typing fully closed: every numeric subroutine ref now reads <code>obj.ref.sign</code> and <code>obj.ref.value</code> as named fields.</td></tr>
 <tr><td>0.18.0</td><td>1.1.44</td><td><strong>Breaking but correct:</strong> atom subtree slice 14 (escape subtree starts: simple/single_byte/control). <code>escape</code> rule annotated <code>-&gt; $2</code> (transparent passthrough). <code>single_byte_escape -&gt; {type:"escape", kind:"single_byte"}</code>, <code>simple_escape -&gt; {type:"escape", kind:"shorthand", char:$1}</code>, <code>control_escape -&gt; {type:"escape", kind:"control", char:$2}</code>. PCRE2 <code>\d</code>/<code>\w</code>/<code>\s</code>/<code>\.</code>/<code>\\</code> (shorthand), <code>\C</code> (single_byte), <code>\cA</code>/<code>\cz</code> (control) atoms now emit typed <code>{type, kind, char?}</code> objects. The other 4 escape_unit branches (hex/unicode/octal/property) still emit raw shapes — they pass through <code>escape -&gt; $2</code> un-typed; follow-up slices will annotate each.</td></tr>
+<tr><td>0.19.0</td><td>1.1.45</td><td><strong>Breaking but correct:</strong> atom subtree slice 15 (escape subtree continues: hex/unicode). <code>hex_escape</code> annotated per-branch <code>-&gt; {type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code>. <code>unicode_escape</code> annotated <code>-&gt; {type:"escape", kind:"unicode", digits:&lt;hex-string&gt;}</code>. New <code>hex_escape_short_payload</code> regex literal <code>/([0-9A-Fa-f]{1,2})/</code> for the short <code>\xNN</code> form. <code>hex_digits</code> rewritten from <code>hex_digit+</code> chain to a regex literal <code>/([0-9A-Fa-f]+)/</code>. PCRE2 <code>\xF</code>/<code>\xFF</code>/<code>\x{1F}</code>/<code>\x{1F600}</code> (hex) and <code>\u{NNNN}</code> (unicode) atoms emit typed <code>{type, kind, digits}</code> objects. <code>digits</code> is the matched hex string; consumers parse to int via <code>usize::from_str_radix(digits, 16)</code>. Int-decoding via the rule’s <code>@transform</code> would require extending the transform machinery to support <code>from_str_radix</code>-style; saved as a separate codegen-feature slice.</td></tr>
 </tbody>
 </table>
 </div>
@@ -4713,6 +4682,38 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1145--contract-1147--atom-subtree-slice-15-escape-subtree-continues-hexunicode"><a class="header" href="#1145--contract-1147--atom-subtree-slice-15-escape-subtree-continues-hexunicode">1.1.45 / Contract 1.1.47 — Atom subtree slice 15: escape subtree continues (hex/unicode)</a></h3>
+<p><strong>What changed:</strong> <code>hex_escape</code> and <code>unicode_escape</code> now emit typed <code>{type:"escape", kind:&lt;form&gt;, digits:&lt;hex-string&gt;}</code> objects:</p>
+<pre><code class="language-ebnf">hex_escape = "x" hex_escape_short_payload                    -&gt; {type: "escape", kind: "hex", digits: $2}
+           | "x{" brace_ws? hex_digits brace_ws? "}"         -&gt; {type: "escape", kind: "hex", digits: $3}
+hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
+
+unicode_escape = "u{" hex_digits "}" -&gt; {type: "escape", kind: "unicode", digits: $2}
+
+# hex_digits rewritten from `hex_digit+` (multi-element chain) to a regex literal:
+hex_digits = /([0-9A-Fa-f]+)/
+</code></pre>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — hex and unicode escape atoms now read as field accesses:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\xF</code></td><td><code>["\\", ["x", "F", []]]</code> (3-elem chain)</td><td><code>{type:"escape", kind:"hex", digits:"F"}</code></td></tr>
+<tr><td><code>\xFF</code></td><td><code>["\\", ["x", "F", [["F"]]]]</code></td><td><code>{type:"escape", kind:"hex", digits:"FF"}</code></td></tr>
+<tr><td><code>\x{1F}</code></td><td><code>["\\", ["x{", [], &lt;hex_digits chain&gt;, [], "}"]]</code></td><td><code>{type:"escape", kind:"hex", digits:"1F"}</code></td></tr>
+<tr><td><code>\x{1F600}</code></td><td>similar</td><td><code>{type:"escape", kind:"hex", digits:"1F600"}</code></td></tr>
+<tr><td><code>\u{41}</code></td><td><code>["\\", ["u{", &lt;hex_digits chain&gt;, "}"]]</code></td><td><code>{type:"escape", kind:"unicode", digits:"41"}</code></td></tr>
+<tr><td><code>\u{1F600}</code></td><td>similar</td><td><code>{type:"escape", kind:"unicode", digits:"1F600"}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>digits</code> is a string, not an int.</strong> Consumers parse with <code>usize::from_str_radix(digits, 16)</code>. Int decoding via the rule’s <code>@transform</code> would require extending the transform machinery (currently <code>@transform</code> is hard-coded to <code>str::parse::&lt;TYPE&gt;().unwrap_or(DEFAULT)</code>-style; <code>from_str_radix</code> needs a different signature). Saved as a separate codegen-feature slice.</p>
+<p><strong><code>hex_digits</code> rewrite</strong> (was <code>hex_digit+</code>, now <code>/([0-9A-Fa-f]+)/</code>) cascades to clean strings everywhere <code>hex_digits</code> is used (the braced hex/unicode forms above). The standalone <code>hex_digit</code> rule is retained for any rule that still uses it directly.</p>
+<p><strong>Atom subtree progress:</strong> 5/25 alternatives directly typed; 5/7 escape_unit branches typed (single_byte, simple, control, hex, unicode). Remaining escape_unit branches: octal_escape, property_escape.</p>
+<p><strong>Note on <code>\u</code> validator rejection:</strong> PGEN’s host-side compile validator currently rejects <code>\u{...}</code> escapes (“unsupported regex escape <code>\u</code>”). The annotation works correctly when the validator allows the escape through; for inputs the validator rejects, no AST is produced. That validator behavior is pre-existing and out of scope for this slice.</p>
+<p><strong>Contract section:</strong> “Release 1.1.45 / Contract 1.1.47 Highlights”.</p>
 <h3 id="1144--contract-1146--atom-subtree-slice-14-escape-subtree-starts-simplesingle_bytecontrol"><a class="header" href="#1144--contract-1146--atom-subtree-slice-14-escape-subtree-starts-simplesingle_bytecontrol">1.1.44 / Contract 1.1.46 — Atom subtree slice 14: escape subtree starts (simple/single_byte/control)</a></h3>
 <p><strong>What changed:</strong> the <code>escape</code> rule and 3 of its 7 sub-rules got typed annotations:</p>
 <pre><code class="language-ebnf">escape         = "\\" escape_unit -&gt; $2

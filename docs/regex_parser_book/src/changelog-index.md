@@ -23,6 +23,42 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.45 / Contract 1.1.47 — Atom subtree slice 15: escape subtree continues (hex/unicode)
+
+**What changed:** `hex_escape` and `unicode_escape` now emit typed `{type:"escape", kind:<form>, digits:<hex-string>}` objects:
+
+```ebnf
+hex_escape = "x" hex_escape_short_payload                    -> {type: "escape", kind: "hex", digits: $2}
+           | "x{" brace_ws? hex_digits brace_ws? "}"         -> {type: "escape", kind: "hex", digits: $3}
+hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
+
+unicode_escape = "u{" hex_digits "}" -> {type: "escape", kind: "unicode", digits: $2}
+
+# hex_digits rewritten from `hex_digit+` (multi-element chain) to a regex literal:
+hex_digits = /([0-9A-Fa-f]+)/
+```
+
+**Consumer impact:** **breaking but correct** — hex and unicode escape atoms now read as field accesses:
+
+| Source | Before | After |
+|---|---|---|
+| `\xF` | `["\\", ["x", "F", []]]` (3-elem chain) | `{type:"escape", kind:"hex", digits:"F"}` |
+| `\xFF` | `["\\", ["x", "F", [["F"]]]]` | `{type:"escape", kind:"hex", digits:"FF"}` |
+| `\x{1F}` | `["\\", ["x{", [], <hex_digits chain>, [], "}"]]` | `{type:"escape", kind:"hex", digits:"1F"}` |
+| `\x{1F600}` | similar | `{type:"escape", kind:"hex", digits:"1F600"}` |
+| `\u{41}` | `["\\", ["u{", <hex_digits chain>, "}"]]` | `{type:"escape", kind:"unicode", digits:"41"}` |
+| `\u{1F600}` | similar | `{type:"escape", kind:"unicode", digits:"1F600"}` |
+
+**`digits` is a string, not an int.** Consumers parse with `usize::from_str_radix(digits, 16)`. Int decoding via the rule's `@transform` would require extending the transform machinery (currently `@transform` is hard-coded to `str::parse::<TYPE>().unwrap_or(DEFAULT)`-style; `from_str_radix` needs a different signature). Saved as a separate codegen-feature slice.
+
+**`hex_digits` rewrite** (was `hex_digit+`, now `/([0-9A-Fa-f]+)/`) cascades to clean strings everywhere `hex_digits` is used (the braced hex/unicode forms above). The standalone `hex_digit` rule is retained for any rule that still uses it directly.
+
+**Atom subtree progress:** 5/25 alternatives directly typed; 5/7 escape_unit branches typed (single_byte, simple, control, hex, unicode). Remaining escape_unit branches: octal_escape, property_escape.
+
+**Note on `\u` validator rejection:** PGEN's host-side compile validator currently rejects `\u{...}` escapes ("unsupported regex escape `\u`"). The annotation works correctly when the validator allows the escape through; for inputs the validator rejects, no AST is produced. That validator behavior is pre-existing and out of scope for this slice.
+
+**Contract section:** "Release 1.1.45 / Contract 1.1.47 Highlights".
+
 ### 1.1.44 / Contract 1.1.46 — Atom subtree slice 14: escape subtree starts (simple/single_byte/control)
 
 **What changed:** the `escape` rule and 3 of its 7 sub-rules got typed annotations:

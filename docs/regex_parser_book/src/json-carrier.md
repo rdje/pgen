@@ -53,6 +53,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `simple_escape` | `-> {type:"escape", kind:"shorthand", char:$1}` | Object `{type:"escape", kind:"shorthand", char:<char>}` |
 | `single_byte_escape` | `-> {type:"escape", kind:"single_byte"}` | Object `{type:"escape", kind:"single_byte"}` |
 | `control_escape` | `-> {type:"escape", kind:"control", char:$2}` | Object `{type:"escape", kind:"control", char:<char>}` |
+| `hex_escape` (branch 0, short `\xNN`) | `-> {type:"escape", kind:"hex", digits:$2}` | Object `{type:"escape", kind:"hex", digits:<hex-string>}` |
+| `hex_escape` (branch 1, braced `\x{...}`) | `-> {type:"escape", kind:"hex", digits:$3}` | Object `{type:"escape", kind:"hex", digits:<hex-string>}` |
+| `unicode_escape` | `-> {type:"escape", kind:"unicode", digits:$2}` | Object `{type:"escape", kind:"unicode", digits:<hex-string>}` |
+| `hex_digits` | regex literal `/([0-9A-Fa-f]+)/` | Terminal of the matched hex string (was `hex_digit+` chain) |
+| `hex_escape_short_payload` | regex literal `/([0-9A-Fa-f]{1,2})/` | Terminal of the matched 1-2 hex digits |
 | `posix_class` | `-> {type: "posix_class", name: $3, negated: $2}` | Object `{type:"posix_class", name:<str>, negated:<true \| []>}` |
 | `posix_negation` | `-> true` | Boolean `true` (matched), or `[]` from the un-matched `posix_negation?` slot |
 | `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |

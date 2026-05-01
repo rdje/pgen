@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 15/N: escape subtree continues (hex/unicode)
+
+### What landed
+
+```ebnf
+hex_escape = "x" hex_escape_short_payload                    -> {type: "escape", kind: "hex", digits: $2}
+           | "x{" brace_ws? hex_digits brace_ws? "}"         -> {type: "escape", kind: "hex", digits: $3}
+hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
+
+unicode_escape = "u{" hex_digits "}" -> {type: "escape", kind: "unicode", digits: $2}
+
+# hex_digits rewritten from hex_digit+ to a regex literal
+hex_digits = /([0-9A-Fa-f]+)/
+```
+
+### Empirical AST shape change
+
+| Source | Before | After |
+|---|---|---|
+| `\xF` | `["\\", ["x", "F", []]]` | `{type:"escape", kind:"hex", digits:"F"}` |
+| `\xFF` | `["\\", ["x", "F", [["F"]]]]` | `{type:"escape", kind:"hex", digits:"FF"}` |
+| `\x{1F}` | `["\\", ["x{", [], <hex_digits chain>, [], "}"]]` | `{type:"escape", kind:"hex", digits:"1F"}` |
+| `\x{1F600}` | similar 5-level chain | `{type:"escape", kind:"hex", digits:"1F600"}` |
+| `\u{NNNN}` | similar | `{type:"escape", kind:"unicode", digits:"NNNN"}` |
+
+### `digits` is a string
+
+Consumers parse to int themselves: `usize::from_str_radix(obj.digits, 16)`. Int decoding via the rule's `@transform` would require extending the codegen's transform machinery — currently `@transform` is hard-coded to `str::parse::<TYPE>().unwrap_or(DEFAULT)`-style which doesn't accommodate `from_str_radix(s, 16)`. Saved as a separate codegen-feature slice.
+
+### `\u{...}` validator note
+
+PGEN's host-side compile validator currently rejects `\u{...}` escapes ("unsupported regex escape `\u`"). The annotation IS in place and correct when the validator allows; pre-existing validator behavior, out of scope for this slice.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json`: 3 new entries (hex_escape ×2 + unicode_escape).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over `\xF`/`\xFF`/`\x{1F}`/`\x{1F600}`/`\x{ABC}` — all produce typed `digits` strings.
+
+### Contract bump
+
+Parser release `1.1.44` → `1.1.45`. Contract `1.1.46` → `1.1.47`. New section "Release 1.1.45 / Contract 1.1.47 Highlights" in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.45 / 1.1.47 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.19.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 5 new entries.
+
+### Atom subtree progress
+5/25 atom alternatives directly typed; 5/7 escape_unit branches typed. Remaining escape_unit branches: octal_escape, property_escape.
+
 ## 2026-05-01 - regex.ebnf slice 14/N: escape subtree starts (simple/single_byte/control)
 
 ### What landed
