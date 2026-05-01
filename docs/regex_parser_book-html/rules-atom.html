@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3db8979a.js";
+            window.path_to_searchindex_js = "searchindex-72b9fb46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -249,14 +249,24 @@
 <h3 id="example"><a class="header" href="#example">Example</a></h3>
 <p>For atom <code>.</code>: the <code>atom</code> content is <code>"."</code>.</p>
 <h2 id="anchor"><a class="header" href="#anchor"><code>anchor</code></a></h2>
-<pre><code class="language-ebnf">anchor = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G" | "\\K"
+<pre><code class="language-ebnf">anchor = "^"   -&gt; {type: "anchor", kind: "start_of_line"}
+       | "$"   -&gt; {type: "anchor", kind: "end_of_line"}
+       | "\\A" -&gt; {type: "anchor", kind: "start_of_input"}
+       | "\\Z" -&gt; {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+       | "\\z" -&gt; {type: "anchor", kind: "end_of_input"}
+       | "\\b" -&gt; {type: "anchor", kind: "word_boundary"}
+       | "\\B" -&gt; {type: "anchor", kind: "non_word_boundary"}
+       | "\\G" -&gt; {type: "anchor", kind: "match_start"}
+       | "\\K" -&gt; {type: "anchor", kind: "keep_out"}
 </code></pre>
-<p>PCRE2 anchor metacharacters. 9-way Or, <strong>un-annotated</strong>.</p>
+<p>PCRE2 anchor metacharacters. 9-way Or, <strong>annotated</strong> as of slice 7 (post-1.1.35).</p>
 <h3 id="shape-4"><a class="header" href="#shape-4">Shape</a></h3>
-<p><code>Terminal(&lt;anchor-text&gt;)</code> — one of <code>"^"</code>, <code>"$"</code>, <code>"\\A"</code>, <code>"\\Z"</code>, <code>"\\z"</code>, <code>"\\b"</code>, <code>"\\B"</code>, <code>"\\G"</code>, <code>"\\K"</code>.</p>
-<p>Note the doubled backslash in JSON: <code>\\A</code> in EBNF source means a 2-char sequence <code>\A</code> in the matched input, which JSON-serialises as <code>"\\A"</code> (a 2-character string: backslash + uppercase A).</p>
+<pre><code class="language-json">{"type": "anchor", "kind": &lt;kind-name&gt;}
+</code></pre>
+<p><code>&lt;kind-name&gt;</code> is one of: <code>start_of_line</code>, <code>end_of_line</code>, <code>start_of_input</code>, <code>end_of_input_or_before_last_newline</code>, <code>end_of_input</code>, <code>word_boundary</code>, <code>non_word_boundary</code>, <code>match_start</code>, <code>keep_out</code>.</p>
 <h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
-<p>For atom <code>\b</code>: the <code>atom</code> content is <code>"\\b"</code>.</p>
+<p>For atom <code>\b</code>: <code>{"type": "anchor", "kind": "word_boundary"}</code>.</p>
+<p>See <a href="examples-anchors.html">Examples: Anchors and Boundaries</a> for the full set with consumer-side dispatch recipe.</p>
 <h2 id="backreference"><a class="header" href="#backreference"><code>backreference</code></a></h2>
 <pre><code class="language-ebnf">backreference = "\\" backreference_digits
               | "\\k" name_ref
@@ -376,7 +386,7 @@
 <tr><td><code>literal</code></td><td>bare string, single ASCII non-special char or non-ASCII</td><td><code>"a"</code>, <code>"x"</code></td></tr>
 <tr><td><code>whitespace_literal</code></td><td>bare string, single whitespace char</td><td><code>" "</code>, <code>"\t"</code></td></tr>
 <tr><td><code>dot</code></td><td>bare string <code>"."</code></td><td>exactly the <code>.</code> char</td></tr>
-<tr><td><code>anchor</code></td><td>bare string of 1-2 chars starting <code>^</code>, <code>$</code>, or <code>\</code></td><td><code>"^"</code>, <code>"\\A"</code>, <code>"\\b"</code>, <code>"\\K"</code> etc.</td></tr>
+<tr><td><code>anchor</code></td><td>typed object <code>{"type":"anchor","kind":"&lt;name&gt;"}</code></td><td>annotated in slice 7; dispatch on <code>obj.type == "anchor"</code> then read <code>obj.kind</code></td></tr>
 <tr><td><code>backreference</code></td><td>2-element array starting with <code>"\\"</code> followed by digits / <code>\\k</code> / <code>\\g</code> form</td><td><code>["\\", &lt;digits&gt;]</code> etc.</td></tr>
 <tr><td><code>quoted_literal</code></td><td>3-element array <code>["\\Q", &lt;chars&gt;, "\\E"]</code></td><td>full quoted literal</td></tr>
 <tr><td><code>escape</code></td><td>2-element array starting with <code>"\\"</code> and not matching backreference form</td><td><code>["\\", &lt;escape_unit&gt;]</code></td></tr>

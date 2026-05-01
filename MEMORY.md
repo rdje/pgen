@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-01 (+0200, task: regex-ebnf-slice-6-quantifier-subtree-closure)
+Last updated: 2026-05-01 (+0200, task: regex-ebnf-slice-7-atom-subtree-anchor)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,44 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 7 of N — atom subtree starts: typed `anchor` shape.** First slice of the atom-subtree typed-shape campaign. The `anchor` rule's 9 branches each got per-branch `-> {type:"anchor", kind:"<name>"}` annotations. Piece atoms for `^`/`$`/`\A`/`\Z`/`\z`/`\b`/`\B`/`\G`/`\K` now emit typed objects with semantic kind names instead of raw escape strings. Empirical: `^foo$` → 5 pieces, anchors typed, literal chars in between. Caveat: `posix_word_boundary_alias` (the `[[:<:]]`/`[[:>:]]` aliases) still emits raw 7-char terminals — separate rule, separate slice. Contract bump: parser release `1.1.35` → `1.1.36`, contract `1.1.37` → `1.1.38`. Regex AST schema version stays `1`. 494/0 tests. Manifest gets 9 new anchor entries. `make regex_parser_book_gate` green. Live-book sync covers `examples-anchors.md` (full rewrite), `rules-atom.md`, `rules-misc.md`, `json-carrier.md`, `schema-versioning.md` (0.11.0 row), `changelog-index.md`. Atom subtree progress: 1/25 alternatives annotated. Push policy this session: hold pushes until owner authorizes, with 30-commit safety cap.
+
+### Strengthened doctrine memo this commit
+The user reminded me: regex parser mdBook is a **live document**. Every slice that affects shape/grammar/surface MUST update the book in the same commit, no reminders. Saved as `feedback_regex_book_live.md` with explicit per-slice book-sync checklist. Future-me: don't make the user ask "did you update the regex mdbook?" — that question signals a process failure.
+
+### Quantifier-subtree campaign — full timeline (closed in slice 6)
+1. Slice 1: `digits` typed integer (parser release `1.1.32`).
+2. Slice 2: `quant_suffix` typed enum string (parser release `1.1.33`).
+3. Slice 3: `counted_quantifier_body` typed `{min, max}` + `null` literal in annotation language.
+4. Slice 4: `counted_quantifier` `-> $3` passthrough.
+5. Slice 5: `quant_base` per-branch `-> $1` (workaround for #38).
+5b. Task #38 fix: parens-grouped-Or trailing-annotation broadcast.
+6. PGEN-RGX-0075: typed-shape correctness for multi-piece concatenation (parser release `1.1.34`).
+7. Slice 6: `quant_base` reshaped to typed `{min, max}` per branch; `quantifier` typed `{type, min, max, greediness}` (parser release `1.1.35`).
+
+### Atom-subtree campaign — current
+8. Slice 7 (this commit): `anchor` typed `{type, kind}` (parser release `1.1.36`).
+
+### Earlier this session (chronological)
+1. Standalone regex parser mdBook landed at `docs/regex_parser_book/` aligned with parser state at commit `6e5b0f23`.
+2. Phase V added to roadmap: per-parser standalone integration mdBooks.
+3. Slice 4: `counted_quantifier` typed; live-book sync.
+4. Slice 5: `quant_base` per-branch annotations.
+5. Task #38 closed: parens-grouped-Or trailing-annotation broadcast.
+6. PGEN-RGX-0075 closed: multi-piece concatenation typed-shape correctness.
+7. Slice 6: quantifier subtree campaign closed.
+8. Slice 7 (this commit): atom subtree starts with anchor.
+
+### Next focus areas for task #40 (atom subtree, in priority order)
+- Maybe `posix_word_boundary_alias` (joins anchor family with `kind:"posix_word_start"`/`kind:"posix_word_end"`).
+- Maybe `backreference` (4-branch Or, modest complexity).
+- Maybe `escape` (large, deeply-nested chain — high consumer-side benefit).
+- `dot` (single terminal — cheap typed `{type:"dot"}` if we want).
+- `literal` / `whitespace_literal` (cheap; may stay as bare strings).
+- `char_class` / class subtree (large, several sub-rules).
+- Group family (large, multiple sub-rules).
+
+## Earlier session note (kept for context):
 - **regex.ebnf slice 6 of N — quantifier-subtree typed-shape campaign CLOSED.** Two grammar changes consolidated: (1) `quant_base` reshaped to typed `{min, max}` for every branch (`*`/`+`/`?` expand to PCRE2-equivalent bounds; counted-quantifier passes through via `$1`); (2) `quantifier` rule annotated `-> {type:"quantifier", min:$1.min, max:$1.max, greediness:$2}` — emits fully typed object directly. Piece's `quantifier` field changed from `[<base>, <suffix>]` 2-tuple to typed `{type,min,max,greediness}` object (or `[]` for un-quantified pieces). Greediness convention: `"lazy"`/`"possessive"` for matched suffixes, `[]` for un-matched (consumers map → `"greedy"` until annotation-language coalesce operator lands as separate slice). All 6 quantifier-subtree rules now annotated. Consumer walker is a 6-line typed-field read. Contract bump: parser release `1.1.34` → `1.1.35`, contract `1.1.36` → `1.1.37`. Regex AST schema version stays `1`. 494/0 tests. Manifest updated (4 `quant_base` reshapes + new `quantifier` entry). `make regex_parser_book_gate` green. Live-docs sync covers 8 book chapters + integration contract. Push policy this session: hold pushes until owner authorizes, with 30-commit safety cap.
 
 ### Quantifier-subtree campaign — full timeline

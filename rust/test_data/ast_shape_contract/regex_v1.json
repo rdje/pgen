@@ -79,6 +79,60 @@
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
+        "rule": "anchor",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"start_of_line\"}"
+      },
+      {
+        "rule": "anchor",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"end_of_line\"}"
+      },
+      {
+        "rule": "anchor",
+        "branch_index": 2,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"start_of_input\"}"
+      },
+      {
+        "rule": "anchor",
+        "branch_index": 3,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"end_of_input_or_before_last_newline\"}"
+      },
+      {
+        "rule": "anchor",
+        "branch_index": 4,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"end_of_input\"}"
+      },
+      {
+        "rule": "anchor",
+        "branch_index": 5,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"word_boundary\"}"
+      },
+      {
+        "rule": "anchor",
+        "branch_index": 6,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"non_word_boundary\"}"
+      },
+      {
+        "rule": "anchor",
+        "branch_index": 7,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"match_start\"}"
+      },
+      {
+        "rule": "anchor",
+        "branch_index": 8,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"keep_out\"}"
+      },
+      {
         "rule": "concatenation",
         "branch_index": 0,
         "annotation_type": "return_array",

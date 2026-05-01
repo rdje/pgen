@@ -1,4 +1,87 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 7/N: atom subtree — typed `anchor` shape
+
+### What landed
+
+First slice of the atom-subtree typed-shape campaign. The `anchor` rule's 9 branches each got per-branch typed annotations:
+
+```ebnf
+anchor = "^"   -> {type: "anchor", kind: "start_of_line"}
+       | "$"   -> {type: "anchor", kind: "end_of_line"}
+       | "\\A" -> {type: "anchor", kind: "start_of_input"}
+       | "\\Z" -> {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+       | "\\z" -> {type: "anchor", kind: "end_of_input"}
+       | "\\b" -> {type: "anchor", kind: "word_boundary"}
+       | "\\B" -> {type: "anchor", kind: "non_word_boundary"}
+       | "\\G" -> {type: "anchor", kind: "match_start"}
+       | "\\K" -> {type: "anchor", kind: "keep_out"}
+```
+
+Piece atoms for anchors now emit typed objects with semantic kind names instead of raw escape strings.
+
+### Empirical AST shape
+
+| Source | Before | After |
+|---|---|---|
+| `^` | `"atom": "^"` | `"atom": {"type":"anchor","kind":"start_of_line"}` |
+| `\b` | `"atom": "\\b"` | `"atom": {"type":"anchor","kind":"word_boundary"}` |
+| `\K` | `"atom": "\\K"` | `"atom": {"type":"anchor","kind":"keep_out"}` |
+| `^foo$` | 5 pieces, 1st/5th atoms = `"^"`/`"$"` | 5 pieces, 1st/5th atoms = typed anchor objects |
+
+Compound `^foo$` test confirmed: 5 pieces, anchors at positions 0 and 4 emit typed objects, literal chars `f`/`o`/`o` in between unchanged.
+
+### Why kind names instead of raw escapes
+
+The semantic kind names (`start_of_line`, `word_boundary`, `keep_out`) are stable consumer-side identifiers that don't depend on the source escape text. If PCRE2 syntax evolves (e.g. adds an alternative spelling for an existing anchor), the kind name stays put while the raw text would change. RGX walking on `obj.kind == "word_boundary"` won't break under such evolution.
+
+### Caveat — posix_word_boundary_alias not yet typed
+
+The POSIX word-boundary aliases `[[:<:]]` and `[[:>:]]` are handled by the separate `posix_word_boundary_alias` rule (not part of `anchor`). They still emit raw 7-char terminals in this slice. They'll join the typed family in a follow-up slice.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 494 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json`: 9 new `anchor` entries (branches 0-8, all `return_object`).
+- `make regex_parser_book_gate` green.
+- Empirical probe sweep over all 9 anchors + compound `^foo$` — all produce typed shape correctly.
+
+### Contract bump
+
+Parser release `1.1.35` → `1.1.36`. Contract `1.1.37` → `1.1.38`. New section "Release 1.1.36 / Contract 1.1.38 Highlights — atom subtree slice 7: typed `anchor` shape" in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync
+- `docs/regex_parser_book/src/examples-anchors.md` — full rewrite. Every example shows the typed shape; new "All 9 anchor kinds" table; consumer-extraction recipe updated; migration-from-pre-1.1.35 section added.
+- `docs/regex_parser_book/src/rules-atom.md` — `anchor` section now annotated; identification-table row updated.
+- `docs/regex_parser_book/src/rules-misc.md` — TBD-slices list — anchor moves out, quantifier-subtree-closure note added.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 9 anchor entries.
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline gains 0.11.0 row.
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.36 / 1.1.38 entry above 1.1.35.
+
+### RGX integration impact
+
+Consumers walking the `anchor` atom must update from raw-string dispatch to typed-kind dispatch. Migration:
+
+```rust
+// Before:
+match atom.as_str()? {
+    "^" => StartOfLine,
+    "\\b" => WordBoundary,
+    // ...
+}
+
+// After:
+match atom.get("kind").and_then(|v| v.as_str())? {
+    "start_of_line" => StartOfLine,
+    "word_boundary" => WordBoundary,
+    // ...
+}
+```
+
+Keep the `[[:<:]]` / `[[:>:]]` string-match path for now — those aliases will converge with the typed family in a follow-up slice.
+
+### Atom subtree progress
+
+1 of 25 alternatives annotated. Next focus areas: `dot`, `literal`, `backreference`, `quoted_literal`, `escape`, `posix_word_boundary_alias`, `char_class`, group family.
+
 ## 2026-05-01 - regex.ebnf slice 6/N: quantifier subtree closure (typed `{type, min, max, greediness}`)
 
 ### What landed

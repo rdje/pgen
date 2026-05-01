@@ -373,9 +373,10 @@ Quantified-`*` of chars. Concatenate to recover the comment text.
 
 The following constructs are syntactically supported by the grammar but their AST shape will be cleaned up in future task #40 slices:
 
-- All `atom` alternatives (`literal`, `escape`, `anchor`, `dot`, `backreference`, `quoted_literal`, `posix_word_boundary_alias`, `char_class`, the group family) — eventually each gets a typed `{type: "...", ...}` shape.
-- The `quantifier` rule itself — eventually `{type: "quantifier", min, max, greediness}`.
+- Most `atom` alternatives (`literal`, `escape`, `dot`, `backreference`, `quoted_literal`, `posix_word_boundary_alias`, `char_class`, the group family) — eventually each gets a typed `{type: "...", ...}` shape. The `anchor` alternative landed typed in slice 7 (post-1.1.35) — see [Examples: Anchors and Boundaries](examples-anchors.md).
 - `pattern`, `alternation`, `alternative` — eventually a clean `{type: "alternation", alternatives: [...]}` flat shape replaces the current 4-deep raw nesting.
 - The full character-class subtree — eventually `{type: "char_class", negated: <bool>, items: [...]}` with each item itself a typed shape.
 
-Until those land, the per-rule shapes documented above are the operative reference.
+The `quantifier` subtree (`digits`, `quant_suffix`, `counted_quantifier_body`, `counted_quantifier`, `quant_base`, `quantifier`) is fully typed as of slice 6 (post-1.1.34). See [Quantifier Subtree](rules-quantifier.md).
+
+Until the remaining slices land, the per-rule shapes documented above are the operative reference.

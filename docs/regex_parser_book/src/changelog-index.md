@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.36 / Contract 1.1.38 — Atom subtree slice 7: typed `anchor` shape
+
+**What changed:** the `anchor` rule's 9 branches each got `-> {type: "anchor", kind: "<name>"}` annotations. Piece atoms for `^`/`$`/`\A`/`\Z`/`\z`/`\b`/`\B`/`\G`/`\K` now emit typed objects with semantic kind names instead of raw escape strings.
+
+```ebnf
+anchor = "^"   -> {type: "anchor", kind: "start_of_line"}
+       | "$"   -> {type: "anchor", kind: "end_of_line"}
+       | "\\A" -> {type: "anchor", kind: "start_of_input"}
+       | "\\Z" -> {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+       | "\\z" -> {type: "anchor", kind: "end_of_input"}
+       | "\\b" -> {type: "anchor", kind: "word_boundary"}
+       | "\\B" -> {type: "anchor", kind: "non_word_boundary"}
+       | "\\G" -> {type: "anchor", kind: "match_start"}
+       | "\\K" -> {type: "anchor", kind: "keep_out"}
+```
+
+**Consumer impact:** **breaking but correct** — consumers dispatching on the raw escape text must switch to the typed `obj.kind` field. The kind names are stable identifiers and won't change if PCRE2 syntax evolves. See [Examples: Anchors and Boundaries](examples-anchors.md) for the full migration recipe.
+
+| Source | Before | After |
+|---|---|---|
+| `^` | `"atom": "^"` | `"atom": {"type":"anchor","kind":"start_of_line"}` |
+| `\b` | `"atom": "\\b"` | `"atom": {"type":"anchor","kind":"word_boundary"}` |
+| `\K` | `"atom": "\\K"` | `"atom": {"type":"anchor","kind":"keep_out"}` |
+
+**Note:** the POSIX word-boundary aliases (`[[:<:]]` and `[[:>:]]`, handled by the `posix_word_boundary_alias` rule) still emit raw 7-char terminals. They will join the typed family in a follow-up slice.
+
+**Atom subtree campaign progress:** 1 of 25 alternatives annotated. Next focus areas: `dot`, `literal`, `backreference`, `quoted_literal`, `escape`, `posix_word_boundary_alias`, `char_class`, group family, etc.
+
+**Contract section:** "Release 1.1.36 / Contract 1.1.38 Highlights".
+
 ### 1.1.35 / Contract 1.1.37 — Quantifier subtree closure (slice 6/N)
 
 **What changed:** the final two rules in the quantifier subtree got their typed annotations:

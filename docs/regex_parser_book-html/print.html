@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3db8979a.js";
+            window.path_to_searchindex_js = "searchindex-72b9fb46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -866,6 +866,7 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>counted_quantifier_body</code> (branch 1)</td><td><code>-&gt; {min: $1, max: null}</code></td><td>Object <code>{min, max:null}</code> (<code>{n,}</code> unbounded form)</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 2)</td><td><code>-&gt; {min: $1, max: $1}</code></td><td>Object <code>{min, max}</code> (<code>{n}</code> form, max == min)</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 3)</td><td><code>-&gt; {min: 0, max: $3}</code></td><td>Object <code>{min:0, max}</code> (<code>{,m}</code> form)</td></tr>
+<tr><td><code>anchor</code> (branch 0..8)</td><td><code>-&gt; {type: "anchor", kind: "&lt;name&gt;"}</code> per branch</td><td>Object <code>{type:"anchor", kind:&lt;name&gt;}</code> — <code>kind</code> ∈ <code>start_of_line</code> / <code>end_of_line</code> / <code>start_of_input</code> / <code>end_of_input_or_before_last_newline</code> / <code>end_of_input</code> / <code>word_boundary</code> / <code>non_word_boundary</code> / <code>match_start</code> / <code>keep_out</code></td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>
 <tr><td><code>quant_base</code> (branch 1 <code>+</code>)</td><td><code>-&gt; {min: 1, max: null}</code></td><td>Object <code>{min:1, max:null}</code> (unbounded one-or-more)</td></tr>
 <tr><td><code>quant_base</code> (branch 2 <code>?</code>)</td><td><code>-&gt; {min: 0, max: 1}</code></td><td>Object <code>{min:0, max:1}</code> (zero-or-one)</td></tr>
@@ -1760,14 +1761,24 @@ digits = /([0-9]+)/
 <h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
 <p>For atom <code>.</code>: the <code>atom</code> content is <code>"."</code>.</p>
 <h2 id="anchor"><a class="header" href="#anchor"><code>anchor</code></a></h2>
-<pre><code class="language-ebnf">anchor = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G" | "\\K"
+<pre><code class="language-ebnf">anchor = "^"   -&gt; {type: "anchor", kind: "start_of_line"}
+       | "$"   -&gt; {type: "anchor", kind: "end_of_line"}
+       | "\\A" -&gt; {type: "anchor", kind: "start_of_input"}
+       | "\\Z" -&gt; {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+       | "\\z" -&gt; {type: "anchor", kind: "end_of_input"}
+       | "\\b" -&gt; {type: "anchor", kind: "word_boundary"}
+       | "\\B" -&gt; {type: "anchor", kind: "non_word_boundary"}
+       | "\\G" -&gt; {type: "anchor", kind: "match_start"}
+       | "\\K" -&gt; {type: "anchor", kind: "keep_out"}
 </code></pre>
-<p>PCRE2 anchor metacharacters. 9-way Or, <strong>un-annotated</strong>.</p>
+<p>PCRE2 anchor metacharacters. 9-way Or, <strong>annotated</strong> as of slice 7 (post-1.1.35).</p>
 <h3 id="shape-4-1"><a class="header" href="#shape-4-1">Shape</a></h3>
-<p><code>Terminal(&lt;anchor-text&gt;)</code> — one of <code>"^"</code>, <code>"$"</code>, <code>"\\A"</code>, <code>"\\Z"</code>, <code>"\\z"</code>, <code>"\\b"</code>, <code>"\\B"</code>, <code>"\\G"</code>, <code>"\\K"</code>.</p>
-<p>Note the doubled backslash in JSON: <code>\\A</code> in EBNF source means a 2-char sequence <code>\A</code> in the matched input, which JSON-serialises as <code>"\\A"</code> (a 2-character string: backslash + uppercase A).</p>
+<pre><code class="language-json">{"type": "anchor", "kind": &lt;kind-name&gt;}
+</code></pre>
+<p><code>&lt;kind-name&gt;</code> is one of: <code>start_of_line</code>, <code>end_of_line</code>, <code>start_of_input</code>, <code>end_of_input_or_before_last_newline</code>, <code>end_of_input</code>, <code>word_boundary</code>, <code>non_word_boundary</code>, <code>match_start</code>, <code>keep_out</code>.</p>
 <h3 id="example-1-1"><a class="header" href="#example-1-1">Example</a></h3>
-<p>For atom <code>\b</code>: the <code>atom</code> content is <code>"\\b"</code>.</p>
+<p>For atom <code>\b</code>: <code>{"type": "anchor", "kind": "word_boundary"}</code>.</p>
+<p>See <a href="#examples-anchors-and-boundaries">Examples: Anchors and Boundaries</a> for the full set with consumer-side dispatch recipe.</p>
 <h2 id="backreference"><a class="header" href="#backreference"><code>backreference</code></a></h2>
 <pre><code class="language-ebnf">backreference = "\\" backreference_digits
               | "\\k" name_ref
@@ -1887,7 +1898,7 @@ digits = /([0-9]+)/
 <tr><td><code>literal</code></td><td>bare string, single ASCII non-special char or non-ASCII</td><td><code>"a"</code>, <code>"x"</code></td></tr>
 <tr><td><code>whitespace_literal</code></td><td>bare string, single whitespace char</td><td><code>" "</code>, <code>"\t"</code></td></tr>
 <tr><td><code>dot</code></td><td>bare string <code>"."</code></td><td>exactly the <code>.</code> char</td></tr>
-<tr><td><code>anchor</code></td><td>bare string of 1-2 chars starting <code>^</code>, <code>$</code>, or <code>\</code></td><td><code>"^"</code>, <code>"\\A"</code>, <code>"\\b"</code>, <code>"\\K"</code> etc.</td></tr>
+<tr><td><code>anchor</code></td><td>typed object <code>{"type":"anchor","kind":"&lt;name&gt;"}</code></td><td>annotated in slice 7; dispatch on <code>obj.type == "anchor"</code> then read <code>obj.kind</code></td></tr>
 <tr><td><code>backreference</code></td><td>2-element array starting with <code>"\\"</code> followed by digits / <code>\\k</code> / <code>\\g</code> form</td><td><code>["\\", &lt;digits&gt;]</code> etc.</td></tr>
 <tr><td><code>quoted_literal</code></td><td>3-element array <code>["\\Q", &lt;chars&gt;, "\\E"]</code></td><td>full quoted literal</td></tr>
 <tr><td><code>escape</code></td><td>2-element array starting with <code>"\\"</code> and not matching backreference form</td><td><code>["\\", &lt;escape_unit&gt;]</code></td></tr>
@@ -2912,12 +2923,12 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <h2 id="whats-missing--tbd-slices"><a class="header" href="#whats-missing--tbd-slices">What’s missing — TBD slices</a></h2>
 <p>The following constructs are syntactically supported by the grammar but their AST shape will be cleaned up in future task #40 slices:</p>
 <ul>
-<li>All <code>atom</code> alternatives (<code>literal</code>, <code>escape</code>, <code>anchor</code>, <code>dot</code>, <code>backreference</code>, <code>quoted_literal</code>, <code>posix_word_boundary_alias</code>, <code>char_class</code>, the group family) — eventually each gets a typed <code>{type: "...", ...}</code> shape.</li>
-<li>The <code>quantifier</code> rule itself — eventually <code>{type: "quantifier", min, max, greediness}</code>.</li>
+<li>Most <code>atom</code> alternatives (<code>literal</code>, <code>escape</code>, <code>dot</code>, <code>backreference</code>, <code>quoted_literal</code>, <code>posix_word_boundary_alias</code>, <code>char_class</code>, the group family) — eventually each gets a typed <code>{type: "...", ...}</code> shape. The <code>anchor</code> alternative landed typed in slice 7 (post-1.1.35) — see <a href="#examples-anchors-and-boundaries">Examples: Anchors and Boundaries</a>.</li>
 <li><code>pattern</code>, <code>alternation</code>, <code>alternative</code> — eventually a clean <code>{type: "alternation", alternatives: [...]}</code> flat shape replaces the current 4-deep raw nesting.</li>
 <li>The full character-class subtree — eventually <code>{type: "char_class", negated: &lt;bool&gt;, items: [...]}</code> with each item itself a typed shape.</li>
 </ul>
-<p>Until those land, the per-rule shapes documented above are the operative reference.</p>
+<p>The <code>quantifier</code> subtree (<code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, <code>counted_quantifier</code>, <code>quant_base</code>, <code>quantifier</code>) is fully typed as of slice 6 (post-1.1.34). See <a href="#quantifier-subtree">Quantifier Subtree</a>.</p>
+<p>Until the remaining slices land, the per-rule shapes documented above are the operative reference.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-literals"><a class="header" href="#examples-literals">Examples: Literals</a></h1>
 <p>Concrete probe outputs for plain literal regexes.</p>
@@ -3839,20 +3850,19 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <p>Post-fix, neither is necessary. RGX’s lowering for <code>\Qab*\E{2,}</code> is exactly the same as for <code>ab\*{2,}</code> — three pieces, last one quantified.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-anchors-and-boundaries"><a class="header" href="#examples-anchors-and-boundaries">Examples: Anchors and Boundaries</a></h1>
-<p>Concrete probe outputs for PCRE2 anchors and word-boundary constructs. The <code>anchor</code> rule emits a <code>Terminal</code> of the matched anchor text; consumers identify by string match.</p>
+<p>Concrete probe outputs for PCRE2 anchors and word-boundary constructs. As of slice 7 (post-1.1.35) the <code>anchor</code> rule emits a typed <code>{type: "anchor", kind: "&lt;name&gt;"}</code> object — consumers read <code>.kind</code> directly instead of dispatching by string match on the raw escape text.</p>
 <h2 id="-start-anchor"><a class="header" href="#-start-anchor"><code>^</code> start anchor</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
-    { "atom": "^", "quantifier": [], "type": "piece" }
+    { "atom": {"type": "anchor", "kind": "start_of_line"}, "quantifier": [], "type": "piece" }
   ]],
   []
 ]
 </code></pre>
-<p>The <code>^</code> anchor produces an atom of just <code>"^"</code>.</p>
 <h2 id="-end-anchor"><a class="header" href="#-end-anchor"><code>$</code> end anchor</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
-    { "atom": "$", "quantifier": [], "type": "piece" }
+    { "atom": {"type": "anchor", "kind": "end_of_line"}, "quantifier": [], "type": "piece" }
   ]],
   []
 ]
@@ -3860,11 +3870,11 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <h2 id="foo--surrounded-by-anchors"><a class="header" href="#foo--surrounded-by-anchors"><code>^foo$</code> — surrounded by anchors</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
-    { "atom": "^", "quantifier": [], "type": "piece" },
+    { "atom": {"type": "anchor", "kind": "start_of_line"}, "quantifier": [], "type": "piece" },
     { "atom": "f", "quantifier": [], "type": "piece" },
     { "atom": "o", "quantifier": [], "type": "piece" },
     { "atom": "o", "quantifier": [], "type": "piece" },
-    { "atom": "$", "quantifier": [], "type": "piece" }
+    { "atom": {"type": "anchor", "kind": "end_of_line"}, "quantifier": [], "type": "piece" }
   ]],
   []
 ]
@@ -3873,82 +3883,118 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <h2 id="b-word-boundary"><a class="header" href="#b-word-boundary"><code>\b</code> word boundary</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
-    { "atom": "\\b", "quantifier": [], "type": "piece" }
+    { "atom": {"type": "anchor", "kind": "word_boundary"}, "quantifier": [], "type": "piece" }
   ]],
   []
 ]
 </code></pre>
-<p>The atom is <code>"\\b"</code> — a 2-character string (backslash + b).</p>
 <h2 id="b-non-word-boundary"><a class="header" href="#b-non-word-boundary"><code>\B</code> non-word boundary</a></h2>
-<pre><code class="language-json">"atom": "\\B"
+<pre><code class="language-json">"atom": {"type": "anchor", "kind": "non_word_boundary"}
 </code></pre>
 <h2 id="bwordb--pattern-surrounded-by-word-boundaries"><a class="header" href="#bwordb--pattern-surrounded-by-word-boundaries"><code>\bword\b</code> — pattern surrounded by word boundaries</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
-    { "atom": "\\b", "quantifier": [], "type": "piece" },
-    { "atom": "w",   "quantifier": [], "type": "piece" },
-    { "atom": "o",   "quantifier": [], "type": "piece" },
-    { "atom": "r",   "quantifier": [], "type": "piece" },
-    { "atom": "d",   "quantifier": [], "type": "piece" },
-    { "atom": "\\b", "quantifier": [], "type": "piece" }
+    { "atom": {"type": "anchor", "kind": "word_boundary"}, "quantifier": [], "type": "piece" },
+    { "atom": "w", "quantifier": [], "type": "piece" },
+    { "atom": "o", "quantifier": [], "type": "piece" },
+    { "atom": "r", "quantifier": [], "type": "piece" },
+    { "atom": "d", "quantifier": [], "type": "piece" },
+    { "atom": {"type": "anchor", "kind": "word_boundary"}, "quantifier": [], "type": "piece" }
   ]],
   []
 ]
 </code></pre>
 <p>Six pieces.</p>
-<h2 id="a-absolute-start-z-near-end-z-absolute-end"><a class="header" href="#a-absolute-start-z-near-end-z-absolute-end"><code>\A</code> absolute start, <code>\Z</code> near end, <code>\z</code> absolute end</a></h2>
+<h2 id="all-9-anchor-kinds"><a class="header" href="#all-9-anchor-kinds">All 9 anchor kinds</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Input</th><th>Atom</th></tr>
+<tr><th>Source</th><th><code>atom</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>\A</code></td><td><code>"\\A"</code></td></tr>
-<tr><td><code>\Z</code></td><td><code>"\\Z"</code></td></tr>
-<tr><td><code>\z</code></td><td><code>"\\z"</code></td></tr>
+<tr><td><code>^</code></td><td><code>{"type":"anchor","kind":"start_of_line"}</code></td></tr>
+<tr><td><code>$</code></td><td><code>{"type":"anchor","kind":"end_of_line"}</code></td></tr>
+<tr><td><code>\A</code></td><td><code>{"type":"anchor","kind":"start_of_input"}</code></td></tr>
+<tr><td><code>\Z</code></td><td><code>{"type":"anchor","kind":"end_of_input_or_before_last_newline"}</code></td></tr>
+<tr><td><code>\z</code></td><td><code>{"type":"anchor","kind":"end_of_input"}</code></td></tr>
+<tr><td><code>\b</code></td><td><code>{"type":"anchor","kind":"word_boundary"}</code></td></tr>
+<tr><td><code>\B</code></td><td><code>{"type":"anchor","kind":"non_word_boundary"}</code></td></tr>
+<tr><td><code>\G</code></td><td><code>{"type":"anchor","kind":"match_start"}</code></td></tr>
+<tr><td><code>\K</code></td><td><code>{"type":"anchor","kind":"keep_out"}</code></td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="g-match-start-anchor"><a class="header" href="#g-match-start-anchor"><code>\G</code> match-start anchor</a></h2>
-<pre><code class="language-json">"atom": "\\G"
+<p>The full grammar:</p>
+<pre><code class="language-ebnf">anchor = "^"   -&gt; {type: "anchor", kind: "start_of_line"}
+       | "$"   -&gt; {type: "anchor", kind: "end_of_line"}
+       | "\\A" -&gt; {type: "anchor", kind: "start_of_input"}
+       | "\\Z" -&gt; {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+       | "\\z" -&gt; {type: "anchor", kind: "end_of_input"}
+       | "\\b" -&gt; {type: "anchor", kind: "word_boundary"}
+       | "\\B" -&gt; {type: "anchor", kind: "non_word_boundary"}
+       | "\\G" -&gt; {type: "anchor", kind: "match_start"}
+       | "\\K" -&gt; {type: "anchor", kind: "keep_out"}
 </code></pre>
-<h2 id="k-keep-out-pcre2-specific-reset"><a class="header" href="#k-keep-out-pcre2-specific-reset"><code>\K</code> keep-out (PCRE2-specific reset)</a></h2>
-<pre><code class="language-json">"atom": "\\K"
-</code></pre>
-<p>The full set of <code>anchor</code> Or alternatives:</p>
-<pre><code class="language-ebnf">anchor = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G" | "\\K"
-</code></pre>
-<p>Each emits a <code>Terminal</code> of the matched text.</p>
 <h2 id="posix-word-boundary-aliases---and-"><a class="header" href="#posix-word-boundary-aliases---and-">POSIX word-boundary aliases — <code>[[:&lt;:]]</code> and <code>[[:&gt;:]]</code></a></h2>
-<p>Despite the syntax resembling a character class, these are atomic anchors handled by the <code>posix_word_boundary_alias</code> rule. They produce a single Terminal of the entire 7-char sequence:</p>
+<p>Despite the syntax resembling a character class, these are atomic anchors handled by the <code>posix_word_boundary_alias</code> rule. <strong>At this release that rule is NOT yet annotated</strong> — it still emits a single Terminal of the entire 7-char sequence:</p>
 <pre><code class="language-json">"atom": "[[:&lt;:]]"
 </code></pre>
 <p>Or:</p>
 <pre><code class="language-json">"atom": "[[:&gt;:]]"
 </code></pre>
-<p>These are NOT character classes — consumers should NOT recursively descend looking for class items. They’re anchors.</p>
+<p>These are NOT character classes — consumers should NOT recursively descend looking for class items. They’re anchors. A future slice will annotate <code>posix_word_boundary_alias</code> with a typed <code>{type:"anchor", kind:"posix_word_start"}</code> / <code>kind:"posix_word_end"</code> shape, joining them into the <code>anchor</code> typed family.</p>
 <h2 id="consumer-extraction-pattern-1"><a class="header" href="#consumer-extraction-pattern-1">Consumer extraction pattern</a></h2>
-<p>For anchor identification:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn classify_anchor(atom: &amp;Value) -&gt; Option&lt;AnchorKind&gt; {
+    // Typed anchor (slice 7 onward)
+    if let Some(obj) = atom.as_object() {
+        if obj.get("type").and_then(|v| v.as_str()) == Some("anchor") {
+            return obj.get("kind").and_then(|v| v.as_str()).map(|kind| match kind {
+                "start_of_line" =&gt; AnchorKind::StartOfLine,
+                "end_of_line" =&gt; AnchorKind::EndOfLine,
+                "start_of_input" =&gt; AnchorKind::StartOfInput,
+                "end_of_input_or_before_last_newline" =&gt; AnchorKind::EndOfInputOrBeforeLastNewline,
+                "end_of_input" =&gt; AnchorKind::EndOfInput,
+                "word_boundary" =&gt; AnchorKind::WordBoundary,
+                "non_word_boundary" =&gt; AnchorKind::NonWordBoundary,
+                "match_start" =&gt; AnchorKind::MatchStart,
+                "keep_out" =&gt; AnchorKind::KeepOut,
+                _ =&gt; return None,
+            });
+        }
+    }
+    // Legacy: posix_word_boundary_alias still emits raw string until its slice lands.
     match atom.as_str()? {
-        "^" =&gt; Some(AnchorKind::StartOfLine),
-        "$" =&gt; Some(AnchorKind::EndOfLine),
-        "\\A" =&gt; Some(AnchorKind::StartOfInput),
-        "\\Z" =&gt; Some(AnchorKind::EndOfInputOrBeforeLastNewline),
-        "\\z" =&gt; Some(AnchorKind::EndOfInput),
-        "\\b" =&gt; Some(AnchorKind::WordBoundary),
-        "\\B" =&gt; Some(AnchorKind::NonWordBoundary),
-        "\\G" =&gt; Some(AnchorKind::MatchStart),
-        "\\K" =&gt; Some(AnchorKind::KeepOut),
         "[[:&lt;:]]" =&gt; Some(AnchorKind::PosixWordStart),
         "[[:&gt;:]]" =&gt; Some(AnchorKind::PosixWordEnd),
         _ =&gt; None,
     }
 }
 <span class="boring">}</span></code></pre>
-<p>The discriminator is exact-string match on the atom value.</p>
+<p>The discriminator is <code>obj.type == "anchor"</code> plus <code>obj.kind</code> for the variant. The POSIX aliases will join the typed family in their own slice.</p>
+<h2 id="migration-from-pre-1135-slice-7"><a class="header" href="#migration-from-pre-1135-slice-7">Migration from pre-1.1.35 (slice 7)</a></h2>
+<p>Before slice 7, the <code>anchor</code> rule emitted <code>Terminal(&lt;text&gt;)</code> and consumers dispatched on the raw escape text:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match atom.as_str()? {
+    "^" =&gt; StartOfLine,
+    "\\A" =&gt; StartOfInput,
+    "\\b" =&gt; WordBoundary,
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<p>Post-slice-7, dispatch is on <code>obj.kind</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match atom.get("kind").and_then(|v| v.as_str())? {
+    "start_of_line" =&gt; StartOfLine,
+    "start_of_input" =&gt; StartOfInput,
+    "word_boundary" =&gt; WordBoundary,
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<p>The kind names are stable identifiers — they do not depend on the source escape text and won’t change if PCRE2 syntax evolves.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-escapes"><a class="header" href="#examples-escapes">Examples: Escapes</a></h1>
 <p>Concrete probe outputs for PCRE2 escape sequences. The <code>escape</code> rule emits a 2-element Sequence <code>["\\", &lt;escape_unit&gt;]</code>. Sub-rules are un-annotated.</p>
@@ -4435,6 +4481,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.8.3</td><td>post-1.1.33 main</td><td>Task #38 fix: parens-grouped-Or trailing annotations broadcast to every inner alternative. Affects <code>string_literal</code> in return_annotation grammar (single-quoted strings now produce typed <code>{type:"string"...}</code>). Regex grammar consumer-impact: none directly; <code>quant_base</code> refactored to the factored form.</td></tr>
 <tr><td>0.9.0</td><td>1.1.34</td><td><strong>Breaking but correct:</strong> PGEN-RGX-0075 fix — <code>$N</code> codegen no longer peels <code>elements[0]</code> from a Quantified base. Multi-piece concatenations now surface every piece in <code>regex.pattern[0][0]</code> (was: only the first piece). Compensating grammar change: <code>regex = pattern</code> (was <code>regex = pattern?</code>). Top-level pattern shape <code>[&lt;head_alt&gt;, &lt;tail&gt;]</code> unchanged.</td></tr>
 <tr><td>0.10.0</td><td>1.1.35</td><td><strong>Breaking but correct:</strong> quantifier subtree closure (slice 6/N). <code>quant_base</code> reshaped from per-branch <code>-&gt; $1</code> (heterogeneous string-vs-object) to per-branch typed <code>{min, max}</code> for every alternative. <code>quantifier</code> rule annotated <code>-&gt; {type:"quantifier", min:$1.min, max:$1.max, greediness:$2}</code>. Piece’s <code>quantifier</code> field is now a fully typed object (or <code>[]</code> for un-quantified pieces); was <code>[&lt;base&gt;, &lt;suffix&gt;]</code> 2-tuple. Consumers walking the quantifier shape need to update from string-vs-object dispatch to typed-field read.</td></tr>
+<tr><td>0.11.0</td><td>1.1.36</td><td><strong>Breaking but correct:</strong> atom subtree slice 7 (<code>anchor</code>). <code>anchor</code> rule’s 9 branches each annotated <code>-&gt; {type:"anchor", kind:"&lt;name&gt;"}</code>. Piece atoms for <code>^</code>/<code>$</code>/<code>\A</code>/<code>\Z</code>/<code>\z</code>/<code>\b</code>/<code>\B</code>/<code>\G</code>/<code>\K</code> now emit typed objects with semantic kind names (e.g. <code>start_of_line</code>, <code>word_boundary</code>) instead of raw escape strings. Consumers walking the anchor shape need to update from <code>atom.as_str() == "\\b"</code> to <code>atom.get("kind").as_str() == "word_boundary"</code>.</td></tr>
 </tbody>
 </table>
 </div>
@@ -4556,6 +4603,34 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1136--contract-1138--atom-subtree-slice-7-typed-anchor-shape"><a class="header" href="#1136--contract-1138--atom-subtree-slice-7-typed-anchor-shape">1.1.36 / Contract 1.1.38 — Atom subtree slice 7: typed <code>anchor</code> shape</a></h3>
+<p><strong>What changed:</strong> the <code>anchor</code> rule’s 9 branches each got <code>-&gt; {type: "anchor", kind: "&lt;name&gt;"}</code> annotations. Piece atoms for <code>^</code>/<code>$</code>/<code>\A</code>/<code>\Z</code>/<code>\z</code>/<code>\b</code>/<code>\B</code>/<code>\G</code>/<code>\K</code> now emit typed objects with semantic kind names instead of raw escape strings.</p>
+<pre><code class="language-ebnf">anchor = "^"   -&gt; {type: "anchor", kind: "start_of_line"}
+       | "$"   -&gt; {type: "anchor", kind: "end_of_line"}
+       | "\\A" -&gt; {type: "anchor", kind: "start_of_input"}
+       | "\\Z" -&gt; {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+       | "\\z" -&gt; {type: "anchor", kind: "end_of_input"}
+       | "\\b" -&gt; {type: "anchor", kind: "word_boundary"}
+       | "\\B" -&gt; {type: "anchor", kind: "non_word_boundary"}
+       | "\\G" -&gt; {type: "anchor", kind: "match_start"}
+       | "\\K" -&gt; {type: "anchor", kind: "keep_out"}
+</code></pre>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — consumers dispatching on the raw escape text must switch to the typed <code>obj.kind</code> field. The kind names are stable identifiers and won’t change if PCRE2 syntax evolves. See <a href="#examples-anchors-and-boundaries">Examples: Anchors and Boundaries</a> for the full migration recipe.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>^</code></td><td><code>"atom": "^"</code></td><td><code>"atom": {"type":"anchor","kind":"start_of_line"}</code></td></tr>
+<tr><td><code>\b</code></td><td><code>"atom": "\\b"</code></td><td><code>"atom": {"type":"anchor","kind":"word_boundary"}</code></td></tr>
+<tr><td><code>\K</code></td><td><code>"atom": "\\K"</code></td><td><code>"atom": {"type":"anchor","kind":"keep_out"}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Note:</strong> the POSIX word-boundary aliases (<code>[[:&lt;:]]</code> and <code>[[:&gt;:]]</code>, handled by the <code>posix_word_boundary_alias</code> rule) still emit raw 7-char terminals. They will join the typed family in a follow-up slice.</p>
+<p><strong>Atom subtree campaign progress:</strong> 1 of 25 alternatives annotated. Next focus areas: <code>dot</code>, <code>literal</code>, <code>backreference</code>, <code>quoted_literal</code>, <code>escape</code>, <code>posix_word_boundary_alias</code>, <code>char_class</code>, group family, etc.</p>
+<p><strong>Contract section:</strong> “Release 1.1.36 / Contract 1.1.38 Highlights”.</p>
 <h3 id="1135--contract-1137--quantifier-subtree-closure-slice-6n"><a class="header" href="#1135--contract-1137--quantifier-subtree-closure-slice-6n">1.1.35 / Contract 1.1.37 — Quantifier subtree closure (slice 6/N)</a></h3>
 <p><strong>What changed:</strong> the final two rules in the quantifier subtree got their typed annotations:</p>
 <ul>

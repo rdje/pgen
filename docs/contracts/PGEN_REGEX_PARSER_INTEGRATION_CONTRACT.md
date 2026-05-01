@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.37`
+  - `1.1.38`
 - Parser release version:
-  - `1.1.35`
+  - `1.1.36`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,33 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.36 / Contract 1.1.38 Highlights — atom subtree slice 7: typed `anchor` shape
+
+- **Internal-driven shape work** (no downstream report). First slice of the atom-subtree typed-shape campaign.
+- **Rule changed:** `anchor` in `grammars/regex.ebnf`. The 9 branches each got a per-branch `-> {type: "anchor", kind: "<name>"}` annotation. Previously the rule emitted a `Terminal` of the matched escape text; now it emits a typed object with the semantic anchor kind directly.
+- **AST shape change (consumer-visible):** every piece atom for an anchor (`^`, `$`, `\A`, `\Z`, `\z`, `\b`, `\B`, `\G`, `\K`) is now a typed `{type:"anchor", kind:"<name>"}` object instead of a bare escape string.
+  - Before: `^foo$` → `[anchor "^", literal "f", literal "o", literal "o", anchor "$"]` with anchors as `"^"` / `"$"` strings.
+  - After: `^foo$` → same 5 pieces but anchors are `{"type":"anchor","kind":"start_of_line"}` and `{"type":"anchor","kind":"end_of_line"}`.
+- **Anchor kind names** are stable identifiers, not the raw escape text:
+  - `^` → `start_of_line`
+  - `$` → `end_of_line`
+  - `\A` → `start_of_input`
+  - `\Z` → `end_of_input_or_before_last_newline`
+  - `\z` → `end_of_input`
+  - `\b` → `word_boundary`
+  - `\B` → `non_word_boundary`
+  - `\G` → `match_start`
+  - `\K` → `keep_out`
+- **`posix_word_boundary_alias` NOT YET typed.** The POSIX aliases `[[:<:]]` and `[[:>:]]` (handled by a separate rule) still emit raw 7-char terminals. They will join the typed `anchor` family in a follow-up slice. For now consumers walking those need a fallback string-match.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.36` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that pattern-matched on the raw anchor strings (`atom.as_str() == "\\b"` etc.) to use the typed kind dispatch (`obj.get("kind").as_str() == "word_boundary"`).
+  4. Keep the `[[:<:]]` / `[[:>:]]` string-match path for now — it'll converge with the typed family in a later slice.
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_full_regex()`, `parser.parse_regex()`, `parse_regex_typed()`, `parse_regex_default_ast_dump_named()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- Regex AST schema version stays `1`.
+- This is slice **7 of N** in the broader regex.ebnf annotation campaign (task #40). The quantifier subtree closed in slice 6; the atom subtree starts here.
 
 ## Release 1.1.35 / Contract 1.1.37 Highlights — quantifier-subtree typed-shape closure (slice 6/N)
 

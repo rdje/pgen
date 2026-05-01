@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 7/N — atom subtree starts: typed `anchor` shape
+
+### What landed
+First slice of the atom-subtree typed-shape campaign. The `anchor` rule's 9 branches each got per-branch annotations:
+
+```ebnf
+anchor = "^"   -> {type: "anchor", kind: "start_of_line"}
+       | "$"   -> {type: "anchor", kind: "end_of_line"}
+       | "\\A" -> {type: "anchor", kind: "start_of_input"}
+       | "\\Z" -> {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+       | "\\z" -> {type: "anchor", kind: "end_of_input"}
+       | "\\b" -> {type: "anchor", kind: "word_boundary"}
+       | "\\B" -> {type: "anchor", kind: "non_word_boundary"}
+       | "\\G" -> {type: "anchor", kind: "match_start"}
+       | "\\K" -> {type: "anchor", kind: "keep_out"}
+```
+
+### Why anchor first
+Anchor was chosen as the first atom-subtree slice because:
+1. Small, well-bounded scope (9 branches, all simple terminals — no sub-rule references).
+2. Highest semantic-value density: the typed `kind` name surfaces meaning that consumers had to recognize from raw escape conventions before. Best ROI of the 25 atom alternatives.
+3. Low blast radius: anchor doesn't appear in deeply-nested AST positions, so consumer-side migration is one-line.
+
+### Empirical
+- `^` → `{"type":"anchor","kind":"start_of_line"}`.
+- `\b` → `{"type":"anchor","kind":"word_boundary"}`.
+- `\K` → `{"type":"anchor","kind":"keep_out"}`.
+- `^foo$` → 5 pieces, 1st/5th anchors typed, literal chars `f`/`o`/`o` in between.
+
+### Caveat — POSIX aliases not in scope
+The POSIX word-boundary aliases `[[:<:]]` and `[[:>:]]` are matched by the separate `posix_word_boundary_alias` rule (NOT a branch of `anchor`). They still emit raw 7-char terminals after this slice. They'll join the typed anchor family in a follow-up slice with `kind: "posix_word_start"` / `kind: "posix_word_end"`.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 494 / 0.
+- Manifest updated: 9 new `anchor` entries (alphabetic order, top of annotations array — before `concatenation`).
+- `make regex_parser_book_gate` — green.
+- Empirical sweep over all 9 anchors plus compound `^foo$`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/examples-anchors.md` — full rewrite. Every example shows typed shape; new "All 9 anchor kinds" reference table; consumer-extraction recipe rewritten for typed dispatch; explicit migration-from-pre-1.1.36 section.
+- `docs/regex_parser_book/src/rules-atom.md` — `anchor` section now annotated; identification-table row updated to "typed object".
+- `docs/regex_parser_book/src/rules-misc.md` — TBD-slices list updated; anchor moved out of TBD; quantifier-subtree-closure note added.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 9 anchor entries.
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline gains 0.11.0 row.
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.36 / 1.1.38 entry above 1.1.35.
+
+### Contract bump
+Parser release `1.1.35` → `1.1.36`. Contract `1.1.37` → `1.1.38`. New section "Release 1.1.36 / Contract 1.1.38 Highlights — atom subtree slice 7: typed `anchor` shape" in the integration contract. Regex AST schema version stays `1`.
+
+### Atom subtree progress
+1 of 25 alternatives annotated (counting `anchor` itself as one alternative even though it's a 9-branch Or). Remaining: `literal`, `whitespace_literal`, `dot`, `backreference`, `quoted_literal`, `escape`, `posix_word_boundary_alias`, `char_class`, `subroutine_call`, `inline_modifiers`, `scoped_inline_modifiers`, `branch_reset_group`, `callout`, `conditional`, `lookaround`, `atomic_group`, `scan_substring_group`, `script_run_group`, `directive_verb`, `extended_class`, `code_block`, `comment_group`, `python_named_backreference`, `group`. Not all need typing (e.g. simple terminals like `dot` may stay as bare strings if the typed wrapping wouldn't add semantic value); each future slice should justify its choice.
+
 ## 2026-05-01 - regex.ebnf slice 6/N — quantifier-subtree typed-shape closure
 
 ### What landed

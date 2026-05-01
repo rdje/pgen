@@ -113,20 +113,32 @@ For atom `.`: the `atom` content is `"."`.
 ## `anchor`
 
 ```ebnf
-anchor = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G" | "\\K"
+anchor = "^"   -> {type: "anchor", kind: "start_of_line"}
+       | "$"   -> {type: "anchor", kind: "end_of_line"}
+       | "\\A" -> {type: "anchor", kind: "start_of_input"}
+       | "\\Z" -> {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+       | "\\z" -> {type: "anchor", kind: "end_of_input"}
+       | "\\b" -> {type: "anchor", kind: "word_boundary"}
+       | "\\B" -> {type: "anchor", kind: "non_word_boundary"}
+       | "\\G" -> {type: "anchor", kind: "match_start"}
+       | "\\K" -> {type: "anchor", kind: "keep_out"}
 ```
 
-PCRE2 anchor metacharacters. 9-way Or, **un-annotated**.
+PCRE2 anchor metacharacters. 9-way Or, **annotated** as of slice 7 (post-1.1.35).
 
 ### Shape
 
-`Terminal(<anchor-text>)` — one of `"^"`, `"$"`, `"\\A"`, `"\\Z"`, `"\\z"`, `"\\b"`, `"\\B"`, `"\\G"`, `"\\K"`.
+```json
+{"type": "anchor", "kind": <kind-name>}
+```
 
-Note the doubled backslash in JSON: `\\A` in EBNF source means a 2-char sequence `\A` in the matched input, which JSON-serialises as `"\\A"` (a 2-character string: backslash + uppercase A).
+`<kind-name>` is one of: `start_of_line`, `end_of_line`, `start_of_input`, `end_of_input_or_before_last_newline`, `end_of_input`, `word_boundary`, `non_word_boundary`, `match_start`, `keep_out`.
 
 ### Example
 
-For atom `\b`: the `atom` content is `"\\b"`.
+For atom `\b`: `{"type": "anchor", "kind": "word_boundary"}`.
+
+See [Examples: Anchors and Boundaries](examples-anchors.md) for the full set with consumer-side dispatch recipe.
 
 ## `backreference`
 
@@ -294,7 +306,7 @@ When walking a piece's `atom` field, here's the structural signature for each ki
 | `literal` | bare string, single ASCII non-special char or non-ASCII | `"a"`, `"x"` |
 | `whitespace_literal` | bare string, single whitespace char | `" "`, `"\t"` |
 | `dot` | bare string `"."` | exactly the `.` char |
-| `anchor` | bare string of 1-2 chars starting `^`, `$`, or `\` | `"^"`, `"\\A"`, `"\\b"`, `"\\K"` etc. |
+| `anchor` | typed object `{"type":"anchor","kind":"<name>"}` | annotated in slice 7; dispatch on `obj.type == "anchor"` then read `obj.kind` |
 | `backreference` | 2-element array starting with `"\\"` followed by digits / `\\k` / `\\g` form | `["\\", <digits>]` etc. |
 | `quoted_literal` | 3-element array `["\\Q", <chars>, "\\E"]` | full quoted literal |
 | `escape` | 2-element array starting with `"\\"` and not matching backreference form | `["\\", <escape_unit>]` |

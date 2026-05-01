@@ -152,8 +152,17 @@ literal_char   = /([A-Za-z0-9!"#%&',\-\/:;<=>@\]{}_`~]|[^\x00-\x7F])/
 # Dot
 dot            = "."
 
-# Anchors and simple assertions
-anchor         = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G" | "\\K"
+# Anchors and simple assertions. Typed `{type, kind}` so consumers see
+# the semantic anchor name directly instead of the raw escape text.
+anchor         = "^"   -> {type: "anchor", kind: "start_of_line"}
+               | "$"   -> {type: "anchor", kind: "end_of_line"}
+               | "\\A" -> {type: "anchor", kind: "start_of_input"}
+               | "\\Z" -> {type: "anchor", kind: "end_of_input_or_before_last_newline"}
+               | "\\z" -> {type: "anchor", kind: "end_of_input"}
+               | "\\b" -> {type: "anchor", kind: "word_boundary"}
+               | "\\B" -> {type: "anchor", kind: "non_word_boundary"}
+               | "\\G" -> {type: "anchor", kind: "match_start"}
+               | "\\K" -> {type: "anchor", kind: "keep_out"}
 
 # Backreferences
 backreference  = "\\" backreference_digits

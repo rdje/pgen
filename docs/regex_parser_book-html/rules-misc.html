@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3db8979a.js";
+            window.path_to_searchindex_js = "searchindex-72b9fb46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -411,12 +411,12 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <h2 id="whats-missing--tbd-slices"><a class="header" href="#whats-missing--tbd-slices">What’s missing — TBD slices</a></h2>
 <p>The following constructs are syntactically supported by the grammar but their AST shape will be cleaned up in future task #40 slices:</p>
 <ul>
-<li>All <code>atom</code> alternatives (<code>literal</code>, <code>escape</code>, <code>anchor</code>, <code>dot</code>, <code>backreference</code>, <code>quoted_literal</code>, <code>posix_word_boundary_alias</code>, <code>char_class</code>, the group family) — eventually each gets a typed <code>{type: "...", ...}</code> shape.</li>
-<li>The <code>quantifier</code> rule itself — eventually <code>{type: "quantifier", min, max, greediness}</code>.</li>
+<li>Most <code>atom</code> alternatives (<code>literal</code>, <code>escape</code>, <code>dot</code>, <code>backreference</code>, <code>quoted_literal</code>, <code>posix_word_boundary_alias</code>, <code>char_class</code>, the group family) — eventually each gets a typed <code>{type: "...", ...}</code> shape. The <code>anchor</code> alternative landed typed in slice 7 (post-1.1.35) — see <a href="examples-anchors.html">Examples: Anchors and Boundaries</a>.</li>
 <li><code>pattern</code>, <code>alternation</code>, <code>alternative</code> — eventually a clean <code>{type: "alternation", alternatives: [...]}</code> flat shape replaces the current 4-deep raw nesting.</li>
 <li>The full character-class subtree — eventually <code>{type: "char_class", negated: &lt;bool&gt;, items: [...]}</code> with each item itself a typed shape.</li>
 </ul>
-<p>Until those land, the per-rule shapes documented above are the operative reference.</p>
+<p>The <code>quantifier</code> subtree (<code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, <code>counted_quantifier</code>, <code>quant_base</code>, <code>quantifier</code>) is fully typed as of slice 6 (post-1.1.34). See <a href="rules-quantifier.html">Quantifier Subtree</a>.</p>
+<p>Until the remaining slices land, the per-rule shapes documented above are the operative reference.</p>
 
                     </main>
 
