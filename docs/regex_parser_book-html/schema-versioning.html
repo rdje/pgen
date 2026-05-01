@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-105acf98.js";
+            window.path_to_searchindex_js = "searchindex-3db8979a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -294,6 +294,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.8.2</td><td>post-1.1.33 main</td><td><code>quant_base</code> → per-branch <code>-&gt; $1</code> annotations (slice 5). Lock-in only; JSON output unchanged.</td></tr>
 <tr><td>0.8.3</td><td>post-1.1.33 main</td><td>Task #38 fix: parens-grouped-Or trailing annotations broadcast to every inner alternative. Affects <code>string_literal</code> in return_annotation grammar (single-quoted strings now produce typed <code>{type:"string"...}</code>). Regex grammar consumer-impact: none directly; <code>quant_base</code> refactored to the factored form.</td></tr>
 <tr><td>0.9.0</td><td>1.1.34</td><td><strong>Breaking but correct:</strong> PGEN-RGX-0075 fix — <code>$N</code> codegen no longer peels <code>elements[0]</code> from a Quantified base. Multi-piece concatenations now surface every piece in <code>regex.pattern[0][0]</code> (was: only the first piece). Compensating grammar change: <code>regex = pattern</code> (was <code>regex = pattern?</code>). Top-level pattern shape <code>[&lt;head_alt&gt;, &lt;tail&gt;]</code> unchanged.</td></tr>
+<tr><td>0.10.0</td><td>1.1.35</td><td><strong>Breaking but correct:</strong> quantifier subtree closure (slice 6/N). <code>quant_base</code> reshaped from per-branch <code>-&gt; $1</code> (heterogeneous string-vs-object) to per-branch typed <code>{min, max}</code> for every alternative. <code>quantifier</code> rule annotated <code>-&gt; {type:"quantifier", min:$1.min, max:$1.max, greediness:$2}</code>. Piece’s <code>quantifier</code> field is now a fully typed object (or <code>[]</code> for un-quantified pieces); was <code>[&lt;base&gt;, &lt;suffix&gt;]</code> 2-tuple. Consumers walking the quantifier shape need to update from string-vs-object dispatch to typed-field read.</td></tr>
 </tbody>
 </table>
 </div>

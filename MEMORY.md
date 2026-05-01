@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-01 (+0200, task: pgen-rgx-0075-multi-piece-concatenation-typed-shape-correctness)
+Last updated: 2026-05-01 (+0200, task: regex-ebnf-slice-6-quantifier-subtree-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 6 of N — quantifier-subtree typed-shape campaign CLOSED.** Two grammar changes consolidated: (1) `quant_base` reshaped to typed `{min, max}` for every branch (`*`/`+`/`?` expand to PCRE2-equivalent bounds; counted-quantifier passes through via `$1`); (2) `quantifier` rule annotated `-> {type:"quantifier", min:$1.min, max:$1.max, greediness:$2}` — emits fully typed object directly. Piece's `quantifier` field changed from `[<base>, <suffix>]` 2-tuple to typed `{type,min,max,greediness}` object (or `[]` for un-quantified pieces). Greediness convention: `"lazy"`/`"possessive"` for matched suffixes, `[]` for un-matched (consumers map → `"greedy"` until annotation-language coalesce operator lands as separate slice). All 6 quantifier-subtree rules now annotated. Consumer walker is a 6-line typed-field read. Contract bump: parser release `1.1.34` → `1.1.35`, contract `1.1.36` → `1.1.37`. Regex AST schema version stays `1`. 494/0 tests. Manifest updated (4 `quant_base` reshapes + new `quantifier` entry). `make regex_parser_book_gate` green. Live-docs sync covers 8 book chapters + integration contract. Push policy this session: hold pushes until owner authorizes, with 30-commit safety cap.
+
+### Quantifier-subtree campaign — full timeline
+1. Slice 1: `digits` typed integer (parser release `1.1.32`).
+2. Slice 2: `quant_suffix` typed enum string (parser release `1.1.33`).
+3. Slice 3: `counted_quantifier_body` typed `{min, max}` + `null` literal in annotation language.
+4. Slice 4: `counted_quantifier` `-> $3` passthrough.
+5. Slice 5: `quant_base` per-branch `-> $1` (workaround for #38 — pre-fix could only attribute trailing annotation to branch 0 of parens-grouped Or).
+5b. Task #38 fix: parens-grouped-Or trailing-annotation broadcast in both extractors. `quant_base` refactored to factored form `( ... ) -> $1`.
+6. PGEN-RGX-0075: typed-shape correctness for multi-piece concatenation (parser release `1.1.34`).
+7. Slice 6 (this commit): `quant_base` reshaped to typed `{min, max}` per branch; `quantifier` typed `{type, min, max, greediness}` (parser release `1.1.35`).
+
+### Earlier this session (chronological)
+1. Standalone regex parser mdBook landed at `docs/regex_parser_book/` aligned with parser state at commit `6e5b0f23`.
+2. Phase V added to roadmap: per-parser standalone integration mdBooks.
+3. Slice 4: `counted_quantifier` typed; live-book sync.
+4. Slice 5: `quant_base` per-branch annotations.
+5. Task #38 closed: parens-grouped-Or trailing-annotation broadcast.
+6. PGEN-RGX-0075 closed: multi-piece concatenation typed-shape correctness.
+7. Slice 6 (this commit): quantifier subtree campaign closed.
+
+### Next focus areas for task #40
+Atom subtree (25-way Or, currently un-annotated), character class subtree, group family, escape subtree, anchors/backrefs/misc. Each will be its own slice.
+
+## Earlier session note (kept for context):
 - **PGEN-RGX-0075 closed: multi-piece concatenation typed-shape correctness.** RGX bug report — `concatenation = piece+ -> [$1**]` was producing only the first piece for plain inputs like `"abc"`; subsequent pieces silently dropped. Root cause: `$N` PositionalRef codegen in `rust/src/ast_pipeline/ast_return_transform.rs` peeled `elements[0].content.clone()` from a Quantified base when `captured_vars.len() == 1`, treating Quantified-bodied rules like single-element Sequence wrappers (violating the platform-book annotation-system doctrine that `$1` on a Quantified body is "the whole capture group"). Fix: removed the Quantified peel-arm in three sites (`generate_positional_ref`, `generate_value_extraction`, `generate_quantified_extraction`); Quantified bases fall through to `other.clone()`. Compensating grammar change: `regex = pattern -> ...` (was `pattern? -> ...`); the pre-fix `?` propped up the buggy auto-peel — inner `alternative = concatenation?` already handles emptiness. New regression-lock test `regex_parser_pgen_rgx_0075_multi_piece_concatenation_surfaces_all_pieces` pins `"a"`/`"ab"`/`"abc"`/`"hello"`. 494/0 tests. Why the `\Q...\E` corpus didn't catch it: `\Qab*\E{2,}` produces 3 pieces correctly because `piece_quoted_run_quantified`'s annotation pre-builds a Sequence-of-3 inside a single piece, which the buggy `elements[0]` extraction picked AND `**` then flattened correctly; the bug only showed on plain literal concatenations where `piece+` matched multiple top-level pieces. Contract bump: parser release `1.1.34` / contract `1.1.36`. New section in integration contract; new `REGEX-0075` ledger entry. Regex AST schema version stays `1`. Live-docs sync: regex parser book chapters [changelog-index.md, schema-versioning.md, rules-top-level.md] + activity docs + cross-doc refs. RGX integration: walking `regex.pattern[0][0]` now sees all pieces; RGX's lib suite (~73% pass pre-fix) should recover to baseline post-bump. Push policy this session: hold pushes until owner authorizes, with 30-commit safety cap.
 
 ### Earlier this session (in chronological order)

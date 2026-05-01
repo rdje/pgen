@@ -60,15 +60,31 @@ piece_quoted_run_quantified = "\\Q" quoted_run_inner_piece* quoted_literal_char 
 quoted_run_inner_piece = quoted_literal_char !"\\E"
 -> {type: "piece", atom: $1, quantifier: []}
 
-# Quantifiers (with lazy and possessive variants)
+# Quantifiers (with lazy and possessive variants).
+#
+# Final consolidated shape (slice 6 of the quantifier-subtree campaign):
+#   `quantifier` emits a typed `{type, min, max, greediness}` object.
+#     - `min` is always a non-negative integer.
+#     - `max` is a non-negative integer OR JSON `null` (unbounded).
+#     - `greediness` is `"lazy"` or `"possessive"` when an explicit suffix
+#       matched, or `[]` when the `quant_suffix?` slot was empty (= the
+#       greedy default — consumers map `[]` to `"greedy"`). A coalesce
+#       operator in the annotation language would let the rule emit the
+#       literal string `"greedy"` here directly; that's tracked as a
+#       follow-up slice.
 quantifier     = quant_base quant_suffix?
-# `quant_base` formalises each branch's emission as a positional passthrough.
-# Every branch emits its matched element via $1 — the shorthand branches pass
-# through the literal terminal text ("*"/"+"/"?"), the counted-quantifier
-# branch passes through the typed `{min, max}` object. The factored form
-# below works thanks to task #38's parens-grouped-Or trailing-annotation
-# broadcast support; pre-#38 this had to be written per-branch.
-quant_base     = ( "*" | "+" | "?" | counted_quantifier ) -> $1
+-> {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}
+# `quant_base` is now fully typed: every branch emits a `{min, max}`
+# object, so the parent `quantifier` rule can read `$1.min` / `$1.max`
+# without dispatching on string-vs-object. PCRE2-equivalent shorthand
+# expansions: `*` → unbounded zero-or-more, `+` → unbounded one-or-more,
+# `?` → bounded zero-or-one. Counted quantifiers pass through the body's
+# typed shape via `$1` (the `counted_quantifier` rule lifts
+# `counted_quantifier_body`'s typed object via its own `-> $3`).
+quant_base     = "*"                -> {min: 0, max: null}
+               | "+"                -> {min: 1, max: null}
+               | "?"                -> {min: 0, max: 1}
+               | counted_quantifier -> $1
 # `counted_quantifier` lifts the typed `{min, max}` body straight through
 # the surrounding `{` ... `}` syntax — the brace tokens carry no semantic
 # information beyond "this is a counted quantifier" (which the surrounding

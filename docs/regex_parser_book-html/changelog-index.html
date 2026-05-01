@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-105acf98.js";
+            window.path_to_searchindex_js = "searchindex-3db8979a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,41 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1135--contract-1137--quantifier-subtree-closure-slice-6n"><a class="header" href="#1135--contract-1137--quantifier-subtree-closure-slice-6n">1.1.35 / Contract 1.1.37 — Quantifier subtree closure (slice 6/N)</a></h3>
+<p><strong>What changed:</strong> the final two rules in the quantifier subtree got their typed annotations:</p>
+<ul>
+<li>
+<p><code>quant_base</code> reshaped from per-branch <code>-&gt; $1</code> (heterogeneous: string for shorthand, object for counted) to per-branch typed <code>{min, max}</code> for every alternative:</p>
+<pre><code class="language-ebnf">quant_base = "*"                -&gt; {min: 0, max: null}
+           | "+"                -&gt; {min: 1, max: null}
+           | "?"                -&gt; {min: 0, max: 1}
+           | counted_quantifier -&gt; $1
+</code></pre>
+</li>
+<li>
+<p><code>quantifier</code> rule annotated:</p>
+<pre><code class="language-ebnf">quantifier = quant_base quant_suffix?
+-&gt; {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}
+</code></pre>
+</li>
+</ul>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — the piece’s <code>quantifier</code> field is now a fully typed <code>{type, min, max, greediness}</code> object instead of a <code>[&lt;base&gt;, &lt;suffix&gt;]</code> 2-tuple. Empirical:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>a*</code></td><td><code>["*", []]</code></td><td><code>{"type":"quantifier","min":0,"max":null,"greediness":[]}</code></td></tr>
+<tr><td><code>a+?</code></td><td><code>["+", "lazy"]</code></td><td><code>{"type":"quantifier","min":1,"max":null,"greediness":"lazy"}</code></td></tr>
+<tr><td><code>a{2,5}</code></td><td><code>[{"min":2,"max":5}, []]</code></td><td><code>{"type":"quantifier","min":2,"max":5,"greediness":[]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Pieces with NO quantifier still have <code>"quantifier": []</code> (empty <code>quantifier?</code> slot — unchanged).</p>
+<p><code>greediness: []</code> is the un-matched <code>quant_suffix?</code> slot — interpret as PCRE2’s greedy default. Consumers map <code>[]</code> → <code>"greedy"</code>. This will be removed when the annotation language gains a coalesce operator and <code>quantifier</code>’s annotation can emit the literal string <code>"greedy"</code> directly.</p>
+<p><strong>Quantifier-subtree campaign closed:</strong> all six rules (<code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, <code>counted_quantifier</code>, <code>quant_base</code>, <code>quantifier</code>) are now annotated. Consumer-side <code>extract_quantifier</code> walker collapses to a six-line typed-field read.</p>
+<p><strong>Contract section:</strong> “Release 1.1.35 / Contract 1.1.37 Highlights”.</p>
 <h3 id="1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation"><a class="header" href="#1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation">1.1.34 / Contract 1.1.36 — PGEN-RGX-0075 typed-shape correctness for multi-piece concatenation</a></h3>
 <p><strong>What changed:</strong> The <code>$N</code> PositionalRef codegen no longer peels <code>elements[0]</code> from a <code>Quantified</code> base when the rule body has a single capture position. With this fix, <code>concatenation = piece+ -&gt; [$1**]</code> correctly resolves <code>$1</code> to the whole <code>Quantified</code> (every piece), so <code>**</code> flattens all of them into the array.</p>
 <p>Compensating grammar change: <code>regex = pattern -&gt; ...</code> (was <code>regex = pattern? -&gt; ...</code>). The inner <code>alternative = concatenation?</code> already handles the empty-input case, so the outer <code>?</code> was redundant and only existed to prop up the buggy auto-peel behaviour.</p>

@@ -1,4 +1,85 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 6/N — quantifier-subtree typed-shape closure
+
+### What landed
+
+Final slice of the quantifier-subtree campaign. Two grammar changes:
+
+```ebnf
+quant_base = "*"                -> {min: 0, max: null}
+           | "+"                -> {min: 1, max: null}
+           | "?"                -> {min: 0, max: 1}
+           | counted_quantifier -> $1
+
+quantifier = quant_base quant_suffix?
+-> {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}
+```
+
+Pre-slice: piece's `quantifier` field was `[<base>, <suffix>]` 2-tuple with heterogeneous base (string for `*`/`+`/`?`, object for counted). Post-slice: `quantifier` is a fully typed `{type, min, max, greediness}` object.
+
+### Design choice — option A from the proposal
+
+Three paths considered:
+- **A. Full typed shape via quant_base reshape** — chosen.
+- **B. Defer greediness, keep heterogeneous base** — punts the typed-shape goal.
+- **C. Add `??` (coalesce) to annotation language first** — bigger slice with cross-grammar effect.
+
+Option A delivers the documented `{type:"quantifier",...}` shape and the consumer-side `extract_quantifier` walker collapses to a 6-line typed-field read. The greediness `[]` → `"greedy"` mapping is a one-line consumer-side lookup until C lands.
+
+### Greediness `[]` convention
+
+`quant_suffix?` is the greediness slot. When matched: `"lazy"` (`?` suffix) or `"possessive"` (`+` suffix) per the typed `quant_suffix` rule. When un-matched: `[]` (the un-matched `Quantified-?` slot's runtime shape). Consumers map `[]` → `"greedy"` (PCRE2 default).
+
+The annotation language has `PropertyAccess` (`$1.min`) and `ArrayAccess` (`$1[0]`) but no coalesce or conditional. To emit the literal string `"greedy"` for un-matched suffixes, we'd need either:
+- A coalesce operator: `greediness: $2 ?? "greedy"`. Future slice (option C).
+- A conditional/branch operator. Not currently planned.
+
+Until then, the `[]` convention holds.
+
+### Empirical
+
+| Input | piece.quantifier |
+|---|---|
+| `a` | `[]` (no quantifier) |
+| `a*` | `{"type":"quantifier","min":0,"max":null,"greediness":[]}` |
+| `a+` | `{"type":"quantifier","min":1,"max":null,"greediness":[]}` |
+| `a?` | `{"type":"quantifier","min":0,"max":1,"greediness":[]}` |
+| `a*?` | `{"type":"quantifier","min":0,"max":null,"greediness":"lazy"}` |
+| `a*+` | `{"type":"quantifier","min":0,"max":null,"greediness":"possessive"}` |
+| `a{3}` | `{"type":"quantifier","min":3,"max":3,"greediness":[]}` |
+| `a{2,5}` | `{"type":"quantifier","min":2,"max":5,"greediness":[]}` |
+| `a{2,}` | `{"type":"quantifier","min":2,"max":null,"greediness":[]}` |
+| `a{,5}` | `{"type":"quantifier","min":0,"max":5,"greediness":[]}` |
+| `a{2,5}?` | `{"type":"quantifier","min":2,"max":5,"greediness":"lazy"}` |
+| `abc{2,5}` | 3 pieces, last with `{"type":"quantifier","min":2,"max":5,"greediness":[]}` |
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 494 / 0.
+- Manifest updated: `rust/test_data/ast_shape_contract/regex_v1.json` — 4 `quant_base` entries reshaped (branches 0-2 from `return_scalar "$1"` to `return_object`; branch 3 unchanged), new `quantifier` entry.
+- `make regex_parser_book_gate` — green.
+- Empirical probe sweep over 14 inputs.
+
+### Contract bump
+Parser release `1.1.34` → `1.1.35`. Contract `1.1.36` → `1.1.37`. The slice consolidates the entire quantifier subtree's typed-shape contract — Tier-2 break for any consumer doing string-vs-object dispatch on quant_base.
+
+### Live-docs sync
+- `docs/regex_parser_book/src/rules-quantifier.md` — campaign-closed banner; quantifier section rewrites with typed shape; quant_base shape table; walker recipe collapses to typed-field read; future-direction section becomes a campaign-closed summary.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 4 `quant_base` per-branch entries + `quantifier`.
+- `docs/regex_parser_book/src/examples-quantifiers.md` — every example shows the typed quantifier; consumer-extraction shrinks dramatically.
+- `docs/regex_parser_book/src/examples-quoted-literal.md` — `\Qab*\E{2,}`, `\Qa\E{3}`, `\Q\E{2}`, `\Qab\E{3}` use the new shape.
+- `docs/regex_parser_book/src/walking-the-ast.md` — quantifier handling section rewritten.
+- `docs/regex_parser_book/src/rules-piece.md` — piece example with quantifier uses new shape.
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline gains 0.10.0 row.
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.35 / 1.1.37 entry.
+
+### Quantifier campaign — closed
+All six rules in the quantifier subtree annotated. Next focus areas for task #40:
+- Atom subtree (25-way Or, currently un-annotated).
+- Character class subtree.
+- Group family.
+- Escape subtree.
+- Anchors / backreferences / misc.
+
 ## 2026-05-01 - PGEN-RGX-0075: typed-shape correctness for multi-piece concatenation
 
 ### What landed

@@ -164,21 +164,15 @@ The shape examples in [Groups and Alternations](examples-groups-alt.md) make thi
 
 ## Handling quantifiers
 
-Every piece carries a `quantifier` slot. The slot's content is currently the raw-shape result of the `quantifier?` rule — an array of 0 or 1 elements:
+Every piece carries a `quantifier` slot. As of slice 6 (post-1.1.34) the slot is fully typed:
 
-- **No quantifier:** `"quantifier": []` (empty array).
-- **With quantifier:** `"quantifier": [<quant_base>, <quant_suffix>]`.
-  - `<quant_base>` is one of:
-    - `"*"`, `"+"`, `"?"` (raw terminals — the `quant_base` rule is not yet annotated).
-    - A typed `{min, max}` object — for counted quantifiers (`counted_quantifier` is annotated `-> $3`, lifting the body's typed shape).
-  - `<quant_suffix>` is one of:
-    - `[]` (empty — no `?` or `+` modifier).
-    - `"lazy"` (annotated value when `?` appears as a quantifier modifier).
-    - `"possessive"` (annotated value when `+` appears as a quantifier modifier).
+- **No quantifier:** `"quantifier": []` (empty array — the un-matched `quantifier?` slot).
+- **With quantifier:** `"quantifier": {"type": "quantifier", "min": <int>, "max": <int|null>, "greediness": <"lazy"|"possessive"|[]>}`.
+  - `min` is always a non-negative integer.
+  - `max` is a non-negative integer for bounded quantifiers, or JSON `null` for unbounded (`*`, `+`, `{n,}`).
+  - `greediness` is `"lazy"` (when source has `?` suffix), `"possessive"` (when `+` suffix), or `[]` (the un-matched `quant_suffix?` slot — corresponds to PCRE2's "greedy" default; consumers map `[]` → `"greedy"`).
 
-For counted quantifiers like `{2,5}`, the `<quant_base>` slot emits a typed `{min, max}` object directly — no Sequence wrapping, no digging into the body shape. Both `counted_quantifier` (`-> $3`) and `counted_quantifier_body` (per-branch `{min, max}` annotations) are now annotated. The leaf `digits` rule emits typed integers, so `min` is always `Number`; `max` is `Number` for bounded forms or JSON `null` for the unbounded `{n,}` form. The walk recipe is a single `as_object().get("min")` lookup — no branch detection. See the [Quantifier Subtree](rules-quantifier.md) chapter for full details.
-
-The [Quantifier Subtree](rules-quantifier.md) chapter walks this in detail.
+The whole quantifier subtree is annotated as of slice 6: `digits`, `quant_suffix`, `counted_quantifier_body`, `counted_quantifier`, `quant_base`, and `quantifier`. Walking is a six-line typed-field read — no Sequence-wrapper digging, no string-vs-object dispatch. See the [Quantifier Subtree](rules-quantifier.md) chapter for the full walker recipe.
 
 ## Handling `\Q...\E` quoted runs
 

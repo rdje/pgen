@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-105acf98.js";
+            window.path_to_searchindex_js = "searchindex-3db8979a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,44 +181,77 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="quantifier-subtree"><a class="header" href="#quantifier-subtree">Quantifier Subtree</a></h1>
-<p>Six grammar rules cover quantifier syntax. <strong>At the parser release this book describes (current main HEAD, post-slices-1-through-5), <code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, <code>counted_quantifier</code>, and <code>quant_base</code> are annotated. Only the outer <code>quantifier</code> rule remains un-annotated; that closes in slice 6, which also carries the consolidated contract identity bump for slices 3-6.</strong></p>
+<p>Six grammar rules cover quantifier syntax. <strong>As of parser release <code>1.1.35</code> / contract <code>1.1.37</code> (slice 6 closure), every rule in the quantifier subtree is annotated. The whole subtree emits a fully typed shape with no string-vs-object dispatch left for consumers.</strong></p>
 <h2 id="quantifier"><a class="header" href="#quantifier"><code>quantifier</code></a></h2>
 <pre><code class="language-ebnf">quantifier = quant_base quant_suffix?
+-&gt; {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}
 </code></pre>
-<p><strong>Un-annotated.</strong> Output is the raw 2-element Sequence: <code>[&lt;quant_base&gt;, &lt;quant_suffix?&gt;]</code>.</p>
-<h3 id="current-shape"><a class="header" href="#current-shape">Current shape</a></h3>
-<pre><code class="language-json">[&lt;quant_base-content&gt;, &lt;quant_suffix?-content&gt;]
+<p><strong>Annotated.</strong> Emits a typed <code>{type, min, max, greediness}</code> object directly.</p>
+<h3 id="shape"><a class="header" href="#shape">Shape</a></h3>
+<pre><code class="language-json">{
+  "type": "quantifier",
+  "min": &lt;usize&gt;,
+  "max": &lt;usize | null&gt;,
+  "greediness": "lazy" | "possessive" | []
+}
 </code></pre>
-<p><code>&lt;quant_base-content&gt;</code> is one of:</p>
 <ul>
-<li><code>"*"</code>, <code>"+"</code>, <code>"?"</code> — for shorthand quantifiers (raw terminals).</li>
-<li>A typed <code>{min, max}</code> object — for counted quantifiers (<code>{n}</code>, <code>{n,}</code>, <code>{n,m}</code>, <code>{,m}</code>).</li>
+<li><code>min</code> is always a non-negative integer.</li>
+<li><code>max</code> is a non-negative integer (bounded) OR JSON <code>null</code> (unbounded — for <code>*</code>, <code>+</code>, <code>{n,}</code>).</li>
+<li><code>greediness</code> is the typed string <code>"lazy"</code> (when source has <code>?</code> suffix) or <code>"possessive"</code> (when <code>+</code> suffix), or the empty array <code>[]</code> (no suffix matched). <code>[]</code> corresponds to PCRE2’s “greedy” default; consumers map <code>[]</code> → <code>"greedy"</code>.</li>
 </ul>
-<p><code>&lt;quant_suffix?-content&gt;</code> is one of:</p>
-<ul>
-<li><code>[]</code> — when no <code>?</code>/<code>+</code> suffix.</li>
-<li><code>"lazy"</code> — typed string from the annotated <code>quant_suffix</code> rule.</li>
-<li><code>"possessive"</code> — typed string from the annotated <code>quant_suffix</code> rule.</li>
-</ul>
+<p>A future slice will introduce a coalesce operator in the annotation language so <code>greediness: $2 ?? "greedy"</code> becomes the literal string <code>"greedy"</code> directly. Until then, the <code>[]</code> convention holds.</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th><code>quantifier</code> field on the corresponding piece</th></tr>
+</thead>
+<tbody>
+<tr><td><code>a*</code></td><td><code>{"type":"quantifier","min":0,"max":null,"greediness":[]}</code></td></tr>
+<tr><td><code>a+</code></td><td><code>{"type":"quantifier","min":1,"max":null,"greediness":[]}</code></td></tr>
+<tr><td><code>a?</code></td><td><code>{"type":"quantifier","min":0,"max":1,"greediness":[]}</code></td></tr>
+<tr><td><code>a*?</code></td><td><code>{"type":"quantifier","min":0,"max":null,"greediness":"lazy"}</code></td></tr>
+<tr><td><code>a*+</code></td><td><code>{"type":"quantifier","min":0,"max":null,"greediness":"possessive"}</code></td></tr>
+<tr><td><code>a{3}</code></td><td><code>{"type":"quantifier","min":3,"max":3,"greediness":[]}</code></td></tr>
+<tr><td><code>a{2,5}</code></td><td><code>{"type":"quantifier","min":2,"max":5,"greediness":[]}</code></td></tr>
+<tr><td><code>a{2,}</code></td><td><code>{"type":"quantifier","min":2,"max":null,"greediness":[]}</code></td></tr>
+<tr><td><code>a{,5}</code></td><td><code>{"type":"quantifier","min":0,"max":5,"greediness":[]}</code></td></tr>
+<tr><td><code>a{2,5}?</code></td><td><code>{"type":"quantifier","min":2,"max":5,"greediness":"lazy"}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>For pieces with no quantifier (e.g. plain <code>a</code>), the piece’s <code>quantifier</code> field is the empty array <code>[]</code> (the un-matched <code>?</code>-Quantified slot), NOT a typed-quantifier object.</p>
 <h2 id="quant_base"><a class="header" href="#quant_base"><code>quant_base</code></a></h2>
-<pre><code class="language-ebnf">quant_base = ( "*" | "+" | "?" | counted_quantifier ) -&gt; $1
+<pre><code class="language-ebnf">quant_base = "*"                -&gt; {min: 0, max: null}
+           | "+"                -&gt; {min: 1, max: null}
+           | "?"                -&gt; {min: 0, max: 1}
+           | counted_quantifier -&gt; $1
 </code></pre>
-<p><strong>Annotated.</strong> Single trailing <code>-&gt; $1</code> annotation, broadcast to every alternative inside the parens-grouped Or. Each alternative emits its matched element via positional passthrough — shorthand branches pass through the literal terminal text; the counted-quantifier branch passes through the typed <code>{min, max}</code> object.</p>
-<p>The factored form (single shared annotation) works thanks to task #38’s parens-grouped-Or trailing-annotation broadcast support. The earlier per-branch form (<code>"*" -&gt; $1 | "+" -&gt; $1 | ...</code>) produced identical output but was needed pre-#38 to work around a codegen bug where only branch 0 of a parens-grouped Or received the trailing annotation.</p>
-<p>This slice didn’t change the consumer-visible JSON output — pre-annotation the same bytes were emitted via codegen defaults. The annotation locks the rule’s emission into the typed-shape contract (Tier-2 stable) instead of relying on default fall-through.</p>
-<h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
-<ul>
-<li>Branch 0 (<code>*</code>): JSON string <code>"*"</code>.</li>
-<li>Branch 1 (<code>+</code>): JSON string <code>"+"</code>.</li>
-<li>Branch 2 (<code>?</code>): JSON string <code>"?"</code>.</li>
-<li>Branch 3 (<code>counted_quantifier</code>): the typed <code>{min, max}</code> object directly (since <code>counted_quantifier</code> itself lifts the body’s typed shape via <code>-&gt; $3</code>).</li>
-</ul>
+<p><strong>Annotated, fully typed.</strong> Every branch emits a <code>{min, max}</code> object — shorthand quantifiers expand to their PCRE2-equivalent bounds, and the counted-quantifier branch passes through the body’s typed shape via <code>$1</code>.</p>
+<p>The benefit: the parent <code>quantifier</code> rule can read <code>$1.min</code> / <code>$1.max</code> regardless of which branch matched. No string-vs-object dispatch.</p>
+<h3 id="shape-per-branch"><a class="header" href="#shape-per-branch">Shape per branch</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Output</th></tr>
+</thead>
+<tbody>
+<tr><td><code>*</code></td><td><code>{"min": 0, "max": null}</code> (unbounded zero-or-more)</td></tr>
+<tr><td><code>+</code></td><td><code>{"min": 1, "max": null}</code> (unbounded one-or-more)</td></tr>
+<tr><td><code>?</code></td><td><code>{"min": 0, "max": 1}</code> (zero-or-one)</td></tr>
+<tr><td><code>{n}</code>/<code>{n,}</code>/<code>{n,m}</code>/<code>{,m}</code></td><td>passes through <code>counted_quantifier</code>’s typed <code>{min, max}</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="earlier-form-pre-1135"><a class="header" href="#earlier-form-pre-1135">Earlier form (pre-1.1.35)</a></h3>
+<p>Pre-slice-6, this rule used positional-passthrough <code>-&gt; $1</code> on every branch, which emitted the bare terminal string for shorthand cases (<code>"*"</code>/<code>"+"</code>/<code>"?"</code>) and the typed object only for counted quantifiers. That heterogeneous shape forced consumers to dispatch on string-vs-object. Slice 6 unifies the output to typed <code>{min, max}</code> for every branch — Tier-2 break, contract bumped accordingly.</p>
 <h2 id="counted_quantifier"><a class="header" href="#counted_quantifier"><code>counted_quantifier</code></a></h2>
 <pre><code class="language-ebnf">counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
 -&gt; $3
 </code></pre>
 <p><strong>Annotated.</strong> The annotation <code>-&gt; $3</code> lifts the typed <code>counted_quantifier_body</code> shape straight through, dropping the surrounding <code>{</code>, whitespace, and <code>}</code> tokens — they carry no semantic information beyond “this is a counted quantifier” (which the surrounding <code>quant_base</code> context already conveys).</p>
-<h3 id="current-shape-2"><a class="header" href="#current-shape-2">Current shape</a></h3>
+<h3 id="current-shape"><a class="header" href="#current-shape">Current shape</a></h3>
 <pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
 </code></pre>
 <p>A typed <code>{min, max}</code> object, identical to whatever <code>counted_quantifier_body</code> emitted.</p>
@@ -242,7 +275,7 @@
                         | "," ws? digits         -&gt; {min: 0,  max: $3}
 </code></pre>
 <p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). Each branch carries its own per-branch annotation producing the same <code>{min, max}</code> shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
-<h3 id="current-shape-3"><a class="header" href="#current-shape-3">Current shape</a></h3>
+<h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
 <pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
 </code></pre>
 <p><code>min</code> is always a typed integer (<code>Number</code>). <code>max</code> is either a typed integer (<code>Number</code>) or <code>null</code> (when the source uses the unbounded <code>{n,}</code> form).</p>
@@ -254,7 +287,7 @@
              | "+" -&gt; "possessive"
 </code></pre>
 <p><strong>Annotated.</strong> Per-branch annotations emit semantic strings.</p>
-<h3 id="shape"><a class="header" href="#shape">Shape</a></h3>
+<h3 id="shape-1"><a class="header" href="#shape-1">Shape</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -267,7 +300,7 @@
 </table>
 </div>
 <p>When the parent <code>quant_suffix?</code> slot doesn’t match (no suffix in the input), the slot is <code>[]</code> (empty array), produced by the un-annotated <code>?</code>-Quantified parent.</p>
-<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -288,7 +321,7 @@
 digits = /([0-9]+)/
 </code></pre>
 <p><strong>Annotated.</strong> Emits a typed integer via <code>@transform</code>.</p>
-<h3 id="shape-1"><a class="header" href="#shape-1">Shape</a></h3>
+<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
 <p><code>Json(Number(&lt;usize&gt;))</code> — a non-negative integer.</p>
 <h3 id="where-it-appears"><a class="header" href="#where-it-appears">Where it appears</a></h3>
 <ul>
@@ -318,68 +351,41 @@ digits = /([0-9]+)/
 </div>
 <p><code>digits</code> is the lone annotated leaf in this group. The rest are un-annotated.</p>
 <h2 id="putting-it-together"><a class="header" href="#putting-it-together">Putting it together</a></h2>
-<p>Walking a piece’s <code>quantifier</code> slot at this release:</p>
+<p>Walking a piece’s <code>quantifier</code> slot:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn extract_quantifier(piece: &amp;Value) -&gt; Option&lt;Quantifier&gt; {
     let q = piece.get("quantifier")?;
-    let arr = q.as_array()?;
-    if arr.is_empty() {
-        return None; // no quantifier
+    if q.as_array().map_or(false, |a| a.is_empty()) {
+        return None; // empty Quantified-? slot — no quantifier
     }
-    // arr[0] = quant_base (raw "*", "+", "?", or typed {min, max} object)
-    // arr[1] = quant_suffix? — empty array, "lazy", or "possessive"
-    let base = &amp;arr[0];
-    let suffix = &amp;arr[1];
-
-    let (min, max) = match base {
-        Value::String(s) if s == "*" =&gt; (0, None),
-        Value::String(s) if s == "+" =&gt; (1, None),
-        Value::String(s) if s == "?" =&gt; (0, Some(1)),
-        Value::Object(map) =&gt; {
-            // counted_quantifier — typed {min, max} object directly.
-            let min = map.get("min")?.as_u64()?;
-            let max = map.get("max").and_then(|v| match v {
-                Value::Number(n) =&gt; n.as_u64(),
-                Value::Null =&gt; None,
-                _ =&gt; None,
-            });
-            // Note: max == None if the JSON value is null OR the field is missing.
-            // For counted_quantifier_body the field is always present; null marks
-            // the unbounded `{n,}` form.
-            let max = match map.get("max") {
-                Some(Value::Null) =&gt; None,
-                Some(Value::Number(n)) =&gt; n.as_u64(),
-                _ =&gt; None,
-            };
-            (min, max)
-        }
-        _ =&gt; return None,
+    let obj = q.as_object()?; // typed {type, min, max, greediness}
+    let min = obj.get("min")?.as_u64()?;
+    let max = match obj.get("max") {
+        Some(Value::Null) =&gt; None,
+        Some(Value::Number(n)) =&gt; n.as_u64(),
+        _ =&gt; None,
     };
-
-    let greediness = match suffix {
-        Value::String(s) if s == "lazy" =&gt; Greediness::Lazy,
-        Value::String(s) if s == "possessive" =&gt; Greediness::Possessive,
-        _ =&gt; Greediness::Greedy,
+    let greediness = match obj.get("greediness") {
+        Some(Value::String(s)) if s == "lazy" =&gt; Greediness::Lazy,
+        Some(Value::String(s)) if s == "possessive" =&gt; Greediness::Possessive,
+        _ =&gt; Greediness::Greedy, // including the `[]` no-suffix-matched case
     };
-
     Some(Quantifier { min, max, greediness })
 }
 <span class="boring">}</span></code></pre>
-<p>The dispatch is now: shorthand quantifiers come through as bare strings; counted quantifiers come through as typed <code>{min, max}</code> objects. No structural digging into Sequence wrappers required.</p>
-<h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>One slice remains in the quantifier-subtree campaign:</p>
+<p>Six lines of typed-field reads. No Sequence-wrapper digging, no string-vs-object dispatch. The <code>[]</code> → <code>Greediness::Greedy</code> mapping in the suffix slot will be removed once the annotation language gains a coalesce operator and <code>quantifier</code>’s annotation can emit the literal string <code>"greedy"</code> directly.</p>
+<h2 id="quantifier-subtree-campaign--closed"><a class="header" href="#quantifier-subtree-campaign--closed">Quantifier-subtree campaign — closed</a></h2>
+<p>All six rules in the quantifier subtree are now annotated:</p>
 <ul>
-<li><code>quantifier</code> annotation. Goal: combine <code>quant_base</code> and <code>quant_suffix?</code> into a single typed object:</li>
+<li><code>digits</code> — typed <code>usize</code> integer (slice 1, post-1.1.31).</li>
+<li><code>quant_suffix</code> — typed <code>"lazy"</code>/<code>"possessive"</code> strings (slice 2, post-1.1.32).</li>
+<li><code>counted_quantifier_body</code> — typed <code>{min, max}</code> (slice 3, post-1.1.33).</li>
+<li><code>counted_quantifier</code> — <code>-&gt; $3</code> lifts body’s typed shape (slice 4, post-1.1.33).</li>
+<li><code>quant_base</code> — typed <code>{min, max}</code> for every branch (slice 5+6, post-1.1.34).</li>
+<li><code>quantifier</code> — typed <code>{type, min, max, greediness}</code> (slice 6, post-1.1.34, contract <code>1.1.37</code>).</li>
 </ul>
-<pre><code class="language-json">{
-  "type": "quantifier",
-  "min": 2,
-  "max": null,
-  "greediness": "greedy"
-}
-</code></pre>
-<p>When that final slice lands, the consumer’s <code>extract_quantifier</code> walker collapses to a 4-line field read. The slice is tracked under task #40 in PGEN’s tracker.</p>
+<p>Next focus areas for the broader task #40 campaign: atom subtree, character class subtree, group family.</p>
 
                     </main>
 

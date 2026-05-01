@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-105acf98.js";
+            window.path_to_searchindex_js = "searchindex-3db8979a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -330,29 +330,18 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <p>For your consumer, this means: alternation is a 2-step extraction — pull <code>pattern[0]</code> for the first alternative, then iterate <code>pattern[1]</code> extracting each pair’s index-1 slot.</p>
 <p>The shape examples in <a href="examples-groups-alt.html">Groups and Alternations</a> make this concrete with actual probe output.</p>
 <h2 id="handling-quantifiers"><a class="header" href="#handling-quantifiers">Handling quantifiers</a></h2>
-<p>Every piece carries a <code>quantifier</code> slot. The slot’s content is currently the raw-shape result of the <code>quantifier?</code> rule — an array of 0 or 1 elements:</p>
+<p>Every piece carries a <code>quantifier</code> slot. As of slice 6 (post-1.1.34) the slot is fully typed:</p>
 <ul>
-<li><strong>No quantifier:</strong> <code>"quantifier": []</code> (empty array).</li>
-<li><strong>With quantifier:</strong> <code>"quantifier": [&lt;quant_base&gt;, &lt;quant_suffix&gt;]</code>.
+<li><strong>No quantifier:</strong> <code>"quantifier": []</code> (empty array — the un-matched <code>quantifier?</code> slot).</li>
+<li><strong>With quantifier:</strong> <code>"quantifier": {"type": "quantifier", "min": &lt;int&gt;, "max": &lt;int|null&gt;, "greediness": &lt;"lazy"|"possessive"|[]&gt;}</code>.
 <ul>
-<li><code>&lt;quant_base&gt;</code> is one of:
-<ul>
-<li><code>"*"</code>, <code>"+"</code>, <code>"?"</code> (raw terminals — the <code>quant_base</code> rule is not yet annotated).</li>
-<li>A typed <code>{min, max}</code> object — for counted quantifiers (<code>counted_quantifier</code> is annotated <code>-&gt; $3</code>, lifting the body’s typed shape).</li>
-</ul>
-</li>
-<li><code>&lt;quant_suffix&gt;</code> is one of:
-<ul>
-<li><code>[]</code> (empty — no <code>?</code> or <code>+</code> modifier).</li>
-<li><code>"lazy"</code> (annotated value when <code>?</code> appears as a quantifier modifier).</li>
-<li><code>"possessive"</code> (annotated value when <code>+</code> appears as a quantifier modifier).</li>
+<li><code>min</code> is always a non-negative integer.</li>
+<li><code>max</code> is a non-negative integer for bounded quantifiers, or JSON <code>null</code> for unbounded (<code>*</code>, <code>+</code>, <code>{n,}</code>).</li>
+<li><code>greediness</code> is <code>"lazy"</code> (when source has <code>?</code> suffix), <code>"possessive"</code> (when <code>+</code> suffix), or <code>[]</code> (the un-matched <code>quant_suffix?</code> slot — corresponds to PCRE2’s “greedy” default; consumers map <code>[]</code> → <code>"greedy"</code>).</li>
 </ul>
 </li>
 </ul>
-</li>
-</ul>
-<p>For counted quantifiers like <code>{2,5}</code>, the <code>&lt;quant_base&gt;</code> slot emits a typed <code>{min, max}</code> object directly — no Sequence wrapping, no digging into the body shape. Both <code>counted_quantifier</code> (<code>-&gt; $3</code>) and <code>counted_quantifier_body</code> (per-branch <code>{min, max}</code> annotations) are now annotated. The leaf <code>digits</code> rule emits typed integers, so <code>min</code> is always <code>Number</code>; <code>max</code> is <code>Number</code> for bounded forms or JSON <code>null</code> for the unbounded <code>{n,}</code> form. The walk recipe is a single <code>as_object().get("min")</code> lookup — no branch detection. See the <a href="rules-quantifier.html">Quantifier Subtree</a> chapter for full details.</p>
-<p>The <a href="rules-quantifier.html">Quantifier Subtree</a> chapter walks this in detail.</p>
+<p>The whole quantifier subtree is annotated as of slice 6: <code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, <code>counted_quantifier</code>, <code>quant_base</code>, and <code>quantifier</code>. Walking is a six-line typed-field read — no Sequence-wrapper digging, no string-vs-object dispatch. See the <a href="rules-quantifier.html">Quantifier Subtree</a> chapter for the full walker recipe.</p>
 <h2 id="handling-qe-quoted-runs"><a class="header" href="#handling-qe-quoted-runs">Handling <code>\Q...\E</code> quoted runs</a></h2>
 <p>For <code>\Qab*\E{2,}</code>, the parser emits 3 separate pieces (per PCRE2 semantics, fixed in PGEN-RGX-0074):</p>
 <pre><code class="language-json">"pattern": [

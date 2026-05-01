@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-105acf98.js";
+            window.path_to_searchindex_js = "searchindex-3db8979a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -220,10 +220,7 @@
           { "atom": "b", "quantifier": [], "type": "piece" },
           {
             "atom": "*",
-            "quantifier": [
-              { "min": 2, "max": null },
-              []
-            ],
+            "quantifier": {"type": "quantifier", "min": 2, "max": null, "greediness": []},
             "type": "piece"
           }
         ]],
@@ -243,23 +240,14 @@
     { "atom": "a", "quantifier": [], "type": "piece" },
     {
       "atom": "b",
-      "quantifier": [
-        [
-          "{",
-          [],
-          [&lt;digits=3&gt;, [], []],     // {n} form — no comma
-          [],
-          "}"
-        ],
-        []
-      ],
+      "quantifier": {"type": "quantifier", "min": 3, "max": 3, "greediness": []},
       "type": "piece"
     }
   ]],
   []
 ]
 </code></pre>
-<p>Two pieces: <code>a</code> (no quantifier) and <code>b</code> (with <code>{3}</code>).</p>
+<p>Two pieces: <code>a</code> (no quantifier — <code>quantifier: []</code>) and <code>b</code> (with typed <code>{3}</code> quantifier).</p>
 <h2 id="qae3--degenerate-single-char-1-piece-via-atom-fallback"><a class="header" href="#qae3--degenerate-single-char-1-piece-via-atom-fallback"><code>\Qa\E{3}</code> — degenerate single-char (1 piece via atom-fallback)</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
@@ -269,10 +257,7 @@
         ["a"],                      // single-char Quantified
         "\\E"
       ],
-      "quantifier": [
-        { "min": 3, "max": 3 },
-        []
-      ],
+      "quantifier": {"type": "quantifier", "min": 3, "max": 3, "greediness": []},
       "type": "piece"
     }
   ]],
@@ -289,10 +274,7 @@
         [],                         // empty chars Quantified
         "\\E"
       ],
-      "quantifier": [
-        { "min": 2, "max": 2 },
-        []
-      ],
+      "quantifier": {"type": "quantifier", "min": 2, "max": 2, "greediness": []},
       "type": "piece"
     }
   ]],

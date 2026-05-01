@@ -31,7 +31,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `counted_quantifier_body` (branch 1) | `-> {min: $1, max: null}` | Object `{min, max:null}` (`{n,}` unbounded form) |
 | `counted_quantifier_body` (branch 2) | `-> {min: $1, max: $1}` | Object `{min, max}` (`{n}` form, max == min) |
 | `counted_quantifier_body` (branch 3) | `-> {min: 0, max: $3}` | Object `{min:0, max}` (`{,m}` form) |
-| `quant_base` (all 4 branches) | `-> $1` (per branch) | Whatever the matched alternative produced — string `"*"`/`"+"`/`"?"` or typed `{min,max}` from `counted_quantifier` |
+| `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |
+| `quant_base` (branch 1 `+`) | `-> {min: 1, max: null}` | Object `{min:1, max:null}` (unbounded one-or-more) |
+| `quant_base` (branch 2 `?`) | `-> {min: 0, max: 1}` | Object `{min:0, max:1}` (zero-or-one) |
+| `quant_base` (branch 3 `counted_quantifier`) | `-> $1` | Whatever `counted_quantifier` produced (typed `{min, max}`) |
+| `quantifier` | `-> {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}` | Object `{type, min, max, greediness}` |
 | `quant_suffix` (branch 0) | `-> "lazy"` | String `"lazy"` |
 | `quant_suffix` (branch 1) | `-> "possessive"` | String `"possessive"` |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |

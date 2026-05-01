@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.36`
+  - `1.1.37`
 - Parser release version:
-  - `1.1.34`
+  - `1.1.35`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,25 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.35 / Contract 1.1.37 Highlights — quantifier-subtree typed-shape closure (slice 6/N)
+
+- **Internal-driven shape work** (no downstream report). Final slice of the quantifier-subtree typed-shape campaign. Consolidates and closes the subtree.
+- **Rules changed:**
+  - `quant_base` in `grammars/regex.ebnf` — per-branch annotations replaced positional-passthrough with typed `{min, max}` for every alternative. Shorthand quantifiers expand to PCRE2-equivalent bounds (`*` → `{0,null}`, `+` → `{1,null}`, `?` → `{0,1}`); the counted-quantifier branch passes through via `$1`.
+  - `quantifier` in `grammars/regex.ebnf` — new annotation `-> {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}` produces a typed shape directly.
+- **AST shape change (consumer-visible):** the piece's `quantifier` field is now a fully typed object instead of a `[<base>, <suffix>]` 2-tuple.
+  - Before: `a*` → `quantifier: ["*", []]`; `a{2,5}` → `quantifier: [{"min":2,"max":5}, []]`; `a+?` → `quantifier: ["+", "lazy"]`.
+  - After: `a*` → `quantifier: {"type":"quantifier","min":0,"max":null,"greediness":[]}`; `a{2,5}` → `quantifier: {"type":"quantifier","min":2,"max":5,"greediness":[]}`; `a+?` → `quantifier: {"type":"quantifier","min":1,"max":null,"greediness":"lazy"}`.
+  - Pieces with no quantifier still have `quantifier: []` (empty `quantifier?` slot — unchanged).
+- **Greediness convention:** `greediness` carries `"lazy"` (when source has `?` suffix) or `"possessive"` (when `+` suffix); the un-matched `quant_suffix?` slot surfaces as `[]` (empty array). Consumers MUST map `[]` → `"greedy"` (the PCRE2 default). A future slice will introduce a coalesce operator in the annotation language so `greediness: $2 ?? "greedy"` becomes a literal `"greedy"` string directly. Until then, this is a one-line consumer-side mapping.
+- **Quantifier-subtree campaign closed.** All six rules (`digits`, `quant_suffix`, `counted_quantifier_body`, `counted_quantifier`, `quant_base`, `quantifier`) are now annotated. Consumer-side `extract_quantifier` walker collapses to a six-line typed-field read — see the [Quantifier Subtree](../regex_parser_book/src/rules-quantifier.md#putting-it-together) chapter in the regex parser mdBook for the canonical recipe.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.35` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` (default emit) or `make regex_parser_fresh` for a clean rebuild.
+  3. Update any code that pattern-matched on the `[<base>, <suffix>]` 2-tuple at the `quantifier` position. Replace string-vs-object dispatch with a single typed-object read on `quantifier`. Map `greediness: []` → `"greedy"`.
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_full_regex()`, `parser.parse_regex()`, `parse_regex_typed()`, `parse_regex_default_ast_dump_named()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.34 / Contract 1.1.36 Highlights — PGEN-RGX-0075 typed-shape correctness for multi-piece concatenation
 

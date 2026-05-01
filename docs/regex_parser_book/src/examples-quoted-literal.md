@@ -39,10 +39,7 @@ Pre-fix, PGEN incorrectly bound the quantifier to the entire `\Q...\E` block. Th
           { "atom": "b", "quantifier": [], "type": "piece" },
           {
             "atom": "*",
-            "quantifier": [
-              { "min": 2, "max": null },
-              []
-            ],
+            "quantifier": {"type": "quantifier", "min": 2, "max": null, "greediness": []},
             "type": "piece"
           }
         ]],
@@ -66,16 +63,7 @@ Three pieces: `a`, `b`, `*` with `{2,}`. The `*` here is a literal asterisk (the
     { "atom": "a", "quantifier": [], "type": "piece" },
     {
       "atom": "b",
-      "quantifier": [
-        [
-          "{",
-          [],
-          [<digits=3>, [], []],     // {n} form — no comma
-          [],
-          "}"
-        ],
-        []
-      ],
+      "quantifier": {"type": "quantifier", "min": 3, "max": 3, "greediness": []},
       "type": "piece"
     }
   ]],
@@ -83,7 +71,7 @@ Three pieces: `a`, `b`, `*` with `{2,}`. The `*` here is a literal asterisk (the
 ]
 ```
 
-Two pieces: `a` (no quantifier) and `b` (with `{3}`).
+Two pieces: `a` (no quantifier — `quantifier: []`) and `b` (with typed `{3}` quantifier).
 
 ## `\Qa\E{3}` — degenerate single-char (1 piece via atom-fallback)
 
@@ -96,10 +84,7 @@ Two pieces: `a` (no quantifier) and `b` (with `{3}`).
         ["a"],                      // single-char Quantified
         "\\E"
       ],
-      "quantifier": [
-        { "min": 3, "max": 3 },
-        []
-      ],
+      "quantifier": {"type": "quantifier", "min": 3, "max": 3, "greediness": []},
       "type": "piece"
     }
   ]],
@@ -120,10 +105,7 @@ ONE piece. The `piece_quoted_run_quantified` branch requires at least one prefix
         [],                         // empty chars Quantified
         "\\E"
       ],
-      "quantifier": [
-        { "min": 2, "max": 2 },
-        []
-      ],
+      "quantifier": {"type": "quantifier", "min": 2, "max": 2, "greediness": []},
       "type": "piece"
     }
   ]],

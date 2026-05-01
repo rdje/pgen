@@ -147,20 +147,20 @@
       {
         "rule": "quant_base",
         "branch_index": 0,
-        "annotation_type": "return_scalar",
-        "normalized_text": "$1"
+        "annotation_type": "return_object",
+        "normalized_text": "{min: 0, max: null}"
       },
       {
         "rule": "quant_base",
         "branch_index": 1,
-        "annotation_type": "return_scalar",
-        "normalized_text": "$1"
+        "annotation_type": "return_object",
+        "normalized_text": "{min: 1, max: null}"
       },
       {
         "rule": "quant_base",
         "branch_index": 2,
-        "annotation_type": "return_scalar",
-        "normalized_text": "$1"
+        "annotation_type": "return_object",
+        "normalized_text": "{min: 0, max: 1}"
       },
       {
         "rule": "quant_base",
@@ -179,6 +179,12 @@
         "branch_index": 1,
         "annotation_type": "return_scalar",
         "normalized_text": "\"possessive\""
+      },
+      {
+        "rule": "quantifier",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"quantifier\", min: $1.min, max: $1.max, greediness: $2}"
       },
       {
         "rule": "quoted_run_inner_piece",

@@ -23,6 +23,42 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.35 / Contract 1.1.37 — Quantifier subtree closure (slice 6/N)
+
+**What changed:** the final two rules in the quantifier subtree got their typed annotations:
+
+- `quant_base` reshaped from per-branch `-> $1` (heterogeneous: string for shorthand, object for counted) to per-branch typed `{min, max}` for every alternative:
+
+  ```ebnf
+  quant_base = "*"                -> {min: 0, max: null}
+             | "+"                -> {min: 1, max: null}
+             | "?"                -> {min: 0, max: 1}
+             | counted_quantifier -> $1
+  ```
+
+- `quantifier` rule annotated:
+
+  ```ebnf
+  quantifier = quant_base quant_suffix?
+  -> {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}
+  ```
+
+**Consumer impact:** **breaking but correct** — the piece's `quantifier` field is now a fully typed `{type, min, max, greediness}` object instead of a `[<base>, <suffix>]` 2-tuple. Empirical:
+
+| Input | Before | After |
+|---|---|---|
+| `a*` | `["*", []]` | `{"type":"quantifier","min":0,"max":null,"greediness":[]}` |
+| `a+?` | `["+", "lazy"]` | `{"type":"quantifier","min":1,"max":null,"greediness":"lazy"}` |
+| `a{2,5}` | `[{"min":2,"max":5}, []]` | `{"type":"quantifier","min":2,"max":5,"greediness":[]}` |
+
+Pieces with NO quantifier still have `"quantifier": []` (empty `quantifier?` slot — unchanged).
+
+`greediness: []` is the un-matched `quant_suffix?` slot — interpret as PCRE2's greedy default. Consumers map `[]` → `"greedy"`. This will be removed when the annotation language gains a coalesce operator and `quantifier`'s annotation can emit the literal string `"greedy"` directly.
+
+**Quantifier-subtree campaign closed:** all six rules (`digits`, `quant_suffix`, `counted_quantifier_body`, `counted_quantifier`, `quant_base`, `quantifier`) are now annotated. Consumer-side `extract_quantifier` walker collapses to a six-line typed-field read.
+
+**Contract section:** "Release 1.1.35 / Contract 1.1.37 Highlights".
+
 ### 1.1.34 / Contract 1.1.36 — PGEN-RGX-0075 typed-shape correctness for multi-piece concatenation
 
 **What changed:** The `$N` PositionalRef codegen no longer peels `elements[0]` from a `Quantified` base when the rule body has a single capture position. With this fix, `concatenation = piece+ -> [$1**]` correctly resolves `$1` to the whole `Quantified` (every piece), so `**` flattens all of them into the array.
