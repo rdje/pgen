@@ -1939,27 +1939,53 @@ impl RustASTPipeline {
         let mut group_depth = 0usize;
         let mut branch_idx = 0usize;
 
+        // Track the branch_idx active at each `group_open`. When the
+        // matching `group_close` is encountered, pop and remember the
+        // (open_branch_idx ..= close_branch_idx) range so a return
+        // annotation IMMEDIATELY following the close can be broadcast
+        // to every branch that was inside the just-closed group.
+        // This fixes task #38 — `RULE = (A | B | C) -> ann` previously
+        // landed the annotation on branch 0 only, leaving branches 1+
+        // with raw passthrough.
+        let mut group_open_branch_stack: Vec<usize> = Vec::new();
+        let mut last_closed_group_range: Option<(usize, usize)> = None;
+
         for item in content {
             let Some(arr) = item.as_array() else {
                 syntax_elements.push(item.clone());
+                last_closed_group_range = None;
                 continue;
             };
             let Some(elem_type) = arr.first().and_then(|v| v.as_str()) else {
                 syntax_elements.push(item.clone());
+                last_closed_group_range = None;
                 continue;
             };
 
             match elem_type {
                 "group_open" => {
+                    group_open_branch_stack.push(branch_idx);
                     group_depth = group_depth.saturating_add(1);
                     syntax_elements.push(item.clone());
+                    last_closed_group_range = None;
                 }
                 "group_close" => {
                     group_depth = group_depth.saturating_sub(1);
+                    if let Some(open_branch_idx) = group_open_branch_stack.pop() {
+                        last_closed_group_range = Some((open_branch_idx, branch_idx));
+                    } else {
+                        last_closed_group_range = None;
+                    }
                     syntax_elements.push(item.clone());
                 }
                 "operator" => {
-                    if arr.get(1).and_then(|v| v.as_str()) == Some("|") && group_depth == 0 {
+                    let is_pipe = arr.get(1).and_then(|v| v.as_str()) == Some("|");
+                    if is_pipe {
+                        // Increment branch_idx for EVERY `|`, regardless of
+                        // group depth. The `last_closed_group_range` mechanism
+                        // (above) handles broadcasting trailing annotations
+                        // back across grouped branches; tracking inner
+                        // branches here is what makes that broadcast possible.
                         branch_idx = branch_idx.saturating_add(1);
                         if branch_return_annotations.len() <= branch_idx {
                             branch_return_annotations.push(None);
@@ -1973,14 +1999,16 @@ impl RustASTPipeline {
                         if branch_syntax_positions.len() <= branch_idx {
                             branch_syntax_positions.push(0);
                         }
+                        last_closed_group_range = None;
                     }
                     syntax_elements.push(item.clone());
-                    if !(arr.get(1).and_then(|v| v.as_str()) == Some("|") && group_depth == 0) {
+                    if !is_pipe {
                         if branch_syntax_positions.len() <= branch_idx {
                             branch_syntax_positions.resize(branch_idx + 1, 0);
                         }
                         branch_syntax_positions[branch_idx] =
                             branch_syntax_positions[branch_idx].saturating_add(1);
+                        last_closed_group_range = None;
                     }
                 }
                 "return_scalar" | "return_array" | "return_object" => {
@@ -1991,21 +2019,35 @@ impl RustASTPipeline {
                         );
                         continue;
                     };
-                    if branch_return_annotations.len() <= branch_idx {
-                        branch_return_annotations.resize(branch_idx + 1, None);
-                    }
-                    if branch_return_annotations[branch_idx].is_some() {
-                        eprintln!(
-                            "[mod.rs][extract_rule_annotations()] ⚠️ multiple return annotations in branch {} - keeping last",
-                            branch_idx + 1
-                        );
-                    }
                     let parsed_ast = self.parse_return_annotation_ast(annotation_content);
-                    branch_return_annotations[branch_idx] = Some(BranchAnnotation {
-                        annotation_type: elem_type.to_string(),
-                        annotation_content: annotation_content.to_string(),
-                        parsed_ast,
-                    });
+
+                    // Determine target branch range. If the annotation
+                    // immediately follows a group_close at the rule top
+                    // level, broadcast to every branch that was inside
+                    // the just-closed group. Otherwise, the annotation
+                    // lands on the current branch (the existing per-branch
+                    // semantics). See task #38.
+                    let (range_start, range_end) = match last_closed_group_range {
+                        Some((s, e)) => (s, e),
+                        None => (branch_idx, branch_idx),
+                    };
+                    if branch_return_annotations.len() <= range_end {
+                        branch_return_annotations.resize(range_end + 1, None);
+                    }
+                    for tgt_idx in range_start..=range_end {
+                        if branch_return_annotations[tgt_idx].is_some() {
+                            eprintln!(
+                                "[mod.rs][extract_rule_annotations()] ⚠️ multiple return annotations in branch {} - keeping last",
+                                tgt_idx + 1
+                            );
+                        }
+                        branch_return_annotations[tgt_idx] = Some(BranchAnnotation {
+                            annotation_type: elem_type.to_string(),
+                            annotation_content: annotation_content.to_string(),
+                            parsed_ast: parsed_ast.clone(),
+                        });
+                    }
+                    last_closed_group_range = None;
                 }
                 "semantic_annotation" => {
                     if let Some(payload) = arr.get(1) {
@@ -2072,6 +2114,7 @@ impl RustASTPipeline {
                     }
                     branch_syntax_positions[branch_idx] =
                         branch_syntax_positions[branch_idx].saturating_add(1);
+                    last_closed_group_range = None;
                 }
             }
         }

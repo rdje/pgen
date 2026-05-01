@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-29 (+0200, task: slice-3-m2-differential-gate-and-parser-hooks-mdbook-chapter)
+Last updated: 2026-05-01 (+0200, task: task-38-fix-parens-grouped-or-trailing-annotation-broadcast)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,24 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- **Slice 3 of the redesign landed: M2 differential validation gate + parser-hooks mdbook chapter.**
+- **Task #38 closed: parens-grouped-Or trailing-annotation broadcast.** Both extractors (`extract_rule_annotations` in `rust/src/ast_pipeline/mod.rs` and the cross-checker `extract_declared_annotations_from_json` in `rust/src/ast_shape_contract.rs`) now correctly broadcast a return annotation that immediately follows a `group_close` to every alternative inside the just-closed group. Pre-fix only branch 0 received the annotation. Mechanism: track `group_open_branch_stack` (push branch_idx at every `(`), pop at `)` setting `last_closed_group_range`; on the next `return_*` token, broadcast to that range; cleared by any non-annotation token. Removed the `group_depth == 0` filter on `|` so inner branches advance branch_idx (which is what makes the broadcast range meaningful).
+- Empirical proof: `string_literal := ('"' ... | "'" ... ) -> {type:"string", ...}` in `grammars/return_annotation.ebnf` was producing typed Json for double-quoted strings but raw Sequence for single-quoted; now both produce typed Json.
+- Subsequent grammar refactor: `quant_base` in `grammars/regex.ebnf` flipped from slice-5 per-branch workaround to factored form `( "*" | "+" | "?" | counted_quantifier ) -> $1`.
+- 493 / 0 tests. Manifest `rust/test_data/ast_shape_contract/return_annotation_v1.json` got new branch=1 entry for `string_literal`. `make regex_parser_book_gate` green.
+- Live-docs sync: regex parser book chapters [rules-quantifier.md, changelog-index.md, schema-versioning.md] + platform book section in `docs/book/src/annotation-system.md` ("Parens-grouped Or with trailing annotation — broadcast").
+- No contract identity bump (regex unchanged byte-wise; return_annotation shape change was buggy→correct, not a versioned-consumer evolution).
+- Status unchanged across all parser-family rows.
+- Push policy this session: hold pushes until owner authorizes, with 30-commit safety cap.
+
+### Session lineage (chronological, this session)
+1. Standalone regex parser mdBook landed at `docs/regex_parser_book/` aligned with parser state at commit `6e5b0f23` (PGEN-RGX-0074 + slices 1-2). 24 chapters; source markdown + rendered HTML both tracked.
+2. Phase V added to `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`: per-parser standalone integration mdBooks for every PGEN-generated parser following the regex book template.
+3. Slice 4: `counted_quantifier = "{" ws? counted_quantifier_body ws? "}" -> $3`; live-book sync (book promoted to live-docs status, tracks main HEAD per owner direction "the regex parser mdbook is another live book").
+4. Slice 5: `quant_base` per-branch `-> $1` annotations (workaround pending #38 fix).
+5. Task #38 closed (this commit).
+6. Slice 6 (next): closes outer `quantifier` rule into typed `{type:"quantifier", min, max, greediness}`. Will consolidate contract identity bump covering slices 3-6.
+
+## Earlier session (2026-04-29): Slice 3 of the redesign landed: M2 differential validation gate + parser-hooks mdbook chapter
 - Maintained `make regex_typed_differential_gate` target proves byte-equivalent JSON between the regex hook's typed entry methods and the legacy + `ParseContent::to_json_value()` reference path across the PGEN-RGX-0073 8-pattern bug corpus. Result: **8/8 byte-equivalent**, gate passes. By construction the slice-2 passthrough hook body passes; the gate is the regression-lock for future shape-typed-emit optimization slices.
 - Implementation: new binary [rust/src/bin/regex_typed_differential_gate.rs](rust/src/bin/regex_typed_differential_gate.rs), new Cargo feature `regex_typed_differential_gate` (depends on `generated_parsers`), new make target wraps regen + build + run + restore-to-baseline (restore always runs regardless of pass/fail).
 - New mdbook chapter [docs/book/src/parser-hooks.md](docs/book/src/parser-hooks.md) per owner direction: covers architecture, contract, where hooks are called in the pipeline, how to write a new hook, constraints on what handlers may emit, and verification properties. Added to `docs/book/src/SUMMARY.md` between "Developer Architecture" and "Operations and Governance". `make mdbook_docs_gate` passes.

@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - Task #38 fix: parens-grouped-Or trailing-annotation broadcast
+
+### What landed
+
+Two extractors fixed in lockstep so the pipeline's inventory-emit path and its raw_ast cross-check walk agree:
+
+1. `extract_rule_annotations` in [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs) — the production extractor used by codegen.
+2. `extract_declared_annotations_from_json` in [rust/src/ast_shape_contract.rs](rust/src/ast_shape_contract.rs) — the cross-checker that walks the raw frontend JSON and counts annotations directly.
+
+Mechanism:
+- New `group_open_branch_stack: Vec<usize>` — push `branch_idx` at every `group_open`, pop at `group_close`.
+- New `last_closed_group_range: Option<(usize, usize)>` — set to `(open_branch_idx, branch_idx)` after every `group_close`; cleared on any non-annotation token.
+- `|` operator no longer filters by `group_depth == 0`; every `|` advances `branch_idx`. This is what makes inner branches addressable for the broadcast.
+- On `return_scalar`/`return_array`/`return_object`, the annotation broadcasts to `range_start..=range_end` (which equals `(branch_idx, branch_idx)` when `last_closed_group_range` is `None`, preserving per-branch semantics for un-grouped Or).
+
+### Empirical bug-and-fix
+
+Pre-fix, `string_literal := ('"' string_content_double '"' | "'" string_content_single "'") -> {type:"string", value:$2}` in `grammars/return_annotation.ebnf` emitted:
+
+- Double-quoted: `Json({"type":"string", "value":"..."})` ✓
+- Single-quoted: raw `Sequence([Terminal("'"), Alternative(Terminal("...")), Terminal("'")])` ✗
+
+Post-fix:
+
+- Double-quoted: same ✓
+- Single-quoted: `Json({"type":"string", "value":"..."})` ✓
+
+### Disambiguation cases
+
+| Source | Behaviour |
+|---|---|
+| `(A | B) -> ann` | broadcast to A, B |
+| `A | B -> ann` | per-branch — `ann` on B only |
+| `(A | B) | C -> ann` | `ann` on C; outer `|` clears `last_closed_group_range` |
+| `A | (B | C) -> ann` | broadcast to B, C; outer A unchanged |
+| `((A | B) | C) -> ann` | broadcast to A, B, C (outer `)` is what fires) |
+
+### Grammar refactor — quant_base
+
+Slice 5 used per-branch `"*" -> $1 | "+" -> $1 | ...` as a workaround. With #38 fixed, refactored to:
+
+```ebnf
+quant_base = ( "*" | "+" | "?" | counted_quantifier ) -> $1
+```
+
+Same JSON output, more elegant. Demonstrates the fix end-to-end.
+
+### Why both extractors needed fixing
+
+After fixing only `extract_rule_annotations`, the test failed with: "this means the pipeline's inventory-emit path and its raw_ast walk disagree — investigate." That's the cross-check that walks the frontend JSON directly and counts annotations from source order. It had the SAME `group_depth == 0` filter and needed the SAME mechanism. Fixing both keeps the two extractors agreeing.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 493 / 0.
+- Empirical probe of `string_literal` for both quote forms — both produce typed Json.
+- Manifest `rust/test_data/ast_shape_contract/return_annotation_v1.json` updated with new `string_literal` branch_index=1 entry.
+- `make regex_parser_book_gate` green.
+
+### Live-docs sync
+
+- Regex parser book: `rules-quantifier.md` (quant_base shows factored form + history note), `changelog-index.md` (entry for #38 fix + slice 5 history clarified), `schema-versioning.md` (0.8.3 row).
+- Platform mdBook `docs/book/src/annotation-system.md`: new "Parens-grouped Or with trailing annotation — broadcast" section explaining the semantics, disambiguation rules, and bug-history.
+
+### No contract bump
+- Regex grammar consumers: no shape change (quant_base byte-identical pre/post).
+- Return-annotation grammar consumers: shape change for `string_literal` was buggy→correct, not a versioned-consumer-impacting evolution. The PGEN-internal consumer (the ast_pipeline) uses the inventory artifact, not raw parse output.
+
 ## 2026-05-01 - regex.ebnf slice 5 (`quant_base` per-branch annotations) + #38 design surface
 
 ### What landed

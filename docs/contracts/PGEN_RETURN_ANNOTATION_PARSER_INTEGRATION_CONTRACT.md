@@ -50,3 +50,12 @@ Define the current downstream integration contract for PGEN's `return_annotation
 - Internal typed AST conversion logic in the Rust AST pipeline is not itself the generic downstream parser contract.
 - `return_annotation` is currently a `Done` family for the tracked claim, but that claim is still defined by the repo’s current grammar and proof stack, not by informal future expectations.
 - When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+
+## Notable Recent Shape Changes
+
+### 2026-05-01 — `string_literal` shape correction (task #38)
+- The `string_literal := ('"' string_content_double '"' | "'" string_content_single "'") -> {type:"string", value:$2}` rule had a long-standing internal bug: the trailing return annotation broadcasted only to branch 0 of the parens-grouped Or, leaving branch 1 (single-quoted strings) with raw passthrough. Empirically: double-quoted strings produced `Json({"type":"string", "value":"..."})` while single-quoted strings produced raw `Sequence([Terminal("'"), Alternative(Terminal("...")), Terminal("'")])`.
+- The fix lands in two extractors that need to agree: `extract_rule_annotations` in `rust/src/ast_pipeline/mod.rs` and the cross-checker `extract_declared_annotations_from_json` in `rust/src/ast_shape_contract.rs`. Both now broadcast the trailing annotation to every branch that was inside the just-closed group.
+- Post-fix: both quote forms produce `Json({"type":"string", "value":"..."})`. This is the shape consumers should expect from the published return-annotation parser going forward.
+- This is a buggy→correct fix, not a versioned-consumer-impacting evolution. Downstream consumers of the inventory artifact (the PGEN-internal ast_pipeline) are unaffected. Downstream consumers of the raw parse output that previously special-cased the single-quoted Sequence shape need to update their walking code.
+- Cross-grammar effect: any grammar using `(A | B | C) -> ann` with a single trailing annotation now correctly broadcasts to every alternative. The same fix is therefore relevant to any future return_annotation grammar use of the parens-grouped-Or pattern.

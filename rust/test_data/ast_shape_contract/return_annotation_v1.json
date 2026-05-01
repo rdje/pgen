@@ -147,6 +147,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"string\", value: $2}"
+      },
+      {
+        "rule": "string_literal",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"string\", value: $2}"
       }
     ]
   }

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-32dbe099.js";
+            window.path_to_searchindex_js = "searchindex-2045ecf1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -201,12 +201,10 @@
 <li><code>"possessive"</code> — typed string from the annotated <code>quant_suffix</code> rule.</li>
 </ul>
 <h2 id="quant_base"><a class="header" href="#quant_base"><code>quant_base</code></a></h2>
-<pre><code class="language-ebnf">quant_base = "*"                -&gt; $1
-           | "+"                -&gt; $1
-           | "?"                -&gt; $1
-           | counted_quantifier -&gt; $1
+<pre><code class="language-ebnf">quant_base = ( "*" | "+" | "?" | counted_quantifier ) -&gt; $1
 </code></pre>
-<p><strong>Annotated.</strong> Each branch emits its matched element via positional passthrough (<code>-&gt; $1</code>). The shorthand branches pass through the literal terminal text; the counted-quantifier branch passes through the typed <code>{min, max}</code> object.</p>
+<p><strong>Annotated.</strong> Single trailing <code>-&gt; $1</code> annotation, broadcast to every alternative inside the parens-grouped Or. Each alternative emits its matched element via positional passthrough — shorthand branches pass through the literal terminal text; the counted-quantifier branch passes through the typed <code>{min, max}</code> object.</p>
+<p>The factored form (single shared annotation) works thanks to task #38’s parens-grouped-Or trailing-annotation broadcast support. The earlier per-branch form (<code>"*" -&gt; $1 | "+" -&gt; $1 | ...</code>) produced identical output but was needed pre-#38 to work around a codegen bug where only branch 0 of a parens-grouped Or received the trailing annotation.</p>
 <p>This slice didn’t change the consumer-visible JSON output — pre-annotation the same bytes were emitted via codegen defaults. The annotation locks the rule’s emission into the typed-shape contract (Tier-2 stable) instead of relying on default fall-through.</p>
 <h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
 <ul>

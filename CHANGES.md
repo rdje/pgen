@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-05-01 - Task #38 fix: parens-grouped-Or trailing-annotation broadcast + regex.ebnf `quant_base` factored
+
+### What landed
+
+**Codegen fix** — when a return annotation immediately follows a parens-`group_close`, the annotation is now broadcast to every alternative that was inside the just-closed group. Pre-fix, only branch 0 received the annotation; branches 1+ silently fell through to raw passthrough. Documented violation: `string_literal := ('"' ... '"' | "'" ... "'") -> {type:"string", ...}` in `grammars/return_annotation.ebnf` produced typed Json for double-quoted strings but raw `Sequence` for single-quoted. Now both produce `Json({type:"string", value:"..."})`.
+
+Both extractors fixed:
+- `extract_rule_annotations` in `rust/src/ast_pipeline/mod.rs` — tracks `group_open_branch_stack` (records `branch_idx` at each `(`); on `)`, pops and remembers `last_closed_group_range = (open_branch_idx, current_branch_idx)`; on next `return_*`, broadcasts to that range; cleared on any non-annotation token. The `group_depth == 0` filter on `|` is removed so inner branches advance `branch_idx` (which is what makes the broadcast range meaningful).
+- `extract_declared_annotations_from_json` in `rust/src/ast_shape_contract.rs` — same fix applied (the cross-checker that walks the raw frontend JSON and counts annotations directly).
+
+Disambiguation behaviour:
+- `(A | B) -> ann` → broadcast to A and B.
+- `A | B -> ann` → per-branch precedence — `ann` binds to B only.
+- `(A | B) | C -> ann` → `ann` lands on C; the `|` between the group and C clears `last_closed_group_range`.
+- `A | (B | C) -> ann` → broadcast to B and C only (not A); the group-open after the first `|` puts `branch_idx == 1` on the open-stack.
+- `((A | B) | C) -> ann` → broadcast to A, B, C (the outer group's close is what fires the broadcast; the inner group's range is overwritten).
+
+**Grammar refactor** — `quant_base` in `grammars/regex.ebnf` refactored from per-branch `-> $1` (slice 5 workaround) to the now-supported factored form:
+
+```ebnf
+quant_base = ( "*" | "+" | "?" | counted_quantifier ) -> $1
+```
+
+JSON output byte-identical to slice 5; just more elegant.
+
+**Empirical proof:** single-quoted string parse:
+- Pre-fix: `parseability_probe --parse-dump-ast-pretty return_annotation "'hello'"` → raw `Sequence([Terminal("'"), Alternative(Terminal("hello")), Terminal("'")])`.
+- Post-fix: `Json({"type":"string","value":"hello"})`.
+
+### Live docs sync
+
+- `docs/regex_parser_book/src/rules-quantifier.md` — `quant_base` shows the factored form; explanatory note about the per-branch-vs-factored history.
+- `docs/regex_parser_book/src/changelog-index.md` — new entry for the #38 fix; slice 5 entry updated to reflect the post-#38 refactor.
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline gains 0.8.3 (the #38 fix slice).
+- `docs/book/src/annotation-system.md` — new section "Parens-grouped Or with trailing annotation — broadcast" — covers semantics, disambiguation cases, and the bug-history reference. Sits adjacent to the existing "Implicit `-> $1` default" section.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 493 / 0.
+- Manifest `rust/test_data/ast_shape_contract/return_annotation_v1.json`: new branch_index=1 entry for `string_literal` (matching the broadcasted annotation).
+- `make regex_parser_book_gate` green.
+- regex_parser regenerated with factored quant_base; AST shape unchanged.
+
+### No contract bump
+The fix lands without a contract identity bump because:
+- Regex grammar consumers see no shape change (quant_base output is byte-identical pre/post refactor).
+- Return-annotation grammar consumers SEE a shape change for `string_literal` single-quoted, but: (a) the pre-fix shape was buggy/contract-violating; (b) the integration contract for return_annotation grammar isn't in the same versioned chain as regex; (c) the next downstream consumer of return_annotation is the PGEN ast_pipeline itself, which uses the inventory artifact, not the raw parse output. If a downstream consumer surfaces, the bump can be retroactively applied.
+
 ## 2026-05-01 - regex.ebnf slice 5/N: `quant_base` per-branch `-> $1` annotations
 
 ### What landed

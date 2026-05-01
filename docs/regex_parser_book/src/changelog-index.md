@@ -23,13 +23,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### Post-1.1.33 main — Task #38 fix: parens-grouped-Or trailing-annotation broadcast
+
+**What changed:** the codegen now correctly applies a trailing return annotation on a parens-grouped Or to **every** alternative inside the group, not just the first. Affects both `extract_rule_annotations` (rust/src/ast_pipeline/mod.rs) and the cross-checker `extract_declared_annotations_from_json` (rust/src/ast_shape_contract.rs).
+
+Pre-fix behaviour: `RULE = (A | B | C) -> ann` applied `ann` to branch 0 only; branches 1, 2 silently fell through to raw passthrough. Documented in `parse_string_literal` of the return_annotation grammar — single-quoted strings produced raw `Sequence` instead of the typed `{type:"string", value:...}` that double-quoted strings produced.
+
+Post-fix behaviour: when a return annotation immediately follows a `group_close`, the annotation broadcasts to every branch that was inside the just-closed group. Per-branch annotations on un-grouped Or rules (`A | B -> ann`, where `-> ann` binds to B only per PEG precedence) still work as before.
+
+**Consumer impact for return_annotation grammar:** single-quoted strings now produce `Json({"type":"string", "value":"..."})` — same as double-quoted. Anyone relying on the buggy raw-Sequence shape needs to update walking code.
+
+**Consumer impact for regex grammar:** none directly from the bugfix. But `quant_base` was refactored to the now-supported factored form `( "*" | "+" | "?" | counted_quantifier ) -> $1` (was per-branch `-> $1` four times) — same JSON output.
+
+**Contract section:** pending bump (will land with the slice that closes `quantifier`).
+
 ### Post-1.1.33 main — quant_base annotated (slice 5/N)
 
-**What changed:** `quant_base = "*" | "+" | "?" | counted_quantifier` got per-branch `-> $1` annotations on every alternative. Each branch now formally emits via positional passthrough — locking the rule's shape into the typed-rule contract instead of relying on codegen defaults.
+**What changed:** `quant_base = "*" | "+" | "?" | counted_quantifier` got per-branch `-> $1` annotations on every alternative. After task #38 fix landed (subsequent commit), the rule was refactored to the factored form `quant_base = ( "*" | "+" | "?" | counted_quantifier ) -> $1` — semantically identical, more elegant.
 
 **Consumer impact:** **none** — JSON output is byte-identical to pre-slice-5. Empirical: `a*` still emits `quantifier: ["*", []]`; `a{2,5}` still emits `quantifier: [{"min":2,"max":5}, []]`. The change is to the rule's emission status (from "raw envelope via codegen default" to "annotated, Tier-2 stable").
-
-**Why factored form was rejected:** the natural way to write this would be `quant_base = ( "*" | "+" | "?" | counted_quantifier ) -> $1` — single shared annotation. Blocked by task #38 (`extract_rule_annotations` only attributes the trailing annotation to branch 0 of the parens-grouped Or; branches 1-3 silently fall through to raw passthrough). Per-branch annotations are the workaround until #38 lands; once it does, this rule will be refactored to the factored form.
 
 **Contract section:** pending bump (will land with the slice that closes `quantifier`).
 

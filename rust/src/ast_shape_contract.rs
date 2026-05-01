@@ -287,6 +287,13 @@ pub fn extract_declared_annotations_from_json<P: AsRef<Path>>(
 
         let mut group_depth: usize = 0;
         let mut branch_index: usize = 0;
+        // Mirror the broadcast logic in
+        // `crate::ast_pipeline::extract_rule_annotations`: when a return
+        // annotation immediately follows a `group_close`, broadcast the
+        // annotation to every branch that was inside the just-closed
+        // group. See task #38.
+        let mut group_open_branch_stack: Vec<usize> = Vec::new();
+        let mut last_closed_group_range: Option<(usize, usize)> = None;
 
         for item in &arr[1..] {
             let item_arr = match item.as_array() {
@@ -299,11 +306,27 @@ pub fn extract_declared_annotations_from_json<P: AsRef<Path>>(
             };
 
             match tag {
-                "group_open" => group_depth = group_depth.saturating_add(1),
-                "group_close" => group_depth = group_depth.saturating_sub(1),
+                "group_open" => {
+                    group_open_branch_stack.push(branch_index);
+                    group_depth = group_depth.saturating_add(1);
+                    last_closed_group_range = None;
+                }
+                "group_close" => {
+                    group_depth = group_depth.saturating_sub(1);
+                    if let Some(open_branch_idx) = group_open_branch_stack.pop() {
+                        last_closed_group_range = Some((open_branch_idx, branch_index));
+                    } else {
+                        last_closed_group_range = None;
+                    }
+                }
                 "operator" => {
-                    if item_arr.get(1).and_then(|v| v.as_str()) == Some("|") && group_depth == 0 {
+                    if item_arr.get(1).and_then(|v| v.as_str()) == Some("|") {
+                        // Track every `|` regardless of depth, so the
+                        // broadcast above can refer to inner branches.
                         branch_index = branch_index.saturating_add(1);
+                        last_closed_group_range = None;
+                    } else {
+                        last_closed_group_range = None;
                     }
                 }
                 "return_scalar" | "return_array" | "return_object" => {
@@ -311,14 +334,23 @@ pub fn extract_declared_annotations_from_json<P: AsRef<Path>>(
                         .get(1)
                         .and_then(|v| v.as_str())
                         .unwrap_or_default();
-                    annotations.push(DeclaredAnnotation {
-                        rule: rule_name.clone(),
-                        branch_index,
-                        annotation_type: tag.to_string(),
-                        normalized_text: normalize_annotation_text(text),
-                    });
+                    let (range_start, range_end) = match last_closed_group_range {
+                        Some((s, e)) => (s, e),
+                        None => (branch_index, branch_index),
+                    };
+                    for tgt_idx in range_start..=range_end {
+                        annotations.push(DeclaredAnnotation {
+                            rule: rule_name.clone(),
+                            branch_index: tgt_idx,
+                            annotation_type: tag.to_string(),
+                            normalized_text: normalize_annotation_text(text),
+                        });
+                    }
+                    last_closed_group_range = None;
                 }
-                _ => {}
+                _ => {
+                    last_closed_group_range = None;
+                }
             }
         }
     }

@@ -28,13 +28,12 @@ quantifier = quant_base quant_suffix?
 ## `quant_base`
 
 ```ebnf
-quant_base = "*"                -> $1
-           | "+"                -> $1
-           | "?"                -> $1
-           | counted_quantifier -> $1
+quant_base = ( "*" | "+" | "?" | counted_quantifier ) -> $1
 ```
 
-**Annotated.** Each branch emits its matched element via positional passthrough (`-> $1`). The shorthand branches pass through the literal terminal text; the counted-quantifier branch passes through the typed `{min, max}` object.
+**Annotated.** Single trailing `-> $1` annotation, broadcast to every alternative inside the parens-grouped Or. Each alternative emits its matched element via positional passthrough — shorthand branches pass through the literal terminal text; the counted-quantifier branch passes through the typed `{min, max}` object.
+
+The factored form (single shared annotation) works thanks to task #38's parens-grouped-Or trailing-annotation broadcast support. The earlier per-branch form (`"*" -> $1 | "+" -> $1 | ...`) produced identical output but was needed pre-#38 to work around a codegen bug where only branch 0 of a parens-grouped Or received the trailing annotation.
 
 This slice didn't change the consumer-visible JSON output — pre-annotation the same bytes were emitted via codegen defaults. The annotation locks the rule's emission into the typed-shape contract (Tier-2 stable) instead of relying on default fall-through.
 

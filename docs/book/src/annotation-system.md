@@ -142,6 +142,34 @@ The implicit default does **not** fire on:
 
 Synthetic defaults are codegen-only — they never appear in the inventory artifact, and the grammar-author-written annotations remain the visible declared surface.
 
+## Parens-grouped Or with trailing annotation — broadcast
+
+Annotation authors can write a single trailing return annotation on a parens-grouped Or and have it apply to **every** alternative inside the group:
+
+```ebnf
+RULE = ( A | B | C ) -> ann
+```
+
+is semantically equivalent to:
+
+```ebnf
+RULE = A -> ann
+     | B -> ann
+     | C -> ann
+```
+
+The trailing form is preferred when every branch produces the same shape (e.g. all branches use `-> $1` for positional passthrough, or all branches lift sub-rule results identically).
+
+Per PEG/EBNF precedence rules, this **only** fires when the annotation immediately follows a `group_close`. For un-grouped alternations:
+
+```ebnf
+RULE = A | B -> ann
+```
+
+`-> ann` binds to `B` alone (the last alternative), as before — author-visible per-branch precedence is unchanged.
+
+Bug history: pre-task-#38, parens-grouped-Or trailing annotations only applied to branch 0 inside the group; branches 1+ silently fell through to raw passthrough. Empirically caught by the `string_literal := ('"' ... '"' | "'" ... "'") -> {type:"string", value:$2}` rule in `grammars/return_annotation.ebnf` — single-quoted strings produced raw `Sequence` while double-quoted produced typed `Json`. The fix is in `extract_rule_annotations` (`rust/src/ast_pipeline/mod.rs`) and the cross-checker `extract_declared_annotations_from_json` (`rust/src/ast_shape_contract.rs`); both now track the branch range of the just-closed group via a stack and broadcast the trailing annotation to that range. The disambiguation cases (`(A|B) | C -> ann` → `ann` on `C` only; `A | (B|C) -> ann` → `ann` on `B` and `C`; nested groups) all behave per the principle "the annotation applies to the alternatives inside the just-closed group ONLY when it directly follows the group's close."
+
 ## Phase 2: Eliminate Stringification Roundtrips In Return-Annotation Transforms (retargeted)
 
 Last updated: 2026-04-26.
