@@ -2950,6 +2950,132 @@ mod tests {
         }
     }
 
+    /// PGEN-RGX-0077 regression — `\Q...\E quantifier?` matched runs must
+    /// surface their pieces FLAT in `pattern[0][0]`, not wrapped in an extra
+    /// array. The `concatenation = piece+ -> [$1**]` flatten-spread codegen
+    /// has to peel the `Alternative` wrapping that the codegen places around
+    /// each piece-rule branch result, then unwrap the inner `Sequence`/
+    /// `Quantified`/`Json(Array)` array shape that
+    /// `piece_quoted_run_quantified` produced via `[$2**, ...]`. Pre-fix the
+    /// peel-Alternative step was missing, so every multi-char `\Q...\E
+    /// quantifier?` AST carried one extra wrap layer; degenerate single-char
+    /// and empty `\Q...\E` cases were unaffected (atom-fallback path). RGX
+    /// caught this immediately after the slice-6 quantifier-subtree closure
+    /// changed surrounding shape; the PGEN-RGX-0075 regression-lock test only
+    /// covered plain literal multi-piece (`"a"`/`"ab"`/`"abc"`/`"hello"`).
+    ///
+    /// This test pins the family-table coverage from the bug report so the
+    /// bug cannot regress on either the simple or the `\Q...\E` route.
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation() {
+        // (input, expected_atoms_in_order). Atom values match the PGEN-RGX-0074
+        // family-table: `\Qab*\E{2,}` → 3 pieces `a`, `b`, `*` (with `{2,}`
+        // attached to the trailing `*`); `\Qab\E{3}` → 2 pieces `a`, `b`
+        // (with `{3}` on `b`); etc. The test asserts on `atom` only here —
+        // the full quantifier object is checked structurally below.
+        let cases = [
+            (r"\Qab*\E{2,}",   &["a", "b", "*"][..]),
+            (r"\Qabc\E?",      &["a", "b", "c"][..]),
+            (r"\Qab\E{3}",     &["a", "b"][..]),
+            (r"\Qabc\E{2}",    &["a", "b", "c"][..]),
+            (r"\Qabcdef\E+",   &["a", "b", "c", "d", "e", "f"][..]),
+            (r"\Qab\E{1,3}",   &["a", "b"][..]),
+            (r"\Qab*\E{2}",    &["a", "b", "*"][..]),
+            (r"\Qab*\E*",      &["a", "b", "*"][..]),
+            (r"\Qab*\E*?",     &["a", "b", "*"][..]),
+        ];
+
+        for (input, expected_atoms) in cases {
+            let dump = regex_ast_dump_json(input);
+            let pieces = dump
+                .pointer("/content/Json/pattern/0/0")
+                .and_then(|v| v.as_array())
+                .unwrap_or_else(|| {
+                    panic!(
+                        "input {:?}: pattern[0][0] is not an array — typed-shape regression?\n\
+                         full dump: {}",
+                        input,
+                        serde_json::to_string_pretty(&dump).unwrap_or_default()
+                    )
+                });
+            assert_eq!(
+                pieces.len(),
+                expected_atoms.len(),
+                "input {:?}: expected {} pieces flat, got {} — \
+                 PGEN-RGX-0077 regressed (extra wrap)?\n\
+                 pattern[0][0]: {}",
+                input,
+                expected_atoms.len(),
+                pieces.len(),
+                serde_json::to_string_pretty(&dump["content"]["Json"]["pattern"][0][0])
+                    .unwrap_or_default()
+            );
+            for (idx, expected_atom) in expected_atoms.iter().enumerate() {
+                let actual_atom = pieces[idx]
+                    .pointer("/atom")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "input {:?}: piece[{}] does not have a string `atom` field; \
+                             pieces are not typed objects? piece[{idx}]: {}",
+                            input,
+                            idx,
+                            serde_json::to_string_pretty(&pieces[idx]).unwrap_or_default(),
+                        )
+                    });
+                assert_eq!(
+                    actual_atom, *expected_atom,
+                    "input {:?}: piece[{}].atom expected {:?}, got {:?}",
+                    input, idx, expected_atom, actual_atom
+                );
+            }
+            // The quantifier (when present in the source) must attach to the
+            // LAST piece only. Verifies the slice-6 typed-quantifier shape
+            // alongside PGEN-RGX-0074's "quantifier-binds-to-last-char".
+            let last_piece = pieces.last().expect("non-empty pieces above");
+            let last_quantifier = last_piece
+                .get("quantifier")
+                .expect("piece carries quantifier slot");
+            // `last_quantifier` is either an empty array (if the source's
+            // `\Q...\E` had no trailing quantifier — none of the test cases
+            // here do) or a typed `{type:"quantifier",min,max,greediness}`
+            // object. All the cases above DO have a trailing quantifier so
+            // the object form is expected.
+            let quant_obj = last_quantifier
+                .as_object()
+                .unwrap_or_else(|| panic!(
+                    "input {:?}: last piece's quantifier should be a typed object \
+                     (slice-6 shape), got {}",
+                    input,
+                    serde_json::to_string_pretty(last_quantifier).unwrap_or_default(),
+                ));
+            assert_eq!(
+                quant_obj.get("type").and_then(|v| v.as_str()),
+                Some("quantifier"),
+                "input {:?}: last piece's quantifier.type expected \"quantifier\"",
+                input
+            );
+
+            // For pieces 0..N-1, quantifier should be the empty array (no
+            // suffix matched at that piece's position) — proves the
+            // quantifier didn't accidentally spread to inner pieces.
+            for inner_idx in 0..pieces.len().saturating_sub(1) {
+                let inner_quant = pieces[inner_idx]
+                    .get("quantifier")
+                    .expect("piece carries quantifier slot");
+                assert!(
+                    matches!(inner_quant, serde_json::Value::Array(arr) if arr.is_empty()),
+                    "input {:?}: piece[{}].quantifier should be empty array (no suffix), \
+                     got {} — quantifier wrongly attached to non-trailing piece?",
+                    input,
+                    inner_idx,
+                    serde_json::to_string_pretty(inner_quant).unwrap_or_default(),
+                );
+            }
+        }
+    }
+
     /// PGEN-RGX-0075 regression — multi-piece concatenation must surface
     /// every piece in the typed `regex.pattern` field. Pre-fix, the
     /// `concatenation = piece+ -> [$1**]` annotation silently dropped

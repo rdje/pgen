@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9ea31404.js";
+            window.path_to_searchindex_js = "searchindex-92e866ae.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,31 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1140--contract-1142--pgen-rgx-0077-1-flatten-spread-peels-alternative"><a class="header" href="#1140--contract-1142--pgen-rgx-0077-1-flatten-spread-peels-alternative">1.1.40 / Contract 1.1.42 — PGEN-RGX-0077: <code>[$1**]</code> flatten-spread peels <code>Alternative</code></a></h3>
+<p><strong>Bug</strong> (RGX bug report PGEN-RGX-0077): every multi-char <code>\Q...\E quantifier?</code> source produced one extra wrapping layer at <code>pattern[0][0]</code> — <code>[[&lt;N pieces&gt;]]</code> (1-element array containing the pieces array) instead of the documented flat <code>[&lt;N pieces&gt;]</code>. The piece data was correct; the bug was purely structural wrapping. Adjacent regression to PGEN-RGX-0075 on a different codegen path.</p>
+<p><strong>Root cause:</strong> the <code>[$1**]</code> flatten-spread codegen in <code>rust/src/ast_pipeline/ast_return_transform.rs</code> did not peel <code>Alternative</code> wrapping before inspecting child content for the unwrap decision. The codegen wraps Or-rule and rule-reference branch results in <code>Alternative(boxed_inner)</code>; for <code>concatenation = piece+ -&gt; [$1**]</code>, each piece node arrives as <code>Alternative(piece_inner_node)</code>. Pre-fix, the inner <code>match node.content</code> saw <code>Alternative</code> and fell into the “push as-is” arm, wrapping the whole inner Sequence-of-pieces (from <code>piece_quoted_run_quantified -&gt; [$2**, ...]</code>) as a single element instead of spreading.</p>
+<p><strong>Fix:</strong></p>
+<ol>
+<li>Peel <code>Alternative</code> recursively in the FlattenSpread codegen before the unwrap decision. Now <code>Alternative(inner)</code> → look at <code>inner.content</code> to decide how to spread.</li>
+<li>Add a <code>ParseContent::Json(Value::Array(_))</code> arm (preventative — guards against the same family of regressions for any future annotation that builds typed-Json arrays).</li>
+</ol>
+<p><strong>Consumer impact:</strong> every multi-char <code>\Q...\E quantifier?</code> source now produces flat pieces at <code>pattern[0][0]</code>. Empirical:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\Qab*\E{2,}</code></td><td><code>[[3 pieces]]</code></td><td><code>[a, b, *{2,}]</code></td></tr>
+<tr><td><code>\Qabc\E?</code></td><td><code>[[3 pieces]]</code></td><td><code>[a, b, c?]</code></td></tr>
+<tr><td><code>\Qabcdef\E+</code></td><td><code>[[6 pieces]]</code></td><td><code>[a, b, c, d, e, f+]</code></td></tr>
+<tr><td><code>\Qab\E{3}</code></td><td><code>[[2 pieces]]</code></td><td><code>[a, b{3}]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Single-char (<code>\Qa\E{3}</code>) and empty (<code>\Q\E{2}</code>) cases unaffected — they hit the atom-fallback path, not <code>piece_quoted_run_quantified</code>.</p>
+<p><strong>Regression-lock test:</strong> <code>regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation</code> in <code>rust/src/embedding_api.rs</code> pins the family-table coverage from the bug report (9 multi-char <code>\Q...\E quantifier?</code> shapes). Asserts piece count + atom values + quantifier-attached-to-last-piece + no-quantifier-on-inner-pieces.</p>
+<p><strong>Contract section:</strong> “Release 1.1.40 / Contract 1.1.42 Highlights”.</p>
 <h3 id="1139--contract-1141--atom-subtree-slice-10-typed-backreference-shape"><a class="header" href="#1139--contract-1141--atom-subtree-slice-10-typed-backreference-shape">1.1.39 / Contract 1.1.41 — Atom subtree slice 10: typed <code>backreference</code> shape</a></h3>
 <p><strong>What changed:</strong> the <code>backreference</code> rule’s 4 branches each got per-branch typed annotations:</p>
 <pre><code class="language-ebnf">backreference  = "\\" backreference_digits  -&gt; {type: "backreference", kind: "numeric",      index: $2}

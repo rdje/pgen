@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9ea31404.js";
+            window.path_to_searchindex_js = "searchindex-92e866ae.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,13 +181,14 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-qe-quoted-literals"><a class="header" href="#examples-qe-quoted-literals">Examples: \Q…\E Quoted Literals</a></h1>
-<p>The <code>\Q...\E</code> family is the focus of the <strong>PGEN-RGX-0074</strong> correctness fix. This chapter documents every member of the family with concrete probe outputs.</p>
+<p>The <code>\Q...\E</code> family is the focus of two correctness fixes — <strong>PGEN-RGX-0074</strong> (quantifier-attaches-to-last-char) and <strong>PGEN-RGX-0077</strong> (flat-pieces-no-extra-wrap). This chapter documents every member of the family with concrete probe outputs from the post-fix parser.</p>
 <h2 id="background-pcre2-semantics"><a class="header" href="#background-pcre2-semantics">Background: PCRE2 semantics</a></h2>
 <p>Per <code>pcre2pattern(3)</code> §“Backslash”:</p>
 <blockquote>
 <p>A quantifier following \Q…\E applies only to the <strong>last character</strong> of the literal sequence, not to the whole sequence.</p>
 </blockquote>
-<p>Pre-fix, PGEN incorrectly bound the quantifier to the entire <code>\Q...\E</code> block. The fix produces 3 pieces (one per quoted char, with the trailing piece carrying the quantifier).</p>
+<p>Pre-PGEN-RGX-0074, PGEN incorrectly bound the quantifier to the entire <code>\Q...\E</code> block. The fix produces 3 pieces (one per quoted char, with the trailing piece carrying the quantifier).</p>
+<p>Pre-PGEN-RGX-0077 (released 1.1.40), a separate codegen bug in the <code>[$1**]</code> flatten-spread of <code>concatenation = piece+ -&gt; [$1**]</code> failed to peel <code>Alternative</code> wrapping, so the multi-piece result from <code>piece_quoted_run_quantified</code> arrived as <code>Alternative(Sequence([3 pieces]))</code>, fell into the “push as-is” arm, and ended up wrapped in the outer array as a single element. The shapes shown in this chapter assume the post-fix parser; pre-1.1.40 the same inputs produced an extra wrap layer at <code>pattern[0][0]</code>.</p>
 <h2 id="family-table"><a class="header" href="#family-table">Family table</a></h2>
 <div class="table-wrapper">
 <table>

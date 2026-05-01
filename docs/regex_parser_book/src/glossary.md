@@ -64,7 +64,7 @@ The Rust pipeline that reads a `.ebnf` file and produces an `IR` (intermediate r
 
 ## Flatten-spread
 
-The `**` operator in the return annotation language. Like `*` (spread), but unwraps one level of nested array structure. Used in `concatenation = piece+ -> [$1**]` to produce a flat piece array instead of a nested-Quantified shape. Added in 1.1.31.
+The `**` operator in the return annotation language. Like `*` (spread), but unwraps one level of nested array structure. Used in `concatenation = piece+ -> [$1**]` to produce a flat piece array instead of a nested-Quantified shape. Added in 1.1.31. The codegen recognises four child-content shapes as "array-like" and unwraps them one level: `Sequence`, `Quantified`, `Json(Value::Array(_))`, and `Alternative` (recursively peeled until one of the first three is reached). The `Alternative`-peel was added in 1.1.40 (PGEN-RGX-0077 fix); pre-fix `Alternative`-wrapped children silently fell into a "push as-is" arm and the spread was lost — producing one extra wrap layer for `\Q...\E quantifier?` shapes.
 
 ## Greediness mode
 

@@ -232,28 +232,82 @@ impl AstReturnTransformer {
                 }
                 UnifiedReturnAST::FlattenSpread { base } => {
                     // `[$N**]` — like Spread, but for each pushed child node,
-                    // if its `content` is itself a `Sequence`/`Quantified`,
+                    // if its `content` is itself an array-shaped value,
                     // unwrap one level and push that wrapper's children
                     // inline. Used when a child rule may produce either a
                     // single value OR an array of values that should appear
                     // flat under the parent's accumulator.
+                    //
+                    // The "array-shaped" check covers three runtime variants:
+                    //   - ParseContent::Sequence(nodes)      — codegen-produced
+                    //     packaging of a multi-element body.
+                    //   - ParseContent::Quantified(nodes, _) — codegen-produced
+                    //     packaging of a `?`/`*`/`+` Quantified body.
+                    //   - ParseContent::Json(Value::Array(_))— typed-Json array
+                    //     produced by an upstream annotation like
+                    //     `child = ... -> [$2**, ...]`. PGEN-RGX-0077 was the
+                    //     missing-arm regression: pre-fix, a Json(Array)
+                    //     pushed-child fell into `other_content` and the
+                    //     whole array got wrapped as ONE element instead of
+                    //     each member spreading inline. Surfaced by
+                    //     `\Qab*\E{2,}` family — `piece_quoted_run_quantified`
+                    //     emits a Json(Array) of pieces, and the parent
+                    //     `concatenation = piece+ -> [$1**]` failed to spread.
                     let base_code = Self::generate_transform(base, captured_vars, "")?;
                     element_codes.push(quote! {
+                        // Inner helper: peel `Alternative` one level recursively
+                        // until the underlying content is reached. The codegen
+                        // wraps Or-rule and rule-reference branch results in
+                        // `Alternative(boxed_inner)`, so a piece node from
+                        // `concatenation = piece+ -> [$1**]` typically arrives as
+                        // `Alternative(piece_inner_node)` — we want to inspect
+                        // the inner content for the Sequence/Quantified/Json-Array
+                        // unwrap decision below. Without this peel, every
+                        // Alternative-wrapped child silently falls into the
+                        // `other_content` "push as-is" arm and the spread is
+                        // lost — that's the PGEN-RGX-0077 regression on the
+                        // `piece_quoted_run_quantified` route.
+                        fn __pgen_peel_alternative<'__pgen_input>(
+                            content: ParseContent<'__pgen_input>,
+                        ) -> ParseContent<'__pgen_input> {
+                            let mut current = content;
+                            while let ParseContent::Alternative(node) = current {
+                                current = node.content;
+                            }
+                            current
+                        }
                         match #base_code {
                             ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
                                 for node in nodes {
-                                    match node.content {
+                                    let span_for_inherit = node.span.clone();
+                                    let rule_name_for_inherit = node.rule_name;
+                                    let peeled = __pgen_peel_alternative(node.content);
+                                    match peeled {
                                         ParseContent::Sequence(inner_nodes)
                                         | ParseContent::Quantified(inner_nodes, _) => {
                                             for inner_node in inner_nodes {
                                                 array_elements.push(inner_node);
                                             }
                                         }
+                                        ParseContent::Json(serde_json::Value::Array(values)) => {
+                                            // Typed-Json array (post-collapse from a
+                                            // child annotation that built [$N**, ...]
+                                            // or similar). Spread each value as its
+                                            // own ParseNode so consumers see N flat
+                                            // entries, not [<N entries>].
+                                            for value in values {
+                                                array_elements.push(ParseNode {
+                                                    rule_name: rule_name_for_inherit,
+                                                    content: ParseContent::Json(value),
+                                                    span: span_for_inherit.clone(),
+                                                });
+                                            }
+                                        }
                                         other_content => {
                                             array_elements.push(ParseNode {
-                                                rule_name: node.rule_name,
+                                                rule_name: rule_name_for_inherit,
                                                 content: other_content,
-                                                span: node.span,
+                                                span: span_for_inherit,
                                             });
                                         }
                                     }

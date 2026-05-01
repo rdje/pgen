@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-05-01 - PGEN-RGX-0077: `[$1**]` flatten-spread peels `Alternative` (fixes extra wrap on `\Q...\E quantifier?`)
+
+### Bug report
+RGX filed PGEN-RGX-0077: every multi-char `\Q...\E quantifier?` source produced one extra wrapping layer at `pattern[0][0]` — `[[<N pieces>]]` instead of the documented flat `[<N pieces>]`. RGX surfaced as `pgen AST contract mismatch: expected typed piece object, got array`. ~16-case drop in PCRE2 conformance ratchet.
+
+### Root cause
+The `[$1**]` flatten-spread codegen in `rust/src/ast_pipeline/ast_return_transform.rs` did not peel `Alternative` wrapping before inspecting child content for the unwrap decision. The codegen wraps Or-rule and rule-reference branch results in `Alternative(boxed_inner)`; for `concatenation = piece+ -> [$1**]`, each piece node arrives as `Alternative(piece_inner_node)`. Pre-fix, the inner `match node.content` saw `Alternative` and fell into the "push as-is" arm, wrapping the whole inner Sequence-of-pieces (from `piece_quoted_run_quantified -> [$2**, ...]`) as a single element instead of spreading. Adjacent regression to PGEN-RGX-0075 on a different codegen path.
+
+### Fix
+1. Peel `Alternative` recursively in the FlattenSpread codegen before the unwrap decision. The codegen now emits a small inline helper `__pgen_peel_alternative` that walks `Alternative(node)` → `node.content` until the underlying content surfaces.
+2. Add a `ParseContent::Json(Value::Array(_))` arm in the same codegen (preventative — guards against the same family of regressions for any future annotation that builds typed-Json arrays directly).
+
+### Empirical
+| Source | Before | After |
+|---|---|---|
+| `\Qab*\E{2,}` | `pattern[0][0]` len=1 (extra wrap) | `[a, b, *{2,}]` (3 pieces flat) |
+| `\Qabc\E?` | len=1 | `[a, b, c?]` (3 pieces) |
+| `\Qabcdef\E+` | len=1 | `[a, b, c, d, e, f+]` (6 pieces) |
+| `\Qab\E{3}` | len=1 | `[a, b{3}]` (2 pieces) |
+
+Single-char (`\Qa\E{3}`) and empty (`\Q\E{2}`) cases unaffected — they hit the atom-fallback path, not `piece_quoted_run_quantified`. Plain literal multi-piece (`abc`, `hello`) unaffected — they don't go through the Sequence-returning child annotation.
+
+### Regression-lock test
+New test `regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation` in `rust/src/embedding_api.rs` pins the family-table coverage from the bug report. 9 multi-char `\Q...\E quantifier?` shapes covered. Asserts piece count + atom values + quantifier-attached-to-last-piece + no-quantifier-on-inner-pieces. Per the bug report's own recommendation: "PGEN-RGX-0077's fix should leave a regression-lock test covering all 11 `\Q...\E quantifier?` shapes from the bug-report family table."
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0 (was 494 + new regression test).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 14 inputs (9 affected family + 2 degenerate + 3 controls) all produce expected typed shape.
+
+### Contract bump
+Parser release `1.1.39` → `1.1.40`. Contract `1.1.41` → `1.1.42`. New section "Release 1.1.40 / Contract 1.1.42 Highlights — PGEN-RGX-0077 typed-shape fix for `\Q...\E quantifier?` pieces" in the integration contract. New `REGEX-0077` row in the bug ledger. Regex AST schema version stays `1`.
+
+### Live-docs sync
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.40 / 1.1.42 entry above 1.1.39.
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline gains 0.14.1 row (bug-fix point release).
+
+### RGX integration impact
+RGX's typed-shape walker now sees the documented flat piece arrays at `pattern[0][0]` for every `\Q...\E quantifier?` source. No adapter changes needed if RGX was walking the documented shape. PCRE2 conformance ratchet should recover the ~16-case drop.
+
+### Why this slipped past the test corpus (per the architectural feedback this session)
+PGEN's regression-lock test for PGEN-RGX-0075 covered plain literal multi-piece (`"a"`/`"ab"`/`"abc"`/`"hello"`) but did NOT cover `\Q...\E quantifier?` shapes — which go through a different codegen route via `piece_quoted_run_quantified`. The subsequent slice-6 quantifier-subtree closure changed surrounding shape, and the existing tests didn't catch the wrapping regression because no test exercised the array-returning child annotation path. Captured as a process improvement: every shape-affecting RGX bug should leave a regression-lock test covering the **family** of inputs, not just the canonical reproducer. PGEN-RGX-0077's regression test follows that pattern (9 shapes from the bug-report family table), as does PGEN-RGX-0075's (4 shapes).
+
 ## 2026-05-01 - regex.ebnf slice 10/N: typed `backreference` shape
 
 ### What landed

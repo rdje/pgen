@@ -23,6 +23,31 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.40 / Contract 1.1.42 — PGEN-RGX-0077: `[$1**]` flatten-spread peels `Alternative`
+
+**Bug** (RGX bug report PGEN-RGX-0077): every multi-char `\Q...\E quantifier?` source produced one extra wrapping layer at `pattern[0][0]` — `[[<N pieces>]]` (1-element array containing the pieces array) instead of the documented flat `[<N pieces>]`. The piece data was correct; the bug was purely structural wrapping. Adjacent regression to PGEN-RGX-0075 on a different codegen path.
+
+**Root cause:** the `[$1**]` flatten-spread codegen in `rust/src/ast_pipeline/ast_return_transform.rs` did not peel `Alternative` wrapping before inspecting child content for the unwrap decision. The codegen wraps Or-rule and rule-reference branch results in `Alternative(boxed_inner)`; for `concatenation = piece+ -> [$1**]`, each piece node arrives as `Alternative(piece_inner_node)`. Pre-fix, the inner `match node.content` saw `Alternative` and fell into the "push as-is" arm, wrapping the whole inner Sequence-of-pieces (from `piece_quoted_run_quantified -> [$2**, ...]`) as a single element instead of spreading.
+
+**Fix:**
+1. Peel `Alternative` recursively in the FlattenSpread codegen before the unwrap decision. Now `Alternative(inner)` → look at `inner.content` to decide how to spread.
+2. Add a `ParseContent::Json(Value::Array(_))` arm (preventative — guards against the same family of regressions for any future annotation that builds typed-Json arrays).
+
+**Consumer impact:** every multi-char `\Q...\E quantifier?` source now produces flat pieces at `pattern[0][0]`. Empirical:
+
+| Source | Before | After |
+|---|---|---|
+| `\Qab*\E{2,}` | `[[3 pieces]]` | `[a, b, *{2,}]` |
+| `\Qabc\E?` | `[[3 pieces]]` | `[a, b, c?]` |
+| `\Qabcdef\E+` | `[[6 pieces]]` | `[a, b, c, d, e, f+]` |
+| `\Qab\E{3}` | `[[2 pieces]]` | `[a, b{3}]` |
+
+Single-char (`\Qa\E{3}`) and empty (`\Q\E{2}`) cases unaffected — they hit the atom-fallback path, not `piece_quoted_run_quantified`.
+
+**Regression-lock test:** `regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation` in `rust/src/embedding_api.rs` pins the family-table coverage from the bug report (9 multi-char `\Q...\E quantifier?` shapes). Asserts piece count + atom values + quantifier-attached-to-last-piece + no-quantifier-on-inner-pieces.
+
+**Contract section:** "Release 1.1.40 / Contract 1.1.42 Highlights".
+
 ### 1.1.39 / Contract 1.1.41 — Atom subtree slice 10: typed `backreference` shape
 
 **What changed:** the `backreference` rule's 4 branches each got per-branch typed annotations:

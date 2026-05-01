@@ -1,6 +1,6 @@
 # Examples: \\Q...\\E Quoted Literals
 
-The `\Q...\E` family is the focus of the **PGEN-RGX-0074** correctness fix. This chapter documents every member of the family with concrete probe outputs.
+The `\Q...\E` family is the focus of two correctness fixes — **PGEN-RGX-0074** (quantifier-attaches-to-last-char) and **PGEN-RGX-0077** (flat-pieces-no-extra-wrap). This chapter documents every member of the family with concrete probe outputs from the post-fix parser.
 
 ## Background: PCRE2 semantics
 
@@ -8,7 +8,9 @@ Per `pcre2pattern(3)` §"Backslash":
 
 > A quantifier following \Q...\E applies only to the **last character** of the literal sequence, not to the whole sequence.
 
-Pre-fix, PGEN incorrectly bound the quantifier to the entire `\Q...\E` block. The fix produces 3 pieces (one per quoted char, with the trailing piece carrying the quantifier).
+Pre-PGEN-RGX-0074, PGEN incorrectly bound the quantifier to the entire `\Q...\E` block. The fix produces 3 pieces (one per quoted char, with the trailing piece carrying the quantifier).
+
+Pre-PGEN-RGX-0077 (released 1.1.40), a separate codegen bug in the `[$1**]` flatten-spread of `concatenation = piece+ -> [$1**]` failed to peel `Alternative` wrapping, so the multi-piece result from `piece_quoted_run_quantified` arrived as `Alternative(Sequence([3 pieces]))`, fell into the "push as-is" arm, and ended up wrapped in the outer array as a single element. The shapes shown in this chapter assume the post-fix parser; pre-1.1.40 the same inputs produced an extra wrap layer at `pattern[0][0]`.
 
 ## Family table
 

@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - PGEN-RGX-0077 — `[$1**]` flatten-spread peels `Alternative`
+
+### What landed
+Codegen fix in `rust/src/ast_pipeline/ast_return_transform.rs`'s FlattenSpread arm:
+1. Peel `Alternative` recursively before inspecting child content for the unwrap decision (small inline `__pgen_peel_alternative` helper).
+2. Add a `ParseContent::Json(Value::Array(_))` arm (preventative for future annotations producing typed-Json arrays directly).
+
+### Why this slipped past the test corpus
+PGEN-RGX-0075's regression-lock test covered `"a"`/`"ab"`/`"abc"`/`"hello"` — plain literal multi-piece. `\Q...\E quantifier?` shapes go through a DIFFERENT codegen path via `piece_quoted_run_quantified` (which itself uses `[$2**, ...]` to build a Sequence-of-pieces). The slice-6 quantifier-subtree closure changed surrounding shape but didn't expose the array-returning child annotation path.
+
+Per the architectural feedback this session ("Why isn't PGEN able to catch those errors itself?"): every shape-affecting RGX bug should leave a regression-lock test covering the FAMILY of inputs, not just the canonical reproducer. PGEN-RGX-0075 left a 4-shape test; PGEN-RGX-0077 leaves a 9-shape test (the bug-report family table).
+
+### Empirical
+- `\Qab*\E{2,}` → 3 pieces flat (a, b, *{2,}) — was wrapped.
+- `\Qabcdef\E+` → 6 pieces flat (a-f) — was wrapped.
+- `\Qab\E{3}` → 2 pieces flat — was wrapped.
+- `\Qa\E{3}` and `\Q\E{2}` (degenerate, atom-fallback) — unaffected.
+- Plain `abc`, `a`, `hello` — unaffected (control).
+
+### Quantifier attachment doctrine preserved
+Each affected case verified that the trailing piece carries the typed-quantifier object (`{type:"quantifier", ...}`) and inner pieces carry empty `quantifier: []`. PGEN-RGX-0074's "quantifier binds to last char of `\Q...\E`" still holds.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 495 / 0.
+- `make regex_parser_book_gate` — green.
+- Empirical sweep over 14 inputs.
+
+### Contract bump
+Parser release `1.1.39` → `1.1.40`. Contract `1.1.41` → `1.1.42`. Regex AST schema version stays `1`. New section in integration contract; new `REGEX-0077` ledger entry.
+
+### Live-book sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.40 / 1.1.42 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.14.1 row (bug-fix point release).
+
+The existing `examples-quoted-literal.md` shapes already documented the flat-pieces shape — those were aspirational documentation that the bug had been silently violating; post-fix the parser matches the documented shape.
+
+### RGX integration impact
+PCRE2 conformance ratchet should recover the ~16-case drop. RGX walker doesn't need adapter changes since the parser now matches the documented flat shape that RGX expected.
+
 ## 2026-05-01 - regex.ebnf slice 10/N — typed `backreference` shape
 
 ### What landed

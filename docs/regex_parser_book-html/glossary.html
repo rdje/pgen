@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9ea31404.js";
+            window.path_to_searchindex_js = "searchindex-92e866ae.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -213,7 +213,7 @@
 <h2 id="ebnf-frontend"><a class="header" href="#ebnf-frontend">EBNF frontend</a></h2>
 <p>The Rust pipeline that reads a <code>.ebnf</code> file and produces an <code>IR</code> (intermediate representation) that downstream tools (like the AST pipeline / codegen) consume. Located in <code>rust/src/ebnf_frontend/</code>. Replaces the old <code>ebnf_to_json.pl</code> Perl frontend, which had limitations and is no longer used.</p>
 <h2 id="flatten-spread"><a class="header" href="#flatten-spread">Flatten-spread</a></h2>
-<p>The <code>**</code> operator in the return annotation language. Like <code>*</code> (spread), but unwraps one level of nested array structure. Used in <code>concatenation = piece+ -&gt; [$1**]</code> to produce a flat piece array instead of a nested-Quantified shape. Added in 1.1.31.</p>
+<p>The <code>**</code> operator in the return annotation language. Like <code>*</code> (spread), but unwraps one level of nested array structure. Used in <code>concatenation = piece+ -&gt; [$1**]</code> to produce a flat piece array instead of a nested-Quantified shape. Added in 1.1.31. The codegen recognises four child-content shapes as “array-like” and unwraps them one level: <code>Sequence</code>, <code>Quantified</code>, <code>Json(Value::Array(_))</code>, and <code>Alternative</code> (recursively peeled until one of the first three is reached). The <code>Alternative</code>-peel was added in 1.1.40 (PGEN-RGX-0077 fix); pre-fix <code>Alternative</code>-wrapped children silently fell into a “push as-is” arm and the spread was lost — producing one extra wrap layer for <code>\Q...\E quantifier?</code> shapes.</p>
 <h2 id="greediness-mode"><a class="header" href="#greediness-mode">Greediness mode</a></h2>
 <p>For quantifiers, the suffix that determines match strategy: nothing = greedy (default), <code>?</code> = lazy (minimum match), <code>+</code> = possessive (no backtrack). The <code>quant_suffix</code> rule emits <code>[]</code> (greedy), <code>"lazy"</code>, or <code>"possessive"</code> accordingly.</p>
 <h2 id="json-carrier"><a class="header" href="#json-carrier">Json carrier</a></h2>

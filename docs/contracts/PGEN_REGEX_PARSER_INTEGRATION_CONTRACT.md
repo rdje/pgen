@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.41`
+  - `1.1.42`
 - Parser release version:
-  - `1.1.39`
+  - `1.1.40`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,25 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.40 / Contract 1.1.42 Highlights — PGEN-RGX-0077 typed-shape fix for `\Q...\E quantifier?` pieces
+
+- **Driven by RGX bug report PGEN-RGX-0077** (`/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0077.yaml`).
+- **What was wrong:** for `\Q...\E quantifier?` matched runs, `pattern[0][0]` carried one extra wrapping layer — `[[<N pieces>]]` (1-element array containing the pieces array) instead of the documented flat `[<N pieces>]`. The PCRE2 family-table from the PGEN-RGX-0074 fix (`\Qab*\E{2,}` → 3 pieces, `\Qabc\E?` → 3 pieces, etc.) was structurally correct but consumers walking `pattern[0][0]` saw a 1-element array. RGX's typed-shape walker surfaced this as `pgen AST contract mismatch: expected typed piece object, got array`.
+- **Root cause and scope:** the `[$1**]` flatten-spread codegen in `rust/src/ast_pipeline/ast_return_transform.rs` did not peel `Alternative` wrapping before inspecting child content for the unwrap decision. The codegen wraps Or-rule and rule-reference branch results in `Alternative(boxed_inner)`; for `concatenation = piece+ -> [$1**]`, each piece node arrives as `Alternative(piece_inner_node)`. Pre-fix, the inner `match node.content` saw `Alternative` and fell into the `other_content` "push as-is" arm, wrapping the whole Sequence-of-pieces (from `piece_quoted_run_quantified -> [$2**, ...]`) as a single element instead of spreading. Adjacent regression to PGEN-RGX-0075 (which fixed `$1`-on-Quantified auto-peel) on a different codegen path.
+- **Fix:** the FlattenSpread codegen now peels `Alternative` recursively before inspecting child content. Also adds a `ParseContent::Json(Value::Array(_))` arm in case a future annotation produces a typed-Json array directly (preventative; not exercised by current grammar but guards against the same family of regressions for any rule that builds `[$N**, ...]` shapes).
+- **AST shape change (consumer-visible):** every multi-char `\Q...\E quantifier?` now produces a flat `[<N pieces>]` typed array at `pattern[0][0]`. Empirical proof from the bug-report family table:
+  - `\Qab*\E{2,}` → 3 pieces (a, b, *) flat. The trailing `*` carries `quantifier:{type:"quantifier",min:2,max:null,greediness:[]}` — PGEN-RGX-0074's "quantifier binds to last char" doctrine preserved.
+  - `\Qab\E{3}` → 2 pieces (a, b{3}) flat.
+  - `\Qabcdef\E+` → 6 pieces (a-f) flat.
+  - `\Qa\E{3}` and `\Q\E{2}` (degenerate cases) unchanged — they hit the atom-fallback path, not `piece_quoted_run_quantified`, so they were never affected by the bug.
+- **Regression-lock test:** `regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation` in `rust/src/embedding_api.rs` pins the family-table coverage from the bug report (9 multi-char `\Q...\E quantifier?` shapes). Asserts piece count + atom values + quantifier-attached-to-last-piece + no-quantifier-on-inner-pieces. The bug cannot regress without the test failing.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.40` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. RGX's typed-shape walker should now see flat piece arrays at `pattern[0][0]` for every `\Q...\E quantifier?` source — no adapter changes needed if RGX was already walking the documented flat shape; the bug surface goes away.
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_full_regex()`, `parser.parse_regex()`, `parse_regex_typed()`, `parse_regex_default_ast_dump_named()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.39 / Contract 1.1.41 Highlights — atom subtree slice 10: typed `backreference` shape
 
