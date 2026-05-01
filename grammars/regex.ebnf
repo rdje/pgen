@@ -204,7 +204,13 @@ subroutine_ref = braced_subroutine_ref          -> $1
               | signed_digits                   -> $1
 braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}" -> $3
 signed_digits_or_name = signed_digits | name
-signed_digits = sign? digits
+# `signed_digits` produces a typed `{sign, value}` object so consumers
+# read both fields directly. `sign` is the matched Terminal `"+"` or
+# `"-"` when present, or the empty array `[]` when the optional sign
+# slot didn't match (consumers map `[]` → null/unsigned, same
+# convention as `quantifier.greediness`). `value` is the typed
+# integer surfaced by the slice-1 `digits` annotation.
+signed_digits = sign? digits -> {sign: $1, value: $2}
 sign           = "+" | "-"
 # `name` rewritten as a single regex literal — emits the matched name
 # string as a Terminal directly. Pre-rewrite the rule was `name_start

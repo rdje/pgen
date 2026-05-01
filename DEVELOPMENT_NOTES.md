@@ -1,4 +1,71 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 13/N — signed_digits typing (backref family fully typed end-to-end)
+
+### What landed
+
+```ebnf
+signed_digits = sign? digits -> {sign: $1, value: $2}
+```
+
+Numeric subroutine refs now produce typed `{sign, value}` objects.
+
+### Why
+
+After slice 12 cleaned up `subroutine_ref` wrappers, numeric refs surfaced as `[<sign?>, <int>]` — a 2-element array requiring consumers to dispatch on array indices. Slice 13 lifts both fields to named slots so consumer code reads `obj.ref.sign` and `obj.ref.value`.
+
+### Empirical
+- `\g<1>` → `ref:{sign:[], value:1}`.
+- `\g<-2>` → `ref:{sign:"-", value:2}`.
+- `\g<+5>` → `ref:{sign:"+", value:5}`.
+- `\g{42}` → `ref:{sign:[], value:42}`.
+- `\g+1` → `ref:{sign:"+", value:1}`.
+- `\g-3` → `ref:{sign:"-", value:3}`.
+- `\g42` → `ref:{sign:[], value:42}`.
+
+### `sign` convention
+
+`"+"`/`"-"` when matched, `[]` (empty array — un-matched `Quantified-?` slot) when no sign was present. Consumers map `[]` → null/unsigned. Same convention as `quantifier.greediness`, `posix_class.negated`. Future coalesce-operator slice will let the rule emit `null` directly.
+
+### Backreference family — typed end-to-end
+
+| Kind | Shape |
+|---|---|
+| `numeric` | `{type:"backreference", kind:"numeric", index:<int>}` |
+| `named` | `{type:"backreference", kind:"named", ref:<string>}` |
+| `named_braced` | `{type:"backreference", kind:"named_braced", ref:<string>}` |
+| `subroutine` (named form) | `{type:"backreference", kind:"subroutine", ref:<string>}` |
+| `subroutine` (numeric form) | `{type:"backreference", kind:"subroutine", ref:{sign:..., value:<int>}}` |
+
+Consumer code is now field reads end-to-end:
+```rust
+match obj.kind {
+    "numeric" => use obj.index,
+    "named" | "named_braced" => use obj.ref.as_str(),
+    "subroutine" => match obj.ref {
+        String(s) => SubKind::Named(s),
+        Object(o) => SubKind::Numeric { sign: o.sign, value: o.value },
+    }
+}
+```
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 495 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json` — 1 new `signed_digits` entry.
+- `make regex_parser_book_gate` — green.
+- Empirical sweep over 7 numeric subroutine forms.
+
+### Contract bump
+
+Parser release `1.1.42` → `1.1.43`. Contract `1.1.44` → `1.1.45`. New section in integration contract. Regex AST schema version stays `1`.
+
+### Live-book sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.43 / 1.1.45 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.17.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — `signed_digits` entry added; `subroutine_ref` branch 3 description updated.
+
+### Atom subtree progress
+4/25 atom alternatives directly typed; backreference family fully typed end-to-end. Remaining atom alternatives: literal, whitespace_literal, dot, quoted_literal, escape, char_class outer, group/modifier/conditional/lookaround families.
+
 ## 2026-05-01 - regex.ebnf slice 12/N — subroutine_ref cleanup (closes backref family)
 
 ### What landed

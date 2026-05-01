@@ -319,6 +319,12 @@
         "normalized_text": "{type: \"regex\", pattern: $1}"
       },
       {
+        "rule": "signed_digits",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{sign: $1, value: $2}"
+      },
+      {
         "rule": "subroutine_ref",
         "branch_index": 0,
         "annotation_type": "return_scalar",

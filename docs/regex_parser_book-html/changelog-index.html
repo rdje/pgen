@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e5b8f86e.js";
+            window.path_to_searchindex_js = "searchindex-a449e43b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,36 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1143--contract-1145--atom-subtree-slice-13-signed_digits-typing-backref-family-fully-typed-end-to-end"><a class="header" href="#1143--contract-1145--atom-subtree-slice-13-signed_digits-typing-backref-family-fully-typed-end-to-end">1.1.43 / Contract 1.1.45 — Atom subtree slice 13: signed_digits typing (backref family fully typed end-to-end)</a></h3>
+<p><strong>What changed:</strong> the <code>signed_digits</code> rule now produces a typed <code>{sign, value}</code> object:</p>
+<pre><code class="language-ebnf">signed_digits = sign? digits -&gt; {sign: $1, value: $2}
+</code></pre>
+<p><code>sign</code> is <code>"+"</code>/<code>"-"</code> when the optional sign matched, or <code>[]</code> (the un-matched <code>Quantified-?</code> slot) when no sign was present. <code>value</code> is the typed integer from <code>digits</code>.</p>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — numeric subroutine refs now read <code>obj.ref.sign</code> and <code>obj.ref.value</code> as named fields:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\g&lt;1&gt;</code></td><td><code>ref: [[], 1]</code></td><td><code>ref: {"sign":[], "value":1}</code></td></tr>
+<tr><td><code>\g&lt;-2&gt;</code></td><td><code>ref: ["-", 2]</code></td><td><code>ref: {"sign":"-", "value":2}</code></td></tr>
+<tr><td><code>\g&lt;+5&gt;</code></td><td><code>ref: ["+", 5]</code></td><td><code>ref: {"sign":"+", "value":5}</code></td></tr>
+<tr><td><code>\g{42}</code></td><td><code>ref: [[], 42]</code></td><td><code>ref: {"sign":[], "value":42}</code></td></tr>
+<tr><td><code>\g+1</code></td><td><code>ref: ["+", 1]</code></td><td><code>ref: {"sign":"+", "value":1}</code></td></tr>
+<tr><td><code>\g-3</code></td><td><code>ref: ["-", 3]</code></td><td><code>ref: {"sign":"-", "value":3}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Backreference family — typed end-to-end:</strong></p>
+<ul>
+<li><code>kind:"numeric"</code> → <code>index:&lt;int&gt;</code>.</li>
+<li><code>kind:"named"</code> / <code>kind:"named_braced"</code> → <code>ref:&lt;string&gt;</code>.</li>
+<li><code>kind:"subroutine"</code> → <code>ref:&lt;string&gt;</code> (named) OR <code>ref:{sign:..., value:...}</code> (numeric, typed).</li>
+</ul>
+<p>Consumer code is now field reads end-to-end — no more dispatching on <code>is_string()</code> vs <code>is_array()</code> for the numeric form.</p>
+<p><strong>Atom subtree progress:</strong> 4/25 alternatives directly typed; backreference family fully typed end-to-end.</p>
+<p><strong>Contract section:</strong> “Release 1.1.43 / Contract 1.1.45 Highlights”.</p>
 <h3 id="1142--contract-1144--atom-subtree-slice-12-subroutine_ref-cleanup-closes-backref-family"><a class="header" href="#1142--contract-1144--atom-subtree-slice-12-subroutine_ref-cleanup-closes-backref-family">1.1.42 / Contract 1.1.44 — Atom subtree slice 12: subroutine_ref cleanup (closes backref family)</a></h3>
 <p><strong>What changed:</strong> the <code>subroutine_ref</code> rule’s 4 branches each got per-branch annotations to drop the angle/quote/brace delimiters and surface the inner <code>signed_digits_or_name</code> directly. <code>braced_subroutine_ref</code> annotated similarly:</p>
 <pre><code class="language-ebnf">subroutine_ref = braced_subroutine_ref          -&gt; $1

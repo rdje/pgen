@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e5b8f86e.js";
+            window.path_to_searchindex_js = "searchindex-a449e43b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -227,8 +227,9 @@
 <tr><td><code>subroutine_ref</code> (branch 0, braced)</td><td><code>-&gt; $1</code></td><td>Whatever <code>braced_subroutine_ref</code> produced</td></tr>
 <tr><td><code>subroutine_ref</code> (branch 1, angle)</td><td><code>-&gt; $2</code></td><td>Whatever <code>signed_digits_or_name</code> produced (string for name, or <code>[&lt;sign?&gt;, &lt;int&gt;]</code> for digits)</td></tr>
 <tr><td><code>subroutine_ref</code> (branch 2, quote)</td><td><code>-&gt; $2</code></td><td>Same as branch 1</td></tr>
-<tr><td><code>subroutine_ref</code> (branch 3, signed_digits)</td><td><code>-&gt; $1</code></td><td>Whatever <code>signed_digits</code> produced (raw <code>[&lt;sign?&gt;, &lt;digit-int&gt;]</code>)</td></tr>
+<tr><td><code>subroutine_ref</code> (branch 3, signed_digits)</td><td><code>-&gt; $1</code></td><td>Whatever <code>signed_digits</code> produced (typed <code>{sign, value}</code> object)</td></tr>
 <tr><td><code>braced_subroutine_ref</code></td><td><code>-&gt; $3</code></td><td>Whatever <code>signed_digits_or_name</code> produced</td></tr>
+<tr><td><code>signed_digits</code></td><td><code>-&gt; {sign: $1, value: $2}</code></td><td>Object `{sign:&lt;“+”</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; {type: "posix_class", name: $3, negated: $2}</code></td><td>Object <code>{type:"posix_class", name:&lt;str&gt;, negated:&lt;true | []&gt;}</code></td></tr>
 <tr><td><code>posix_negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), or <code>[]</code> from the un-matched <code>posix_negation?</code> slot</td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>

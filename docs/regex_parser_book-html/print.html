@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e5b8f86e.js";
+            window.path_to_searchindex_js = "searchindex-a449e43b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -881,8 +881,9 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>subroutine_ref</code> (branch 0, braced)</td><td><code>-&gt; $1</code></td><td>Whatever <code>braced_subroutine_ref</code> produced</td></tr>
 <tr><td><code>subroutine_ref</code> (branch 1, angle)</td><td><code>-&gt; $2</code></td><td>Whatever <code>signed_digits_or_name</code> produced (string for name, or <code>[&lt;sign?&gt;, &lt;int&gt;]</code> for digits)</td></tr>
 <tr><td><code>subroutine_ref</code> (branch 2, quote)</td><td><code>-&gt; $2</code></td><td>Same as branch 1</td></tr>
-<tr><td><code>subroutine_ref</code> (branch 3, signed_digits)</td><td><code>-&gt; $1</code></td><td>Whatever <code>signed_digits</code> produced (raw <code>[&lt;sign?&gt;, &lt;digit-int&gt;]</code>)</td></tr>
+<tr><td><code>subroutine_ref</code> (branch 3, signed_digits)</td><td><code>-&gt; $1</code></td><td>Whatever <code>signed_digits</code> produced (typed <code>{sign, value}</code> object)</td></tr>
 <tr><td><code>braced_subroutine_ref</code></td><td><code>-&gt; $3</code></td><td>Whatever <code>signed_digits_or_name</code> produced</td></tr>
+<tr><td><code>signed_digits</code></td><td><code>-&gt; {sign: $1, value: $2}</code></td><td>Object `{sign:&lt;“+”</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; {type: "posix_class", name: $3, negated: $2}</code></td><td>Object <code>{type:"posix_class", name:&lt;str&gt;, negated:&lt;true | []&gt;}</code></td></tr>
 <tr><td><code>posix_negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), or <code>[]</code> from the un-matched <code>posix_negation?</code> slot</td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>
@@ -4597,6 +4598,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.14.1</td><td>1.1.40</td><td><strong>Bug fix:</strong> PGEN-RGX-0077 — the <code>[$1**]</code> flatten-spread codegen now peels <code>Alternative</code> wrapping before inspecting child content for the unwrap decision. Pre-fix every multi-char <code>\Q...\E quantifier?</code> source carried one extra wrap layer at <code>pattern[0][0]</code>. Post-fix the documented flat shape <code>[&lt;N pieces&gt;]</code> is restored. Also adds preventative <code>Json(Value::Array(_))</code> arm in the same codegen for any future annotation that produces typed-Json arrays directly. Regex AST schema version stays <code>1</code>.</td></tr>
 <tr><td>0.15.0</td><td>1.1.41</td><td><strong>Breaking but correct:</strong> atom subtree slice 11 (named-ref cleanup). <code>name</code> rewritten as a regex literal — emits the matched name string as a clean Terminal directly (was a multi-element <code>name_start name_continue*</code> chain producing <code>[first_char, [rest_chars]]</code>). <code>name_ref</code> (both branches) annotated <code>-&gt; $2</code> to extract just the name string from the <code>&lt;...&gt;</code>/<code>'...'</code> wrappers. <code>braced_name_ref</code> annotated <code>-&gt; $3</code> to extract from <code>{...}</code> wrappers. Cascading effect: every consumer of <code>name</code> sees a clean string — <code>\k&lt;foo&gt;</code> / <code>\k{foo}</code> / <code>(?&lt;foo&gt;...)</code> / <code>(?P&lt;foo&gt;...)</code> / <code>(?P=foo)</code> etc. all surface <code>"foo"</code> directly instead of the raw character chain. <code>subroutine_ref</code> is still un-annotated but its inner <code>name</code> is now a clean string within the otherwise-raw shape.</td></tr>
 <tr><td>0.16.0</td><td>1.1.42</td><td><strong>Breaking but correct:</strong> atom subtree slice 12 (subroutine_ref cleanup). <code>subroutine_ref</code> annotated per-branch (<code>-&gt; $1</code>/<code>-&gt; $2</code>/<code>-&gt; $2</code>/<code>-&gt; $1</code>) to drop the angle/quote/brace delimiters and surface the inner <code>signed_digits_or_name</code> directly. <code>braced_subroutine_ref</code> annotated <code>-&gt; $3</code>. Backreference <code>subroutine</code> form now emits clean values: <code>\g&lt;name&gt;</code>/<code>\g'name'</code>/<code>\g{name}</code> → <code>ref:"name"</code>; <code>\g&lt;1&gt;</code>/<code>\g{42}</code>/<code>\g42</code> → <code>ref:[&lt;sign?&gt;, &lt;int&gt;]</code>; <code>\g+1</code>/<code>\g-2</code> → <code>ref:[&lt;sign&gt;, &lt;int&gt;]</code>. Closes the backreference family typing — all 4 backreference forms now produce clean inner values. <code>signed_digits</code> and <code>sign</code> rules remain un-annotated (raw <code>[&lt;sign?&gt;, &lt;digit-int&gt;]</code> for numeric refs); typing them is a separate sub-slice.</td></tr>
+<tr><td>0.17.0</td><td>1.1.43</td><td><strong>Breaking but correct:</strong> atom subtree slice 13 (signed_digits typing). <code>signed_digits</code> annotated <code>-&gt; {sign: $1, value: $2}</code> so numeric subroutine refs surface a typed <code>{sign, value}</code> object instead of <code>[&lt;sign?&gt;, &lt;int&gt;]</code>. <code>sign</code> is <code>"+"</code>/<code>"-"</code> when matched, <code>[]</code> when un-matched (consumer maps <code>[]</code> → null/unsigned). <code>value</code> is the typed integer. Backreference family typing fully closed: every numeric subroutine ref now reads <code>obj.ref.sign</code> and <code>obj.ref.value</code> as named fields.</td></tr>
 </tbody>
 </table>
 </div>
@@ -4718,6 +4720,36 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1143--contract-1145--atom-subtree-slice-13-signed_digits-typing-backref-family-fully-typed-end-to-end"><a class="header" href="#1143--contract-1145--atom-subtree-slice-13-signed_digits-typing-backref-family-fully-typed-end-to-end">1.1.43 / Contract 1.1.45 — Atom subtree slice 13: signed_digits typing (backref family fully typed end-to-end)</a></h3>
+<p><strong>What changed:</strong> the <code>signed_digits</code> rule now produces a typed <code>{sign, value}</code> object:</p>
+<pre><code class="language-ebnf">signed_digits = sign? digits -&gt; {sign: $1, value: $2}
+</code></pre>
+<p><code>sign</code> is <code>"+"</code>/<code>"-"</code> when the optional sign matched, or <code>[]</code> (the un-matched <code>Quantified-?</code> slot) when no sign was present. <code>value</code> is the typed integer from <code>digits</code>.</p>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — numeric subroutine refs now read <code>obj.ref.sign</code> and <code>obj.ref.value</code> as named fields:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\g&lt;1&gt;</code></td><td><code>ref: [[], 1]</code></td><td><code>ref: {"sign":[], "value":1}</code></td></tr>
+<tr><td><code>\g&lt;-2&gt;</code></td><td><code>ref: ["-", 2]</code></td><td><code>ref: {"sign":"-", "value":2}</code></td></tr>
+<tr><td><code>\g&lt;+5&gt;</code></td><td><code>ref: ["+", 5]</code></td><td><code>ref: {"sign":"+", "value":5}</code></td></tr>
+<tr><td><code>\g{42}</code></td><td><code>ref: [[], 42]</code></td><td><code>ref: {"sign":[], "value":42}</code></td></tr>
+<tr><td><code>\g+1</code></td><td><code>ref: ["+", 1]</code></td><td><code>ref: {"sign":"+", "value":1}</code></td></tr>
+<tr><td><code>\g-3</code></td><td><code>ref: ["-", 3]</code></td><td><code>ref: {"sign":"-", "value":3}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Backreference family — typed end-to-end:</strong></p>
+<ul>
+<li><code>kind:"numeric"</code> → <code>index:&lt;int&gt;</code>.</li>
+<li><code>kind:"named"</code> / <code>kind:"named_braced"</code> → <code>ref:&lt;string&gt;</code>.</li>
+<li><code>kind:"subroutine"</code> → <code>ref:&lt;string&gt;</code> (named) OR <code>ref:{sign:..., value:...}</code> (numeric, typed).</li>
+</ul>
+<p>Consumer code is now field reads end-to-end — no more dispatching on <code>is_string()</code> vs <code>is_array()</code> for the numeric form.</p>
+<p><strong>Atom subtree progress:</strong> 4/25 alternatives directly typed; backreference family fully typed end-to-end.</p>
+<p><strong>Contract section:</strong> “Release 1.1.43 / Contract 1.1.45 Highlights”.</p>
 <h3 id="1142--contract-1144--atom-subtree-slice-12-subroutine_ref-cleanup-closes-backref-family"><a class="header" href="#1142--contract-1144--atom-subtree-slice-12-subroutine_ref-cleanup-closes-backref-family">1.1.42 / Contract 1.1.44 — Atom subtree slice 12: subroutine_ref cleanup (closes backref family)</a></h3>
 <p><strong>What changed:</strong> the <code>subroutine_ref</code> rule’s 4 branches each got per-branch annotations to drop the angle/quote/brace delimiters and surface the inner <code>signed_digits_or_name</code> directly. <code>braced_subroutine_ref</code> annotated similarly:</p>
 <pre><code class="language-ebnf">subroutine_ref = braced_subroutine_ref          -&gt; $1

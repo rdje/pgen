@@ -23,6 +23,38 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.43 / Contract 1.1.45 — Atom subtree slice 13: signed_digits typing (backref family fully typed end-to-end)
+
+**What changed:** the `signed_digits` rule now produces a typed `{sign, value}` object:
+
+```ebnf
+signed_digits = sign? digits -> {sign: $1, value: $2}
+```
+
+`sign` is `"+"`/`"-"` when the optional sign matched, or `[]` (the un-matched `Quantified-?` slot) when no sign was present. `value` is the typed integer from `digits`.
+
+**Consumer impact:** **breaking but correct** — numeric subroutine refs now read `obj.ref.sign` and `obj.ref.value` as named fields:
+
+| Source | Before | After |
+|---|---|---|
+| `\g<1>` | `ref: [[], 1]` | `ref: {"sign":[], "value":1}` |
+| `\g<-2>` | `ref: ["-", 2]` | `ref: {"sign":"-", "value":2}` |
+| `\g<+5>` | `ref: ["+", 5]` | `ref: {"sign":"+", "value":5}` |
+| `\g{42}` | `ref: [[], 42]` | `ref: {"sign":[], "value":42}` |
+| `\g+1` | `ref: ["+", 1]` | `ref: {"sign":"+", "value":1}` |
+| `\g-3` | `ref: ["-", 3]` | `ref: {"sign":"-", "value":3}` |
+
+**Backreference family — typed end-to-end:**
+- `kind:"numeric"` → `index:<int>`.
+- `kind:"named"` / `kind:"named_braced"` → `ref:<string>`.
+- `kind:"subroutine"` → `ref:<string>` (named) OR `ref:{sign:..., value:...}` (numeric, typed).
+
+Consumer code is now field reads end-to-end — no more dispatching on `is_string()` vs `is_array()` for the numeric form.
+
+**Atom subtree progress:** 4/25 alternatives directly typed; backreference family fully typed end-to-end.
+
+**Contract section:** "Release 1.1.43 / Contract 1.1.45 Highlights".
+
 ### 1.1.42 / Contract 1.1.44 — Atom subtree slice 12: subroutine_ref cleanup (closes backref family)
 
 **What changed:** the `subroutine_ref` rule's 4 branches each got per-branch annotations to drop the angle/quote/brace delimiters and surface the inner `signed_digits_or_name` directly. `braced_subroutine_ref` annotated similarly:
