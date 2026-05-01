@@ -1,4 +1,54 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 17/N: escape subtree closes (property)
+
+### What landed
+
+```ebnf
+property_escape = "p{" prop_name "}"      -> {type: "escape", kind: "property", name: $2, negated: false}
+                | "P{" prop_name "}"      -> {type: "escape", kind: "property", name: $2, negated: true}
+                | "p" short_prop_letter   -> {type: "escape", kind: "property", name: $2, negated: false}
+                | "P" short_prop_letter   -> {type: "escape", kind: "property", name: $2, negated: true}
+
+# rewritten from `prop_name_chars+` chain:
+prop_name = /([A-Za-z0-9 \t\n\r\f\v_:\-=&^]+)/
+
+# rewritten from Or-of-single-chars chain:
+short_prop_letter = /([CLMNPSZclmnpsz])/
+```
+
+### Empirical AST shape change
+
+| Source | Before | After |
+|---|---|---|
+| `\p{Lu}` | `["\\", ["p{", [["L"], ["u"]], "}"]]` | `{type:"escape", kind:"property", name:"Lu", negated:false}` |
+| `\p{Letter}` | similar 3-level chain | `{type:"escape", kind:"property", name:"Letter", negated:false}` |
+| `\P{Nd}` | similar w/ leading `"P{"` | `{type:"escape", kind:"property", name:"Nd", negated:true}` |
+| `\pL` | `["\\", ["p", "L"]]` | `{type:"escape", kind:"property", name:"L", negated:false}` |
+| `\PN` | `["\\", ["P", "N"]]` | `{type:"escape", kind:"property", name:"N", negated:true}` |
+
+### `negated` is a real boolean
+
+Consumers read `true`/`false` directly from `obj.negated`. No need to dispatch on leading-token shape (`"p"` vs `"P"`).
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 4 new manifest entries (`property_escape` ×4).
+- `make regex_parser_book_gate` green.
+- Empirical sweep: `\p{Lu}` / `\p{Letter}` / `\P{Nd}` / `\pL` / `\PN` / `\pZ` — all typed.
+
+### Contract bump
+
+Parser release `1.1.46` → `1.1.47`. Contract `1.1.48` → `1.1.49`. New "Release 1.1.47 / Contract 1.1.49 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.47 / 1.1.49 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.21.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 6 new entries (property_escape ×4 + prop_name + short_prop_letter).
+- `docs/regex_parser_book/src/examples-escapes.md` — chapter intro + property sections rewritten + dispatcher pattern simplified to a single object-shape check on `kind` (no more structural fallback).
+
+### Atom subtree progress
+5/25 atom alternatives directly typed; **7/7 escape_unit branches typed** (single_byte, simple, control, hex, unicode, octal, property). **The escape subtree is now closed.** Remaining atom alternatives: literal, whitespace_literal, dot, quoted_literal, char_class outer, group/modifier/conditional/lookaround family.
+
 ## 2026-05-01 - regex.ebnf slice 16/N: escape subtree continues (octal)
 
 ### What landed

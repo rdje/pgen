@@ -301,6 +301,30 @@
         "normalized_text": "{type: \"anchor\", kind: \"posix_word_end\"}"
       },
       {
+        "rule": "property_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"property\", name: $2, negated: false}"
+      },
+      {
+        "rule": "property_escape",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"property\", name: $2, negated: true}"
+      },
+      {
+        "rule": "property_escape",
+        "branch_index": 2,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"property\", name: $2, negated: false}"
+      },
+      {
+        "rule": "property_escape",
+        "branch_index": 3,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"property\", name: $2, negated: true}"
+      },
+      {
         "rule": "quant_base",
         "branch_index": 0,
         "annotation_type": "return_object",

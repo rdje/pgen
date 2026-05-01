@@ -1,6 +1,6 @@
 # Examples: Escapes
 
-Concrete probe outputs for PCRE2 escape sequences. As of slice 16 (post-1.1.46), the `escape` rule is a transparent wrapper (`-> $2`) and 6 of the 7 `escape_unit` sub-rules emit typed `{type:"escape", kind:<form>, ...}` objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15), octal (slice 16). Only `property_escape` still emits a raw shape pending the follow-up slice.
+Concrete probe outputs for PCRE2 escape sequences. As of slice 17 (post-1.1.47), the `escape` rule is a transparent wrapper (`-> $2`) and **all 7** `escape_unit` sub-rules emit typed `{type:"escape", kind:<form>, ...}` objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15), octal (slice 16), property (slice 17). The escape subtree is now fully typed.
 
 ## Shorthand escapes — `\d`, `\w`, `\s`, `\.`, `\\`, etc.
 
@@ -155,38 +155,27 @@ Typed `{type:"escape", kind:"control", char:<C>}` — the `c` prefix is dropped,
 
 ```json
 {
-  "atom": [
-    "\\",
-    [
-      "p{",
-      [<prop_name shape — chars "L", "u">],
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "property", "name": "Lu", "negated": false},
   ...
 }
 ```
 
-3-element Sequence. `prop_name` is a Quantified-`+` of `prop_name_chars`.
-
-For `\P{Lu}`: opening is `"P{"` instead of `"p{"`.
+For `\p{Letter}` (long name): `name:"Letter"`. For `\P{Nd}` (negated): `name:"Nd", negated:true`. The `prop_name` regex literal admits the full PCRE2 property-identifier alphabet (letters, digits, whitespace, `_`, `:`, `-`, `=`, `&`, `^`).
 
 ## Short property escape — `\pL`, `\PN`
 
 ```json
 {
-  "atom": [
-    "\\",
-    [
-      "p",
-      "L"                       // short_prop_letter
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "property", "name": "L", "negated": false},
   ...
 }
 ```
 
-2-element Sequence with `"p"` (or `"P"`) followed by single short-property letter.
+For `\PN` (negated, short): `name:"N", negated:true`. For `\pZ`: `name:"Z", negated:false`. The `short_prop_letter` regex literal admits `[CLMNPSZclmnpsz]` — the standard PCRE2 single-letter property shorthands.
+
+## `negated` is a real boolean
+
+Both braced and short property forms emit `negated` as a literal `true`/`false` boolean. No need for the consumer to inspect the leading-token shape (`"p"` vs `"P"`) or the rule branch index — read `obj.negated` directly.
 
 ## Single-byte escape — `\C`
 
@@ -201,39 +190,29 @@ PCRE2's `\C` matches one code unit. Typed `{type:"escape", kind:"single_byte"}` 
 
 ## Identifying escape kind from the AST shape
 
-The `escape_unit` is an Or with 7 branches. As of slice 16, 6 of those branches emit typed `{type:"escape", kind:<form>, ...}` objects directly — consumers can dispatch on `kind`. The remaining `property_escape` branch still emits a raw structural shape; consumers fall through to a structural-prefix check.
+The `escape_unit` is an Or with 7 branches. As of slice 17, **all 7** branches emit typed `{type:"escape", kind:<form>, ...}` objects directly. Consumers dispatch on `kind` — no structural fallback needed.
 
 ```rust
 fn classify_escape(escape_atom: &Value) -> Option<EscapeKind> {
-    // Typed branches: simple, single_byte, control, hex, unicode, octal
-    if let Some(obj) = escape_atom.as_object() {
-        if obj.get("type").and_then(|v| v.as_str()) == Some("escape") {
-            return match obj.get("kind").and_then(|v| v.as_str())? {
-                "shorthand"   => Some(EscapeKind::Simple),
-                "single_byte" => Some(EscapeKind::SingleByte),
-                "control"     => Some(EscapeKind::Control),
-                "hex"         => Some(EscapeKind::Hex),
-                "unicode"     => Some(EscapeKind::Unicode),
-                "octal"       => Some(EscapeKind::Octal),
-                _             => None,
-            };
-        }
+    let obj = escape_atom.as_object()?;
+    if obj.get("type").and_then(|v| v.as_str()) != Some("escape") {
+        return None;
     }
-
-    // Untyped raw-shape branch: property
-    let arr = escape_atom.as_array()?;
-    match arr.first() {
-        Some(Value::String(s)) if s == "p{" || s == "P{" => {
-            Some(EscapeKind::Property(PropertyForm::Braced))
-        }
-        Some(Value::String(s)) if s == "p" || s == "P" => {
-            Some(EscapeKind::Property(PropertyForm::Short))
-        }
-        _ => None,
+    match obj.get("kind").and_then(|v| v.as_str())? {
+        "shorthand"   => Some(EscapeKind::Simple),
+        "single_byte" => Some(EscapeKind::SingleByte),
+        "control"     => Some(EscapeKind::Control),
+        "hex"         => Some(EscapeKind::Hex),
+        "unicode"     => Some(EscapeKind::Unicode),
+        "octal"       => Some(EscapeKind::Octal),
+        "property"    => Some(EscapeKind::Property),
+        _             => None,
     }
 }
 ```
 
+For property escapes, the consumer reads `obj.name` (string) and `obj.negated` (bool) directly. For hex/unicode/octal, `obj.digits` (string) is parsed via `usize::from_str_radix(digits, <base>)`. For control / simple, `obj.char` (string) carries the matched character.
+
 ## Future direction
 
-The remaining task #40 escape-subtree slice will type `property_escape`. Once that lands, the structural fallback above will be removed and the dispatcher reduces to a single object-shape check on `kind`.
+Escape subtree campaign **closed** — all 7 `escape_unit` branches typed. The next atom-subtree slice picks one of the still-untyped atom alternatives (literal, whitespace_literal, dot, quoted_literal, char_class outer, group/conditional/lookaround/etc.).

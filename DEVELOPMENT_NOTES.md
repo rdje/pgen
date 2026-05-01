@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 17/N — escape subtree closes (property)
+
+### What landed
+
+Per-branch annotations on `property_escape` plus regex-literal rewrites for `prop_name` and `short_prop_letter`:
+
+```ebnf
+property_escape = "p{" prop_name "}"      -> {type: "escape", kind: "property", name: $2, negated: false}
+                | "P{" prop_name "}"      -> {type: "escape", kind: "property", name: $2, negated: true}
+                | "p" short_prop_letter   -> {type: "escape", kind: "property", name: $2, negated: false}
+                | "P" short_prop_letter   -> {type: "escape", kind: "property", name: $2, negated: true}
+
+prop_name         = /([A-Za-z0-9 \t\n\r\f\v_:\-=&^]+)/
+short_prop_letter = /([CLMNPSZclmnpsz])/
+```
+
+### Why `negated` as boolean
+
+Slice 8 (PGEN-RGX-0076) aligned the codegen `BooleanLiteral` rule-level scalar path to emit `Json(Bool(...))` rather than `Terminal("true")`. That makes `negated: false` and `negated: true` viable here — they emit real JSON booleans.
+
+### Why regex-literal rewrites for prop_name + short_prop_letter
+
+Same pattern as slice 11 (`name`), 15 (`hex_digits`), 16 (`octal_digits`):
+- `prop_name = prop_name_chars+` was a Quantified-`+` of multi-char alternation chains. Generated runtime emits `[<first>, [<rest>]]` shape; consumer would have to walk and concatenate. Rewriting as a regex literal that captures the whole identifier in one match emits a clean string Terminal that `$2` references directly.
+- `short_prop_letter = 'C' | 'L' | ...` was an Or of 14 single-char branches; codegen would lower to N try_parse blocks. Rewriting as `/([CLMNPSZclmnpsz])/` collapses to a single match_regex call (codegen Or-of-single-chars peephole would do the same lowering, but the explicit regex form is more idiomatic and matches how slice 14-16 standardized other char-class building blocks).
+
+### Empirical
+- `\p{Lu}` → `{type:"escape",kind:"property",name:"Lu",negated:false}`.
+- `\p{Letter}` → `{name:"Letter",negated:false}`.
+- `\P{Nd}` → `{name:"Nd",negated:true}`.
+- `\pL` → `{name:"L",negated:false}`.
+- `\PN` → `{name:"N",negated:true}`.
+- `\pZ` → `{name:"Z",negated:false}`.
+
+### Process gotcha
+
+Empirical sweep via `cargo run --release ...` for 6 inputs in a `for` loop appeared to "hang" mid-loop — actually each `cargo run` invocation re-checks the build (~10-15s per invocation even with caching). For 6+ input sweeps, pre-build with `cargo build --release --bin parseability_probe` and invoke `target/release/parseability_probe` directly. ~50× faster.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 4 new manifest entries (`property_escape` ×4, alphabetically inserted between `posix_word_boundary_alias` and `quant_base`).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.46` → `1.1.47`. Contract `1.1.48` → `1.1.49`.
+- New "Release 1.1.47 / Contract 1.1.49 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md` (new row), `schema-versioning.md` (0.21.0), `json-carrier.md` (6 new entries), `examples-escapes.md` (chapter intro + property sections rewritten + dispatcher simplified to a single object-shape check on `kind`).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- 5/25 atom alternatives directly typed.
+- **7/7 escape_unit branches typed** (single_byte, simple, control, hex, unicode, octal, property).
+- **The escape subtree is now closed.**
+- Remaining atom alternatives: literal, whitespace_literal, dot, quoted_literal, char_class outer, group, capturing_group, noncapturing_group, named_group, python_named_group, inline_modifiers, scoped_inline_modifiers, branch_reset_group, callout, conditional, lookaround, atomic_group, scan_substring_group, script_run_group, directive_verb, extended_class, code_block, comment_group, python_named_backreference, subroutine_call.
+
 ## 2026-05-01 - regex.ebnf slice 16/N — escape subtree continues (octal)
 
 ### What landed

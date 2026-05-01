@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.48`
+  - `1.1.49`
 - Parser release version:
-  - `1.1.46`
+  - `1.1.47`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,24 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.47 / Contract 1.1.49 Highlights — atom subtree slice 17: escape subtree closes (property)
+
+- **Internal-driven shape work** (no downstream report). Closes the escape-subtree typed-shape campaign — all 7 `escape_unit` branches are now typed.
+- **Rules changed:**
+  - `property_escape` per-branch annotations producing typed `{type:"escape", kind:"property", name:<string>, negated:<bool>}`.
+  - `prop_name` rewritten from `prop_name_chars+` chain to `/([A-Za-z0-9 \t\n\r\f\v_:\-=&^]+)/` regex literal — emits clean string Terminal.
+  - `short_prop_letter` rewritten from Or-of-single-chars chain to `/([CLMNPSZclmnpsz])/` regex literal.
+- **AST shape change (consumer-visible):** PCRE2 `\p{...}`/`\P{...}` (braced) and `\pX`/`\PX` (short) atoms now emit typed `{type, kind, name, negated}` objects. `negated` is a real boolean (`true` for `\P` forms, `false` for `\p` forms) rather than presence-of-`P` structural inference.
+  - Before: `\p{Lu}` → `["\\", ["p{", [["L"], ["u"]], "}"]]` (3-level chain with multi-element prop_name).
+  - After: `\p{Lu}` → `{type:"escape", kind:"property", name:"Lu", negated:false}` (typed object).
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.47` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["p{", <prop_name chain>, "}"]` shape or that inferred negation from the leading `"p"` vs `"P"` token to use typed `obj.kind == "property"` dispatch + `obj.name` field read + `obj.negated` boolean.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 5/25 alternatives directly typed; **7/7 escape_unit branches typed** (single_byte, simple, control, hex, unicode, octal, property). The escape subtree is now closed. Remaining atom alternatives: literal, whitespace_literal, dot, quoted_literal, char_class outer, group/modifier/conditional/lookaround/atomic_group/scan_substring_group/script_run_group/directive_verb/extended_class/code_block/comment_group/python_named_backreference/group/inline_modifiers/scoped_inline_modifiers/branch_reset_group/callout/subroutine_call.
 
 ## Release 1.1.46 / Contract 1.1.48 Highlights — atom subtree slice 16: escape subtree continues (octal)
 

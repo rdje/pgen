@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-42dc7f9e.js";
+            window.path_to_searchindex_js = "searchindex-f5a6e759.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-escapes"><a class="header" href="#examples-escapes">Examples: Escapes</a></h1>
-<p>Concrete probe outputs for PCRE2 escape sequences. As of slice 16 (post-1.1.46), the <code>escape</code> rule is a transparent wrapper (<code>-&gt; $2</code>) and 6 of the 7 <code>escape_unit</code> sub-rules emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15), octal (slice 16). Only <code>property_escape</code> still emits a raw shape pending the follow-up slice.</p>
+<p>Concrete probe outputs for PCRE2 escape sequences. As of slice 17 (post-1.1.47), the <code>escape</code> rule is a transparent wrapper (<code>-&gt; $2</code>) and <strong>all 7</strong> <code>escape_unit</code> sub-rules emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15), octal (slice 16), property (slice 17). The escape subtree is now fully typed.</p>
 <h2 id="shorthand-escapes--d-w-s---etc"><a class="header" href="#shorthand-escapes--d-w-s---etc">Shorthand escapes — <code>\d</code>, <code>\w</code>, <code>\s</code>, <code>\.</code>, <code>\\</code>, etc.</a></h2>
 <p>These all flow through <code>simple_escape</code> (the catch-all branch of <code>escape_unit</code>):</p>
 <pre><code class="language-ebnf">simple_escape  = any_char -&gt; {type: "escape", kind: "shorthand", char: $1}
@@ -280,32 +280,20 @@
 <p>Typed <code>{type:"escape", kind:"control", char:&lt;C&gt;}</code> — the <code>c</code> prefix is dropped, the matched control letter is in the <code>char</code> field. For <code>\cZ</code>: <code>char:"Z"</code>. For <code>\cz</code>: <code>char:"z"</code> (case-sensitive).</p>
 <h2 id="property-escape-braced--plu"><a class="header" href="#property-escape-braced--plu">Property escape (braced) — <code>\p{Lu}</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "p{",
-      [&lt;prop_name shape — chars "L", "u"&gt;],
-      "}"
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "property", "name": "Lu", "negated": false},
   ...
 }
 </code></pre>
-<p>3-element Sequence. <code>prop_name</code> is a Quantified-<code>+</code> of <code>prop_name_chars</code>.</p>
-<p>For <code>\P{Lu}</code>: opening is <code>"P{"</code> instead of <code>"p{"</code>.</p>
+<p>For <code>\p{Letter}</code> (long name): <code>name:"Letter"</code>. For <code>\P{Nd}</code> (negated): <code>name:"Nd", negated:true</code>. The <code>prop_name</code> regex literal admits the full PCRE2 property-identifier alphabet (letters, digits, whitespace, <code>_</code>, <code>:</code>, <code>-</code>, <code>=</code>, <code>&amp;</code>, <code>^</code>).</p>
 <h2 id="short-property-escape--pl-pn"><a class="header" href="#short-property-escape--pl-pn">Short property escape — <code>\pL</code>, <code>\PN</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "p",
-      "L"                       // short_prop_letter
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "property", "name": "L", "negated": false},
   ...
 }
 </code></pre>
-<p>2-element Sequence with <code>"p"</code> (or <code>"P"</code>) followed by single short-property letter.</p>
+<p>For <code>\PN</code> (negated, short): <code>name:"N", negated:true</code>. For <code>\pZ</code>: <code>name:"Z", negated:false</code>. The <code>short_prop_letter</code> regex literal admits <code>[CLMNPSZclmnpsz]</code> — the standard PCRE2 single-letter property shorthands.</p>
+<h2 id="negated-is-a-real-boolean"><a class="header" href="#negated-is-a-real-boolean"><code>negated</code> is a real boolean</a></h2>
+<p>Both braced and short property forms emit <code>negated</code> as a literal <code>true</code>/<code>false</code> boolean. No need for the consumer to inspect the leading-token shape (<code>"p"</code> vs <code>"P"</code>) or the rule branch index — read <code>obj.negated</code> directly.</p>
 <h2 id="single-byte-escape--c"><a class="header" href="#single-byte-escape--c">Single-byte escape — <code>\C</code></a></h2>
 <pre><code class="language-json">{
   "atom": {"type": "escape", "kind": "single_byte"},
@@ -314,40 +302,29 @@
 </code></pre>
 <p>PCRE2’s <code>\C</code> matches one code unit. Typed <code>{type:"escape", kind:"single_byte"}</code> — no <code>char</code> field since the char is fixed (always uppercase <code>C</code>).</p>
 <h2 id="identifying-escape-kind-from-the-ast-shape"><a class="header" href="#identifying-escape-kind-from-the-ast-shape">Identifying escape kind from the AST shape</a></h2>
-<p>The <code>escape_unit</code> is an Or with 7 branches. As of slice 16, 6 of those branches emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly — consumers can dispatch on <code>kind</code>. The remaining <code>property_escape</code> branch still emits a raw structural shape; consumers fall through to a structural-prefix check.</p>
+<p>The <code>escape_unit</code> is an Or with 7 branches. As of slice 17, <strong>all 7</strong> branches emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly. Consumers dispatch on <code>kind</code> — no structural fallback needed.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn classify_escape(escape_atom: &amp;Value) -&gt; Option&lt;EscapeKind&gt; {
-    // Typed branches: simple, single_byte, control, hex, unicode, octal
-    if let Some(obj) = escape_atom.as_object() {
-        if obj.get("type").and_then(|v| v.as_str()) == Some("escape") {
-            return match obj.get("kind").and_then(|v| v.as_str())? {
-                "shorthand"   =&gt; Some(EscapeKind::Simple),
-                "single_byte" =&gt; Some(EscapeKind::SingleByte),
-                "control"     =&gt; Some(EscapeKind::Control),
-                "hex"         =&gt; Some(EscapeKind::Hex),
-                "unicode"     =&gt; Some(EscapeKind::Unicode),
-                "octal"       =&gt; Some(EscapeKind::Octal),
-                _             =&gt; None,
-            };
-        }
+    let obj = escape_atom.as_object()?;
+    if obj.get("type").and_then(|v| v.as_str()) != Some("escape") {
+        return None;
     }
-
-    // Untyped raw-shape branch: property
-    let arr = escape_atom.as_array()?;
-    match arr.first() {
-        Some(Value::String(s)) if s == "p{" || s == "P{" =&gt; {
-            Some(EscapeKind::Property(PropertyForm::Braced))
-        }
-        Some(Value::String(s)) if s == "p" || s == "P" =&gt; {
-            Some(EscapeKind::Property(PropertyForm::Short))
-        }
-        _ =&gt; None,
+    match obj.get("kind").and_then(|v| v.as_str())? {
+        "shorthand"   =&gt; Some(EscapeKind::Simple),
+        "single_byte" =&gt; Some(EscapeKind::SingleByte),
+        "control"     =&gt; Some(EscapeKind::Control),
+        "hex"         =&gt; Some(EscapeKind::Hex),
+        "unicode"     =&gt; Some(EscapeKind::Unicode),
+        "octal"       =&gt; Some(EscapeKind::Octal),
+        "property"    =&gt; Some(EscapeKind::Property),
+        _             =&gt; None,
     }
 }
 <span class="boring">}</span></code></pre>
+<p>For property escapes, the consumer reads <code>obj.name</code> (string) and <code>obj.negated</code> (bool) directly. For hex/unicode/octal, <code>obj.digits</code> (string) is parsed via <code>usize::from_str_radix(digits, &lt;base&gt;)</code>. For control / simple, <code>obj.char</code> (string) carries the matched character.</p>
 <h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>The remaining task #40 escape-subtree slice will type <code>property_escape</code>. Once that lands, the structural fallback above will be removed and the dispatcher reduces to a single object-shape check on <code>kind</code>.</p>
+<p>Escape subtree campaign <strong>closed</strong> — all 7 <code>escape_unit</code> branches typed. The next atom-subtree slice picks one of the still-untyped atom alternatives (literal, whitespace_literal, dot, quoted_literal, char_class outer, group/conditional/lookaround/etc.).</p>
 
                     </main>
 

@@ -23,6 +23,39 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.47 / Contract 1.1.49 — Atom subtree slice 17: escape subtree closes (property)
+
+**What changed:** `property_escape` per-branch annotations now emit typed `{type:"escape", kind:"property", name:<string>, negated:<bool>}` objects. `prop_name` and `short_prop_letter` rewritten from chained forms to regex literals so they emit clean string Terminals.
+
+```ebnf
+property_escape = "p{" prop_name "}"      -> {type: "escape", kind: "property", name: $2, negated: false}
+                | "P{" prop_name "}"      -> {type: "escape", kind: "property", name: $2, negated: true}
+                | "p" short_prop_letter   -> {type: "escape", kind: "property", name: $2, negated: false}
+                | "P" short_prop_letter   -> {type: "escape", kind: "property", name: $2, negated: true}
+
+# rewritten from `prop_name_chars+` chain:
+prop_name = /([A-Za-z0-9 \t\n\r\f\v_:\-=&^]+)/
+
+# rewritten from Or-of-single-chars chain:
+short_prop_letter = /([CLMNPSZclmnpsz])/
+```
+
+**Before / after:**
+
+| Source | Before (post-slice-16) | After |
+|---|---|---|
+| `\p{Lu}` | `["\\", ["p{", [["L"], ["u"]], "}"]]` | `{type:"escape", kind:"property", name:"Lu", negated:false}` |
+| `\p{Letter}` | similar 3-level chain | `{type:"escape", kind:"property", name:"Letter", negated:false}` |
+| `\P{Nd}` | similar w/ leading `"P{"` | `{type:"escape", kind:"property", name:"Nd", negated:true}` |
+| `\pL` | `["\\", ["p", "L"]]` | `{type:"escape", kind:"property", name:"L", negated:false}` |
+| `\PN` | `["\\", ["P", "N"]]` | `{type:"escape", kind:"property", name:"N", negated:true}` |
+
+**`negated` is a real boolean.** Consumers get `true` / `false` directly from `obj.negated`, no need to inspect leading-token shape (`"p"` vs `"P"`) to infer negation.
+
+**Atom subtree campaign progress:** 5/25 atom alternatives directly typed; **7/7 escape_unit branches typed** (single_byte, simple, control, hex, unicode, octal, property). The escape subtree is now **closed**.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.47 / Contract 1.1.49 Highlights".
+
 ### 1.1.46 / Contract 1.1.48 — Atom subtree slice 16: escape subtree continues (octal)
 
 **What changed:** `octal_escape` per-branch annotations now emit typed `{type:"escape", kind:"octal", digits:<octal-string>}` objects. New `octal_escape_short_payload` regex literal for the 1-3-digit bare form. `octal_digits` rewritten from `octal_digit+` chain to regex literal.

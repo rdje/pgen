@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-42dc7f9e.js";
+            window.path_to_searchindex_js = "searchindex-f5a6e759.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -243,6 +243,12 @@
 <tr><td><code>octal_escape</code> (branch 1, bare <code>\NNN</code> in classes)</td><td><code>-&gt; {type:"escape", kind:"octal", digits:$1}</code></td><td>Object <code>{type:"escape", kind:"octal", digits:&lt;octal-string&gt;}</code>. Note: at atom-level, bare <code>\NNN</code> is shadowed by the <code>backreference</code> numeric branch under PEG ordering — pre-existing.</td></tr>
 <tr><td><code>octal_digits</code></td><td>regex literal <code>/([0-7]+)/</code></td><td>Terminal of the matched octal string (was <code>octal_digit+</code> chain)</td></tr>
 <tr><td><code>octal_escape_short_payload</code></td><td>regex literal <code>/([0-7]{1,3})/</code></td><td>Terminal of the matched 1-3 octal digits</td></tr>
+<tr><td><code>property_escape</code> (branch 0, <code>\p{...}</code>)</td><td><code>-&gt; {type:"escape", kind:"property", name:$2, negated:false}</code></td><td>Object <code>{type:"escape", kind:"property", name:&lt;str&gt;, negated:false}</code></td></tr>
+<tr><td><code>property_escape</code> (branch 1, <code>\P{...}</code>)</td><td><code>-&gt; {type:"escape", kind:"property", name:$2, negated:true}</code></td><td>Object <code>{type:"escape", kind:"property", name:&lt;str&gt;, negated:true}</code></td></tr>
+<tr><td><code>property_escape</code> (branch 2, <code>\pX</code>)</td><td><code>-&gt; {type:"escape", kind:"property", name:$2, negated:false}</code></td><td>Object <code>{type:"escape", kind:"property", name:&lt;single-letter&gt;, negated:false}</code></td></tr>
+<tr><td><code>property_escape</code> (branch 3, <code>\PX</code>)</td><td><code>-&gt; {type:"escape", kind:"property", name:$2, negated:true}</code></td><td>Object <code>{type:"escape", kind:"property", name:&lt;single-letter&gt;, negated:true}</code></td></tr>
+<tr><td><code>prop_name</code></td><td>regex literal <code>/([A-Za-z0-9 \t\n\r\f\v_:\-=&amp;^]+)/</code></td><td>Terminal of the matched property identifier (was <code>prop_name_chars+</code> chain)</td></tr>
+<tr><td><code>short_prop_letter</code></td><td>regex literal <code>/([CLMNPSZclmnpsz])/</code></td><td>Terminal of the matched single-letter shorthand (was Or-of-single-chars)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; {type: "posix_class", name: $3, negated: $2}</code></td><td>Object <code>{type:"posix_class", name:&lt;str&gt;, negated:&lt;true | []&gt;}</code></td></tr>
 <tr><td><code>posix_negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), or <code>[]</code> from the un-matched <code>posix_negation?</code> slot</td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>

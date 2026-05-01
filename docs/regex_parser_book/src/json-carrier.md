@@ -62,6 +62,12 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `octal_escape` (branch 1, bare `\NNN` in classes) | `-> {type:"escape", kind:"octal", digits:$1}` | Object `{type:"escape", kind:"octal", digits:<octal-string>}`. Note: at atom-level, bare `\NNN` is shadowed by the `backreference` numeric branch under PEG ordering — pre-existing. |
 | `octal_digits` | regex literal `/([0-7]+)/` | Terminal of the matched octal string (was `octal_digit+` chain) |
 | `octal_escape_short_payload` | regex literal `/([0-7]{1,3})/` | Terminal of the matched 1-3 octal digits |
+| `property_escape` (branch 0, `\p{...}`) | `-> {type:"escape", kind:"property", name:$2, negated:false}` | Object `{type:"escape", kind:"property", name:<str>, negated:false}` |
+| `property_escape` (branch 1, `\P{...}`) | `-> {type:"escape", kind:"property", name:$2, negated:true}` | Object `{type:"escape", kind:"property", name:<str>, negated:true}` |
+| `property_escape` (branch 2, `\pX`) | `-> {type:"escape", kind:"property", name:$2, negated:false}` | Object `{type:"escape", kind:"property", name:<single-letter>, negated:false}` |
+| `property_escape` (branch 3, `\PX`) | `-> {type:"escape", kind:"property", name:$2, negated:true}` | Object `{type:"escape", kind:"property", name:<single-letter>, negated:true}` |
+| `prop_name` | regex literal `/([A-Za-z0-9 \t\n\r\f\v_:\-=&^]+)/` | Terminal of the matched property identifier (was `prop_name_chars+` chain) |
+| `short_prop_letter` | regex literal `/([CLMNPSZclmnpsz])/` | Terminal of the matched single-letter shorthand (was Or-of-single-chars) |
 | `posix_class` | `-> {type: "posix_class", name: $3, negated: $2}` | Object `{type:"posix_class", name:<str>, negated:<true \| []>}` |
 | `posix_negation` | `-> true` | Boolean `true` (matched), or `[]` from the un-matched `posix_negation?` slot |
 | `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |
