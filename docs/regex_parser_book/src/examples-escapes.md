@@ -1,44 +1,43 @@
 # Examples: Escapes
 
-Concrete probe outputs for PCRE2 escape sequences. The `escape` rule emits a 2-element Sequence `["\\", <escape_unit>]`. Sub-rules are un-annotated.
+Concrete probe outputs for PCRE2 escape sequences. As of slice 14 (post-1.1.43), the `escape` rule is a transparent wrapper (`-> $2`) and 3 of the 7 `escape_unit` sub-rules emit typed `{type:"escape", kind:<form>, ...}` objects directly. Hex/unicode/octal/property branches still emit raw shapes pending follow-up slices.
 
-## Shorthand escapes — `\d`, `\w`, `\s`
+## Shorthand escapes — `\d`, `\w`, `\s`, `\.`, `\\`, etc.
 
-These all use `simple_escape` (the catch-all branch of `escape_unit`).
+These all flow through `simple_escape` (the catch-all branch of `escape_unit`):
+
+```ebnf
+simple_escape  = any_char -> {type: "escape", kind: "shorthand", char: $1}
+```
 
 For `\d`:
 
 ```json
 {
-  "atom": [
-    "\\",
-    [[[[[ "d" ]]]]]   // un-annotated escape_unit → simple_escape → any_char chain
-  ],
+  "atom": {"type": "escape", "kind": "shorthand", "char": "d"},
   ...
 }
 ```
 
-The deeply-nested array on the right of `"\\"` is the un-annotated wrapping chain. Inner-most leaf is the matched char `"d"`.
+For `\w`: same shape, `char:"w"`. For `\s`: `char:"s"`. For `\.`: `char:"."`. For `\\`: `char:"\\"` (the actual backslash char). Any letter/symbol after `\` produces a `kind:"shorthand"` typed object with the char in the `char` field.
 
-For `\w`: same shape, leaf is `"w"`. For `\s`: leaf is `"s"`.
+(Pre-slice-14 the same input emitted `["\\", [[[[[ "d" ]]]]]]` — a 5-level un-annotated chain wrapping the matched char Terminal. Consumers walking that chain via `to_json_value()` saw deeply-nested arrays. Post-slice the typed shape is a single field read.)
 
 ## Escaped metacharacters — `\.`, `\\`, `\(`, `\)`, etc.
 
-Same shape as shorthand escapes — `simple_escape` matches any char after `\`:
+Same `kind:"shorthand"` shape as shorthand classes — `simple_escape` matches any char after `\`:
 
 For `\.`:
 
 ```json
 {
-  "atom": [
-    "\\",
-    [[[[[ "." ]]]]]
+  "atom": {"type": "escape", "kind": "shorthand", "char": "."},
   ],
   ...
 }
 ```
 
-For `\\` (escaped backslash): leaf is `"\\"` (2-char string).
+For `\\` (escaped backslash): `char:"\\"` (the literal backslash char).
 
 ## Hex escape (1-2 digit form) — `\xFF`
 
@@ -158,18 +157,12 @@ For `\\` (escaped backslash): leaf is `"\\"` (2-char string).
 
 ```json
 {
-  "atom": [
-    "\\",
-    [
-      "c",
-      [<any_char shape for "A">]
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "control", "char": "A"},
   ...
 }
 ```
 
-2-element Sequence. The `any_char` is itself a regex `Terminal`.
+Typed `{type:"escape", kind:"control", char:<C>}` — the `c` prefix is dropped, the matched control letter is in the `char` field. For `\cZ`: `char:"Z"`. For `\cz`: `char:"z"` (case-sensitive).
 
 ## Property escape (braced) — `\p{Lu}`
 
@@ -212,15 +205,12 @@ For `\P{Lu}`: opening is `"P{"` instead of `"p{"`.
 
 ```json
 {
-  "atom": [
-    "\\",
-    "C"                          // single_byte_escape — Terminal "C"
-  ],
+  "atom": {"type": "escape", "kind": "single_byte"},
   ...
 }
 ```
 
-PCRE2's `\C` matches one code unit. Inside `escape_unit`, the `single_byte_escape` branch matches `"C"`.
+PCRE2's `\C` matches one code unit. Typed `{type:"escape", kind:"single_byte"}` — no `char` field since the char is fixed (always uppercase `C`).
 
 ## Identifying escape kind from the AST shape
 

@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 14/N: escape subtree starts (simple/single_byte/control)
+
+### What landed
+
+First slice of the escape-subtree typed-shape campaign. `escape` rule annotated as a transparent passthrough; 3 of 7 `escape_unit` sub-rules each construct typed `{type:"escape", kind:<form>, ...}` objects:
+
+```ebnf
+escape         = "\\" escape_unit -> $2
+single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
+simple_escape  = any_char -> {type: "escape", kind: "shorthand", char: $1}
+control_escape = "c" any_char -> {type: "escape", kind: "control", char: $2}
+```
+
+### Empirical AST shape change
+
+| Source | Before | After |
+|---|---|---|
+| `\d` | `["\\", [[[[[ "d" ]]]]]]` (5-level chain) | `{type:"escape", kind:"shorthand", char:"d"}` |
+| `\.` | similar 5-level chain | `{type:"escape", kind:"shorthand", char:"."}` |
+| `\\` | similar | `{type:"escape", kind:"shorthand", char:"\\"}` |
+| `\C` | `["\\", "C"]` | `{type:"escape", kind:"single_byte"}` |
+| `\cA` | `["\\", ["c", [<any_char>]]]` | `{type:"escape", kind:"control", char:"A"}` |
+
+Pre-fix, `\d` required walking 5 levels of un-annotated wrappers to reach the matched char Terminal. Post-fix, it's a single field read on `obj.kind` + `obj.char`.
+
+### Limitation — 4 escape_unit branches still raw
+
+Hex (`\xFF`/`\x{...}`), unicode (`\u{...}`), octal (`\377`/`\o{...}`), and property (`\p{...}`/`\PL`) escapes still emit pre-fix raw shapes — they pass through `escape -> $2` un-typed. Each requires digit-decoding (hex/unicode/octal) or property-name extraction. Follow-up slices will type them one by one.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json`: 4 new entries (escape, control_escape, simple_escape, single_byte_escape).
+- `make regex_parser_book_gate` green.
+- Empirical sweep: `\d`/`\w`/`\s`/`\.`/`\\`/`\C`/`\cA`/`\cZ`/`\cz` all produce typed objects.
+
+### Contract bump
+
+Parser release `1.1.43` → `1.1.44`. Contract `1.1.45` → `1.1.46`. New section "Release 1.1.44 / Contract 1.1.46 Highlights" in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.44 / 1.1.46 entry above 1.1.43.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.18.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 4 new entries.
+- `docs/regex_parser_book/src/examples-escapes.md` — chapter intro updated; shorthand/control/single_byte sections rewritten with typed shape; hex/unicode/octal/property sections kept (deferred to follow-up).
+
+### Atom subtree progress
+5/25 atom alternatives directly typed; 3/7 escape_unit branches typed (single_byte, simple, control). Remaining atom alternatives: literal, whitespace_literal, dot, quoted_literal, char_class outer, group/modifier/conditional/lookaround. Remaining escape_unit branches: hex_escape, unicode_escape, octal_escape, property_escape.
+
 ## 2026-05-01 - regex.ebnf slice 13/N: signed_digits typing (backref family fully typed end-to-end)
 
 ### What landed

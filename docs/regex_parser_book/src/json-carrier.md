@@ -49,6 +49,10 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `subroutine_ref` (branch 3, signed_digits) | `-> $1` | Whatever `signed_digits` produced (typed `{sign, value}` object) |
 | `braced_subroutine_ref` | `-> $3` | Whatever `signed_digits_or_name` produced |
 | `signed_digits` | `-> {sign: $1, value: $2}` | Object `{sign:<"+"|"-"|[]>, value:<int>}` |
+| `escape` | `-> $2` | Whatever `escape_unit` produced (typed object for annotated branches; raw shape for hex/unicode/octal/property pending) |
+| `simple_escape` | `-> {type:"escape", kind:"shorthand", char:$1}` | Object `{type:"escape", kind:"shorthand", char:<char>}` |
+| `single_byte_escape` | `-> {type:"escape", kind:"single_byte"}` | Object `{type:"escape", kind:"single_byte"}` |
+| `control_escape` | `-> {type:"escape", kind:"control", char:$2}` | Object `{type:"escape", kind:"control", char:<char>}` |
 | `posix_class` | `-> {type: "posix_class", name: $3, negated: $2}` | Object `{type:"posix_class", name:<str>, negated:<true \| []>}` |
 | `posix_negation` | `-> true` | Boolean `true` (matched), or `[]` from the un-matched `posix_negation?` slot |
 | `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |

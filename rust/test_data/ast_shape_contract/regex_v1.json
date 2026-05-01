@@ -175,6 +175,12 @@
         "normalized_text": "[$1**]"
       },
       {
+        "rule": "control_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"control\", char: $2}"
+      },
+      {
         "rule": "counted_quantifier",
         "branch_index": 0,
         "annotation_type": "return_scalar",
@@ -203,6 +209,12 @@
         "branch_index": 3,
         "annotation_type": "return_object",
         "normalized_text": "{min: 0, max: $3}"
+      },
+      {
+        "rule": "escape",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
       },
       {
         "rule": "name_ref",
@@ -323,6 +335,18 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{sign: $1, value: $2}"
+      },
+      {
+        "rule": "simple_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $1}"
+      },
+      {
+        "rule": "single_byte_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"single_byte\"}"
       },
       {
         "rule": "subroutine_ref",

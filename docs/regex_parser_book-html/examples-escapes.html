@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a449e43b.js";
+            window.path_to_searchindex_js = "searchindex-aaa8a997.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,32 +181,29 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-escapes"><a class="header" href="#examples-escapes">Examples: Escapes</a></h1>
-<p>Concrete probe outputs for PCRE2 escape sequences. The <code>escape</code> rule emits a 2-element Sequence <code>["\\", &lt;escape_unit&gt;]</code>. Sub-rules are un-annotated.</p>
-<h2 id="shorthand-escapes--d-w-s"><a class="header" href="#shorthand-escapes--d-w-s">Shorthand escapes — <code>\d</code>, <code>\w</code>, <code>\s</code></a></h2>
-<p>These all use <code>simple_escape</code> (the catch-all branch of <code>escape_unit</code>).</p>
+<p>Concrete probe outputs for PCRE2 escape sequences. As of slice 14 (post-1.1.43), the <code>escape</code> rule is a transparent wrapper (<code>-&gt; $2</code>) and 3 of the 7 <code>escape_unit</code> sub-rules emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly. Hex/unicode/octal/property branches still emit raw shapes pending follow-up slices.</p>
+<h2 id="shorthand-escapes--d-w-s---etc"><a class="header" href="#shorthand-escapes--d-w-s---etc">Shorthand escapes — <code>\d</code>, <code>\w</code>, <code>\s</code>, <code>\.</code>, <code>\\</code>, etc.</a></h2>
+<p>These all flow through <code>simple_escape</code> (the catch-all branch of <code>escape_unit</code>):</p>
+<pre><code class="language-ebnf">simple_escape  = any_char -&gt; {type: "escape", kind: "shorthand", char: $1}
+</code></pre>
 <p>For <code>\d</code>:</p>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [[[[[ "d" ]]]]]   // un-annotated escape_unit → simple_escape → any_char chain
-  ],
+  "atom": {"type": "escape", "kind": "shorthand", "char": "d"},
   ...
 }
 </code></pre>
-<p>The deeply-nested array on the right of <code>"\\"</code> is the un-annotated wrapping chain. Inner-most leaf is the matched char <code>"d"</code>.</p>
-<p>For <code>\w</code>: same shape, leaf is <code>"w"</code>. For <code>\s</code>: leaf is <code>"s"</code>.</p>
+<p>For <code>\w</code>: same shape, <code>char:"w"</code>. For <code>\s</code>: <code>char:"s"</code>. For <code>\.</code>: <code>char:"."</code>. For <code>\\</code>: <code>char:"\\"</code> (the actual backslash char). Any letter/symbol after <code>\</code> produces a <code>kind:"shorthand"</code> typed object with the char in the <code>char</code> field.</p>
+<p>(Pre-slice-14 the same input emitted <code>["\\", [[[[[ "d" ]]]]]]</code> — a 5-level un-annotated chain wrapping the matched char Terminal. Consumers walking that chain via <code>to_json_value()</code> saw deeply-nested arrays. Post-slice the typed shape is a single field read.)</p>
 <h2 id="escaped-metacharacters------etc"><a class="header" href="#escaped-metacharacters------etc">Escaped metacharacters — <code>\.</code>, <code>\\</code>, <code>\(</code>, <code>\)</code>, etc.</a></h2>
-<p>Same shape as shorthand escapes — <code>simple_escape</code> matches any char after <code>\</code>:</p>
+<p>Same <code>kind:"shorthand"</code> shape as shorthand classes — <code>simple_escape</code> matches any char after <code>\</code>:</p>
 <p>For <code>\.</code>:</p>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [[[[[ "." ]]]]]
+  "atom": {"type": "escape", "kind": "shorthand", "char": "."},
   ],
   ...
 }
 </code></pre>
-<p>For <code>\\</code> (escaped backslash): leaf is <code>"\\"</code> (2-char string).</p>
+<p>For <code>\\</code> (escaped backslash): <code>char:"\\"</code> (the literal backslash char).</p>
 <h2 id="hex-escape-1-2-digit-form--xff"><a class="header" href="#hex-escape-1-2-digit-form--xff">Hex escape (1-2 digit form) — <code>\xFF</code></a></h2>
 <pre><code class="language-json">{
   "atom": [
@@ -299,17 +296,11 @@
 <p>3-element Sequence inside <code>escape_unit</code>. Each octal_digit is a single char.</p>
 <h2 id="control-escape--ca"><a class="header" href="#control-escape--ca">Control escape — <code>\cA</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "c",
-      [&lt;any_char shape for "A"&gt;]
-    ]
-  ],
+  "atom": {"type": "escape", "kind": "control", "char": "A"},
   ...
 }
 </code></pre>
-<p>2-element Sequence. The <code>any_char</code> is itself a regex <code>Terminal</code>.</p>
+<p>Typed <code>{type:"escape", kind:"control", char:&lt;C&gt;}</code> — the <code>c</code> prefix is dropped, the matched control letter is in the <code>char</code> field. For <code>\cZ</code>: <code>char:"Z"</code>. For <code>\cz</code>: <code>char:"z"</code> (case-sensitive).</p>
 <h2 id="property-escape-braced--plu"><a class="header" href="#property-escape-braced--plu">Property escape (braced) — <code>\p{Lu}</code></a></h2>
 <pre><code class="language-json">{
   "atom": [
@@ -340,14 +331,11 @@
 <p>2-element Sequence with <code>"p"</code> (or <code>"P"</code>) followed by single short-property letter.</p>
 <h2 id="single-byte-escape--c"><a class="header" href="#single-byte-escape--c">Single-byte escape — <code>\C</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    "C"                          // single_byte_escape — Terminal "C"
-  ],
+  "atom": {"type": "escape", "kind": "single_byte"},
   ...
 }
 </code></pre>
-<p>PCRE2’s <code>\C</code> matches one code unit. Inside <code>escape_unit</code>, the <code>single_byte_escape</code> branch matches <code>"C"</code>.</p>
+<p>PCRE2’s <code>\C</code> matches one code unit. Typed <code>{type:"escape", kind:"single_byte"}</code> — no <code>char</code> field since the char is fixed (always uppercase <code>C</code>).</p>
 <h2 id="identifying-escape-kind-from-the-ast-shape"><a class="header" href="#identifying-escape-kind-from-the-ast-shape">Identifying escape kind from the AST shape</a></h2>
 <p>The <code>escape_unit</code> is an Or with 7 branches. At this release, none are annotated, so the consumer dispatches by structural signature on the inner content (the second element of the outer <code>["\\", &lt;unit&gt;]</code> Sequence):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

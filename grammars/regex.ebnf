@@ -343,7 +343,15 @@ posix_name     = "alnum" | "alpha" | "ascii" | "blank" | "cntrl" | "digit" | "gr
 @effect: "produces_literal_character"
 @precedence: {level: 10, context: "any"}
 @codegen: "escape_literal_handling"
-escape         = "\\" escape_unit
+# `escape` is a transparent wrapper — each `escape_unit` branch
+# constructs its own typed `{type:"escape", kind:<form>, ...}` object,
+# so escape just passes through via `-> $2`. Once all 7 escape_unit
+# branches are annotated, every `\<thing>` atom emits a typed object
+# uniformly. As of slice 14 (post-1.1.43), `single_byte_escape`,
+# `simple_escape`, and `control_escape` are typed; hex/unicode/octal/
+# property branches still emit their raw shapes (un-typed branches
+# pass through this `-> $2` un-wrapped).
+escape         = "\\" escape_unit -> $2
 
 @type: "escape_variant_choice"
 @description: "Specific type of escape sequence"
@@ -360,13 +368,19 @@ escape_unit    = single_byte_escape
 @description: "PCRE2 \\C escape that matches one code unit"
 @effect: "matches_single_code_unit"
 @constraint: "may be disabled by compile options or UTF/lookbehind validation"
-single_byte_escape = "C"
+single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 
 @type: "literal_escape"
 @description: "Simple character escape like \n, \t, \\, etc."
 @effect: "maps_to_literal_character"
 @constraint: "interpretation depends on escaped character"
-simple_escape  = any_char             # any char after backslash
+# `simple_escape` matches any single char after the backslash. Typed
+# `{type:"escape", kind:"shorthand", char:<char>}` — `\d`/`\w`/`\s`
+# all flow through this branch. The `kind:"shorthand"` name reflects
+# that this is the catch-all branch for any escape that isn't
+# specifically modelled by hex/unicode/octal/property/control/
+# single_byte branches.
+simple_escape  = any_char -> {type: "escape", kind: "shorthand", char: $1}
 
 @type: "hexadecimal_escape"
 @description: "Hex escape sequences \xFF or \x{FFFF}"
@@ -390,7 +404,7 @@ octal_digits   = octal_digit+
 @type: "control_escape"
 @description: "Control character escape \cA"
 @constraint: "produces control character"
-control_escape = "c" any_char
+control_escape = "c" any_char -> {type: "escape", kind: "control", char: $2}
 
 @type: "property_escape"
 @description: "Unicode property escape \p{Property} or \P{Property}"

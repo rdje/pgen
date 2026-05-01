@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.45`
+  - `1.1.46`
 - Parser release version:
-  - `1.1.43`
+  - `1.1.44`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,27 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.44 / Contract 1.1.46 Highlights — atom subtree slice 14: escape subtree starts (simple/single_byte/control)
+
+- **Internal-driven shape work** (no downstream report). First slice of the escape-subtree typed-shape campaign.
+- **Rules changed:** `escape` and 3 of its 7 `escape_unit` branches in `grammars/regex.ebnf`.
+  - `escape = "\\" escape_unit -> $2` — transparent wrapper.
+  - `single_byte_escape -> {type:"escape", kind:"single_byte"}` — `\C`.
+  - `simple_escape -> {type:"escape", kind:"shorthand", char:$1}` — `\d`/`\w`/`\s`/`\.`/`\\`/etc.
+  - `control_escape -> {type:"escape", kind:"control", char:$2}` — `\cA`/`\cZ`/`\cz`.
+- **AST shape change (consumer-visible):** the most common escape forms (shorthand classes like `\d`/`\w`/`\s`, escaped metacharacters like `\.`/`\\`, single-byte `\C`, control escapes `\cX`) now emit a typed `{type:"escape", kind:<form>, char?}` object directly.
+  - Before: `\d` → atom is `["\\", [[[[[ "d" ]]]]]]` (5-level un-annotated chain).
+  - After: `\d` → atom is `{"type":"escape","kind":"shorthand","char":"d"}` (typed object, single field read).
+- **Limitation — 4 escape_unit branches still raw.** Hex (`\xFF`/`\x{...}`), unicode (`\u{...}`), octal (`\377`/`\o{...}`), and property (`\p{...}`/`\PL`) escapes still emit their pre-fix raw shapes. Each requires digit-decoding or property-name extraction. Follow-up slices will type them one by one.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.44` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the `["\\", <inner-chain>]` shape for shorthand/control/single_byte escapes to use typed `obj.kind` dispatch + `obj.char` field read.
+  4. Keep the existing raw-walking path for hex/unicode/octal/property until follow-up slices type them.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- Atom subtree campaign progress: 5/25 alternatives directly typed (anchor, posix_class, posix_word_boundary_alias, backreference, escape outer). 3/7 escape_unit branches typed.
 
 ## Release 1.1.43 / Contract 1.1.45 Highlights — atom subtree slice 13: signed_digits typing (backref family fully typed end-to-end)
 

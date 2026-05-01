@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 14/N — escape subtree starts (simple/single_byte/control)
+
+### What landed
+First slice of the escape-subtree campaign. 4 grammar changes:
+
+```ebnf
+escape         = "\\" escape_unit -> $2
+single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
+simple_escape  = any_char -> {type: "escape", kind: "shorthand", char: $1}
+control_escape = "c" any_char -> {type: "escape", kind: "control", char: $2}
+```
+
+### Why this scoping
+
+The escape subtree has 7 sub-rules under `escape_unit`. Doing all 7 in one slice is too big — hex/unicode/octal need digit-decoding considerations and property_escape needs name extraction. This slice picks the 3 simplest (single_byte = constant; simple = single any_char; control = `c` + any_char) and the outer `escape` wrapper. Defers hex/unicode/octal/property to follow-up slices.
+
+### Design choice — escape as transparent passthrough
+
+Two options for the outer `escape` annotation:
+A. `escape -> {type:"escape", ...$2}` — spread inner fields. Not supported in annotation language.
+B. `escape -> $2` — passthrough; each sub-rule constructs full typed object including `type:"escape"`.
+
+Chose B. Each sub-rule constructs its own typed object end-to-end. Once all 7 sub-rules are annotated, `escape` outer just dispatches.
+
+### Empirical
+- `\d`/`\w`/`\s`/`\.`/`\\`/`\n` (any letter/symbol) → `{type:"escape",kind:"shorthand",char:<c>}`.
+- `\C` → `{type:"escape",kind:"single_byte"}`.
+- `\cA`/`\cZ`/`\cz` → `{type:"escape",kind:"control",char:<C>}`.
+- `\xFF`/`\u{...}`/`\377`/`\p{...}` etc. — still raw (un-typed branches pass through `-> $2`).
+
+### Trailing-comment gotcha
+First attempt at `simple_escape  = any_char  -> {type: "escape", kind: "shorthand", char: $1}             # any char after backslash` was parsed as a `return_scalar` with the trailing comment captured into the annotation text. The EBNF parser doesn't strip end-of-line comments after `->`. Fixed by moving the `# any char after backslash` comment to a doc block above the rule. Worth remembering for future grammar edits — annotations and trailing comments don't mix.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 495 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json` — 4 new entries.
+- `make regex_parser_book_gate` — green.
+- Empirical sweep over typed escape forms.
+
+### Contract bump
+Parser release `1.1.43` → `1.1.44`. Contract `1.1.45` → `1.1.46`. New section in integration contract. Regex AST schema version stays `1`.
+
+### Live-book sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.44 / 1.1.46 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.18.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 4 new entries.
+- `docs/regex_parser_book/src/examples-escapes.md` — chapter intro updated; shorthand/control/single_byte sections rewritten with typed shape.
+
+### Atom subtree progress
+5/25 alternatives directly typed; 3/7 escape_unit branches typed. Remaining atom alternatives: literal, whitespace_literal, dot, quoted_literal, char_class outer, group/modifier/conditional/lookaround families. Remaining escape_unit branches: hex_escape, unicode_escape, octal_escape, property_escape.
+
 ## 2026-05-01 - regex.ebnf slice 13/N — signed_digits typing (backref family fully typed end-to-end)
 
 ### What landed

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a449e43b.js";
+            window.path_to_searchindex_js = "searchindex-aaa8a997.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,35 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1144--contract-1146--atom-subtree-slice-14-escape-subtree-starts-simplesingle_bytecontrol"><a class="header" href="#1144--contract-1146--atom-subtree-slice-14-escape-subtree-starts-simplesingle_bytecontrol">1.1.44 / Contract 1.1.46 — Atom subtree slice 14: escape subtree starts (simple/single_byte/control)</a></h3>
+<p><strong>What changed:</strong> the <code>escape</code> rule and 3 of its 7 sub-rules got typed annotations:</p>
+<pre><code class="language-ebnf">escape         = "\\" escape_unit -&gt; $2
+single_byte_escape = "C" -&gt; {type: "escape", kind: "single_byte"}
+simple_escape  = any_char -&gt; {type: "escape", kind: "shorthand", char: $1}
+control_escape = "c" any_char -&gt; {type: "escape", kind: "control", char: $2}
+</code></pre>
+<p><code>escape</code> is a transparent wrapper — each sub-rule constructs its own typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> object, and <code>escape</code> passes through via <code>-&gt; $2</code>.</p>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — most common escape forms now emit typed objects:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Kind</th><th>Output</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\d</code> <code>\w</code> <code>\s</code> <code>\.</code> <code>\\</code> <code>\n</code> (any letter/symbol)</td><td><code>shorthand</code></td><td><code>{type:"escape", kind:"shorthand", char:&lt;c&gt;}</code></td></tr>
+<tr><td><code>\C</code></td><td><code>single_byte</code></td><td><code>{type:"escape", kind:"single_byte"}</code></td></tr>
+<tr><td><code>\cA</code> <code>\cZ</code> <code>\cz</code></td><td><code>control</code></td><td><code>{type:"escape", kind:"control", char:&lt;C&gt;}</code></td></tr>
+<tr><td><code>\xFF</code> <code>\x{1F}</code></td><td><code>hex</code> (still raw)</td><td>un-typed — follow-up slice</td></tr>
+<tr><td><code>\u{1F600}</code></td><td><code>unicode</code> (still raw)</td><td>un-typed — follow-up slice</td></tr>
+<tr><td><code>\377</code> <code>\o{777}</code></td><td><code>octal</code> (still raw)</td><td>un-typed — follow-up slice</td></tr>
+<tr><td><code>\p{Lu}</code> <code>\PL</code></td><td><code>property</code> (still raw)</td><td>un-typed — follow-up slice</td></tr>
+</tbody>
+</table>
+</div>
+<p>Pre-fix, every escape produced a deeply-nested chain <code>["\\", [[[[[&lt;char&gt;]]]]]]</code> (4-5 levels of un-annotated wrappers around the simple_escape’s any_char Terminal). Post-fix, <code>\d</code> is a single field read on <code>obj.kind</code> + <code>obj.char</code>. The chain disappears entirely for the 3 typed branches.</p>
+<p><strong>Limitation — 4 escape_unit branches still raw.</strong> <code>\xFF</code>, <code>\u{...}</code>, <code>\377</code>/<code>\o{...}</code>, <code>\p{...}</code>/<code>\PL</code> still emit their pre-fix raw shapes. Each requires digit-decoding (hex/unicode/octal) or property-name extraction. Follow-up slices will type them one by one.</p>
+<p><strong>Atom subtree progress:</strong> 5/25 alternatives directly typed (anchor, posix_class, posix_word_boundary_alias, backreference, escape outer). 3/7 escape_unit branches typed (single_byte, simple, control).</p>
+<p><strong>Contract section:</strong> “Release 1.1.44 / Contract 1.1.46 Highlights”.</p>
 <h3 id="1143--contract-1145--atom-subtree-slice-13-signed_digits-typing-backref-family-fully-typed-end-to-end"><a class="header" href="#1143--contract-1145--atom-subtree-slice-13-signed_digits-typing-backref-family-fully-typed-end-to-end">1.1.43 / Contract 1.1.45 — Atom subtree slice 13: signed_digits typing (backref family fully typed end-to-end)</a></h3>
 <p><strong>What changed:</strong> the <code>signed_digits</code> rule now produces a typed <code>{sign, value}</code> object:</p>
 <pre><code class="language-ebnf">signed_digits = sign? digits -&gt; {sign: $1, value: $2}

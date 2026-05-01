@@ -23,6 +23,39 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.44 / Contract 1.1.46 — Atom subtree slice 14: escape subtree starts (simple/single_byte/control)
+
+**What changed:** the `escape` rule and 3 of its 7 sub-rules got typed annotations:
+
+```ebnf
+escape         = "\\" escape_unit -> $2
+single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
+simple_escape  = any_char -> {type: "escape", kind: "shorthand", char: $1}
+control_escape = "c" any_char -> {type: "escape", kind: "control", char: $2}
+```
+
+`escape` is a transparent wrapper — each sub-rule constructs its own typed `{type:"escape", kind:<form>, ...}` object, and `escape` passes through via `-> $2`.
+
+**Consumer impact:** **breaking but correct** — most common escape forms now emit typed objects:
+
+| Source | Kind | Output |
+|---|---|---|
+| `\d` `\w` `\s` `\.` `\\` `\n` (any letter/symbol) | `shorthand` | `{type:"escape", kind:"shorthand", char:<c>}` |
+| `\C` | `single_byte` | `{type:"escape", kind:"single_byte"}` |
+| `\cA` `\cZ` `\cz` | `control` | `{type:"escape", kind:"control", char:<C>}` |
+| `\xFF` `\x{1F}` | `hex` (still raw) | un-typed — follow-up slice |
+| `\u{1F600}` | `unicode` (still raw) | un-typed — follow-up slice |
+| `\377` `\o{777}` | `octal` (still raw) | un-typed — follow-up slice |
+| `\p{Lu}` `\PL` | `property` (still raw) | un-typed — follow-up slice |
+
+Pre-fix, every escape produced a deeply-nested chain `["\\", [[[[[<char>]]]]]]` (4-5 levels of un-annotated wrappers around the simple_escape's any_char Terminal). Post-fix, `\d` is a single field read on `obj.kind` + `obj.char`. The chain disappears entirely for the 3 typed branches.
+
+**Limitation — 4 escape_unit branches still raw.** `\xFF`, `\u{...}`, `\377`/`\o{...}`, `\p{...}`/`\PL` still emit their pre-fix raw shapes. Each requires digit-decoding (hex/unicode/octal) or property-name extraction. Follow-up slices will type them one by one.
+
+**Atom subtree progress:** 5/25 alternatives directly typed (anchor, posix_class, posix_word_boundary_alias, backreference, escape outer). 3/7 escape_unit branches typed (single_byte, simple, control).
+
+**Contract section:** "Release 1.1.44 / Contract 1.1.46 Highlights".
+
 ### 1.1.43 / Contract 1.1.45 — Atom subtree slice 13: signed_digits typing (backref family fully typed end-to-end)
 
 **What changed:** the `signed_digits` rule now produces a typed `{sign, value}` object:
