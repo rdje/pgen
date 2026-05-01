@@ -34,6 +34,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `anchor` (branch 0..8) | `-> {type: "anchor", kind: "<name>"}` per branch | Object `{type:"anchor", kind:<name>}` — `kind` ∈ `start_of_line` / `end_of_line` / `start_of_input` / `end_of_input_or_before_last_newline` / `end_of_input` / `word_boundary` / `non_word_boundary` / `match_start` / `keep_out` |
 | `posix_word_boundary_alias` (branch 0) | `-> {type: "anchor", kind: "posix_word_start"}` | Same anchor family as the `anchor` rule (kind = `posix_word_start`) |
 | `posix_word_boundary_alias` (branch 1) | `-> {type: "anchor", kind: "posix_word_end"}` | Same anchor family as the `anchor` rule (kind = `posix_word_end`) |
+| `backreference` (branch 0) | `-> {type: "backreference", kind: "numeric", index: $2}` | Object `{type, kind:"numeric", index:<int>}` |
+| `backreference` (branch 1) | `-> {type: "backreference", kind: "named", ref: $2}` | Object `{type, kind:"named", ref:<raw name_ref shape>}` |
+| `backreference` (branch 2) | `-> {type: "backreference", kind: "named_braced", ref: $2}` | Object `{type, kind:"named_braced", ref:<raw braced_name_ref shape>}` |
+| `backreference` (branch 3) | `-> {type: "backreference", kind: "subroutine", ref: $2}` | Object `{type, kind:"subroutine", ref:<raw subroutine_ref shape>}` |
+| `backreference_digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> {type: "posix_class", name: $3, negated: $2}` | Object `{type:"posix_class", name:<str>, negated:<true \| []>}` |
 | `posix_negation` | `-> true` | Boolean `true` (matched), or `[]` from the un-matched `posix_negation?` slot |
 | `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |

@@ -23,6 +23,35 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.39 / Contract 1.1.41 — Atom subtree slice 10: typed `backreference` shape
+
+**What changed:** the `backreference` rule's 4 branches each got per-branch typed annotations:
+
+```ebnf
+backreference  = "\\" backreference_digits  -> {type: "backreference", kind: "numeric",      index: $2}
+               | "\\k" name_ref             -> {type: "backreference", kind: "named",        ref:   $2}
+               | "\\k" braced_name_ref      -> {type: "backreference", kind: "named_braced", ref:   $2}
+               | "\\g" subroutine_ref       -> {type: "backreference", kind: "subroutine",   ref:   $2}
+```
+
+`backreference_digits` rewritten as a regex literal `/([1-9][0-9]*)/` with `@transform: str::parse::<usize>().unwrap_or(0)` so branch 0's `index` field is a typed integer directly (mirrors how `digits` was typed in slice 1).
+
+**Consumer impact:** **breaking but correct** — consumers walking backreference atoms must update from `["\\", <digits>]` 2-element array dispatch to typed `obj.kind` lookup:
+
+| Source | Before | After |
+|---|---|---|
+| `\1` | `["\\", ["1"]]` | `{"type":"backreference","kind":"numeric","index":1}` |
+| `\23` | `["\\", ["2", ["3"]]]` | `{"type":"backreference","kind":"numeric","index":23}` |
+| `\k<foo>` | `["\\k", ["<", <name>, ">"]]` | `{"type":"backreference","kind":"named","ref":[..raw name_ref..]}` |
+| `\k{foo}` | `["\\k", ["{", _, <name>, _, "}"]]` | `{"type":"backreference","kind":"named_braced","ref":[..raw braced_name_ref..]}` |
+| `\g{2}` | `["\\g", [..]]` | `{"type":"backreference","kind":"subroutine","ref":[..raw subroutine_ref..]}` |
+
+**Limitation:** for branches 1-3 (`named` / `named_braced` / `subroutine`), the `ref` field carries the inner sub-rule's RAW shape — `name_ref`, `braced_name_ref`, and `subroutine_ref` are still un-annotated as of this slice. Consumers walking the name string need to descend the raw chain. A follow-up slice will type those rules so `ref` becomes `{name: <str>}` for named refs and `{kind: <numeric|named|signed_numeric>, value: ...}` for subroutine refs.
+
+**Atom subtree progress:** 4 of 25 alternatives annotated (anchor, posix_class, posix_word_boundary_alias, backreference).
+
+**Contract section:** "Release 1.1.39 / Contract 1.1.41 Highlights".
+
 ### 1.1.38 / Contract 1.1.40 — Atom subtree slice 9: typed `posix_word_boundary_alias` (closes anchor family)
 
 **What changed:** the `posix_word_boundary_alias` rule's 2 branches each annotated to emit the same typed anchor shape as the `anchor` rule:

@@ -144,27 +144,60 @@ See [Examples: Anchors and Boundaries](examples-anchors.md) for the full set wit
 
 ```ebnf
 backreference = "\\" backreference_digits
-              | "\\k" name_ref
-              | "\\k" braced_name_ref
-              | "\\g" subroutine_ref
+              | "\\k" name_ref             -> {type: "backreference", kind: "named", ref: $2}
+              | "\\k" braced_name_ref      -> {type: "backreference", kind: "named_braced", ref: $2}
+              | "\\g" subroutine_ref       -> {type: "backreference", kind: "subroutine", ref: $2}
 ```
 
-4-way Or, **un-annotated**. Different forms of backreferences.
+(Branch 0 — `"\\" backreference_digits` — annotated to `{type:"backreference", kind:"numeric", index: $2}`.)
+
+4-way Or, **annotated** as of slice 10 (post-1.1.38). Each branch emits a typed `{type:"backreference", kind:<form>, ...}` object.
 
 ### Shape
 
-For each branch, a 2-element Sequence: `["\\", <numeric-or-name>]` or `["\\k", <name-ref>]` etc.
+```json
+{"type": "backreference", "kind": <form>, ...form-specific-fields...}
+```
 
 ### Branches
 
-| Branch | Form | Example | Body shape |
+| Branch | Form | Example | Output |
 |---|---|---|---|
-| 0 | `\1`, `\23` | `\1` | `["\\", <digits>]` |
-| 1 | `\k<name>`, `\k'name'` | `\k<foo>` | `["\\k", <name_ref-shape>]` |
-| 2 | `\k{name}` | `\k{foo}` | `["\\k", <braced_name_ref-shape>]` |
-| 3 | `\g<...>`, `\g'...'`, `\g{...}`, `\g+1`, `\g42` | `\g{2}` | `["\\g", <subroutine_ref-shape>]` |
+| 0 | `\1`, `\23` | `\1` | `{"type":"backreference","kind":"numeric","index":1}` (typed integer) |
+| 1 | `\k<name>`, `\k'name'` | `\k<foo>` | `{"type":"backreference","kind":"named","ref":<name_ref-raw-shape>}` |
+| 2 | `\k{name}` | `\k{foo}` | `{"type":"backreference","kind":"named_braced","ref":<braced_name_ref-raw-shape>}` |
+| 3 | `\g<...>`, `\g'...'`, `\g{...}`, `\g+1`, `\g42` | `\g{2}` | `{"type":"backreference","kind":"subroutine","ref":<subroutine_ref-raw-shape>}` |
 
-The inner shapes (`name_ref`, `braced_name_ref`, `subroutine_ref`, `backreference_digits`) are documented in [Anchors, Backreferences, and Misc](rules-misc.md).
+`backreference_digits` is itself annotated (`@transform: str::parse::<usize>`), so branch 0's `index` is a typed integer directly. The other branches' `ref` fields carry the inner sub-rule's raw shape — a follow-up slice will type `name_ref`, `braced_name_ref`, and `subroutine_ref` so the `ref` field becomes a clean `{name: <str>}` / `{kind: ..., ...}` typed object instead of the raw EBNF Sequence. Until then, consumers walking `ref` for branches 1-3 dispatch on the raw structure documented in [Anchors, Backreferences, and Misc](rules-misc.md).
+
+### Consumer extraction
+
+```rust
+fn classify_backreference(atom: &Value) -> Option<Backreference> {
+    let obj = atom.as_object()?;
+    if obj.get("type")?.as_str()? != "backreference" {
+        return None;
+    }
+    match obj.get("kind")?.as_str()? {
+        "numeric" => {
+            let index = obj.get("index")?.as_u64()?;
+            Some(Backreference::Numeric(index))
+        }
+        "named" | "named_braced" => {
+            // ref is the raw name_ref / braced_name_ref shape until those rules
+            // are typed in a follow-up slice. For now, walk the raw chain.
+            let raw_ref = obj.get("ref")?;
+            let name = extract_name_from_raw(raw_ref)?;
+            Some(Backreference::Named(name))
+        }
+        "subroutine" => {
+            let raw_ref = obj.get("ref")?;
+            Some(Backreference::Subroutine(raw_ref.clone()))
+        }
+        _ => None,
+    }
+}
+```
 
 ## `quoted_literal`
 
@@ -311,7 +344,7 @@ When walking a piece's `atom` field, here's the structural signature for each ki
 | `whitespace_literal` | bare string, single whitespace char | `" "`, `"\t"` |
 | `dot` | bare string `"."` | exactly the `.` char |
 | `anchor` | typed object `{"type":"anchor","kind":"<name>"}` | annotated in slice 7; dispatch on `obj.type == "anchor"` then read `obj.kind` |
-| `backreference` | 2-element array starting with `"\\"` followed by digits / `\\k` / `\\g` form | `["\\", <digits>]` etc. |
+| `backreference` | typed object `{"type":"backreference","kind":<form>,...}` | annotated in slice 10; dispatch on `obj.kind` (`numeric` / `named` / `named_braced` / `subroutine`) |
 | `quoted_literal` | 3-element array `["\\Q", <chars>, "\\E"]` | full quoted literal |
 | `escape` | 2-element array starting with `"\\"` and not matching backreference form | `["\\", <escape_unit>]` |
 | `posix_word_boundary_alias` | typed object `{"type":"anchor","kind":"posix_word_start"|"posix_word_end"}` | annotated in slice 9; same dispatch shape as `anchor` |

@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.40`
+  - `1.1.41`
 - Parser release version:
-  - `1.1.38`
+  - `1.1.39`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,24 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.39 / Contract 1.1.41 Highlights — atom subtree slice 10: typed `backreference` shape
+
+- **Internal-driven shape work** (no downstream report). Continues the atom-subtree campaign.
+- **Rules changed:**
+  - `backreference` in `grammars/regex.ebnf` — 4 per-branch annotations producing typed `{type:"backreference", kind:<form>, ...}` objects. Forms: `numeric` (`\1`, `\23`), `named` (`\k<name>`/`\k'name'`), `named_braced` (`\k{name}`), `subroutine` (`\g<...>`/`\g'...'`/`\g{...}`/`\g+1`/`\g42`).
+  - `backreference_digits` in `grammars/regex.ebnf` — rewritten from `nonzero_digit digit*` to a regex literal `/([1-9][0-9]*)/` with `@transform: str::parse::<usize>().unwrap_or(0)`, so the rule emits a typed integer directly. Mirrors how `digits` was typed in slice 1.
+- **AST shape change (consumer-visible):** every backreference atom is now a typed `{type, kind, ...}` object instead of a 2-element `["\\<prefix>", <inner>]` array.
+  - Before: `\1` → `["\\", ["1"]]`; `\23` → `["\\", ["2", ["3"]]]`; `\k<foo>` → `["\\k", ["<", <name-chain>, ">"]]`.
+  - After: `\1` → `{"type":"backreference","kind":"numeric","index":1}` (typed integer); `\23` → `{"type":"backreference","kind":"numeric","index":23}`; `\k<foo>` → `{"type":"backreference","kind":"named","ref":<raw name_ref shape>}`.
+- **Limitation (deliberate scope):** for branches 1-3 (`named` / `named_braced` / `subroutine`), the `ref` field carries the inner sub-rule's RAW shape — `name_ref`, `braced_name_ref`, and `subroutine_ref` are still un-annotated. Consumers walking the name string need to descend the raw chain. A follow-up slice will type those rules so `ref` becomes a typed `{name: <str>}` (for named) or `{kind:..., value:...}` (for subroutine refs).
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.39` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that pattern-matched on the `["\\", <inner>]` 2-tuple at backreference positions to use the typed `obj.kind` dispatch. The numeric form's `index` is now a typed integer ready to use; the named/subroutine forms still require walking `ref` (raw inner shape) for now.
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_full_regex()`, `parser.parse_regex()`, `parse_regex_typed()`, `parse_regex_default_ast_dump_named()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- Regex AST schema version stays `1`.
+- Atom subtree campaign progress: 4 of 25 alternatives annotated (anchor, posix_class, posix_word_boundary_alias, backreference).
 
 ## Release 1.1.38 / Contract 1.1.40 Highlights — atom subtree slice 9: typed `posix_word_boundary_alias` (closes anchor family)
 

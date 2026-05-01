@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a6493578.js";
+            window.path_to_searchindex_js = "searchindex-9ea31404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -269,28 +269,58 @@
 <p>See <a href="examples-anchors.html">Examples: Anchors and Boundaries</a> for the full set with consumer-side dispatch recipe.</p>
 <h2 id="backreference"><a class="header" href="#backreference"><code>backreference</code></a></h2>
 <pre><code class="language-ebnf">backreference = "\\" backreference_digits
-              | "\\k" name_ref
-              | "\\k" braced_name_ref
-              | "\\g" subroutine_ref
+              | "\\k" name_ref             -&gt; {type: "backreference", kind: "named", ref: $2}
+              | "\\k" braced_name_ref      -&gt; {type: "backreference", kind: "named_braced", ref: $2}
+              | "\\g" subroutine_ref       -&gt; {type: "backreference", kind: "subroutine", ref: $2}
 </code></pre>
-<p>4-way Or, <strong>un-annotated</strong>. Different forms of backreferences.</p>
+<p>(Branch 0 — <code>"\\" backreference_digits</code> — annotated to <code>{type:"backreference", kind:"numeric", index: $2}</code>.)</p>
+<p>4-way Or, <strong>annotated</strong> as of slice 10 (post-1.1.38). Each branch emits a typed <code>{type:"backreference", kind:&lt;form&gt;, ...}</code> object.</p>
 <h3 id="shape-5"><a class="header" href="#shape-5">Shape</a></h3>
-<p>For each branch, a 2-element Sequence: <code>["\\", &lt;numeric-or-name&gt;]</code> or <code>["\\k", &lt;name-ref&gt;]</code> etc.</p>
+<pre><code class="language-json">{"type": "backreference", "kind": &lt;form&gt;, ...form-specific-fields...}
+</code></pre>
 <h3 id="branches"><a class="header" href="#branches">Branches</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Branch</th><th>Form</th><th>Example</th><th>Body shape</th></tr>
+<tr><th>Branch</th><th>Form</th><th>Example</th><th>Output</th></tr>
 </thead>
 <tbody>
-<tr><td>0</td><td><code>\1</code>, <code>\23</code></td><td><code>\1</code></td><td><code>["\\", &lt;digits&gt;]</code></td></tr>
-<tr><td>1</td><td><code>\k&lt;name&gt;</code>, <code>\k'name'</code></td><td><code>\k&lt;foo&gt;</code></td><td><code>["\\k", &lt;name_ref-shape&gt;]</code></td></tr>
-<tr><td>2</td><td><code>\k{name}</code></td><td><code>\k{foo}</code></td><td><code>["\\k", &lt;braced_name_ref-shape&gt;]</code></td></tr>
-<tr><td>3</td><td><code>\g&lt;...&gt;</code>, <code>\g'...'</code>, <code>\g{...}</code>, <code>\g+1</code>, <code>\g42</code></td><td><code>\g{2}</code></td><td><code>["\\g", &lt;subroutine_ref-shape&gt;]</code></td></tr>
+<tr><td>0</td><td><code>\1</code>, <code>\23</code></td><td><code>\1</code></td><td><code>{"type":"backreference","kind":"numeric","index":1}</code> (typed integer)</td></tr>
+<tr><td>1</td><td><code>\k&lt;name&gt;</code>, <code>\k'name'</code></td><td><code>\k&lt;foo&gt;</code></td><td><code>{"type":"backreference","kind":"named","ref":&lt;name_ref-raw-shape&gt;}</code></td></tr>
+<tr><td>2</td><td><code>\k{name}</code></td><td><code>\k{foo}</code></td><td><code>{"type":"backreference","kind":"named_braced","ref":&lt;braced_name_ref-raw-shape&gt;}</code></td></tr>
+<tr><td>3</td><td><code>\g&lt;...&gt;</code>, <code>\g'...'</code>, <code>\g{...}</code>, <code>\g+1</code>, <code>\g42</code></td><td><code>\g{2}</code></td><td><code>{"type":"backreference","kind":"subroutine","ref":&lt;subroutine_ref-raw-shape&gt;}</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>The inner shapes (<code>name_ref</code>, <code>braced_name_ref</code>, <code>subroutine_ref</code>, <code>backreference_digits</code>) are documented in <a href="rules-misc.html">Anchors, Backreferences, and Misc</a>.</p>
+<p><code>backreference_digits</code> is itself annotated (<code>@transform: str::parse::&lt;usize&gt;</code>), so branch 0’s <code>index</code> is a typed integer directly. The other branches’ <code>ref</code> fields carry the inner sub-rule’s raw shape — a follow-up slice will type <code>name_ref</code>, <code>braced_name_ref</code>, and <code>subroutine_ref</code> so the <code>ref</code> field becomes a clean <code>{name: &lt;str&gt;}</code> / <code>{kind: ..., ...}</code> typed object instead of the raw EBNF Sequence. Until then, consumers walking <code>ref</code> for branches 1-3 dispatch on the raw structure documented in <a href="rules-misc.html">Anchors, Backreferences, and Misc</a>.</p>
+<h3 id="consumer-extraction"><a class="header" href="#consumer-extraction">Consumer extraction</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn classify_backreference(atom: &amp;Value) -&gt; Option&lt;Backreference&gt; {
+    let obj = atom.as_object()?;
+    if obj.get("type")?.as_str()? != "backreference" {
+        return None;
+    }
+    match obj.get("kind")?.as_str()? {
+        "numeric" =&gt; {
+            let index = obj.get("index")?.as_u64()?;
+            Some(Backreference::Numeric(index))
+        }
+        "named" | "named_braced" =&gt; {
+            // ref is the raw name_ref / braced_name_ref shape until those rules
+            // are typed in a follow-up slice. For now, walk the raw chain.
+            let raw_ref = obj.get("ref")?;
+            let name = extract_name_from_raw(raw_ref)?;
+            Some(Backreference::Named(name))
+        }
+        "subroutine" =&gt; {
+            let raw_ref = obj.get("ref")?;
+            Some(Backreference::Subroutine(raw_ref.clone()))
+        }
+        _ =&gt; None,
+    }
+}
+<span class="boring">}</span></code></pre>
 <h2 id="quoted_literal"><a class="header" href="#quoted_literal"><code>quoted_literal</code></a></h2>
 <pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char* "\\E"
 </code></pre>
@@ -390,7 +420,7 @@
 <tr><td><code>whitespace_literal</code></td><td>bare string, single whitespace char</td><td><code>" "</code>, <code>"\t"</code></td></tr>
 <tr><td><code>dot</code></td><td>bare string <code>"."</code></td><td>exactly the <code>.</code> char</td></tr>
 <tr><td><code>anchor</code></td><td>typed object <code>{"type":"anchor","kind":"&lt;name&gt;"}</code></td><td>annotated in slice 7; dispatch on <code>obj.type == "anchor"</code> then read <code>obj.kind</code></td></tr>
-<tr><td><code>backreference</code></td><td>2-element array starting with <code>"\\"</code> followed by digits / <code>\\k</code> / <code>\\g</code> form</td><td><code>["\\", &lt;digits&gt;]</code> etc.</td></tr>
+<tr><td><code>backreference</code></td><td>typed object <code>{"type":"backreference","kind":&lt;form&gt;,...}</code></td><td>annotated in slice 10; dispatch on <code>obj.kind</code> (<code>numeric</code> / <code>named</code> / <code>named_braced</code> / <code>subroutine</code>)</td></tr>
 <tr><td><code>quoted_literal</code></td><td>3-element array <code>["\\Q", &lt;chars&gt;, "\\E"]</code></td><td>full quoted literal</td></tr>
 <tr><td><code>escape</code></td><td>2-element array starting with <code>"\\"</code> and not matching backreference form</td><td><code>["\\", &lt;escape_unit&gt;]</code></td></tr>
 <tr><td><code>posix_word_boundary_alias</code></td><td>typed object `{“type”:“anchor”,“kind”:“posix_word_start”</td><td>“posix_word_end”}`</td></tr>

@@ -164,12 +164,28 @@ anchor         = "^"   -> {type: "anchor", kind: "start_of_line"}
                | "\\G" -> {type: "anchor", kind: "match_start"}
                | "\\K" -> {type: "anchor", kind: "keep_out"}
 
-# Backreferences
-backreference  = "\\" backreference_digits
-               | "\\k" name_ref
-               | "\\k" braced_name_ref
-               | "\\g" subroutine_ref
-backreference_digits = nonzero_digit digit*
+# Backreferences. Typed `{type:"backreference", kind:<form>, ...}` so
+# consumers can dispatch on `kind` directly:
+#   - "numeric"      → \N digit-string. `index` is a typed integer.
+#   - "named"        → \k<name> or \k'name'. `ref` carries the raw
+#                       `name_ref` shape (un-annotated this slice;
+#                       follow-up slice will type the name string).
+#   - "named_braced" → \k{name}. Same as `named` but braced syntax;
+#                       consumers may want to treat both the same.
+#   - "subroutine"   → \g<...> / \g'...' / \g{...} / \g+digit. `ref`
+#                       carries the raw `subroutine_ref` shape.
+backreference  = "\\" backreference_digits  -> {type: "backreference", kind: "numeric",      index: $2}
+               | "\\k" name_ref             -> {type: "backreference", kind: "named",        ref:   $2}
+               | "\\k" braced_name_ref      -> {type: "backreference", kind: "named_braced", ref:   $2}
+               | "\\g" subroutine_ref       -> {type: "backreference", kind: "subroutine",   ref:   $2}
+
+# `backreference_digits` rewritten as a single regex with an
+# `@transform`, mirroring how `digits` was typed. The regex disallows
+# a leading zero (PCRE2 reserves `\0...` for octal escapes, handled by
+# the separate `simple_escape`/`octal_escape` paths). The transform
+# parses the matched digit string to a typed integer.
+@transform: str::parse::<usize>().unwrap_or(0)
+backreference_digits = /([1-9][0-9]*)/
 name_ref       = "<" name ">" | "'" name "'"
 braced_name_ref = "{" brace_ws? name brace_ws? "}"
 subroutine_ref = braced_subroutine_ref

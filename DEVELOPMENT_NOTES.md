@@ -1,4 +1,67 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 10/N — typed `backreference` shape
+
+### What landed
+
+Two grammar changes:
+
+```ebnf
+backreference  = "\\" backreference_digits  -> {type: "backreference", kind: "numeric",      index: $2}
+               | "\\k" name_ref             -> {type: "backreference", kind: "named",        ref:   $2}
+               | "\\k" braced_name_ref      -> {type: "backreference", kind: "named_braced", ref:   $2}
+               | "\\g" subroutine_ref       -> {type: "backreference", kind: "subroutine",   ref:   $2}
+
+@transform: str::parse::<usize>().unwrap_or(0)
+backreference_digits = /([1-9][0-9]*)/
+```
+
+### Why this shape
+
+Backreferences come in 4 PCRE2-equivalent forms (numeric, two named variants, subroutine). The four kinds have different semantics — consumers need to dispatch on the form. Pre-slice the dispatch was structural (look at the array's first element to find `"\\"`/`"\\k"`/`"\\g"`); post-slice it's a clean `obj.kind` enum.
+
+`backreference_digits` got the same treatment as `digits` (slice 1) — regex literal + `@transform` to typed integer. Pre-slice the digit chain was `nonzero_digit digit*` which emitted a 2-element Sequence per char; consumers had to concatenate to get the index. Post-slice the index is a typed integer directly.
+
+### Sub-rule typing deferred
+
+`name_ref`, `braced_name_ref`, and `subroutine_ref` are still un-annotated. For branches 1-3 the `ref` field carries the raw inner shape:
+- `name_ref` (`"<" name ">"` or `"'" name "'"`) — emits 3-element Sequence.
+- `braced_name_ref` (`"{" brace_ws? name brace_ws? "}"`) — emits 5-element Sequence.
+- `subroutine_ref` — 4-branch Or, each branch with its own structure.
+
+Walking those for the clean name string requires a separate slice that types each. The numeric subroutine refs (`\g<1>`, `\g+1`, `\g<-2>`) are already usable today because the inner `digits` and `sign` rules are typed leaves — empirical `\g<-2>` → `ref:["<",["-",2],">"]` shows the typed integer `2` and the typed sign `"-"`.
+
+### Empirical sweep
+
+11 forms tested:
+- Numeric: `\1` (index:1), `\23` (index:23).
+- Named angle: `\k<foo>` — kind:"named", ref:[<,name,>]
+- Named single-quote: `\k'foo'` — kind:"named", ref:[',name,']
+- Named braced: `\k{foo}` — kind:"named_braced", ref:[{,_,name,_,}]
+- Subroutine numeric: `\g<1>`, `\g+1`, `\g<-2>` — all kind:"subroutine", ref preserves typed digits and signs.
+- Subroutine named: `\g<name>`, `\g'name'`, `\g{name}` — kind:"subroutine", ref carries raw name shape.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 494 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json` — 4 new `backreference` entries.
+- `make regex_parser_book_gate` — green.
+
+### Contract bump
+
+Parser release `1.1.38` → `1.1.39`. Contract `1.1.40` → `1.1.41`. Regex AST schema version stays `1`. New section in the integration contract.
+
+### Live-book sync (per the live-book policy)
+- `docs/regex_parser_book/src/rules-atom.md` — `backreference` section rewritten with typed shape, branches table, consumer-extraction recipe, limitation note; identification-table row updated.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 5 new entries (4 backreference branches + backreference_digits).
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.14.0 row.
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.39 / 1.1.41 entry.
+
+### Atom subtree progress
+4 of 25 alternatives annotated. Anchor family closed; backreference outer typed (inner sub-rules pending). Remaining: literal/whitespace_literal/dot, quoted_literal, escape, char_class outer, group/modifier/conditional/lookaround families.
+
+### Follow-up slices in this area
+- Type `name_ref`/`braced_name_ref` to surface the name string directly (replaces raw `ref` field for branches 1-2).
+- Type `subroutine_ref` to surface a typed `{kind:..., value:...}` object (replaces raw `ref` field for branch 3).
+
 ## 2026-05-01 - regex.ebnf slice 9/N — typed `posix_word_boundary_alias` (closes anchor family)
 
 ### What landed

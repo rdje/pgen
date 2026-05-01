@@ -1,4 +1,58 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 10/N: typed `backreference` shape
+
+### What landed
+
+Two grammar changes:
+
+```ebnf
+backreference  = "\\" backreference_digits  -> {type: "backreference", kind: "numeric",      index: $2}
+               | "\\k" name_ref             -> {type: "backreference", kind: "named",        ref:   $2}
+               | "\\k" braced_name_ref      -> {type: "backreference", kind: "named_braced", ref:   $2}
+               | "\\g" subroutine_ref       -> {type: "backreference", kind: "subroutine",   ref:   $2}
+
+@transform: str::parse::<usize>().unwrap_or(0)
+backreference_digits = /([1-9][0-9]*)/
+```
+
+`backreference_digits` rewritten from `nonzero_digit digit*` to a regex literal with `@transform`, so it emits a typed integer directly (mirrors the slice-1 `digits` typing).
+
+### Empirical AST shape
+
+| Source | Before | After |
+|---|---|---|
+| `\1` | `["\\", ["1"]]` | `{"type":"backreference","kind":"numeric","index":1}` |
+| `\23` | `["\\", ["2", ["3"]]]` | `{"type":"backreference","kind":"numeric","index":23}` |
+| `\k<foo>` | `["\\k", [...]]` | `{"type":"backreference","kind":"named","ref":<raw>}` |
+| `\k{foo}` | `["\\k", [...]]` | `{"type":"backreference","kind":"named_braced","ref":<raw>}` |
+| `\g<-2>` | `["\\g", [...]]` | `{"type":"backreference","kind":"subroutine","ref":["<",["-",2],">"]}` |
+| `\g+1` | `["\\g", [...]]` | `{"type":"backreference","kind":"subroutine","ref":["+",1]}` |
+
+### Limitation — `ref` for non-numeric branches
+
+For branches 1-3, the `ref` field carries the inner sub-rule's RAW shape because `name_ref`, `braced_name_ref`, and `subroutine_ref` are still un-annotated. Consumers walking the name string need to descend the raw chain. A follow-up slice will type those rules.
+
+The `subroutine_ref` shape still surfaces typed integers via the slice-1 `digits` and the existing `signed_digits`/`sign` rules, so numeric subroutine refs (`\g<1>`, `\g+1`, `\g<-2>`) are usable as-is — the digits are already typed integers in the raw shape. Named subroutine refs (`\g<name>`) need the follow-up slice for clean name extraction.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 494 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json`: 4 new `backreference` entries (alphabetic order, between `anchor` and `concatenation`).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 11 backreference forms (numeric `\1`/`\23`; named `\k<foo>`/`\k'foo'`/`\k{foo}`; subroutine `\g<1>`/`\g<-2>`/`\g<name>`/`\g'name'`/`\g{name}`/`\g+1`).
+
+### Contract bump
+
+Parser release `1.1.38` → `1.1.39`. Contract `1.1.40` → `1.1.41`. New section "Release 1.1.39 / Contract 1.1.41 Highlights" in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/rules-atom.md` — `backreference` section rewritten with typed shape, branches table, consumer-extraction recipe, limitation note; identification-table row updated.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 5 new entries (4 backreference branches + backreference_digits).
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline gains 0.14.0 row.
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.39 / 1.1.41 entry above 1.1.38.
+
+### Atom subtree progress
+4 of 25 alternatives annotated (anchor, posix_class, posix_word_boundary_alias, backreference). Anchor family closed. Remaining: `literal`, `whitespace_literal`, `dot`, `quoted_literal`, `escape`, `char_class` (outer), group/modifier/conditional/lookaround families. Plus follow-up sub-slices for the inner sub-rules of backreference (`name_ref`, `braced_name_ref`, `subroutine_ref` — surface name strings cleanly).
+
 ## 2026-05-01 - regex.ebnf slice 9/N: typed `posix_word_boundary_alias` (closes anchor family)
 
 ### What landed
