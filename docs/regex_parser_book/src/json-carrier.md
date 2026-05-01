@@ -39,6 +39,10 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `backreference` (branch 2) | `-> {type: "backreference", kind: "named_braced", ref: $2}` | Object `{type, kind:"named_braced", ref:<raw braced_name_ref shape>}` |
 | `backreference` (branch 3) | `-> {type: "backreference", kind: "subroutine", ref: $2}` | Object `{type, kind:"subroutine", ref:<raw subroutine_ref shape>}` |
 | `backreference_digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
+| `name_ref` (branch 0, angle) | `-> $2` | Whatever `name` produced (typed name string) |
+| `name_ref` (branch 1, quote) | `-> $2` | Whatever `name` produced (typed name string) |
+| `braced_name_ref` | `-> $3` | Whatever `name` produced (typed name string) |
+| `name` | regex literal `/(...)/` | Terminal of the matched name string (clean, no chain) |
 | `posix_class` | `-> {type: "posix_class", name: $3, negated: $2}` | Object `{type:"posix_class", name:<str>, negated:<true \| []>}` |
 | `posix_negation` | `-> true` | Boolean `true` (matched), or `[]` from the un-matched `posix_negation?` slot |
 | `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |

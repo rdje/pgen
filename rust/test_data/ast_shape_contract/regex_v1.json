@@ -157,6 +157,12 @@
         "normalized_text": "{type: \"backreference\", kind: \"subroutine\", ref: $2}"
       },
       {
+        "rule": "braced_name_ref",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$3"
+      },
+      {
         "rule": "concatenation",
         "branch_index": 0,
         "annotation_type": "return_array",
@@ -191,6 +197,18 @@
         "branch_index": 3,
         "annotation_type": "return_object",
         "normalized_text": "{min: 0, max: $3}"
+      },
+      {
+        "rule": "name_ref",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "name_ref",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
       },
       {
         "rule": "pattern",

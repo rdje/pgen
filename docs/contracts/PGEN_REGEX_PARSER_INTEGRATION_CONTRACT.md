@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.42`
+  - `1.1.43`
 - Parser release version:
-  - `1.1.40`
+  - `1.1.41`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,28 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.41 / Contract 1.1.43 Highlights — atom subtree slice 11: named-ref cleanup (clean name strings)
+
+- **Internal-driven shape work** (no downstream report). Direct follow-up to slice 10's `backreference` typing — surfaces clean name strings throughout the named-reference family.
+- **Rules changed:**
+  - `name` in `grammars/regex.ebnf` — rewritten from `name_start name_continue*` (multi-element chain producing `[first_char, [rest_chars]]`) to a single regex literal `/((?:[A-Za-z_]|[^\x00-\x7F])(?:[A-Za-z0-9_]|[^\x00-\x7F])*)/` that emits the matched name string as a Terminal directly. `name_start`/`name_continue`/`letter`/`digit`/`unicode_char` sub-rules retained for compatibility but no longer participate in `name`'s body.
+  - `name_ref` in `grammars/regex.ebnf` — both branches annotated `-> $2` to extract just the matched name (drops the `<...>` / `'...'` wrappers).
+  - `braced_name_ref` in `grammars/regex.ebnf` — annotated `-> $3` to extract from `{...}` wrappers.
+- **AST shape change (consumer-visible):** every consumer of `name` now sees a clean name string instead of a character-chain Sequence.
+  - `\k<foo>` → `{type:"backreference", kind:"named", ref:"foo"}` (was `ref:["<", <chain>, ">"]`).
+  - `\k{foo}` → `{type:"backreference", kind:"named_braced", ref:"foo"}` (was `ref:["{", _, <chain>, _, "}"]`).
+  - `(?<foo>...)`, `(?P<foo>...)`, `(?'foo'...)`, `(?P=foo)` — every named group form's `name` slot is now a clean string.
+  - Subroutine targets (`(?&name)`, `(?P>name)`) — `name` slot is now clean.
+  - Conditions (`(?(name)...)`, `(?(R&name)...)`) — `name` slot is now clean.
+- **`subroutine_ref` still un-annotated.** `\g<name>` etc. emit `ref: ["<", "name", ">"]` (the inner `name` is clean, but the angle/brace/quote wrappers remain). Follow-up slice will type `subroutine_ref` to drop the wrappers.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.41` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `name` character chain to read the matched value as a string directly. For backreferences: `obj.kind == "named"` → read `obj.ref.as_str()`. For named groups: read the `name` field of the group atom directly as a string.
+  4. For subroutine refs (`\g<name>` etc.), inner `name` is now a clean string within the otherwise-raw `["<", <inner>, ">"]` shape; consumers walking subroutine refs benefit from the partial cleanup but full typing waits on the next slice.
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_full_regex()`, `parser.parse_regex()`, `parse_regex_typed()`, `parse_regex_default_ast_dump_named()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.40 / Contract 1.1.42 Highlights — PGEN-RGX-0077 typed-shape fix for `\Q...\E quantifier?` pieces
 

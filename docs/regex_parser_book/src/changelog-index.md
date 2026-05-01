@@ -23,6 +23,46 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.41 / Contract 1.1.43 — Atom subtree slice 11: named-ref cleanup (clean name strings)
+
+**What changed:** three grammar changes that surface clean name strings everywhere a name appears:
+
+1. `name` rewritten as a regex literal:
+   ```ebnf
+   name = /((?:[A-Za-z_]|[^\x00-\x7F])(?:[A-Za-z0-9_]|[^\x00-\x7F])*)/
+   ```
+   Pre-rewrite the rule was `name_start name_continue*` (multi-element body) which produced a deeply-nested `[first_char, [rest_chars]]` Sequence requiring consumers to concatenate. Post-rewrite the rule emits a Terminal of the matched name string directly.
+
+2. `name_ref` (used by `\k<name>` / `\k'name'` backreferences) annotated to extract just the name:
+   ```ebnf
+   name_ref = "<" name ">" -> $2
+            | "'" name "'" -> $2
+   ```
+
+3. `braced_name_ref` (used by `\k{name}`) annotated similarly:
+   ```ebnf
+   braced_name_ref = "{" brace_ws? name brace_ws? "}" -> $3
+   ```
+
+**Consumer impact:** **breaking but correct** — every consumer that walked the raw inner chain to recover a name string now reads the clean string directly:
+
+| Source | Before | After |
+|---|---|---|
+| `\k<foo>` | `ref: ["<", ["f", ["o", "o"]], ">"]` | `ref: "foo"` |
+| `\k{foo}` | `ref: ["{", [], ["f", ["o", "o"]], [], "}"]` | `ref: "foo"` |
+| `(?<bar>x)` | atom contains name as `["b", ["a", "r"]]` | atom contains name as `"bar"` |
+| `(?P<bar>x)` | similar raw chain | `"bar"` |
+| `(?P=bar)` | similar raw chain | `"bar"` |
+| `\g<name>` | `ref: ["<", ["n", ["a", "m", "e"]], ">"]` | `ref: ["<", "name", ">"]` (subroutine_ref still un-annotated; inner name now clean) |
+
+**Cascading scope:** this slice affects every grammar rule that references `name` directly or through a wrapper — named groups (5 forms), backreferences (`\k<...>`/`\k{...}`), python named back-refs (`(?P=name)`), subroutine targets (`\g&name`/`\g<name>`/`\g{name}`), conditions (`(?(name)...)` / `(?(R&name)...)`), property escapes' `prop_name` is unrelated and not affected.
+
+**Limitation — `subroutine_ref` still un-annotated.** `\g<name>` etc. still emit the raw `["<", <inner>, ">"]` shape, but the inner now carries a clean name string instead of a character chain. Follow-up slice will type `subroutine_ref` to drop the angle/brace/quote wrappers.
+
+**Atom subtree progress:** 4/25 alternatives directly typed; the named-ref family now emits clean string values everywhere `name` is used.
+
+**Contract section:** "Release 1.1.41 / Contract 1.1.43 Highlights".
+
 ### 1.1.40 / Contract 1.1.42 — PGEN-RGX-0077: `[$1**]` flatten-spread peels `Alternative`
 
 **Bug** (RGX bug report PGEN-RGX-0077): every multi-char `\Q...\E quantifier?` source produced one extra wrapping layer at `pattern[0][0]` — `[[<N pieces>]]` (1-element array containing the pieces array) instead of the documented flat `[<N pieces>]`. The piece data was correct; the bug was purely structural wrapping. Adjacent regression to PGEN-RGX-0075 on a different codegen path.

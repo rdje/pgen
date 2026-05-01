@@ -186,8 +186,11 @@ backreference  = "\\" backreference_digits  -> {type: "backreference", kind: "nu
 # parses the matched digit string to a typed integer.
 @transform: str::parse::<usize>().unwrap_or(0)
 backreference_digits = /([1-9][0-9]*)/
-name_ref       = "<" name ">" | "'" name "'"
-braced_name_ref = "{" brace_ws? name brace_ws? "}"
+# Named-reference forms — surface the matched name string directly so
+# consumers don't walk the raw `["<", <name>, ">"]` Sequence wrapping.
+name_ref       = "<" name ">"  -> $2
+               | "'" name "'"  -> $2
+braced_name_ref = "{" brace_ws? name brace_ws? "}" -> $3
 subroutine_ref = braced_subroutine_ref
               | "<" signed_digits_or_name ">"
               | "'" signed_digits_or_name "'"
@@ -196,7 +199,15 @@ braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}"
 signed_digits_or_name = signed_digits | name
 signed_digits = sign? digits
 sign           = "+" | "-"
-name           = name_start name_continue*
+# `name` rewritten as a single regex literal — emits the matched name
+# string as a Terminal directly. Pre-rewrite the rule was `name_start
+# name_continue*` (multi-element body) which produced a deeply-nested
+# `[first_char, [rest_chars]]` Sequence requiring consumers to
+# concatenate. Equivalent character class: `name_start = letter | '_' |
+# unicode_char` and `name_continue = name_start | digit`. The regex
+# captures the name as group 1 so the runtime emits the captured slice
+# as the Terminal value (the standard regex-literal codegen path).
+name           = /((?:[A-Za-z_]|[^\x00-\x7F])(?:[A-Za-z0-9_]|[^\x00-\x7F])*)/
 name_start     = letter | '_' | unicode_char
 name_continue  = name_start | digit
 brace_ws       = (' ' | '\t')+

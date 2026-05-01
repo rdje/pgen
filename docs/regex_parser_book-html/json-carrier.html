@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-92e866ae.js";
+            window.path_to_searchindex_js = "searchindex-99d8e19e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -220,6 +220,10 @@
 <tr><td><code>backreference</code> (branch 2)</td><td><code>-&gt; {type: "backreference", kind: "named_braced", ref: $2}</code></td><td>Object <code>{type, kind:"named_braced", ref:&lt;raw braced_name_ref shape&gt;}</code></td></tr>
 <tr><td><code>backreference</code> (branch 3)</td><td><code>-&gt; {type: "backreference", kind: "subroutine", ref: $2}</code></td><td>Object <code>{type, kind:"subroutine", ref:&lt;raw subroutine_ref shape&gt;}</code></td></tr>
 <tr><td><code>backreference_digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
+<tr><td><code>name_ref</code> (branch 0, angle)</td><td><code>-&gt; $2</code></td><td>Whatever <code>name</code> produced (typed name string)</td></tr>
+<tr><td><code>name_ref</code> (branch 1, quote)</td><td><code>-&gt; $2</code></td><td>Whatever <code>name</code> produced (typed name string)</td></tr>
+<tr><td><code>braced_name_ref</code></td><td><code>-&gt; $3</code></td><td>Whatever <code>name</code> produced (typed name string)</td></tr>
+<tr><td><code>name</code></td><td>regex literal <code>/(...)/</code></td><td>Terminal of the matched name string (clean, no chain)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; {type: "posix_class", name: $3, negated: $2}</code></td><td>Object <code>{type:"posix_class", name:&lt;str&gt;, negated:&lt;true | []&gt;}</code></td></tr>
 <tr><td><code>posix_negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), or <code>[]</code> from the un-matched <code>posix_negation?</code> slot</td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-92e866ae.js";
+            window.path_to_searchindex_js = "searchindex-99d8e19e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,47 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1141--contract-1143--atom-subtree-slice-11-named-ref-cleanup-clean-name-strings"><a class="header" href="#1141--contract-1143--atom-subtree-slice-11-named-ref-cleanup-clean-name-strings">1.1.41 / Contract 1.1.43 — Atom subtree slice 11: named-ref cleanup (clean name strings)</a></h3>
+<p><strong>What changed:</strong> three grammar changes that surface clean name strings everywhere a name appears:</p>
+<ol>
+<li>
+<p><code>name</code> rewritten as a regex literal:</p>
+<pre><code class="language-ebnf">name = /((?:[A-Za-z_]|[^\x00-\x7F])(?:[A-Za-z0-9_]|[^\x00-\x7F])*)/
+</code></pre>
+<p>Pre-rewrite the rule was <code>name_start name_continue*</code> (multi-element body) which produced a deeply-nested <code>[first_char, [rest_chars]]</code> Sequence requiring consumers to concatenate. Post-rewrite the rule emits a Terminal of the matched name string directly.</p>
+</li>
+<li>
+<p><code>name_ref</code> (used by <code>\k&lt;name&gt;</code> / <code>\k'name'</code> backreferences) annotated to extract just the name:</p>
+<pre><code class="language-ebnf">name_ref = "&lt;" name "&gt;" -&gt; $2
+         | "'" name "'" -&gt; $2
+</code></pre>
+</li>
+<li>
+<p><code>braced_name_ref</code> (used by <code>\k{name}</code>) annotated similarly:</p>
+<pre><code class="language-ebnf">braced_name_ref = "{" brace_ws? name brace_ws? "}" -&gt; $3
+</code></pre>
+</li>
+</ol>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — every consumer that walked the raw inner chain to recover a name string now reads the clean string directly:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\k&lt;foo&gt;</code></td><td><code>ref: ["&lt;", ["f", ["o", "o"]], "&gt;"]</code></td><td><code>ref: "foo"</code></td></tr>
+<tr><td><code>\k{foo}</code></td><td><code>ref: ["{", [], ["f", ["o", "o"]], [], "}"]</code></td><td><code>ref: "foo"</code></td></tr>
+<tr><td><code>(?&lt;bar&gt;x)</code></td><td>atom contains name as <code>["b", ["a", "r"]]</code></td><td>atom contains name as <code>"bar"</code></td></tr>
+<tr><td><code>(?P&lt;bar&gt;x)</code></td><td>similar raw chain</td><td><code>"bar"</code></td></tr>
+<tr><td><code>(?P=bar)</code></td><td>similar raw chain</td><td><code>"bar"</code></td></tr>
+<tr><td><code>\g&lt;name&gt;</code></td><td><code>ref: ["&lt;", ["n", ["a", "m", "e"]], "&gt;"]</code></td><td><code>ref: ["&lt;", "name", "&gt;"]</code> (subroutine_ref still un-annotated; inner name now clean)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Cascading scope:</strong> this slice affects every grammar rule that references <code>name</code> directly or through a wrapper — named groups (5 forms), backreferences (<code>\k&lt;...&gt;</code>/<code>\k{...}</code>), python named back-refs (<code>(?P=name)</code>), subroutine targets (<code>\g&amp;name</code>/<code>\g&lt;name&gt;</code>/<code>\g{name}</code>), conditions (<code>(?(name)...)</code> / <code>(?(R&amp;name)...)</code>), property escapes’ <code>prop_name</code> is unrelated and not affected.</p>
+<p><strong>Limitation — <code>subroutine_ref</code> still un-annotated.</strong> <code>\g&lt;name&gt;</code> etc. still emit the raw <code>["&lt;", &lt;inner&gt;, "&gt;"]</code> shape, but the inner now carries a clean name string instead of a character chain. Follow-up slice will type <code>subroutine_ref</code> to drop the angle/brace/quote wrappers.</p>
+<p><strong>Atom subtree progress:</strong> 4/25 alternatives directly typed; the named-ref family now emits clean string values everywhere <code>name</code> is used.</p>
+<p><strong>Contract section:</strong> “Release 1.1.41 / Contract 1.1.43 Highlights”.</p>
 <h3 id="1140--contract-1142--pgen-rgx-0077-1-flatten-spread-peels-alternative"><a class="header" href="#1140--contract-1142--pgen-rgx-0077-1-flatten-spread-peels-alternative">1.1.40 / Contract 1.1.42 — PGEN-RGX-0077: <code>[$1**]</code> flatten-spread peels <code>Alternative</code></a></h3>
 <p><strong>Bug</strong> (RGX bug report PGEN-RGX-0077): every multi-char <code>\Q...\E quantifier?</code> source produced one extra wrapping layer at <code>pattern[0][0]</code> — <code>[[&lt;N pieces&gt;]]</code> (1-element array containing the pieces array) instead of the documented flat <code>[&lt;N pieces&gt;]</code>. The piece data was correct; the bug was purely structural wrapping. Adjacent regression to PGEN-RGX-0075 on a different codegen path.</p>
 <p><strong>Root cause:</strong> the <code>[$1**]</code> flatten-spread codegen in <code>rust/src/ast_pipeline/ast_return_transform.rs</code> did not peel <code>Alternative</code> wrapping before inspecting child content for the unwrap decision. The codegen wraps Or-rule and rule-reference branch results in <code>Alternative(boxed_inner)</code>; for <code>concatenation = piece+ -&gt; [$1**]</code>, each piece node arrives as <code>Alternative(piece_inner_node)</code>. Pre-fix, the inner <code>match node.content</code> saw <code>Alternative</code> and fell into the “push as-is” arm, wrapping the whole inner Sequence-of-pieces (from <code>piece_quoted_run_quantified -&gt; [$2**, ...]</code>) as a single element instead of spreading.</p>

@@ -1,4 +1,61 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 11/N — named-ref cleanup (clean name strings)
+
+### What landed
+
+Direct follow-up to slice 10 (`backreference` typing). Three grammar changes in `grammars/regex.ebnf`:
+
+```ebnf
+name = /((?:[A-Za-z_]|[^\x00-\x7F])(?:[A-Za-z0-9_]|[^\x00-\x7F])*)/
+
+name_ref = "<" name ">"  -> $2
+         | "'" name "'"  -> $2
+
+braced_name_ref = "{" brace_ws? name brace_ws? "}" -> $3
+```
+
+### Why
+
+After slice 10 typed `backreference` to `{type:"backreference", kind:<form>, ref:<inner>}`, the `ref` field for `kind:"named"` and `kind:"named_braced"` carried the raw `name_ref`/`braced_name_ref` shape (Sequence). The inner `name` itself was a multi-element chain `[first_char, [rest_chars]]`. To extract a usable name string, consumers walked TWO layers of opaque structure.
+
+This slice eliminates both layers:
+- `name` → regex literal, emits clean string Terminal.
+- `name_ref` / `braced_name_ref` → annotated to extract just the inner via `-> $2` / `-> $3`.
+
+After: `\k<foo>` → `ref:"foo"` directly. One typed-field read.
+
+### Cascading scope
+
+`name` is referenced by 8+ rules across the grammar. The cleanup helps:
+- Backreferences (`\k<...>`, `\k{...}`).
+- Named groups (5 syntactic forms: `(?<...>...)`, `(?'...'...)`, `(?P<...>...)`).
+- Python named back-refs (`(?P=...)`).
+- Subroutine targets (`(?&...)`, `(?P>...)`).
+- Conditions (`(?(name)...)`, `(?(R&name)...)`).
+
+For each, what was a 2-deep raw chain at the `name` slot is now a single clean string.
+
+### Limitation — subroutine_ref still un-annotated
+
+`\g<name>`/`\g'name'`/`\g{name}` still emit `["<", "name", ">"]`/`["'", "name", "'"]`/`["{", _, "name", _, "}"]` shapes — the inner name is clean now but the angle/quote/brace wrappers persist. Follow-up slice will annotate `subroutine_ref` to drop the wrappers (`-> $2` per branch). Defer to keep this slice tightly scoped.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 495 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json` — 3 new entries (`name_ref` branches 0+1, `braced_name_ref` branch 0). `name` doesn't appear because regex-literal rules with no return annotation don't have inventory entries — they're matched by the codegen as Terminal-emitting rules outside the annotation framework.
+- `make regex_parser_book_gate` — green.
+- Empirical sweep across all named-ref consumers — every name slot is clean.
+
+### Contract bump
+Parser release `1.1.40` → `1.1.41`. Contract `1.1.42` → `1.1.43`. New section in integration contract. Regex AST schema version stays `1`.
+
+### Live-book sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.41 / 1.1.43 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.15.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 4 new entries (name_ref ×2, braced_name_ref, name).
+
+### Atom subtree progress
+4/25 atom alternatives directly typed; named-ref family across all consumers now emits clean string values. Remaining: literal, whitespace_literal, dot, quoted_literal, escape, char_class outer, group/modifier/conditional/lookaround families. Plus follow-up sub-slice for `subroutine_ref`.
+
 ## 2026-05-01 - PGEN-RGX-0077 — `[$1**]` flatten-spread peels `Alternative`
 
 ### What landed
