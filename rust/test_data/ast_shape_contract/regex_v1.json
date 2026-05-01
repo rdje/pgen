@@ -195,8 +195,14 @@
       {
         "rule": "posix_class",
         "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"posix_class\", name: $3, negated: $2}"
+      },
+      {
+        "rule": "posix_negation",
+        "branch_index": 0,
         "annotation_type": "return_scalar",
-        "normalized_text": "$1"
+        "normalized_text": "true"
       },
       {
         "rule": "quant_base",

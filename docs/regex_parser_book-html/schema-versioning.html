@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72b9fb46.js";
+            window.path_to_searchindex_js = "searchindex-60e9e69c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -296,6 +296,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.9.0</td><td>1.1.34</td><td><strong>Breaking but correct:</strong> PGEN-RGX-0075 fix — <code>$N</code> codegen no longer peels <code>elements[0]</code> from a Quantified base. Multi-piece concatenations now surface every piece in <code>regex.pattern[0][0]</code> (was: only the first piece). Compensating grammar change: <code>regex = pattern</code> (was <code>regex = pattern?</code>). Top-level pattern shape <code>[&lt;head_alt&gt;, &lt;tail&gt;]</code> unchanged.</td></tr>
 <tr><td>0.10.0</td><td>1.1.35</td><td><strong>Breaking but correct:</strong> quantifier subtree closure (slice 6/N). <code>quant_base</code> reshaped from per-branch <code>-&gt; $1</code> (heterogeneous string-vs-object) to per-branch typed <code>{min, max}</code> for every alternative. <code>quantifier</code> rule annotated <code>-&gt; {type:"quantifier", min:$1.min, max:$1.max, greediness:$2}</code>. Piece’s <code>quantifier</code> field is now a fully typed object (or <code>[]</code> for un-quantified pieces); was <code>[&lt;base&gt;, &lt;suffix&gt;]</code> 2-tuple. Consumers walking the quantifier shape need to update from string-vs-object dispatch to typed-field read.</td></tr>
 <tr><td>0.11.0</td><td>1.1.36</td><td><strong>Breaking but correct:</strong> atom subtree slice 7 (<code>anchor</code>). <code>anchor</code> rule’s 9 branches each annotated <code>-&gt; {type:"anchor", kind:"&lt;name&gt;"}</code>. Piece atoms for <code>^</code>/<code>$</code>/<code>\A</code>/<code>\Z</code>/<code>\z</code>/<code>\b</code>/<code>\B</code>/<code>\G</code>/<code>\K</code> now emit typed objects with semantic kind names (e.g. <code>start_of_line</code>, <code>word_boundary</code>) instead of raw escape strings. Consumers walking the anchor shape need to update from <code>atom.as_str() == "\\b"</code> to <code>atom.get("kind").as_str() == "word_boundary"</code>.</td></tr>
+<tr><td>0.12.0</td><td>1.1.37</td><td><strong>Breaking but correct:</strong> PGEN-RGX-0076 fix (slice 8). <code>posix_class</code> rule’s annotation upgraded from <code>-&gt; $1</code> (placeholder that emitted only the <code>"[:"</code> opener and silently dropped class name + negation) to <code>-&gt; {type:"posix_class", name:$3, negated:$2}</code>. <code>posix_negation</code> now annotated <code>-&gt; true</code>. Inside character class bodies, every <code>[:name:]</code> now emits a typed <code>{type, name, negated}</code> object — <code>name</code> is the POSIX class name string, <code>negated</code> is <code>true</code> (matched) or <code>[]</code> (un-matched, map → <code>false</code>). Codegen scalar paths for <code>BooleanLiteral</code>/<code>NumberLiteral</code> fixed in the same commit (was emitting <code>Terminal(&lt;str&gt;)</code> instead of typed <code>Json(Bool/Number)</code>).</td></tr>
 </tbody>
 </table>
 </div>

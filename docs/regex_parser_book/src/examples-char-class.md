@@ -142,6 +142,8 @@ PCRE2 quirk — a literal `]` as the FIRST class char is allowed:
 
 ## POSIX class — `[[:alpha:]]`
 
+As of slice 8 (post-1.1.36, fixes [PGEN-RGX-0076](changelog-index.md)), POSIX classes inside character classes emit a fully typed `{type, name, negated}` shape:
+
 ```json
 {
   "atom": [
@@ -149,14 +151,7 @@ PCRE2 quirk — a literal `]` as the FIRST class char is allowed:
     [],
     [],
     [
-      [
-        // class_item branch 0 → posix_class
-        // posix_class = "[:" posix_negation? posix_name ":]" -> $1
-        // The annotation `-> $1` extracts the FIRST positional element which is "[:"
-        // — at this release that produces a placeholder shape; consumers walk the
-        // raw underlying class_item structure or the source span to recover the
-        // POSIX name.
-      ]
+      {"type": "posix_class", "name": "alpha", "negated": []}
     ],
     "]"
   ],
@@ -164,7 +159,48 @@ PCRE2 quirk — a literal `]` as the FIRST class char is allowed:
 }
 ```
 
-POSIX classes inside character classes have a placeholder shape today (the `posix_class` annotation produces just `"[:"` due to the `-> $1` simplification). For `[[:alpha:]]` consumers commonly fall back to looking at the source span (`span.start..span.end`) of the class_item to recover the POSIX name string `[:alpha:]`. The full shape will be cleaned up in a future task #40 slice.
+`name` is the matched POSIX class name string. `negated` is the typed boolean `true` when the source has `^` after `[:`, or the empty array `[]` (un-matched `posix_negation?` slot — consumers map `[]` → `false`).
+
+### `[[:^alpha:]]` — negated POSIX class
+
+```json
+{
+  "atom": [
+    "[",
+    [],
+    [],
+    [
+      {"type": "posix_class", "name": "alpha", "negated": true}
+    ],
+    "]"
+  ],
+  ...
+}
+```
+
+### `[[:alpha:][:digit:]]` — multiple POSIX classes
+
+```json
+{
+  "atom": [
+    "[",
+    [],
+    [],
+    [
+      {"type": "posix_class", "name": "alpha", "negated": []},
+      {"type": "posix_class", "name": "digit", "negated": []}
+    ],
+    "]"
+  ],
+  ...
+}
+```
+
+Both POSIX classes typed and disambiguated.
+
+### Migration from pre-1.1.37 (slice 8)
+
+Before slice 8, the `posix_class` annotation `-> $1` extracted only the literal `"[:"` opener — the typed shape was just the bare string `"[:"`, which collapsed every POSIX class name (`alpha`/`digit`/`xdigit`/etc.) to the same value. Consumers who relied on a source-span fallback can drop that path; the typed shape now preserves the name and negation directly.
 
 ## Quoted class literal — `[\Qa-z\E]`
 

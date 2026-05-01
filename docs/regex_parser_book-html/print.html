@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72b9fb46.js";
+            window.path_to_searchindex_js = "searchindex-60e9e69c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -867,6 +867,8 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>counted_quantifier_body</code> (branch 2)</td><td><code>-&gt; {min: $1, max: $1}</code></td><td>Object <code>{min, max}</code> (<code>{n}</code> form, max == min)</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 3)</td><td><code>-&gt; {min: 0, max: $3}</code></td><td>Object <code>{min:0, max}</code> (<code>{,m}</code> form)</td></tr>
 <tr><td><code>anchor</code> (branch 0..8)</td><td><code>-&gt; {type: "anchor", kind: "&lt;name&gt;"}</code> per branch</td><td>Object <code>{type:"anchor", kind:&lt;name&gt;}</code> — <code>kind</code> ∈ <code>start_of_line</code> / <code>end_of_line</code> / <code>start_of_input</code> / <code>end_of_input_or_before_last_newline</code> / <code>end_of_input</code> / <code>word_boundary</code> / <code>non_word_boundary</code> / <code>match_start</code> / <code>keep_out</code></td></tr>
+<tr><td><code>posix_class</code></td><td><code>-&gt; {type: "posix_class", name: $3, negated: $2}</code></td><td>Object <code>{type:"posix_class", name:&lt;str&gt;, negated:&lt;true | []&gt;}</code></td></tr>
+<tr><td><code>posix_negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), or <code>[]</code> from the un-matched <code>posix_negation?</code> slot</td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>
 <tr><td><code>quant_base</code> (branch 1 <code>+</code>)</td><td><code>-&gt; {min: 1, max: null}</code></td><td>Object <code>{min:1, max:null}</code> (unbounded one-or-more)</td></tr>
 <tr><td><code>quant_base</code> (branch 2 <code>?</code>)</td><td><code>-&gt; {min: 0, max: 1}</code></td><td>Object <code>{min:0, max:1}</code> (zero-or-one)</td></tr>
@@ -2045,14 +2047,46 @@ class_body = class_item*
 <pre><code class="language-ebnf">@generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
 posix_class = "[:" posix_negation? posix_name ":]"
--&gt; $1
+-&gt; {type: "posix_class", name: $3, negated: $2}
+
+posix_negation = "^" -&gt; true
 </code></pre>
-<p><strong>Annotated with <code>-&gt; $1</code></strong> (single-element body — the <code>[:</code>…<code>:]</code> framing — passthrough). The body is a 4-element Sequence: <code>["[:", &lt;negation?&gt;, &lt;posix_name&gt;, ":]"]</code>. With <code>-&gt; $1</code>, the rule emits the full Sequence.</p>
-<p>Wait — <code>-&gt; $1</code> extracts the FIRST element, which is the <code>"[:"</code> terminal. That’s not very useful. Let me re-check.</p>
-<p>Actually looking at the rule: <code>posix_class = "[:" posix_negation? posix_name ":]" -&gt; $1</code>. The body is a Sequence of 4 elements; <code>$1</code> is <code>"[:"</code>. So <code>-&gt; $1</code> would emit just the <code>"[:"</code> terminal. That seems wrong for a useful return shape.</p>
-<p>In practice, the current emit is a Json containing just <code>"[:"</code> — a placeholder shape that clearly needs further annotation work. Consumers should treat this as part of task #40’s atom-subtree annotation slice; the eventual shape will be <code>{type: "posix_class", name: &lt;str&gt;, negated: &lt;bool&gt;}</code>.</p>
-<p><strong>For now</strong>, posix_class atoms in JSON output appear as either the bare string <code>"[:"</code> (annotation-applied, sub-optimal) or the full <code>["[:", &lt;neg?&gt;, &lt;name&gt;, ":]"]</code> Sequence (when consumers walk the legacy ParseNode tree).</p>
-<p>Pragmatic consumer guidance: pattern-match on <code>"[:" + posix-name + ":]"</code> text in the source, or walk the ParseNode tree to inspect the <code>posix_name</code> rule directly.</p>
+<p><strong>Annotated</strong> as of slice 8 (post-1.1.36) — fixes <a href="#changelog-index">PGEN-RGX-0076</a>. Pre-fix the rule used <code>-&gt; $1</code> which extracted only the literal <code>"[:"</code> opener, silently discarding the POSIX class name and negation marker.</p>
+<h3 id="shape-2-3"><a class="header" href="#shape-2-3">Shape</a></h3>
+<pre><code class="language-json">{"type": "posix_class", "name": &lt;name&gt;, "negated": &lt;true | []&gt;}
+</code></pre>
+<ul>
+<li><code>name</code> is the matched POSIX class name as a string (<code>"alpha"</code>, <code>"digit"</code>, <code>"xdigit"</code>, etc. — one of the 14 names accepted by <code>posix_name</code>).</li>
+<li><code>negated</code> is the typed boolean <code>true</code> when the source has <code>^</code> after <code>[:</code> (e.g. <code>[[:^alpha:]]</code>), or the empty array <code>[]</code> when no <code>^</code> was matched. Consumers map <code>[]</code> → <code>false</code>. Same convention as <code>quantifier.greediness</code>. A future coalesce-operator slice will let the rule emit a bare <code>false</code> instead of <code>[]</code>.</li>
+</ul>
+<h3 id="examples-3"><a class="header" href="#examples-3">Examples</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Output</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[[:alpha:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}</code></td></tr>
+<tr><td><code>[[:^alpha:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":true}</code></td></tr>
+<tr><td><code>[[:digit:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"digit","negated":[]}</code></td></tr>
+<tr><td><code>[[:xdigit:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"xdigit","negated":[]}</code></td></tr>
+<tr><td><code>[[:alpha:][:digit:]]</code></td><td>2-element class_body — both POSIX classes typed and disambiguated</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="consumer-extraction"><a class="header" href="#consumer-extraction">Consumer extraction</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_posix_class(class_item: &amp;Value) -&gt; Option&lt;(String, bool)&gt; {
+    let obj = class_item.as_object()?;
+    if obj.get("type")?.as_str()? != "posix_class" {
+        return None;
+    }
+    let name = obj.get("name")?.as_str()?.to_string();
+    let negated = obj.get("negated").map(|v| v.as_bool().unwrap_or(false)).unwrap_or(false);
+    Some((name, negated))
+}
+<span class="boring">}</span></code></pre>
 <h2 id="class_range"><a class="header" href="#class_range"><code>class_range</code></a></h2>
 <pre><code class="language-ebnf">@generate: "ch &gt;= '" + escape_char($1) + "' &amp;&amp; ch &lt;= '" + escape_char($5) + "'"
 @semantic_value: {type: "range", start: $1, end: $5}
@@ -2060,7 +2094,7 @@ posix_class = "[:" posix_negation? posix_name ":]"
 class_range = class_atom class_zero_width* "-" class_zero_width* class_atom
 </code></pre>
 <p>5-element Sequence: <code>[&lt;start_atom&gt;, &lt;zero-width-prefix*&gt;, "-", &lt;zero-width-suffix*&gt;, &lt;end_atom&gt;]</code>. <strong>Un-annotated</strong> at the return-annotation level.</p>
-<h3 id="shape-2-3"><a class="header" href="#shape-2-3">Shape</a></h3>
+<h3 id="shape-3-2"><a class="header" href="#shape-3-2">Shape</a></h3>
 <pre><code class="language-json">[
   &lt;class_atom for start&gt;,
   &lt;Quantified of class_zero_width markers&gt;,
@@ -3179,7 +3213,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
   "type": "piece"
 }
 </code></pre>
-<h2 id="consumer-extraction"><a class="header" href="#consumer-extraction">Consumer extraction</a></h2>
+<h2 id="consumer-extraction-1"><a class="header" href="#consumer-extraction-1">Consumer extraction</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn extract_quant(piece: &amp;Value) -&gt; Option&lt;Quantifier&gt; {
@@ -3324,27 +3358,53 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 </code></pre>
 <p><code>atom[2]</code> distinguishes: <code>[]</code> (no initial close) vs <code>"]"</code> (initial close present).</p>
 <h2 id="posix-class--alpha"><a class="header" href="#posix-class--alpha">POSIX class — <code>[[:alpha:]]</code></a></h2>
+<p>As of slice 8 (post-1.1.36, fixes <a href="#changelog-index">PGEN-RGX-0076</a>), POSIX classes inside character classes emit a fully typed <code>{type, name, negated}</code> shape:</p>
 <pre><code class="language-json">{
   "atom": [
     "[",
     [],
     [],
     [
-      [
-        // class_item branch 0 → posix_class
-        // posix_class = "[:" posix_negation? posix_name ":]" -&gt; $1
-        // The annotation `-&gt; $1` extracts the FIRST positional element which is "[:"
-        // — at this release that produces a placeholder shape; consumers walk the
-        // raw underlying class_item structure or the source span to recover the
-        // POSIX name.
-      ]
+      {"type": "posix_class", "name": "alpha", "negated": []}
     ],
     "]"
   ],
   ...
 }
 </code></pre>
-<p>POSIX classes inside character classes have a placeholder shape today (the <code>posix_class</code> annotation produces just <code>"[:"</code> due to the <code>-&gt; $1</code> simplification). For <code>[[:alpha:]]</code> consumers commonly fall back to looking at the source span (<code>span.start..span.end</code>) of the class_item to recover the POSIX name string <code>[:alpha:]</code>. The full shape will be cleaned up in a future task #40 slice.</p>
+<p><code>name</code> is the matched POSIX class name string. <code>negated</code> is the typed boolean <code>true</code> when the source has <code>^</code> after <code>[:</code>, or the empty array <code>[]</code> (un-matched <code>posix_negation?</code> slot — consumers map <code>[]</code> → <code>false</code>).</p>
+<h3 id="alpha--negated-posix-class"><a class="header" href="#alpha--negated-posix-class"><code>[[:^alpha:]]</code> — negated POSIX class</a></h3>
+<pre><code class="language-json">{
+  "atom": [
+    "[",
+    [],
+    [],
+    [
+      {"type": "posix_class", "name": "alpha", "negated": true}
+    ],
+    "]"
+  ],
+  ...
+}
+</code></pre>
+<h3 id="alphadigit--multiple-posix-classes"><a class="header" href="#alphadigit--multiple-posix-classes"><code>[[:alpha:][:digit:]]</code> — multiple POSIX classes</a></h3>
+<pre><code class="language-json">{
+  "atom": [
+    "[",
+    [],
+    [],
+    [
+      {"type": "posix_class", "name": "alpha", "negated": []},
+      {"type": "posix_class", "name": "digit", "negated": []}
+    ],
+    "]"
+  ],
+  ...
+}
+</code></pre>
+<p>Both POSIX classes typed and disambiguated.</p>
+<h3 id="migration-from-pre-1137-slice-8"><a class="header" href="#migration-from-pre-1137-slice-8">Migration from pre-1.1.37 (slice 8)</a></h3>
+<p>Before slice 8, the <code>posix_class</code> annotation <code>-&gt; $1</code> extracted only the literal <code>"[:"</code> opener — the typed shape was just the bare string <code>"[:"</code>, which collapsed every POSIX class name (<code>alpha</code>/<code>digit</code>/<code>xdigit</code>/etc.) to the same value. Consumers who relied on a source-span fallback can drop that path; the typed shape now preserves the name and negation directly.</p>
 <h2 id="quoted-class-literal--qa-ze"><a class="header" href="#quoted-class-literal--qa-ze">Quoted class literal — <code>[\Qa-z\E]</code></a></h2>
 <p>The PCRE2 class-quote form. The <code>class_item</code> matches <code>quoted_class_literal</code>:</p>
 <pre><code class="language-json">{
@@ -4482,6 +4542,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.9.0</td><td>1.1.34</td><td><strong>Breaking but correct:</strong> PGEN-RGX-0075 fix — <code>$N</code> codegen no longer peels <code>elements[0]</code> from a Quantified base. Multi-piece concatenations now surface every piece in <code>regex.pattern[0][0]</code> (was: only the first piece). Compensating grammar change: <code>regex = pattern</code> (was <code>regex = pattern?</code>). Top-level pattern shape <code>[&lt;head_alt&gt;, &lt;tail&gt;]</code> unchanged.</td></tr>
 <tr><td>0.10.0</td><td>1.1.35</td><td><strong>Breaking but correct:</strong> quantifier subtree closure (slice 6/N). <code>quant_base</code> reshaped from per-branch <code>-&gt; $1</code> (heterogeneous string-vs-object) to per-branch typed <code>{min, max}</code> for every alternative. <code>quantifier</code> rule annotated <code>-&gt; {type:"quantifier", min:$1.min, max:$1.max, greediness:$2}</code>. Piece’s <code>quantifier</code> field is now a fully typed object (or <code>[]</code> for un-quantified pieces); was <code>[&lt;base&gt;, &lt;suffix&gt;]</code> 2-tuple. Consumers walking the quantifier shape need to update from string-vs-object dispatch to typed-field read.</td></tr>
 <tr><td>0.11.0</td><td>1.1.36</td><td><strong>Breaking but correct:</strong> atom subtree slice 7 (<code>anchor</code>). <code>anchor</code> rule’s 9 branches each annotated <code>-&gt; {type:"anchor", kind:"&lt;name&gt;"}</code>. Piece atoms for <code>^</code>/<code>$</code>/<code>\A</code>/<code>\Z</code>/<code>\z</code>/<code>\b</code>/<code>\B</code>/<code>\G</code>/<code>\K</code> now emit typed objects with semantic kind names (e.g. <code>start_of_line</code>, <code>word_boundary</code>) instead of raw escape strings. Consumers walking the anchor shape need to update from <code>atom.as_str() == "\\b"</code> to <code>atom.get("kind").as_str() == "word_boundary"</code>.</td></tr>
+<tr><td>0.12.0</td><td>1.1.37</td><td><strong>Breaking but correct:</strong> PGEN-RGX-0076 fix (slice 8). <code>posix_class</code> rule’s annotation upgraded from <code>-&gt; $1</code> (placeholder that emitted only the <code>"[:"</code> opener and silently dropped class name + negation) to <code>-&gt; {type:"posix_class", name:$3, negated:$2}</code>. <code>posix_negation</code> now annotated <code>-&gt; true</code>. Inside character class bodies, every <code>[:name:]</code> now emits a typed <code>{type, name, negated}</code> object — <code>name</code> is the POSIX class name string, <code>negated</code> is <code>true</code> (matched) or <code>[]</code> (un-matched, map → <code>false</code>). Codegen scalar paths for <code>BooleanLiteral</code>/<code>NumberLiteral</code> fixed in the same commit (was emitting <code>Terminal(&lt;str&gt;)</code> instead of typed <code>Json(Bool/Number)</code>).</td></tr>
 </tbody>
 </table>
 </div>
@@ -4603,6 +4664,35 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1137--contract-1139--pgen-rgx-0076-typed-posix_class-shape-slice-8"><a class="header" href="#1137--contract-1139--pgen-rgx-0076-typed-posix_class-shape-slice-8">1.1.37 / Contract 1.1.39 — PGEN-RGX-0076: typed <code>posix_class</code> shape (slice 8)</a></h3>
+<p><strong>Bug</strong>: RGX bug report PGEN-RGX-0076 — every POSIX class inside a character class collapsed to the literal string <code>"[:"</code> in the typed shape. The grammar had a placeholder annotation <code>posix_class = "[:" posix_negation? posix_name ":]" -&gt; $1</code> which extracted only the FIRST element (the <code>"[:"</code> opener), silently discarding the matched POSIX name and any negation marker.</p>
+<p><strong>Fix</strong>:</p>
+<pre><code class="language-ebnf">posix_class = "[:" posix_negation? posix_name ":]"
+-&gt; {type: "posix_class", name: $3, negated: $2}
+
+posix_negation = "^" -&gt; true
+</code></pre>
+<p><strong>Codegen fixes</strong> in the same commit:</p>
+<ul>
+<li><code>BooleanLiteral</code> codegen at the rule-level scalar path (<code>generate_transform</code>) was emitting <code>ParseContent::Terminal(&lt;bool_str&gt;)</code> — a string Terminal <code>"true"</code>/<code>"false"</code> — instead of a typed JSON boolean. Surfaced when <code>posix_negation -&gt; true</code> produced <code>"true"</code> (string) instead of <code>true</code> (bool).</li>
+<li><code>NumberLiteral</code> codegen at the same path had the analogous bug. Both now emit <code>ParseContent::Json(serde_json::Value::Bool/Number(...))</code> mirroring the value-extraction path.</li>
+</ul>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong>. Every POSIX class inside <code>[...]</code> now emits a typed object:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[[:alpha:]]</code></td><td><code>class_body[0] = "[:"</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}</code></td></tr>
+<tr><td><code>[[:^alpha:]]</code></td><td><code>class_body[0] = "[:"</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":true}</code></td></tr>
+<tr><td><code>[[:alpha:][:digit:]]</code></td><td><code>class_body = ["[:", "[:"]</code> (both truncated identically)</td><td><code>class_body = [{type:posix_class,name:alpha,negated:[]}, {type:posix_class,name:digit,negated:[]}]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Consumers walking the typed shape can drop any source-span fallback they had for POSIX class name recovery — the typed object preserves <code>name</code> and <code>negated</code> directly.</p>
+<p><strong><code>negated</code> convention:</strong> <code>true</code> (matched <code>^</code>) or <code>[]</code> (un-matched <code>posix_negation?</code> slot — map to <code>false</code>). Same convention as <code>quantifier.greediness</code>. A future coalesce-operator slice will let the rule emit a bare <code>false</code> directly.</p>
+<p><strong>Contract section:</strong> “Release 1.1.37 / Contract 1.1.39 Highlights”.</p>
 <h3 id="1136--contract-1138--atom-subtree-slice-7-typed-anchor-shape"><a class="header" href="#1136--contract-1138--atom-subtree-slice-7-typed-anchor-shape">1.1.36 / Contract 1.1.38 — Atom subtree slice 7: typed <code>anchor</code> shape</a></h3>
 <p><strong>What changed:</strong> the <code>anchor</code> rule’s 9 branches each got <code>-&gt; {type: "anchor", kind: "&lt;name&gt;"}</code> annotations. Piece atoms for <code>^</code>/<code>$</code>/<code>\A</code>/<code>\Z</code>/<code>\z</code>/<code>\b</code>/<code>\B</code>/<code>\G</code>/<code>\K</code> now emit typed objects with semantic kind names instead of raw escape strings.</p>
 <pre><code class="language-ebnf">anchor = "^"   -&gt; {type: "anchor", kind: "start_of_line"}

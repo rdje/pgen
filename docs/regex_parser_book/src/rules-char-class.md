@@ -122,20 +122,45 @@ fn classify_class_item(item: &Value) -> ClassItemKind {
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
 posix_class = "[:" posix_negation? posix_name ":]"
--> $1
+-> {type: "posix_class", name: $3, negated: $2}
+
+posix_negation = "^" -> true
 ```
 
-**Annotated with `-> $1`** (single-element body — the `[:`...`:]` framing — passthrough). The body is a 4-element Sequence: `["[:", <negation?>, <posix_name>, ":]"]`. With `-> $1`, the rule emits the full Sequence.
+**Annotated** as of slice 8 (post-1.1.36) — fixes [PGEN-RGX-0076](changelog-index.md). Pre-fix the rule used `-> $1` which extracted only the literal `"[:"` opener, silently discarding the POSIX class name and negation marker.
 
-Wait — `-> $1` extracts the FIRST element, which is the `"[:"` terminal. That's not very useful. Let me re-check.
+### Shape
 
-Actually looking at the rule: `posix_class = "[:" posix_negation? posix_name ":]" -> $1`. The body is a Sequence of 4 elements; `$1` is `"[:"`. So `-> $1` would emit just the `"[:"` terminal. That seems wrong for a useful return shape.
+```json
+{"type": "posix_class", "name": <name>, "negated": <true | []>}
+```
 
-In practice, the current emit is a Json containing just `"[:"` — a placeholder shape that clearly needs further annotation work. Consumers should treat this as part of task #40's atom-subtree annotation slice; the eventual shape will be `{type: "posix_class", name: <str>, negated: <bool>}`.
+- `name` is the matched POSIX class name as a string (`"alpha"`, `"digit"`, `"xdigit"`, etc. — one of the 14 names accepted by `posix_name`).
+- `negated` is the typed boolean `true` when the source has `^` after `[:` (e.g. `[[:^alpha:]]`), or the empty array `[]` when no `^` was matched. Consumers map `[]` → `false`. Same convention as `quantifier.greediness`. A future coalesce-operator slice will let the rule emit a bare `false` instead of `[]`.
 
-**For now**, posix_class atoms in JSON output appear as either the bare string `"[:"` (annotation-applied, sub-optimal) or the full `["[:", <neg?>, <name>, ":]"]` Sequence (when consumers walk the legacy ParseNode tree).
+### Examples
 
-Pragmatic consumer guidance: pattern-match on `"[:" + posix-name + ":]"` text in the source, or walk the ParseNode tree to inspect the `posix_name` rule directly.
+| Source | Output |
+|---|---|
+| `[[:alpha:]]`     | `class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}` |
+| `[[:^alpha:]]`    | `class_body[0] = {"type":"posix_class","name":"alpha","negated":true}` |
+| `[[:digit:]]`     | `class_body[0] = {"type":"posix_class","name":"digit","negated":[]}` |
+| `[[:xdigit:]]`    | `class_body[0] = {"type":"posix_class","name":"xdigit","negated":[]}` |
+| `[[:alpha:][:digit:]]` | 2-element class_body — both POSIX classes typed and disambiguated |
+
+### Consumer extraction
+
+```rust
+fn extract_posix_class(class_item: &Value) -> Option<(String, bool)> {
+    let obj = class_item.as_object()?;
+    if obj.get("type")?.as_str()? != "posix_class" {
+        return None;
+    }
+    let name = obj.get("name")?.as_str()?.to_string();
+    let negated = obj.get("negated").map(|v| v.as_bool().unwrap_or(false)).unwrap_or(false);
+    Some((name, negated))
+}
+```
 
 ## `class_range`
 

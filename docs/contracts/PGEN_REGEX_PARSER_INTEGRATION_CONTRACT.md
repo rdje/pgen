@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.38`
+  - `1.1.39`
 - Parser release version:
-  - `1.1.36`
+  - `1.1.37`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,33 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.37 / Contract 1.1.39 Highlights — PGEN-RGX-0076 typed-shape fix for `posix_class`
+
+- **Driven by RGX bug report PGEN-RGX-0076** (`/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0076.yaml`).
+- **What was wrong:** the `posix_class` rule used a placeholder annotation `-> $1` which extracted only the first element of the rule body (the literal `"[:"` opener), silently discarding the matched POSIX class name and the optional `posix_negation`. Every POSIX class inside `[...]` collapsed to the same string `"[:"` in the typed AST. RGX could not distinguish `[:alpha:]` from `[:digit:]`; multi-class bodies like `[[:alpha:][:digit:]]` produced two identical-looking truncated entries.
+- **Root cause and scope:** mostly a grammar-side fix (the annotation was a known placeholder per the regex-parser-book inline acknowledgment). Surfaced two latent codegen bugs in `rust/src/ast_pipeline/ast_return_transform.rs`:
+  - `BooleanLiteral` rule-level scalar path emitted `ParseContent::Terminal(<bool_str>)` (a string Terminal `"true"`) instead of `ParseContent::Json(serde_json::Value::Bool(...))`. Detected because `posix_negation -> true` produced the string `"true"` initially.
+  - `NumberLiteral` rule-level scalar path had the analogous bug (preventative fix; no current grammar exercises it).
+- **Fix:** grammar annotation upgraded from placeholder to typed object construction, and codegen now emits typed `Json(Bool)` / `Json(Number)` for rule-level scalar literals.
+  ```ebnf
+  posix_class = "[:" posix_negation? posix_name ":]"
+  -> {type: "posix_class", name: $3, negated: $2}
+  posix_negation = "^" -> true
+  ```
+- **AST shape change (consumer-visible):** every `posix_class` element inside a character class body now emits a typed `{type, name, negated}` object.
+  - Before: `[[:alpha:]]` → `class_body[0] = "[:"`.
+  - After: `[[:alpha:]]` → `class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}`.
+  - Negated case: `[[:^alpha:]]` → `class_body[0] = {"type":"posix_class","name":"alpha","negated":true}`.
+  - Multi-class: `[[:alpha:][:digit:]]` → 2-element class_body, both POSIX classes typed and disambiguated.
+- **`negated` convention:** typed boolean `true` when `^` matched, empty array `[]` when un-matched (the `posix_negation?` slot's runtime shape). Consumers map `[]` → `false`. Same convention as `quantifier.greediness`. A future coalesce-operator slice will let the rule emit a bare `false` directly.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.37` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update RGX's adapter to read `class_item.get("type") == "posix_class"`, then `class_item.get("name").as_str()` for the POSIX name and `class_item.get("negated").as_bool().unwrap_or(false)` for the negation flag. Drop any source-span fallback used to recover the POSIX name.
+  4. RGX's regression-pin tests `tests::ucp_pragma_unicodefies_posix_classes` and `tests::ucp_graph_includes_format_and_private_use` should pass after the bump.
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_full_regex()`, `parser.parse_regex()`, `parse_regex_typed()`, `parse_regex_default_ast_dump_named()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.36 / Contract 1.1.38 Highlights — atom subtree slice 7: typed `anchor` shape
 

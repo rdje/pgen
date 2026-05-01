@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72b9fb46.js";
+            window.path_to_searchindex_js = "searchindex-60e9e69c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -276,14 +276,46 @@ class_body = class_item*
 <pre><code class="language-ebnf">@generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
 posix_class = "[:" posix_negation? posix_name ":]"
--&gt; $1
+-&gt; {type: "posix_class", name: $3, negated: $2}
+
+posix_negation = "^" -&gt; true
 </code></pre>
-<p><strong>Annotated with <code>-&gt; $1</code></strong> (single-element body — the <code>[:</code>…<code>:]</code> framing — passthrough). The body is a 4-element Sequence: <code>["[:", &lt;negation?&gt;, &lt;posix_name&gt;, ":]"]</code>. With <code>-&gt; $1</code>, the rule emits the full Sequence.</p>
-<p>Wait — <code>-&gt; $1</code> extracts the FIRST element, which is the <code>"[:"</code> terminal. That’s not very useful. Let me re-check.</p>
-<p>Actually looking at the rule: <code>posix_class = "[:" posix_negation? posix_name ":]" -&gt; $1</code>. The body is a Sequence of 4 elements; <code>$1</code> is <code>"[:"</code>. So <code>-&gt; $1</code> would emit just the <code>"[:"</code> terminal. That seems wrong for a useful return shape.</p>
-<p>In practice, the current emit is a Json containing just <code>"[:"</code> — a placeholder shape that clearly needs further annotation work. Consumers should treat this as part of task #40’s atom-subtree annotation slice; the eventual shape will be <code>{type: "posix_class", name: &lt;str&gt;, negated: &lt;bool&gt;}</code>.</p>
-<p><strong>For now</strong>, posix_class atoms in JSON output appear as either the bare string <code>"[:"</code> (annotation-applied, sub-optimal) or the full <code>["[:", &lt;neg?&gt;, &lt;name&gt;, ":]"]</code> Sequence (when consumers walk the legacy ParseNode tree).</p>
-<p>Pragmatic consumer guidance: pattern-match on <code>"[:" + posix-name + ":]"</code> text in the source, or walk the ParseNode tree to inspect the <code>posix_name</code> rule directly.</p>
+<p><strong>Annotated</strong> as of slice 8 (post-1.1.36) — fixes <a href="changelog-index.html">PGEN-RGX-0076</a>. Pre-fix the rule used <code>-&gt; $1</code> which extracted only the literal <code>"[:"</code> opener, silently discarding the POSIX class name and negation marker.</p>
+<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
+<pre><code class="language-json">{"type": "posix_class", "name": &lt;name&gt;, "negated": &lt;true | []&gt;}
+</code></pre>
+<ul>
+<li><code>name</code> is the matched POSIX class name as a string (<code>"alpha"</code>, <code>"digit"</code>, <code>"xdigit"</code>, etc. — one of the 14 names accepted by <code>posix_name</code>).</li>
+<li><code>negated</code> is the typed boolean <code>true</code> when the source has <code>^</code> after <code>[:</code> (e.g. <code>[[:^alpha:]]</code>), or the empty array <code>[]</code> when no <code>^</code> was matched. Consumers map <code>[]</code> → <code>false</code>. Same convention as <code>quantifier.greediness</code>. A future coalesce-operator slice will let the rule emit a bare <code>false</code> instead of <code>[]</code>.</li>
+</ul>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Output</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[[:alpha:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}</code></td></tr>
+<tr><td><code>[[:^alpha:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":true}</code></td></tr>
+<tr><td><code>[[:digit:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"digit","negated":[]}</code></td></tr>
+<tr><td><code>[[:xdigit:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"xdigit","negated":[]}</code></td></tr>
+<tr><td><code>[[:alpha:][:digit:]]</code></td><td>2-element class_body — both POSIX classes typed and disambiguated</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="consumer-extraction"><a class="header" href="#consumer-extraction">Consumer extraction</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_posix_class(class_item: &amp;Value) -&gt; Option&lt;(String, bool)&gt; {
+    let obj = class_item.as_object()?;
+    if obj.get("type")?.as_str()? != "posix_class" {
+        return None;
+    }
+    let name = obj.get("name")?.as_str()?.to_string();
+    let negated = obj.get("negated").map(|v| v.as_bool().unwrap_or(false)).unwrap_or(false);
+    Some((name, negated))
+}
+<span class="boring">}</span></code></pre>
 <h2 id="class_range"><a class="header" href="#class_range"><code>class_range</code></a></h2>
 <pre><code class="language-ebnf">@generate: "ch &gt;= '" + escape_char($1) + "' &amp;&amp; ch &lt;= '" + escape_char($5) + "'"
 @semantic_value: {type: "range", start: $1, end: $5}
@@ -291,7 +323,7 @@ posix_class = "[:" posix_negation? posix_name ":]"
 class_range = class_atom class_zero_width* "-" class_zero_width* class_atom
 </code></pre>
 <p>5-element Sequence: <code>[&lt;start_atom&gt;, &lt;zero-width-prefix*&gt;, "-", &lt;zero-width-suffix*&gt;, &lt;end_atom&gt;]</code>. <strong>Un-annotated</strong> at the return-annotation level.</p>
-<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
+<h3 id="shape-3"><a class="header" href="#shape-3">Shape</a></h3>
 <pre><code class="language-json">[
   &lt;class_atom for start&gt;,
   &lt;Quantified of class_zero_width markers&gt;,

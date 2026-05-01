@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.37 / Contract 1.1.39 — PGEN-RGX-0076: typed `posix_class` shape (slice 8)
+
+**Bug**: RGX bug report PGEN-RGX-0076 — every POSIX class inside a character class collapsed to the literal string `"[:"` in the typed shape. The grammar had a placeholder annotation `posix_class = "[:" posix_negation? posix_name ":]" -> $1` which extracted only the FIRST element (the `"[:"` opener), silently discarding the matched POSIX name and any negation marker.
+
+**Fix**:
+```ebnf
+posix_class = "[:" posix_negation? posix_name ":]"
+-> {type: "posix_class", name: $3, negated: $2}
+
+posix_negation = "^" -> true
+```
+
+**Codegen fixes** in the same commit:
+- `BooleanLiteral` codegen at the rule-level scalar path (`generate_transform`) was emitting `ParseContent::Terminal(<bool_str>)` — a string Terminal `"true"`/`"false"` — instead of a typed JSON boolean. Surfaced when `posix_negation -> true` produced `"true"` (string) instead of `true` (bool).
+- `NumberLiteral` codegen at the same path had the analogous bug. Both now emit `ParseContent::Json(serde_json::Value::Bool/Number(...))` mirroring the value-extraction path.
+
+**Consumer impact:** **breaking but correct**. Every POSIX class inside `[...]` now emits a typed object:
+
+| Source | Before | After |
+|---|---|---|
+| `[[:alpha:]]` | `class_body[0] = "[:"` | `class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}` |
+| `[[:^alpha:]]` | `class_body[0] = "[:"` | `class_body[0] = {"type":"posix_class","name":"alpha","negated":true}` |
+| `[[:alpha:][:digit:]]` | `class_body = ["[:", "[:"]` (both truncated identically) | `class_body = [{type:posix_class,name:alpha,negated:[]}, {type:posix_class,name:digit,negated:[]}]` |
+
+Consumers walking the typed shape can drop any source-span fallback they had for POSIX class name recovery — the typed object preserves `name` and `negated` directly.
+
+**`negated` convention:** `true` (matched `^`) or `[]` (un-matched `posix_negation?` slot — map to `false`). Same convention as `quantifier.greediness`. A future coalesce-operator slice will let the rule emit a bare `false` directly.
+
+**Contract section:** "Release 1.1.37 / Contract 1.1.39 Highlights".
+
 ### 1.1.36 / Contract 1.1.38 — Atom subtree slice 7: typed `anchor` shape
 
 **What changed:** the `anchor` rule's 9 branches each got `-> {type: "anchor", kind: "<name>"}` annotations. Piece atoms for `^`/`$`/`\A`/`\Z`/`\z`/`\b`/`\B`/`\G`/`\K` now emit typed objects with semantic kind names instead of raw escape strings.

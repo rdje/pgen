@@ -250,9 +250,15 @@ class_escape   = escape
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
 posix_class    = "[:" posix_negation? posix_name ":]"
--> $1
+-> {type: "posix_class", name: $3, negated: $2}
 
-posix_negation = "^"
+# `posix_negation -> true` produces a typed `true` when matched. The
+# parent's `negated: $2` slot then carries `[true]` (matched) or `[]`
+# (un-matched). Consumers map `[]` → `false` and `[true]` → `true`,
+# same convention as `quantifier.greediness`. A future coalesce-operator
+# slice in the annotation language will let the parent emit a bare bool
+# directly.
+posix_negation = "^" -> true
 
 @generate: extract_char_value($1)
 @semantic_value: {type: "atom", value: $1}

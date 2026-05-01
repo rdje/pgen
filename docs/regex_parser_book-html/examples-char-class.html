@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72b9fb46.js";
+            window.path_to_searchindex_js = "searchindex-60e9e69c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -298,27 +298,53 @@
 </code></pre>
 <p><code>atom[2]</code> distinguishes: <code>[]</code> (no initial close) vs <code>"]"</code> (initial close present).</p>
 <h2 id="posix-class--alpha"><a class="header" href="#posix-class--alpha">POSIX class — <code>[[:alpha:]]</code></a></h2>
+<p>As of slice 8 (post-1.1.36, fixes <a href="changelog-index.html">PGEN-RGX-0076</a>), POSIX classes inside character classes emit a fully typed <code>{type, name, negated}</code> shape:</p>
 <pre><code class="language-json">{
   "atom": [
     "[",
     [],
     [],
     [
-      [
-        // class_item branch 0 → posix_class
-        // posix_class = "[:" posix_negation? posix_name ":]" -&gt; $1
-        // The annotation `-&gt; $1` extracts the FIRST positional element which is "[:"
-        // — at this release that produces a placeholder shape; consumers walk the
-        // raw underlying class_item structure or the source span to recover the
-        // POSIX name.
-      ]
+      {"type": "posix_class", "name": "alpha", "negated": []}
     ],
     "]"
   ],
   ...
 }
 </code></pre>
-<p>POSIX classes inside character classes have a placeholder shape today (the <code>posix_class</code> annotation produces just <code>"[:"</code> due to the <code>-&gt; $1</code> simplification). For <code>[[:alpha:]]</code> consumers commonly fall back to looking at the source span (<code>span.start..span.end</code>) of the class_item to recover the POSIX name string <code>[:alpha:]</code>. The full shape will be cleaned up in a future task #40 slice.</p>
+<p><code>name</code> is the matched POSIX class name string. <code>negated</code> is the typed boolean <code>true</code> when the source has <code>^</code> after <code>[:</code>, or the empty array <code>[]</code> (un-matched <code>posix_negation?</code> slot — consumers map <code>[]</code> → <code>false</code>).</p>
+<h3 id="alpha--negated-posix-class"><a class="header" href="#alpha--negated-posix-class"><code>[[:^alpha:]]</code> — negated POSIX class</a></h3>
+<pre><code class="language-json">{
+  "atom": [
+    "[",
+    [],
+    [],
+    [
+      {"type": "posix_class", "name": "alpha", "negated": true}
+    ],
+    "]"
+  ],
+  ...
+}
+</code></pre>
+<h3 id="alphadigit--multiple-posix-classes"><a class="header" href="#alphadigit--multiple-posix-classes"><code>[[:alpha:][:digit:]]</code> — multiple POSIX classes</a></h3>
+<pre><code class="language-json">{
+  "atom": [
+    "[",
+    [],
+    [],
+    [
+      {"type": "posix_class", "name": "alpha", "negated": []},
+      {"type": "posix_class", "name": "digit", "negated": []}
+    ],
+    "]"
+  ],
+  ...
+}
+</code></pre>
+<p>Both POSIX classes typed and disambiguated.</p>
+<h3 id="migration-from-pre-1137-slice-8"><a class="header" href="#migration-from-pre-1137-slice-8">Migration from pre-1.1.37 (slice 8)</a></h3>
+<p>Before slice 8, the <code>posix_class</code> annotation <code>-&gt; $1</code> extracted only the literal <code>"[:"</code> opener — the typed shape was just the bare string <code>"[:"</code>, which collapsed every POSIX class name (<code>alpha</code>/<code>digit</code>/<code>xdigit</code>/etc.) to the same value. Consumers who relied on a source-span fallback can drop that path; the typed shape now preserves the name and negation directly.</p>
 <h2 id="quoted-class-literal--qa-ze"><a class="header" href="#quoted-class-literal--qa-ze">Quoted class literal — <code>[\Qa-z\E]</code></a></h2>
 <p>The PCRE2 class-quote form. The <code>class_item</code> matches <code>quoted_class_literal</code>:</p>
 <pre><code class="language-json">{

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72b9fb46.js";
+            window.path_to_searchindex_js = "searchindex-60e9e69c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,35 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1137--contract-1139--pgen-rgx-0076-typed-posix_class-shape-slice-8"><a class="header" href="#1137--contract-1139--pgen-rgx-0076-typed-posix_class-shape-slice-8">1.1.37 / Contract 1.1.39 — PGEN-RGX-0076: typed <code>posix_class</code> shape (slice 8)</a></h3>
+<p><strong>Bug</strong>: RGX bug report PGEN-RGX-0076 — every POSIX class inside a character class collapsed to the literal string <code>"[:"</code> in the typed shape. The grammar had a placeholder annotation <code>posix_class = "[:" posix_negation? posix_name ":]" -&gt; $1</code> which extracted only the FIRST element (the <code>"[:"</code> opener), silently discarding the matched POSIX name and any negation marker.</p>
+<p><strong>Fix</strong>:</p>
+<pre><code class="language-ebnf">posix_class = "[:" posix_negation? posix_name ":]"
+-&gt; {type: "posix_class", name: $3, negated: $2}
+
+posix_negation = "^" -&gt; true
+</code></pre>
+<p><strong>Codegen fixes</strong> in the same commit:</p>
+<ul>
+<li><code>BooleanLiteral</code> codegen at the rule-level scalar path (<code>generate_transform</code>) was emitting <code>ParseContent::Terminal(&lt;bool_str&gt;)</code> — a string Terminal <code>"true"</code>/<code>"false"</code> — instead of a typed JSON boolean. Surfaced when <code>posix_negation -&gt; true</code> produced <code>"true"</code> (string) instead of <code>true</code> (bool).</li>
+<li><code>NumberLiteral</code> codegen at the same path had the analogous bug. Both now emit <code>ParseContent::Json(serde_json::Value::Bool/Number(...))</code> mirroring the value-extraction path.</li>
+</ul>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong>. Every POSIX class inside <code>[...]</code> now emits a typed object:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[[:alpha:]]</code></td><td><code>class_body[0] = "[:"</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}</code></td></tr>
+<tr><td><code>[[:^alpha:]]</code></td><td><code>class_body[0] = "[:"</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":true}</code></td></tr>
+<tr><td><code>[[:alpha:][:digit:]]</code></td><td><code>class_body = ["[:", "[:"]</code> (both truncated identically)</td><td><code>class_body = [{type:posix_class,name:alpha,negated:[]}, {type:posix_class,name:digit,negated:[]}]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Consumers walking the typed shape can drop any source-span fallback they had for POSIX class name recovery — the typed object preserves <code>name</code> and <code>negated</code> directly.</p>
+<p><strong><code>negated</code> convention:</strong> <code>true</code> (matched <code>^</code>) or <code>[]</code> (un-matched <code>posix_negation?</code> slot — map to <code>false</code>). Same convention as <code>quantifier.greediness</code>. A future coalesce-operator slice will let the rule emit a bare <code>false</code> directly.</p>
+<p><strong>Contract section:</strong> “Release 1.1.37 / Contract 1.1.39 Highlights”.</p>
 <h3 id="1136--contract-1138--atom-subtree-slice-7-typed-anchor-shape"><a class="header" href="#1136--contract-1138--atom-subtree-slice-7-typed-anchor-shape">1.1.36 / Contract 1.1.38 — Atom subtree slice 7: typed <code>anchor</code> shape</a></h3>
 <p><strong>What changed:</strong> the <code>anchor</code> rule’s 9 branches each got <code>-&gt; {type: "anchor", kind: "&lt;name&gt;"}</code> annotations. Piece atoms for <code>^</code>/<code>$</code>/<code>\A</code>/<code>\Z</code>/<code>\z</code>/<code>\b</code>/<code>\B</code>/<code>\G</code>/<code>\K</code> now emit typed objects with semantic kind names instead of raw escape strings.</p>
 <pre><code class="language-ebnf">anchor = "^"   -&gt; {type: "anchor", kind: "start_of_line"}

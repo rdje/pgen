@@ -1,4 +1,67 @@
 # CHANGES.md
+## 2026-05-01 - PGEN-RGX-0076: typed `posix_class` shape + BooleanLiteral/NumberLiteral codegen fix
+
+### Bug report
+RGX filed `PGEN-RGX-0076` (`/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0076.yaml`): every POSIX class inside `[...]` collapsed to the literal string `"[:"` in the typed AST. RGX could not distinguish `[:alpha:]` from `[:digit:]`; multi-class bodies produced identical truncated entries.
+
+### Root cause
+The `posix_class` rule had a placeholder annotation `-> $1` which extracted only the first body element (the literal `"[:"` opener), silently dropping the `posix_negation?` slot, the matched `posix_name`, and the closing `":]"`. The book chapter `docs/regex_parser_book/src/rules-char-class.md` already acknowledged this as a known sub-optimal annotation pending the atom-subtree slice campaign.
+
+### Latent codegen bugs surfaced
+
+While fixing the grammar I tested with `posix_negation = "^" -> true` and saw `"negated": "true"` (string!) in the output. Investigation revealed two bugs in `rust/src/ast_pipeline/ast_return_transform.rs`:
+
+- `BooleanLiteral` codegen at the rule-level scalar path was emitting `ParseContent::Terminal(<bool_str>)` — a string Terminal `"true"` — instead of `ParseContent::Json(serde_json::Value::Bool(...))`. The value-extraction path (used inside object literals) had been correct, but the rule-level path that emits the rule's whole content was broken.
+- `NumberLiteral` had the analogous bug at the same path (preventative fix; no current grammar exercised it).
+
+Both fixed to mirror the value-extraction path's correct typed-Json emission.
+
+### Fix
+
+```ebnf
+posix_class = "[:" posix_negation? posix_name ":]"
+-> {type: "posix_class", name: $3, negated: $2}
+
+posix_negation = "^" -> true
+```
+
+Empirical AST shape (post-fix):
+
+| Source | class_body[0] |
+|---|---|
+| `[[:alpha:]]` | `{"type":"posix_class","name":"alpha","negated":[]}` |
+| `[[:^alpha:]]` | `{"type":"posix_class","name":"alpha","negated":true}` |
+| `[[:digit:]]` | `{"type":"posix_class","name":"digit","negated":[]}` |
+| `[[:xdigit:]]` | `{"type":"posix_class","name":"xdigit","negated":[]}` |
+| `[[:alpha:][:digit:]]` | 2-element class_body, both POSIX classes typed |
+
+### `negated` convention
+`true` (matched `^`) or `[]` (un-matched `posix_negation?` slot — consumers map → `false`). Same convention as `quantifier.greediness`. A future coalesce-operator slice in the annotation language will let the rule emit a bare `false` directly.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 494 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json`: `posix_class` entry reshaped from `return_scalar "$1"` to `return_object {...}`; new `posix_negation` entry.
+- `make regex_parser_book_gate` green.
+- Empirical sweep over all 7 PGEN-RGX-0076 test cases produces correct typed shape.
+
+### Contract bump
+
+Parser release `1.1.36` → `1.1.37`. Contract `1.1.38` → `1.1.39`. New section "Release 1.1.37 / Contract 1.1.39 Highlights — PGEN-RGX-0076 typed-shape fix for `posix_class`" in the integration contract. New `REGEX-0076` row in the bug ledger. Regex AST schema version stays `1`.
+
+### Live-docs sync
+- `docs/regex_parser_book/src/rules-char-class.md` — `posix_class` section rewritten; placeholder acknowledgment replaced with full typed-shape documentation; consumer-extraction recipe.
+- `docs/regex_parser_book/src/examples-char-class.md` — POSIX class examples reshaped; new `[[:^alpha:]]` and `[[:alpha:][:digit:]]` worked examples; migration-from-pre-1.1.37 note.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets `posix_class` and `posix_negation` entries.
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline gains 0.12.0 row.
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.37 / 1.1.39 entry above 1.1.36.
+
+### RGX integration impact
+
+RGX adapter switches from "unrecognised class_item string `"[:"`" failure to direct `obj.get("type") == "posix_class"` dispatch. RGX's regression-pin tests `tests::ucp_pragma_unicodefies_posix_classes` and `tests::ucp_graph_includes_format_and_private_use` should pass after the bump.
+
+### Atom subtree progress
+2 of 25 alternatives annotated (anchor in slice 7, posix_class in slice 8). Next focus areas: `posix_word_boundary_alias` (joins anchor family), `backreference`, `escape`, `dot`, `literal`, `char_class` (the outer rule, separate from `posix_class`), group family.
+
 ## 2026-05-01 - regex.ebnf slice 7/N: atom subtree — typed `anchor` shape
 
 ### What landed

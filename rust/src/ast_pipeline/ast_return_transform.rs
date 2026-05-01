@@ -24,12 +24,32 @@ impl AstReturnTransformer {
                 Ok(quote! { ParseContent::Terminal(#value) })
             }
             UnifiedReturnAST::NumberLiteral { value } => {
-                let num_str = value.to_string();
-                Ok(quote! { ParseContent::Terminal(#num_str) })
+                // Emit the typed JSON number, integer-preserving when the
+                // literal has no fractional part (matches the value-extraction
+                // path's behaviour). Pre-fix this emitted
+                // `ParseContent::Terminal(<value.to_string()>)` — a string
+                // Terminal that JSON-serialised as a quoted string instead of
+                // a number, breaking any consumer reading the field as a
+                // number. Mirrors the fix applied to BooleanLiteral below.
+                if value.is_finite() && value.fract() == 0.0
+                    && *value >= i64::MIN as f64
+                    && *value <= i64::MAX as f64
+                {
+                    let int_value = *value as i64;
+                    Ok(quote! { ParseContent::Json(serde_json::Value::from(#int_value)) })
+                } else {
+                    let v = *value;
+                    Ok(quote! { ParseContent::Json(serde_json::Value::from(#v)) })
+                }
             }
             UnifiedReturnAST::BooleanLiteral { value } => {
-                let bool_str = value.to_string();
-                Ok(quote! { ParseContent::Terminal(#bool_str) })
+                // Emit the typed JSON boolean directly. Pre-fix this emitted
+                // `ParseContent::Terminal(<value.to_string()>)` — a string
+                // Terminal `"true"` or `"false"`, which JSON-serialised as a
+                // quoted string and broke `negated: $2` style fields where a
+                // boolean is expected. Surfaced by PGEN-RGX-0076.
+                let bool_lit = *value;
+                Ok(quote! { ParseContent::Json(serde_json::Value::Bool(#bool_lit)) })
             }
             UnifiedReturnAST::NullLiteral => Ok(quote! {
                 ParseContent::Json(serde_json::Value::Null)

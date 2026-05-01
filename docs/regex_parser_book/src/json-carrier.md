@@ -32,6 +32,8 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `counted_quantifier_body` (branch 2) | `-> {min: $1, max: $1}` | Object `{min, max}` (`{n}` form, max == min) |
 | `counted_quantifier_body` (branch 3) | `-> {min: 0, max: $3}` | Object `{min:0, max}` (`{,m}` form) |
 | `anchor` (branch 0..8) | `-> {type: "anchor", kind: "<name>"}` per branch | Object `{type:"anchor", kind:<name>}` — `kind` ∈ `start_of_line` / `end_of_line` / `start_of_input` / `end_of_input_or_before_last_newline` / `end_of_input` / `word_boundary` / `non_word_boundary` / `match_start` / `keep_out` |
+| `posix_class` | `-> {type: "posix_class", name: $3, negated: $2}` | Object `{type:"posix_class", name:<str>, negated:<true \| []>}` |
+| `posix_negation` | `-> true` | Boolean `true` (matched), or `[]` from the un-matched `posix_negation?` slot |
 | `quant_base` (branch 0 `*`) | `-> {min: 0, max: null}` | Object `{min:0, max:null}` (unbounded zero-or-more) |
 | `quant_base` (branch 1 `+`) | `-> {min: 1, max: null}` | Object `{min:1, max:null}` (unbounded one-or-more) |
 | `quant_base` (branch 2 `?`) | `-> {min: 0, max: 1}` | Object `{min:0, max:1}` (zero-or-one) |
