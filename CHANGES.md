@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-05-01 - PGEN-RGX-0078 logged (acknowledged / deferred, non-blocking)
+
+RGX filed PGEN-RGX-0078 — methodology-correction follow-up to PGEN-RGX-0073. 0073 closed against PGEN's absolute <50µs PRIMARY target at release `1.1.30`. 0078 files the integration-side metric explicitly: PCRE2-relative ratio (RGX ROADMAP target <5x of PCRE2 compile).
+
+Live measurement on Apple M4 Pro (rgx_commit `6c9766c`, default macOS allocator, 5000 samples / 200 warmup):
+- Geomean PGEN parse ~218µs vs PCRE2-no-JIT compile ~605ns → **~360x slower than PCRE2 no-JIT, ~85x slower than PCRE2+JIT** across the 8-pattern bench corpus.
+- Slowdown is corpus-wide, deterministic, weakly size-correlated.
+- Allocator gap accounts for ~4-7x of divergence vs PGEN release-note p50s; even adopting mimalloc would still leave geomean ~50x against PCRE2-no-JIT (10x over closure target).
+
+RGX flagged as **non-blocking** for current integration. Sequenced AFTER the atom-subtree typed-shape campaign (task #40) — this isn't a correctness issue and shape work doesn't change parse-time architecture.
+
+Likely resolution path per the report's analysis: specialised codegen for the regex grammar (bypass PGEN's general-purpose EBNF-driven codegen for the regex profile specifically). Alternative diagnostic outcome: PGEN determines specialised codegen is out-of-scope for the regex grammar and 0078 closes with a forward reference to the out-of-scope decision.
+
+RGX provided a self-contained iteration flow under `pgen-issues/artifacts/PGEN-RGX-0078/pgen_iteration_flow/` (standalone C baselines, self-contained Rust microbench using the `pcre2` crate, Cargo.toml/Makefile snippets, `run_perf_gate.sh` driver). PGEN can run the same PCRE2-relative measurement without depending on RGX.
+
+Logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` as `REGEX-0078` with status `Acknowledged / Deferred (non-blocking)`. No parser release / contract bump.
+
 ## 2026-05-01 - regex.ebnf slice 15/N: escape subtree continues (hex/unicode)
 
 ### What landed
