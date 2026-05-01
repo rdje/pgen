@@ -258,16 +258,20 @@ The deeply-nested array structure on the right of `"\\"` is the un-annotated `es
 ## `posix_word_boundary_alias`
 
 ```ebnf
-posix_word_boundary_alias = "[[:<:]]" | "[[:>:]]"
+posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_start"}
+                          | "[[:>:]]" -> {type: "anchor", kind: "posix_word_end"}
 ```
 
-PCRE2's BSD-style word-boundary aliases. 2-way Or, **un-annotated**.
+PCRE2's BSD-style word-boundary aliases. 2-way Or, **annotated** as of slice 9 (post-1.1.37). Joins the same typed anchor family as the `anchor` rule.
 
 ### Shape
 
-`Terminal("[[:<:]]")` or `Terminal("[[:>:]]")`.
+```json
+{"type": "anchor", "kind": "posix_word_start"}    // for [[:<:]]
+{"type": "anchor", "kind": "posix_word_end"}      // for [[:>:]]
+```
 
-Treated as a single atomic unit at the parser level — these are NOT character classes despite the syntactic resemblance.
+Treated as atomic units at the parser level — NOT character classes despite the syntactic resemblance. Consumers dispatching on `obj.type == "anchor"` handle these uniformly with the regular anchor variants. See [Examples: Anchors and Boundaries](examples-anchors.md).
 
 ## `char_class`
 
@@ -310,7 +314,7 @@ When walking a piece's `atom` field, here's the structural signature for each ki
 | `backreference` | 2-element array starting with `"\\"` followed by digits / `\\k` / `\\g` form | `["\\", <digits>]` etc. |
 | `quoted_literal` | 3-element array `["\\Q", <chars>, "\\E"]` | full quoted literal |
 | `escape` | 2-element array starting with `"\\"` and not matching backreference form | `["\\", <escape_unit>]` |
-| `posix_word_boundary_alias` | bare string `"[[:<:]]"` or `"[[:>:]]"` | full sequence as one terminal |
+| `posix_word_boundary_alias` | typed object `{"type":"anchor","kind":"posix_word_start"|"posix_word_end"}` | annotated in slice 9; same dispatch shape as `anchor` |
 | `char_class` | 4-element array starting with `"["`, ending with `"]"` | square-bracket class |
 | `group` | array starting with `"("` | various `(...)` forms |
 | `lookaround` | array starting with `"(?="`, `"(?!"`, `"(?<="`, `"(?<!"` | etc. |

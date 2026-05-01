@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.39`
+  - `1.1.40`
 - Parser release version:
-  - `1.1.37`
+  - `1.1.38`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,23 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.38 / Contract 1.1.40 Highlights — atom subtree slice 9: typed `posix_word_boundary_alias` (closes anchor family)
+
+- **Internal-driven shape work** (no downstream report). Closes the anchor-family typing started in slice 7.
+- **Rule changed:** `posix_word_boundary_alias` in `grammars/regex.ebnf`. The 2 branches each got a per-branch `-> {type: "anchor", kind: "<name>"}` annotation. PCRE2's BSD-style word-boundary aliases `[[:<:]]` and `[[:>:]]` now emit the same typed anchor shape as the regular `anchor` rule.
+- **AST shape change (consumer-visible):** `[[:<:]]` and `[[:>:]]` atoms emit typed `{type:"anchor", kind:<name>}` objects instead of bare 7-char terminal strings.
+  - Before: `[[:<:]]foo[[:>:]]` → `[<bare-string-anchor>, "f", "o", "o", <bare-string-anchor>]`.
+  - After: `[[:<:]]foo[[:>:]]` → 5 pieces with anchors as `{"type":"anchor","kind":"posix_word_start"}` and `{"type":"anchor","kind":"posix_word_end"}`.
+- **Anchor family closed.** All 11 anchor variants — 9 from `anchor` (slice 7) + 2 from `posix_word_boundary_alias` (this slice) — now emit the same typed `{type:"anchor", kind:<name>}` shape:
+  - `^` → `start_of_line`, `$` → `end_of_line`, `\A` → `start_of_input`, `\Z` → `end_of_input_or_before_last_newline`, `\z` → `end_of_input`, `\b` → `word_boundary`, `\B` → `non_word_boundary`, `\G` → `match_start`, `\K` → `keep_out`, `[[:<:]]` → `posix_word_start`, `[[:>:]]` → `posix_word_end`.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.38` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that pattern-matched on the raw `"[[:<:]]"` / `"[[:>:]]"` 7-char terminal strings to use the typed kind dispatch (`obj.get("kind").as_str() == "posix_word_start"` etc.). Drop any string-match fallback.
+- Public API surface unchanged: `RegexParser::new`, `parser.parse_full_regex()`, `parser.parse_regex()`, `parse_regex_typed()`, `parse_regex_default_ast_dump_named()` keep the same signatures. `ParseNode` and `ParseContent` enum unchanged.
+- Regex AST schema version stays `1`.
+- Atom subtree campaign progress: 3 of 25 alternatives annotated (anchor, posix_class, posix_word_boundary_alias). Anchor family is now closed; remaining work covers `literal`, `whitespace_literal`, `dot`, `backreference`, `quoted_literal`, `escape`, `char_class` (outer rule), and the group/modifier/conditional/lookaround families.
 
 ## Release 1.1.37 / Contract 1.1.39 Highlights — PGEN-RGX-0076 typed-shape fix for `posix_class`
 

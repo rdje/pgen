@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1c2f544.js";
+            window.path_to_searchindex_js = "searchindex-a6493578.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -213,6 +213,8 @@
 <tr><td><code>counted_quantifier_body</code> (branch 2)</td><td><code>-&gt; {min: $1, max: $1}</code></td><td>Object <code>{min, max}</code> (<code>{n}</code> form, max == min)</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 3)</td><td><code>-&gt; {min: 0, max: $3}</code></td><td>Object <code>{min:0, max}</code> (<code>{,m}</code> form)</td></tr>
 <tr><td><code>anchor</code> (branch 0..8)</td><td><code>-&gt; {type: "anchor", kind: "&lt;name&gt;"}</code> per branch</td><td>Object <code>{type:"anchor", kind:&lt;name&gt;}</code> — <code>kind</code> ∈ <code>start_of_line</code> / <code>end_of_line</code> / <code>start_of_input</code> / <code>end_of_input_or_before_last_newline</code> / <code>end_of_input</code> / <code>word_boundary</code> / <code>non_word_boundary</code> / <code>match_start</code> / <code>keep_out</code></td></tr>
+<tr><td><code>posix_word_boundary_alias</code> (branch 0)</td><td><code>-&gt; {type: "anchor", kind: "posix_word_start"}</code></td><td>Same anchor family as the <code>anchor</code> rule (kind = <code>posix_word_start</code>)</td></tr>
+<tr><td><code>posix_word_boundary_alias</code> (branch 1)</td><td><code>-&gt; {type: "anchor", kind: "posix_word_end"}</code></td><td>Same anchor family as the <code>anchor</code> rule (kind = <code>posix_word_end</code>)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; {type: "posix_class", name: $3, negated: $2}</code></td><td>Object <code>{type:"posix_class", name:&lt;str&gt;, negated:&lt;true | []&gt;}</code></td></tr>
 <tr><td><code>posix_negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), or <code>[]</code> from the un-matched <code>posix_negation?</code> slot</td></tr>
 <tr><td><code>quant_base</code> (branch 0 <code>*</code>)</td><td><code>-&gt; {min: 0, max: null}</code></td><td>Object <code>{min:0, max:null}</code> (unbounded zero-or-more)</td></tr>

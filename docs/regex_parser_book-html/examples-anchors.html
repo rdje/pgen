@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1c2f544.js";
+            window.path_to_searchindex_js = "searchindex-a6493578.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -267,43 +267,40 @@
        | "\\K" -&gt; {type: "anchor", kind: "keep_out"}
 </code></pre>
 <h2 id="posix-word-boundary-aliases---and-"><a class="header" href="#posix-word-boundary-aliases---and-">POSIX word-boundary aliases — <code>[[:&lt;:]]</code> and <code>[[:&gt;:]]</code></a></h2>
-<p>Despite the syntax resembling a character class, these are atomic anchors handled by the <code>posix_word_boundary_alias</code> rule. <strong>At this release that rule is NOT yet annotated</strong> — it still emits a single Terminal of the entire 7-char sequence:</p>
-<pre><code class="language-json">"atom": "[[:&lt;:]]"
+<p>Despite the syntax resembling a character class, these are atomic anchors handled by the <code>posix_word_boundary_alias</code> rule. As of slice 9 (post-1.1.37) the rule is annotated and emits the same typed <code>{type:"anchor", kind:&lt;name&gt;}</code> shape as the regular <code>anchor</code> rule:</p>
+<pre><code class="language-json">"atom": {"type": "anchor", "kind": "posix_word_start"}
 </code></pre>
 <p>Or:</p>
-<pre><code class="language-json">"atom": "[[:&gt;:]]"
+<pre><code class="language-json">"atom": {"type": "anchor", "kind": "posix_word_end"}
 </code></pre>
-<p>These are NOT character classes — consumers should NOT recursively descend looking for class items. They’re anchors. A future slice will annotate <code>posix_word_boundary_alias</code> with a typed <code>{type:"anchor", kind:"posix_word_start"}</code> / <code>kind:"posix_word_end"</code> shape, joining them into the <code>anchor</code> typed family.</p>
+<p>Consumers walking the typed shape can dispatch uniformly on <code>obj.type == "anchor"</code> regardless of whether the source used <code>\b</code> (regular word boundary) or <code>[[:&lt;:]]</code>/<code>[[:&gt;:]]</code> (POSIX-style aliases) — the dispatch shape is identical, only the <code>kind</code> value differs.</p>
+<p>These are NOT character classes — consumers should NOT recursively descend looking for class items. They’re anchors. The typed kind names <code>posix_word_start</code> / <code>posix_word_end</code> distinguish them from PCRE2’s <code>\b</code> (which is <code>kind:"word_boundary"</code> and is bidirectional, matching at either edge).</p>
 <h2 id="consumer-extraction-pattern"><a class="header" href="#consumer-extraction-pattern">Consumer extraction pattern</a></h2>
+<p>As of slice 9 (post-1.1.37) all 11 anchor variants — the 9 from the <code>anchor</code> rule plus the 2 POSIX-style aliases from <code>posix_word_boundary_alias</code> — emit the same typed <code>{type:"anchor", kind:&lt;name&gt;}</code> shape. Consumer dispatch is uniform:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn classify_anchor(atom: &amp;Value) -&gt; Option&lt;AnchorKind&gt; {
-    // Typed anchor (slice 7 onward)
-    if let Some(obj) = atom.as_object() {
-        if obj.get("type").and_then(|v| v.as_str()) == Some("anchor") {
-            return obj.get("kind").and_then(|v| v.as_str()).map(|kind| match kind {
-                "start_of_line" =&gt; AnchorKind::StartOfLine,
-                "end_of_line" =&gt; AnchorKind::EndOfLine,
-                "start_of_input" =&gt; AnchorKind::StartOfInput,
-                "end_of_input_or_before_last_newline" =&gt; AnchorKind::EndOfInputOrBeforeLastNewline,
-                "end_of_input" =&gt; AnchorKind::EndOfInput,
-                "word_boundary" =&gt; AnchorKind::WordBoundary,
-                "non_word_boundary" =&gt; AnchorKind::NonWordBoundary,
-                "match_start" =&gt; AnchorKind::MatchStart,
-                "keep_out" =&gt; AnchorKind::KeepOut,
-                _ =&gt; return None,
-            });
-        }
+    let obj = atom.as_object()?;
+    if obj.get("type")?.as_str()? != "anchor" {
+        return None;
     }
-    // Legacy: posix_word_boundary_alias still emits raw string until its slice lands.
-    match atom.as_str()? {
-        "[[:&lt;:]]" =&gt; Some(AnchorKind::PosixWordStart),
-        "[[:&gt;:]]" =&gt; Some(AnchorKind::PosixWordEnd),
+    match obj.get("kind")?.as_str()? {
+        "start_of_line" =&gt; Some(AnchorKind::StartOfLine),
+        "end_of_line" =&gt; Some(AnchorKind::EndOfLine),
+        "start_of_input" =&gt; Some(AnchorKind::StartOfInput),
+        "end_of_input_or_before_last_newline" =&gt; Some(AnchorKind::EndOfInputOrBeforeLastNewline),
+        "end_of_input" =&gt; Some(AnchorKind::EndOfInput),
+        "word_boundary" =&gt; Some(AnchorKind::WordBoundary),
+        "non_word_boundary" =&gt; Some(AnchorKind::NonWordBoundary),
+        "match_start" =&gt; Some(AnchorKind::MatchStart),
+        "keep_out" =&gt; Some(AnchorKind::KeepOut),
+        "posix_word_start" =&gt; Some(AnchorKind::PosixWordStart),
+        "posix_word_end" =&gt; Some(AnchorKind::PosixWordEnd),
         _ =&gt; None,
     }
 }
 <span class="boring">}</span></code></pre>
-<p>The discriminator is <code>obj.type == "anchor"</code> plus <code>obj.kind</code> for the variant. The POSIX aliases will join the typed family in their own slice.</p>
+<p>The discriminator is <code>obj.type == "anchor"</code> plus <code>obj.kind</code> for the variant. No string-match fallback paths needed — the anchor family is fully typed.</p>
 <h2 id="migration-from-pre-1135-slice-7"><a class="header" href="#migration-from-pre-1135-slice-7">Migration from pre-1.1.35 (slice 7)</a></h2>
 <p>Before slice 7, the <code>anchor</code> rule emitted <code>Terminal(&lt;text&gt;)</code> and consumers dispatched on the raw escape text:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

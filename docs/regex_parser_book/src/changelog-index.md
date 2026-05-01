@@ -23,6 +23,39 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.38 / Contract 1.1.40 — Atom subtree slice 9: typed `posix_word_boundary_alias` (closes anchor family)
+
+**What changed:** the `posix_word_boundary_alias` rule's 2 branches each annotated to emit the same typed anchor shape as the `anchor` rule:
+
+```ebnf
+posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_start"}
+                          | "[[:>:]]" -> {type: "anchor", kind: "posix_word_end"}
+```
+
+PCRE2's POSIX-style word-boundary aliases (`[[:<:]]` / `[[:>:]]`) are anchors despite the character-class-looking syntax. They now join the typed anchor family — consumers can dispatch uniformly on `obj.type == "anchor"` regardless of whether the source used `\b` (regular) or `[[:<:]]`/`[[:>:]]` (POSIX-style).
+
+**Consumer impact:** **breaking but correct** — consumers walking the `posix_word_boundary_alias` atom must update from `atom.as_str() == "[[:<:]]"` to `atom.get("kind").as_str() == "posix_word_start"` (and similar for end). After this slice, the consumer-side `classify_anchor` recipe in [Examples: Anchors](examples-anchors.md) covers all 11 anchor variants with no fallback paths.
+
+**Anchor family closed:** all 11 anchor variants — 9 from `anchor` (slice 7) + 2 from `posix_word_boundary_alias` (this slice) — emit the same typed `{type:"anchor", kind:<name>}` shape:
+
+| Source | `kind` |
+|---|---|
+| `^` | `start_of_line` |
+| `$` | `end_of_line` |
+| `\A` | `start_of_input` |
+| `\Z` | `end_of_input_or_before_last_newline` |
+| `\z` | `end_of_input` |
+| `\b` | `word_boundary` |
+| `\B` | `non_word_boundary` |
+| `\G` | `match_start` |
+| `\K` | `keep_out` |
+| `[[:<:]]` | `posix_word_start` |
+| `[[:>:]]` | `posix_word_end` |
+
+**Atom subtree progress:** 3 of 25 alternatives annotated (anchor, posix_class, posix_word_boundary_alias). Note: anchor and posix_word_boundary_alias are siblings under `atom`, but together they close the anchor-shaped family (3 grammar atoms emit the same typed shape).
+
+**Contract section:** "Release 1.1.38 / Contract 1.1.40 Highlights".
+
 ### 1.1.37 / Contract 1.1.39 — PGEN-RGX-0076: typed `posix_class` shape (slice 8)
 
 **Bug**: RGX bug report PGEN-RGX-0076 — every POSIX class inside a character class collapsed to the literal string `"[:"` in the typed shape. The grammar had a placeholder annotation `posix_class = "[:" posix_negation? posix_name ":]" -> $1` which extracted only the FIRST element (the `"[:"` opener), silently discarding the matched POSIX name and any negation marker.

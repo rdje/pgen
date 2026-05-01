@@ -1,4 +1,57 @@
 # CHANGES.md
+## 2026-05-01 - regex.ebnf slice 9/N: typed `posix_word_boundary_alias` (closes anchor family)
+
+### What landed
+
+The `posix_word_boundary_alias` rule's 2 branches each got typed annotations:
+
+```ebnf
+posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_start"}
+                          | "[[:>:]]" -> {type: "anchor", kind: "posix_word_end"}
+```
+
+PCRE2's BSD-style word-boundary aliases now emit the same typed anchor shape as the regular `anchor` rule (slice 7). Closes the anchor family.
+
+### Empirical AST shape
+
+| Source | Before | After |
+|---|---|---|
+| `[[:<:]]` | `"atom": "[[:<:]]"` | `"atom": {"type":"anchor","kind":"posix_word_start"}` |
+| `[[:>:]]` | `"atom": "[[:>:]]"` | `"atom": {"type":"anchor","kind":"posix_word_end"}` |
+| `[[:<:]]foo[[:>:]]` | 5 pieces, anchors as bare strings | 5 pieces, anchors as typed objects |
+
+### Anchor family closed
+
+All 11 anchor variants now emit `{type:"anchor", kind:<name>}` uniformly:
+- 9 from `anchor` (slice 7): `start_of_line`, `end_of_line`, `start_of_input`, `end_of_input_or_before_last_newline`, `end_of_input`, `word_boundary`, `non_word_boundary`, `match_start`, `keep_out`.
+- 2 from `posix_word_boundary_alias` (slice 9): `posix_word_start`, `posix_word_end`.
+
+Consumer-side `classify_anchor` walker collapses to a single `obj.get("kind")` lookup with no fallback paths.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 494 / 0.
+- Manifest `rust/test_data/ast_shape_contract/regex_v1.json`: 2 new `posix_word_boundary_alias` entries (alphabetic order, between `posix_negation` and `quant_base`).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over `[[:<:]]`, `[[:>:]]`, and compound `[[:<:]]foo[[:>:]]` produces correct typed shape.
+
+### Contract bump
+
+Parser release `1.1.37` → `1.1.38`. Contract `1.1.39` → `1.1.40`. New section "Release 1.1.38 / Contract 1.1.40 Highlights" in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/examples-anchors.md` — POSIX aliases section reshaped from "NOT yet annotated" to typed shape; consumer-extraction recipe collapsed (no fallback paths).
+- `docs/regex_parser_book/src/rules-atom.md` — `posix_word_boundary_alias` section now annotated; identification-table row updated.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 2 new entries.
+- `docs/regex_parser_book/src/schema-versioning.md` — version timeline gains 0.13.0 row.
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.38 / 1.1.40 entry above 1.1.37.
+
+### RGX integration impact
+
+Consumers walking `posix_word_boundary_alias` atoms must update from raw-string match (`atom.as_str() == "[[:<:]]"`) to typed-kind dispatch (`obj.kind == "posix_word_start"`). The change is small and aligned with the slice-7 anchor migration.
+
+### Atom subtree progress
+3 of 25 alternatives annotated (anchor, posix_class, posix_word_boundary_alias). Anchor family closed. Remaining: `literal`, `whitespace_literal`, `dot`, `backreference`, `quoted_literal`, `escape`, `char_class` (outer rule), group/modifier/conditional/lookaround families.
+
 ## 2026-05-01 - PGEN-RGX-0076: typed `posix_class` shape + BooleanLiteral/NumberLiteral codegen fix
 
 ### Bug report

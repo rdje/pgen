@@ -205,6 +205,18 @@
         "normalized_text": "true"
       },
       {
+        "rule": "posix_word_boundary_alias",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"posix_word_start\"}"
+      },
+      {
+        "rule": "posix_word_boundary_alias",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"anchor\", kind: \"posix_word_end\"}"
+      },
+      {
         "rule": "quant_base",
         "branch_index": 0,
         "annotation_type": "return_object",

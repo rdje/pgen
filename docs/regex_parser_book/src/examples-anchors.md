@@ -106,51 +106,50 @@ anchor = "^"   -> {type: "anchor", kind: "start_of_line"}
 
 ## POSIX word-boundary aliases — `[[:<:]]` and `[[:>:]]`
 
-Despite the syntax resembling a character class, these are atomic anchors handled by the `posix_word_boundary_alias` rule. **At this release that rule is NOT yet annotated** — it still emits a single Terminal of the entire 7-char sequence:
+Despite the syntax resembling a character class, these are atomic anchors handled by the `posix_word_boundary_alias` rule. As of slice 9 (post-1.1.37) the rule is annotated and emits the same typed `{type:"anchor", kind:<name>}` shape as the regular `anchor` rule:
 
 ```json
-"atom": "[[:<:]]"
+"atom": {"type": "anchor", "kind": "posix_word_start"}
 ```
 
 Or:
 
 ```json
-"atom": "[[:>:]]"
+"atom": {"type": "anchor", "kind": "posix_word_end"}
 ```
 
-These are NOT character classes — consumers should NOT recursively descend looking for class items. They're anchors. A future slice will annotate `posix_word_boundary_alias` with a typed `{type:"anchor", kind:"posix_word_start"}` / `kind:"posix_word_end"` shape, joining them into the `anchor` typed family.
+Consumers walking the typed shape can dispatch uniformly on `obj.type == "anchor"` regardless of whether the source used `\b` (regular word boundary) or `[[:<:]]`/`[[:>:]]` (POSIX-style aliases) — the dispatch shape is identical, only the `kind` value differs.
+
+These are NOT character classes — consumers should NOT recursively descend looking for class items. They're anchors. The typed kind names `posix_word_start` / `posix_word_end` distinguish them from PCRE2's `\b` (which is `kind:"word_boundary"` and is bidirectional, matching at either edge).
 
 ## Consumer extraction pattern
 
+As of slice 9 (post-1.1.37) all 11 anchor variants — the 9 from the `anchor` rule plus the 2 POSIX-style aliases from `posix_word_boundary_alias` — emit the same typed `{type:"anchor", kind:<name>}` shape. Consumer dispatch is uniform:
+
 ```rust
 fn classify_anchor(atom: &Value) -> Option<AnchorKind> {
-    // Typed anchor (slice 7 onward)
-    if let Some(obj) = atom.as_object() {
-        if obj.get("type").and_then(|v| v.as_str()) == Some("anchor") {
-            return obj.get("kind").and_then(|v| v.as_str()).map(|kind| match kind {
-                "start_of_line" => AnchorKind::StartOfLine,
-                "end_of_line" => AnchorKind::EndOfLine,
-                "start_of_input" => AnchorKind::StartOfInput,
-                "end_of_input_or_before_last_newline" => AnchorKind::EndOfInputOrBeforeLastNewline,
-                "end_of_input" => AnchorKind::EndOfInput,
-                "word_boundary" => AnchorKind::WordBoundary,
-                "non_word_boundary" => AnchorKind::NonWordBoundary,
-                "match_start" => AnchorKind::MatchStart,
-                "keep_out" => AnchorKind::KeepOut,
-                _ => return None,
-            });
-        }
+    let obj = atom.as_object()?;
+    if obj.get("type")?.as_str()? != "anchor" {
+        return None;
     }
-    // Legacy: posix_word_boundary_alias still emits raw string until its slice lands.
-    match atom.as_str()? {
-        "[[:<:]]" => Some(AnchorKind::PosixWordStart),
-        "[[:>:]]" => Some(AnchorKind::PosixWordEnd),
+    match obj.get("kind")?.as_str()? {
+        "start_of_line" => Some(AnchorKind::StartOfLine),
+        "end_of_line" => Some(AnchorKind::EndOfLine),
+        "start_of_input" => Some(AnchorKind::StartOfInput),
+        "end_of_input_or_before_last_newline" => Some(AnchorKind::EndOfInputOrBeforeLastNewline),
+        "end_of_input" => Some(AnchorKind::EndOfInput),
+        "word_boundary" => Some(AnchorKind::WordBoundary),
+        "non_word_boundary" => Some(AnchorKind::NonWordBoundary),
+        "match_start" => Some(AnchorKind::MatchStart),
+        "keep_out" => Some(AnchorKind::KeepOut),
+        "posix_word_start" => Some(AnchorKind::PosixWordStart),
+        "posix_word_end" => Some(AnchorKind::PosixWordEnd),
         _ => None,
     }
 }
 ```
 
-The discriminator is `obj.type == "anchor"` plus `obj.kind` for the variant. The POSIX aliases will join the typed family in their own slice.
+The discriminator is `obj.type == "anchor"` plus `obj.kind` for the variant. No string-match fallback paths needed — the anchor family is fully typed.
 
 ## Migration from pre-1.1.35 (slice 7)
 

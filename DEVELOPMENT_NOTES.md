@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-01 - regex.ebnf slice 9/N — typed `posix_word_boundary_alias` (closes anchor family)
+
+### What landed
+
+```ebnf
+posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_start"}
+                          | "[[:>:]]" -> {type: "anchor", kind: "posix_word_end"}
+```
+
+PCRE2's BSD-style word-boundary aliases now emit the same typed anchor shape as the regular `anchor` rule. Pre-slice they emitted bare 7-char terminal strings.
+
+### Why this slice
+
+Promised in slice 7's commit and in the PGEN-RGX-0076 commit (which referenced "POSIX aliases NOT yet typed; future slice"). Small, well-bounded scope (2 branches, both single terminals). Closes the anchor-family typing — all 11 anchor variants now uniform.
+
+### Empirical
+- `[[:<:]]` → `{"type":"anchor","kind":"posix_word_start"}`.
+- `[[:>:]]` → `{"type":"anchor","kind":"posix_word_end"}`.
+- `[[:<:]]foo[[:>:]]` → 5 pieces: 1st/5th typed POSIX anchors; literal `f`/`o`/`o` between.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` — 494 / 0.
+- Manifest updated with 2 new `posix_word_boundary_alias` entries (alphabetic order between `posix_negation` and `quant_base`).
+- `make regex_parser_book_gate` — green.
+
+### Live-book sync (per the live-book policy)
+- `docs/regex_parser_book/src/examples-anchors.md` — POSIX aliases section reshaped from "NOT yet annotated" to typed shape; consumer-extraction recipe collapsed (no fallback paths).
+- `docs/regex_parser_book/src/rules-atom.md` — `posix_word_boundary_alias` section now annotated; identification-table row updated.
+- `docs/regex_parser_book/src/json-carrier.md` — annotated rules table gets 2 new entries.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.13.0 row.
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.38 / 1.1.40 entry.
+
+### Contract bump
+
+Parser release `1.1.37` → `1.1.38`. Contract `1.1.39` → `1.1.40`. New section in the integration contract. Regex AST schema version stays `1`.
+
+### Anchor family closed
+
+All 11 anchor variants emit `{type:"anchor", kind:<name>}` uniformly:
+- `^`, `$`, `\A`, `\Z`, `\z`, `\b`, `\B`, `\G`, `\K` (slice 7).
+- `[[:<:]]`, `[[:>:]]` (slice 9).
+
+Consumer-side `classify_anchor` walker is a single `obj.kind` lookup.
+
+### Atom subtree progress
+3 of 25 alternatives annotated. Anchor family closed. Remaining: `literal`, `whitespace_literal`, `dot`, `backreference`, `quoted_literal`, `escape`, `char_class` (outer), group/modifier/conditional/lookaround families.
+
 ## 2026-05-01 - PGEN-RGX-0076: typed `posix_class` + BooleanLiteral/NumberLiteral codegen alignment
 
 ### What landed

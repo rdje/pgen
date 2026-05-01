@@ -186,7 +186,12 @@ name_continue  = name_start | digit
 brace_ws       = (' ' | '\t')+
 
 # Character classes with actionable code generation
-posix_word_boundary_alias = "[[:<:]]" | "[[:>:]]"
+# PCRE2-style POSIX word-boundary aliases. Despite their `[[:...:]]` syntax
+# they are anchor atoms, not character classes. Typed to join the same
+# `{type:"anchor", kind:"<name>"}` family produced by the `anchor` rule
+# (slice 7) so consumers can dispatch uniformly on `obj.type == "anchor"`.
+posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_start"}
+                          | "[[:>:]]" -> {type: "anchor", kind: "posix_word_end"}
 
 @generate: generate_char_class_matcher(has_negation($2), collect_class_items($2))
 @optimize: count(flatten($2)) > 8 ? "lookup_table" : "linear_checks"

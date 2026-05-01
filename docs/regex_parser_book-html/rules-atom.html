@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1c2f544.js";
+            window.path_to_searchindex_js = "searchindex-a6493578.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -352,12 +352,15 @@
 </code></pre>
 <p>The deeply-nested array structure on the right of <code>"\\"</code> is the un-annotated <code>escape_unit -&gt; simple_escape -&gt; any_char -&gt; letter</code> chain. Each layer of un-annotated wrapping adds an array level. Once <code>escape_unit</code> is annotated, the nesting will collapse.</p>
 <h2 id="posix_word_boundary_alias"><a class="header" href="#posix_word_boundary_alias"><code>posix_word_boundary_alias</code></a></h2>
-<pre><code class="language-ebnf">posix_word_boundary_alias = "[[:&lt;:]]" | "[[:&gt;:]]"
+<pre><code class="language-ebnf">posix_word_boundary_alias = "[[:&lt;:]]" -&gt; {type: "anchor", kind: "posix_word_start"}
+                          | "[[:&gt;:]]" -&gt; {type: "anchor", kind: "posix_word_end"}
 </code></pre>
-<p>PCRE2’s BSD-style word-boundary aliases. 2-way Or, <strong>un-annotated</strong>.</p>
+<p>PCRE2’s BSD-style word-boundary aliases. 2-way Or, <strong>annotated</strong> as of slice 9 (post-1.1.37). Joins the same typed anchor family as the <code>anchor</code> rule.</p>
 <h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
-<p><code>Terminal("[[:&lt;:]]")</code> or <code>Terminal("[[:&gt;:]]")</code>.</p>
-<p>Treated as a single atomic unit at the parser level — these are NOT character classes despite the syntactic resemblance.</p>
+<pre><code class="language-json">{"type": "anchor", "kind": "posix_word_start"}    // for [[:&lt;:]]
+{"type": "anchor", "kind": "posix_word_end"}      // for [[:&gt;:]]
+</code></pre>
+<p>Treated as atomic units at the parser level — NOT character classes despite the syntactic resemblance. Consumers dispatching on <code>obj.type == "anchor"</code> handle these uniformly with the regular anchor variants. See <a href="examples-anchors.html">Examples: Anchors and Boundaries</a>.</p>
 <h2 id="char_class"><a class="header" href="#char_class"><code>char_class</code></a></h2>
 <pre><code class="language-ebnf">char_class = "[" negation? class_initial_close? class_body "]"
 </code></pre>
@@ -390,7 +393,7 @@
 <tr><td><code>backreference</code></td><td>2-element array starting with <code>"\\"</code> followed by digits / <code>\\k</code> / <code>\\g</code> form</td><td><code>["\\", &lt;digits&gt;]</code> etc.</td></tr>
 <tr><td><code>quoted_literal</code></td><td>3-element array <code>["\\Q", &lt;chars&gt;, "\\E"]</code></td><td>full quoted literal</td></tr>
 <tr><td><code>escape</code></td><td>2-element array starting with <code>"\\"</code> and not matching backreference form</td><td><code>["\\", &lt;escape_unit&gt;]</code></td></tr>
-<tr><td><code>posix_word_boundary_alias</code></td><td>bare string <code>"[[:&lt;:]]"</code> or <code>"[[:&gt;:]]"</code></td><td>full sequence as one terminal</td></tr>
+<tr><td><code>posix_word_boundary_alias</code></td><td>typed object `{“type”:“anchor”,“kind”:“posix_word_start”</td><td>“posix_word_end”}`</td></tr>
 <tr><td><code>char_class</code></td><td>4-element array starting with <code>"["</code>, ending with <code>"]"</code></td><td>square-bracket class</td></tr>
 <tr><td><code>group</code></td><td>array starting with <code>"("</code></td><td>various <code>(...)</code> forms</td></tr>
 <tr><td><code>lookaround</code></td><td>array starting with <code>"(?="</code>, <code>"(?!"</code>, <code>"(?&lt;="</code>, <code>"(?&lt;!"</code></td><td>etc.</td></tr>

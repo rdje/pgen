@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1c2f544.js";
+            window.path_to_searchindex_js = "searchindex-a6493578.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,36 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1138--contract-1140--atom-subtree-slice-9-typed-posix_word_boundary_alias-closes-anchor-family"><a class="header" href="#1138--contract-1140--atom-subtree-slice-9-typed-posix_word_boundary_alias-closes-anchor-family">1.1.38 / Contract 1.1.40 — Atom subtree slice 9: typed <code>posix_word_boundary_alias</code> (closes anchor family)</a></h3>
+<p><strong>What changed:</strong> the <code>posix_word_boundary_alias</code> rule’s 2 branches each annotated to emit the same typed anchor shape as the <code>anchor</code> rule:</p>
+<pre><code class="language-ebnf">posix_word_boundary_alias = "[[:&lt;:]]" -&gt; {type: "anchor", kind: "posix_word_start"}
+                          | "[[:&gt;:]]" -&gt; {type: "anchor", kind: "posix_word_end"}
+</code></pre>
+<p>PCRE2’s POSIX-style word-boundary aliases (<code>[[:&lt;:]]</code> / <code>[[:&gt;:]]</code>) are anchors despite the character-class-looking syntax. They now join the typed anchor family — consumers can dispatch uniformly on <code>obj.type == "anchor"</code> regardless of whether the source used <code>\b</code> (regular) or <code>[[:&lt;:]]</code>/<code>[[:&gt;:]]</code> (POSIX-style).</p>
+<p><strong>Consumer impact:</strong> <strong>breaking but correct</strong> — consumers walking the <code>posix_word_boundary_alias</code> atom must update from <code>atom.as_str() == "[[:&lt;:]]"</code> to <code>atom.get("kind").as_str() == "posix_word_start"</code> (and similar for end). After this slice, the consumer-side <code>classify_anchor</code> recipe in <a href="examples-anchors.html">Examples: Anchors</a> covers all 11 anchor variants with no fallback paths.</p>
+<p><strong>Anchor family closed:</strong> all 11 anchor variants — 9 from <code>anchor</code> (slice 7) + 2 from <code>posix_word_boundary_alias</code> (this slice) — emit the same typed <code>{type:"anchor", kind:&lt;name&gt;}</code> shape:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th><code>kind</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>^</code></td><td><code>start_of_line</code></td></tr>
+<tr><td><code>$</code></td><td><code>end_of_line</code></td></tr>
+<tr><td><code>\A</code></td><td><code>start_of_input</code></td></tr>
+<tr><td><code>\Z</code></td><td><code>end_of_input_or_before_last_newline</code></td></tr>
+<tr><td><code>\z</code></td><td><code>end_of_input</code></td></tr>
+<tr><td><code>\b</code></td><td><code>word_boundary</code></td></tr>
+<tr><td><code>\B</code></td><td><code>non_word_boundary</code></td></tr>
+<tr><td><code>\G</code></td><td><code>match_start</code></td></tr>
+<tr><td><code>\K</code></td><td><code>keep_out</code></td></tr>
+<tr><td><code>[[:&lt;:]]</code></td><td><code>posix_word_start</code></td></tr>
+<tr><td><code>[[:&gt;:]]</code></td><td><code>posix_word_end</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Atom subtree progress:</strong> 3 of 25 alternatives annotated (anchor, posix_class, posix_word_boundary_alias). Note: anchor and posix_word_boundary_alias are siblings under <code>atom</code>, but together they close the anchor-shaped family (3 grammar atoms emit the same typed shape).</p>
+<p><strong>Contract section:</strong> “Release 1.1.38 / Contract 1.1.40 Highlights”.</p>
 <h3 id="1137--contract-1139--pgen-rgx-0076-typed-posix_class-shape-slice-8"><a class="header" href="#1137--contract-1139--pgen-rgx-0076-typed-posix_class-shape-slice-8">1.1.37 / Contract 1.1.39 — PGEN-RGX-0076: typed <code>posix_class</code> shape (slice 8)</a></h3>
 <p><strong>Bug</strong>: RGX bug report PGEN-RGX-0076 — every POSIX class inside a character class collapsed to the literal string <code>"[:"</code> in the typed shape. The grammar had a placeholder annotation <code>posix_class = "[:" posix_negation? posix_name ":]" -&gt; $1</code> which extracted only the FIRST element (the <code>"[:"</code> opener), silently discarding the matched POSIX name and any negation marker.</p>
 <p><strong>Fix</strong>:</p>
