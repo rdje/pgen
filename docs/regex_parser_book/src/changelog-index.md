@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.59 / Contract 1.1.61 — Slice 29: class_range / quoted_class_literal / class_range_escape typed
+
+**What changed:** First sub-rule typing slice — the inner shapes that show up under `char_class.body`.
+
+```ebnf
+class_range          = class_atom class_zero_width* "-" class_zero_width* class_atom
+                        -> {type: "class_range", start: $1, end: $5}
+quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
+                        -> {type: "class_quoted_literal", body: $2}
+class_range_escape   = "\\" class_range_escape_unit
+                        -> $2
+```
+
+**Before / after:**
+
+| Source | Before (slice 28) | After |
+|---|---|---|
+| `[a-z]` body | `[["a", [], "-", [], "z"]]` | `[{type:"class_range", start:"a", end:"z"}]` |
+| `[A-Z0-9_]` body | mix of class_range and class_literal | `[{type:"class_range", start:"A", end:"Z"}, {type:"class_range", start:"0", end:"9"}, "_"]` |
+| `[\Qa-z\E]` body | `[["\\Q", ["a", "-", "z"], "\\E"]]` | `[{type:"class_quoted_literal", body:["a", "-", "z"]}]` |
+| `[\xA-\xFF]` body | deeply nested | `[{type:"class_range", start:{type:"escape", kind:"hex", digits:"A"}, end:{type:"escape", kind:"hex", digits:"FF"}}]` |
+
+**`class_range_escape -> $2` is a transparent passthrough.** Drops the leading `\` so the typed escape_unit shape (already produced by hex/unicode/octal/control/simple/single_byte/property branches via slices 14-17) surfaces directly inside `class_range.start` / `class_range.end`. Mirrors the outer `escape -> $2` annotation from slice 14.
+
+**Char_class body shapes now typed end-to-end.** Plain literals → bare string (slice 15's class_literal regex literal); ranges → `{type:"class_range"}`; quoted literals → `{type:"class_quoted_literal"}`; escapes → typed escape_unit shapes (slices 14-17); POSIX classes → typed `posix_class` (slice 8).
+
+**Sub-rule typing campaign progress:** First slice. Atom subtree stays 25/25 at outer level; sub-rule typing now covers the most-visible inner shapes inside `char_class.body`.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.59 / Contract 1.1.61 Highlights".
+
 ### 1.1.58 / Contract 1.1.60 — Atom subtree slice 28: extended_class typed (recursive structures all closed)
 
 **What changed:** `extended_class` now emits typed `{type:"atom", kind:"extended_class", body:<content>}` objects.

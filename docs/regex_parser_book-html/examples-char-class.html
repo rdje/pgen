@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5224ad7d.js";
+            window.path_to_searchindex_js = "searchindex-d18cb55b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -216,27 +216,42 @@
     "kind": "char_class",
     "negated": [],
     "initial_close": [],
-    "body": [["a", [], "-", [], "z"]]
+    "body": [{"type": "class_range", "start": "a", "end": "z"}]
   },
   ...
 }
 </code></pre>
-<p>The <code>class_range</code> 5-element Sequence is preserved inside <code>body</code>: <code>[&lt;start&gt;, &lt;zw-prefix&gt;, "-", &lt;zw-suffix&gt;, &lt;end&gt;]</code>. The two <code>class_zero_width*</code> slots are typically empty <code>[]</code>. <code>class_range</code> outer typing is a follow-up concern.</p>
+<p><code>class_range</code> is typed <code>{type:"class_range", start, end}</code> (slice 29). The two <code>class_zero_width*</code> slots (rare PCRE2 <code>\E</code>/<code>\Q\E</code> markers around the dash) are dropped from the typed shape; consumers needing them can fall back to the raw <code>class_range</code> shape.</p>
 <h2 id="mixed-range-and-literal--a-z0-9_"><a class="header" href="#mixed-range-and-literal--a-z0-9_">Mixed range and literal — <code>[a-z0-9_]</code></a></h2>
 <pre><code class="language-json">{
   "atom": {
     "type": "atom",
     "kind": "char_class",
     "body": [
-      ["a", [], "-", [], "z"],
-      ["0", [], "-", [], "9"],
+      {"type": "class_range", "start": "a", "end": "z"},
+      {"type": "class_range", "start": "0", "end": "9"},
       "_"
     ]
   },
   ...
 }
 </code></pre>
-<p>Three <code>class_item</code>s: two ranges and one literal. The body’s order matches the source order.</p>
+<p>Three <code>class_item</code>s: two typed ranges and one bare literal. The body’s order matches the source order.</p>
+<h2 id="hex-escape-range--xa-xff"><a class="header" href="#hex-escape-range--xa-xff">Hex-escape range — <code>[\xA-\xFF]</code></a></h2>
+<pre><code class="language-json">{
+  "atom": {
+    "type": "atom",
+    "kind": "char_class",
+    "body": [{
+      "type": "class_range",
+      "start": {"type": "escape", "kind": "hex", "digits": "A"},
+      "end": {"type": "escape", "kind": "hex", "digits": "FF"}
+    }]
+  },
+  ...
+}
+</code></pre>
+<p>End-to-end typed — the typed escape_unit shape (slice 15) surfaces directly inside <code>class_range.start</code>/<code>end</code> via slice 29’s <code>class_range_escape -&gt; $2</code> passthrough.</p>
 <h2 id="initial-close-class--a"><a class="header" href="#initial-close-class--a">Initial-close class — <code>[]a]</code></a></h2>
 <p>PCRE2 quirk — a literal <code>]</code> as the FIRST class char is allowed:</p>
 <pre><code class="language-json">{

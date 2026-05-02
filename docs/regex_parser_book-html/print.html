@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5224ad7d.js";
+            window.path_to_searchindex_js = "searchindex-d18cb55b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -947,6 +947,9 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>conditional</code></td><td><code>-&gt; {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}</code></td><td>Object. <code>condition</code> is heterogeneous (typed signed_digits / “DEFINE” / <code>["R", ...]</code> / name string). <code>no_branch</code> is <code>[]</code> (no else) or `[“</td></tr>
 <tr><td><code>conditional_branch</code></td><td><code>-&gt; [$1**]</code></td><td>Flat array of pieces (parallels <code>concatenation</code>).</td></tr>
 <tr><td><code>extended_class</code></td><td><code>-&gt; {type:"atom", kind:"extended_class", body:$2}</code></td><td>Object. <code>body</code> is raw <code>extended_class_content</code> shape; sub-rule typing of the recursive set-operation structure is a separate concern.</td></tr>
+<tr><td><code>class_range</code></td><td><code>-&gt; {type:"class_range", start:$1, end:$5}</code></td><td>Object. <code>start</code>/<code>end</code> are typed class_atoms (escape / clean string / quoted_class_range_atom). <code>class_zero_width*</code> slots (rare PCRE2 <code>\E</code>/<code>\Q\E</code> markers around the dash) dropped from typed shape; consumers needing them fall back to raw.</td></tr>
+<tr><td><code>quoted_class_literal</code></td><td><code>-&gt; {type:"class_quoted_literal", body:$2}</code></td><td>Object. <code>body</code> is array of <code>quoted_class_literal_char*</code> matched chars (parallels <code>quoted_literal</code> slice 18).</td></tr>
+<tr><td><code>class_range_escape</code></td><td><code>-&gt; $2</code></td><td>Transparent passthrough — drops the leading <code>\</code> so the typed escape_unit shape (slices 14-17) surfaces directly. Mirrors outer <code>escape -&gt; $2</code> (slice 14).</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>
@@ -3382,27 +3385,42 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
     "kind": "char_class",
     "negated": [],
     "initial_close": [],
-    "body": [["a", [], "-", [], "z"]]
+    "body": [{"type": "class_range", "start": "a", "end": "z"}]
   },
   ...
 }
 </code></pre>
-<p>The <code>class_range</code> 5-element Sequence is preserved inside <code>body</code>: <code>[&lt;start&gt;, &lt;zw-prefix&gt;, "-", &lt;zw-suffix&gt;, &lt;end&gt;]</code>. The two <code>class_zero_width*</code> slots are typically empty <code>[]</code>. <code>class_range</code> outer typing is a follow-up concern.</p>
+<p><code>class_range</code> is typed <code>{type:"class_range", start, end}</code> (slice 29). The two <code>class_zero_width*</code> slots (rare PCRE2 <code>\E</code>/<code>\Q\E</code> markers around the dash) are dropped from the typed shape; consumers needing them can fall back to the raw <code>class_range</code> shape.</p>
 <h2 id="mixed-range-and-literal--a-z0-9_"><a class="header" href="#mixed-range-and-literal--a-z0-9_">Mixed range and literal — <code>[a-z0-9_]</code></a></h2>
 <pre><code class="language-json">{
   "atom": {
     "type": "atom",
     "kind": "char_class",
     "body": [
-      ["a", [], "-", [], "z"],
-      ["0", [], "-", [], "9"],
+      {"type": "class_range", "start": "a", "end": "z"},
+      {"type": "class_range", "start": "0", "end": "9"},
       "_"
     ]
   },
   ...
 }
 </code></pre>
-<p>Three <code>class_item</code>s: two ranges and one literal. The body’s order matches the source order.</p>
+<p>Three <code>class_item</code>s: two typed ranges and one bare literal. The body’s order matches the source order.</p>
+<h2 id="hex-escape-range--xa-xff"><a class="header" href="#hex-escape-range--xa-xff">Hex-escape range — <code>[\xA-\xFF]</code></a></h2>
+<pre><code class="language-json">{
+  "atom": {
+    "type": "atom",
+    "kind": "char_class",
+    "body": [{
+      "type": "class_range",
+      "start": {"type": "escape", "kind": "hex", "digits": "A"},
+      "end": {"type": "escape", "kind": "hex", "digits": "FF"}
+    }]
+  },
+  ...
+}
+</code></pre>
+<p>End-to-end typed — the typed escape_unit shape (slice 15) surfaces directly inside <code>class_range.start</code>/<code>end</code> via slice 29’s <code>class_range_escape -&gt; $2</code> passthrough.</p>
 <h2 id="initial-close-class--a"><a class="header" href="#initial-close-class--a">Initial-close class — <code>[]a]</code></a></h2>
 <p>PCRE2 quirk — a literal <code>]</code> as the FIRST class char is allowed:</p>
 <pre><code class="language-json">{
@@ -4422,6 +4440,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.18.0</td><td>1.1.44</td><td><strong>Breaking but correct:</strong> atom subtree slice 14 (escape subtree starts: simple/single_byte/control). <code>escape</code> rule annotated <code>-&gt; $2</code> (transparent passthrough). <code>single_byte_escape -&gt; {type:"escape", kind:"single_byte"}</code>, <code>simple_escape -&gt; {type:"escape", kind:"shorthand", char:$1}</code>, <code>control_escape -&gt; {type:"escape", kind:"control", char:$2}</code>. PCRE2 <code>\d</code>/<code>\w</code>/<code>\s</code>/<code>\.</code>/<code>\\</code> (shorthand), <code>\C</code> (single_byte), <code>\cA</code>/<code>\cz</code> (control) atoms now emit typed <code>{type, kind, char?}</code> objects. The other 4 escape_unit branches (hex/unicode/octal/property) still emit raw shapes — they pass through <code>escape -&gt; $2</code> un-typed; follow-up slices will annotate each.</td></tr>
 <tr><td>0.19.0</td><td>1.1.45</td><td><strong>Breaking but correct:</strong> atom subtree slice 15 (escape subtree continues: hex/unicode). <code>hex_escape</code> annotated per-branch <code>-&gt; {type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code>. <code>unicode_escape</code> annotated <code>-&gt; {type:"escape", kind:"unicode", digits:&lt;hex-string&gt;}</code>. New <code>hex_escape_short_payload</code> regex literal <code>/([0-9A-Fa-f]{1,2})/</code> for the short <code>\xNN</code> form. <code>hex_digits</code> rewritten from <code>hex_digit+</code> chain to a regex literal <code>/([0-9A-Fa-f]+)/</code>. PCRE2 <code>\xF</code>/<code>\xFF</code>/<code>\x{1F}</code>/<code>\x{1F600}</code> (hex) and <code>\u{NNNN}</code> (unicode) atoms emit typed <code>{type, kind, digits}</code> objects. <code>digits</code> is the matched hex string; consumers parse to int via <code>usize::from_str_radix(digits, 16)</code>. Int-decoding via the rule’s <code>@transform</code> would require extending the transform machinery to support <code>from_str_radix</code>-style; saved as a separate codegen-feature slice.</td></tr>
 <tr><td>0.20.0</td><td>1.1.46</td><td><strong>Breaking but correct:</strong> atom subtree slice 16 (escape subtree continues: octal). <code>octal_escape</code> annotated per-branch <code>-&gt; {type:"escape", kind:"octal", digits:&lt;octal-string&gt;}</code>. New <code>octal_escape_short_payload</code> regex literal <code>/([0-7]{1,3})/</code> for the bare 1-3-digit form. <code>octal_digits</code> rewritten from <code>octal_digit+</code> chain to a regex literal <code>/([0-7]+)/</code>. Braced <code>\o{NNN...}</code> (atom) and bare <code>\NNN</code> (in classes via <code>class_range_escape_unit</code>) emit typed <code>{type, kind, digits}</code> objects. <code>digits</code> is the matched octal string; consumers parse with <code>usize::from_str_radix(digits, 8)</code>. Bare <code>\NNN</code> at atom-level remains parsed as <code>backreference</code> (numeric kind) under the existing PEG ordering — pre-existing, not changed by this slice; PEG can’t express PCRE2’s contextual backref-vs-octal disambiguation directly. 6/7 escape_unit branches now typed; only <code>property_escape</code> remains.</td></tr>
+<tr><td>0.33.0</td><td>1.1.59</td><td><strong>Breaking but correct:</strong> sub-rule typing slice 29 — class_range / quoted_class_literal / class_range_escape typed. <code>class_range -&gt; {type:"class_range", start:$1, end:$5}</code> (drops the rare <code>class_zero_width*</code> slots from the typed shape; consumers needing them fall back to raw). <code>quoted_class_literal -&gt; {type:"class_quoted_literal", body:$2}</code> (parallels <code>quoted_literal</code> slice 18). <code>class_range_escape -&gt; $2</code> (transparent passthrough; mirrors outer <code>escape -&gt; $2</code> from slice 14). Char_class body shapes now typed end-to-end inside <code>char_class.body</code>. First sub-rule typing slice — atom subtree stays 25/25 at outer level; this slice cleans up the most-visible inner shapes.</td></tr>
 <tr><td>0.32.0</td><td>1.1.58</td><td><strong>Breaking but correct:</strong> atom subtree slice 28 (<code>extended_class</code> typed). <code>extended_class -&gt; {type:"atom", kind:"extended_class", body:$2}</code>. <code>(?[abc])</code> now emits <code>{kind:"extended_class", body:["a","b","c"]}</code> instead of the 3-element <code>["(?[", &lt;content&gt;, "])"]</code> Sequence. <code>body</code> is the raw extended_class_content shape; sub-rule typing of the recursive set-operation structure is a separate concern. <strong>All recursive atom alternatives now typed: 25/25 directly.</strong> Only the 3 deferred leaf-char alternatives remain.</td></tr>
 <tr><td>0.31.0</td><td>1.1.57</td><td><strong>Breaking but correct:</strong> atom subtree slice 27 (<code>conditional</code> typed). <code>conditional -&gt; {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}</code> plus <code>conditional_branch = piece* -&gt; [$1**]</code> (flat array of pieces, paralleling <code>concatenation</code>). <code>condition</code> is the heterogeneous Or-of-9 raw shape — typed signed_digits propagates <code>{sign, value}</code> for numeric; <code>"DEFINE"</code> string for DEFINE; <code>["R", ...]</code> for recursion; clean <code>name</code> string for named refs. <code>no_branch</code> preserves the `</td></tr>
 <tr><td>0.30.0</td><td>1.1.56</td><td><strong>Breaking but correct:</strong> atom subtree slice 26 (<code>char_class</code> outer typed). <code>char_class -&gt; {type:"atom", kind:"char_class", negated:&lt;bool&gt;, initial_close:&lt;bool&gt;, body:&lt;class_body&gt;}</code>. <code>negation -&gt; true</code> and <code>class_initial_close -&gt; true</code> (real booleans paralleling <code>posix_negation</code>). <code>body</code> is raw class_body shape — inner items already typed by earlier slices (posix_class slice 8, class_range escape slices) propagate transparently. <code>[abc]</code> now emits <code>{type:"atom", kind:"char_class", negated:[], initial_close:[], body:["a","b","c"]}</code> instead of the 5-element <code>["[", &lt;neg&gt;, &lt;ic&gt;, &lt;body&gt;, "]"]</code> Sequence.</td></tr>
@@ -4555,6 +4574,33 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1159--contract-1161--slice-29-class_range--quoted_class_literal--class_range_escape-typed"><a class="header" href="#1159--contract-1161--slice-29-class_range--quoted_class_literal--class_range_escape-typed">1.1.59 / Contract 1.1.61 — Slice 29: class_range / quoted_class_literal / class_range_escape typed</a></h3>
+<p><strong>What changed:</strong> First sub-rule typing slice — the inner shapes that show up under <code>char_class.body</code>.</p>
+<pre><code class="language-ebnf">class_range          = class_atom class_zero_width* "-" class_zero_width* class_atom
+                        -&gt; {type: "class_range", start: $1, end: $5}
+quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
+                        -&gt; {type: "class_quoted_literal", body: $2}
+class_range_escape   = "\\" class_range_escape_unit
+                        -&gt; $2
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 28)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[a-z]</code> body</td><td><code>[["a", [], "-", [], "z"]]</code></td><td><code>[{type:"class_range", start:"a", end:"z"}]</code></td></tr>
+<tr><td><code>[A-Z0-9_]</code> body</td><td>mix of class_range and class_literal</td><td><code>[{type:"class_range", start:"A", end:"Z"}, {type:"class_range", start:"0", end:"9"}, "_"]</code></td></tr>
+<tr><td><code>[\Qa-z\E]</code> body</td><td><code>[["\\Q", ["a", "-", "z"], "\\E"]]</code></td><td><code>[{type:"class_quoted_literal", body:["a", "-", "z"]}]</code></td></tr>
+<tr><td><code>[\xA-\xFF]</code> body</td><td>deeply nested</td><td><code>[{type:"class_range", start:{type:"escape", kind:"hex", digits:"A"}, end:{type:"escape", kind:"hex", digits:"FF"}}]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>class_range_escape -&gt; $2</code> is a transparent passthrough.</strong> Drops the leading <code>\</code> so the typed escape_unit shape (already produced by hex/unicode/octal/control/simple/single_byte/property branches via slices 14-17) surfaces directly inside <code>class_range.start</code> / <code>class_range.end</code>. Mirrors the outer <code>escape -&gt; $2</code> annotation from slice 14.</p>
+<p><strong>Char_class body shapes now typed end-to-end.</strong> Plain literals → bare string (slice 15’s class_literal regex literal); ranges → <code>{type:"class_range"}</code>; quoted literals → <code>{type:"class_quoted_literal"}</code>; escapes → typed escape_unit shapes (slices 14-17); POSIX classes → typed <code>posix_class</code> (slice 8).</p>
+<p><strong>Sub-rule typing campaign progress:</strong> First slice. Atom subtree stays 25/25 at outer level; sub-rule typing now covers the most-visible inner shapes inside <code>char_class.body</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.59 / Contract 1.1.61 Highlights”.</p>
 <h3 id="1158--contract-1160--atom-subtree-slice-28-extended_class-typed-recursive-structures-all-closed"><a class="header" href="#1158--contract-1160--atom-subtree-slice-28-extended_class-typed-recursive-structures-all-closed">1.1.58 / Contract 1.1.60 — Atom subtree slice 28: extended_class typed (recursive structures all closed)</a></h3>
 <p><strong>What changed:</strong> <code>extended_class</code> now emits typed <code>{type:"atom", kind:"extended_class", body:&lt;content&gt;}</code> objects.</p>
 <pre><code class="language-ebnf">extended_class = "(?[" extended_class_content "])"

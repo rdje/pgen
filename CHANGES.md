@@ -1,4 +1,64 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 29/N: class_range / quoted_class_literal / class_range_escape typed (sub-rule typing inside char_class)
+
+### What landed
+
+First sub-rule typing slice. Targets the most-visible inner shapes that show up under the already-typed `char_class.body`.
+
+```ebnf
+class_range          = class_atom class_zero_width* "-" class_zero_width* class_atom
+                        -> {type: "class_range", start: $1, end: $5}
+quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
+                        -> {type: "class_quoted_literal", body: $2}
+class_range_escape   = "\\" class_range_escape_unit
+                        -> $2
+```
+
+3 annotations. `class_range_escape -> $2` is a transparent passthrough (mirrors slice 14's outer `escape -> $2`).
+
+### Empirical AST shape
+
+| Source | Before (slice 28) | After |
+|---|---|---|
+| `[a-z]` body | `[["a", [], "-", [], "z"]]` | `[{type:"class_range", start:"a", end:"z"}]` |
+| `[A-Z0-9_]` body | mix of class_range + class_literal | `[{type:"class_range", start:"A", end:"Z"}, {type:"class_range", start:"0", end:"9"}, "_"]` |
+| `[\Qa-z\E]` body | `[["\\Q", ["a", "-", "z"], "\\E"]]` | `[{type:"class_quoted_literal", body:["a", "-", "z"]}]` |
+| `[\xA-\xFF]` body | deeply nested (5-level chain × 2) | `[{type:"class_range", start:{type:"escape", kind:"hex", digits:"A"}, end:{type:"escape", kind:"hex", digits:"FF"}}]` |
+
+### Char_class body now end-to-end typed
+
+All recurring class_item shapes inside `char_class.body` are typed:
+- Plain literals → bare strings (slice 15's `class_literal` regex literal).
+- Ranges → `{type:"class_range", start, end}` (slice 29).
+- Quoted literals → `{type:"class_quoted_literal", body}` (slice 29).
+- Escapes → typed escape_unit (slices 14-17), surfaced via slice 29's `class_range_escape -> $2` passthrough.
+- POSIX classes → `{type:"posix_class", name, negated}` (slice 8).
+- Quoted-class-range-atoms → typed (PGEN-RGX-0068 fix).
+
+Remaining un-typed class_item branches: `class_escape` (already propagates typed escape via implicit `$1`), `stray_class_end_quote` / `empty_quoted_class_literal` (rare auxiliary rules).
+
+### `class_zero_width*` slots dropped
+
+The two `class_zero_width*` slots in `class_range` (PCRE2 `\E`/`\Q\E` markers around the dash) are dropped from the typed shape. They're rare and semantically opaque (PCRE2 just ignores them). Consumers needing them can fall back to the raw shape.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 3 new manifest entries (class_range and class_range_escape between class_initial_close and code_block_lang; quoted_class_literal between quantifier and quoted_literal).
+- `make regex_parser_book_gate` green.
+
+### Contract bump
+
+Parser release `1.1.58` → `1.1.59`. Contract `1.1.60` → `1.1.61`. New "Release 1.1.59 / Contract 1.1.61 Highlights" section in the integration contract. "Last updated" advanced to `2026-05-03`. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.59 / 1.1.61 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.33.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 3 new entries.
+- `docs/regex_parser_book/src/examples-char-class.md` — Range / Mixed-range sections rewritten to typed-object form; new `[\xA-\xFF]` section showing end-to-end typed range with hex escapes.
+
+### Sub-rule typing campaign progress
+First slice. Atom subtree stays 25/25 at outer level; `char_class.body` inner shapes now typed end-to-end. Other sub-rule typing concerns deferred (modifier_spec, callout_arg, directive_body, code_content, condition Or-of-9, etc.).
+
 ## 2026-05-02 - regex.ebnf slice 28/N: extended_class typed (recursive structures all closed)
 
 ### What landed

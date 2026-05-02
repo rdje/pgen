@@ -279,7 +279,12 @@ class_item     = posix_class
                | class_literal
                | class_escape
 
-quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
+# `quoted_class_literal` annotated to surface the typed
+# `{type:"class_quoted_literal", body:<chars>}` shape, paralleling
+# `quoted_literal` (slice 18). `body` is the array of
+# `quoted_class_literal_char*` matched chars; `quoted_class_literal_escaped_char`
+# produces 2-char strings preserving the `\` and the escaped char.
+quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"        -> {type: "class_quoted_literal", body: $2}
 quoted_class_literal_char = quoted_class_literal_escaped_char | letter | digit | whitespace | class_safe_special | ']' | unicode_char
 quoted_class_literal_escaped_char = "\\" quoted_literal_escape_tail
 stray_class_end_quote = "\\E"
@@ -287,7 +292,16 @@ stray_class_end_quote = "\\E"
 @generate: "ch >= '" + escape_char($1) + "' && ch <= '" + escape_char($5) + "'"
 @semantic_value: {type: "range", start: $1, end: $5}
 @validate: ord($1) <= ord($5)
-class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom
+# `class_range` annotated to surface the typed
+# `{type:"class_range", start:<atom>, end:<atom>}` shape. `start`
+# and `end` are the typed `class_atom` shapes (already-typed:
+# `quoted_class_range_atom` from PGEN-RGX-0068 fix,
+# `class_range_escape` from escape subtree slices, `class_literal`
+# clean string from slice 15). The two `class_zero_width*` slots
+# (PCRE2 `\E`/`\Q\E` markers around the dash) are dropped from the
+# typed shape — they're rare, semantically opaque, and rarely
+# matched. Consumers needing them can fall back to the raw shape.
+class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom   -> {type: "class_range", start: $1, end: $5}
 class_zero_width = stray_class_end_quote | empty_quoted_class_literal
 empty_quoted_class_literal = "\\Q" "\\E"
 
@@ -327,7 +341,12 @@ posix_negation = "^" -> true
 @semantic_value: {type: "atom", value: $1}
 class_atom     = quoted_class_range_atom | class_range_escape | class_literal
 quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"
-class_range_escape = "\\" class_range_escape_unit
+# Transparent passthrough — drops the leading `\` so the typed
+# escape_unit shape (already produced by hex/unicode/octal/control/
+# simple/single_byte/property branches via slices 14-17) surfaces
+# directly. Mirrors the outer `escape -> $2` annotation from
+# slice 14 in the non-class-range escape path.
+class_range_escape = "\\" class_range_escape_unit                     -> $2
 class_range_escape_unit = hex_escape
                         | unicode_escape
                         | octal_escape

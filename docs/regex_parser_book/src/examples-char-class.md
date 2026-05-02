@@ -48,13 +48,13 @@ For each item, classify by structural signature (per the [Atom Subtree](rules-at
     "kind": "char_class",
     "negated": [],
     "initial_close": [],
-    "body": [["a", [], "-", [], "z"]]
+    "body": [{"type": "class_range", "start": "a", "end": "z"}]
   },
   ...
 }
 ```
 
-The `class_range` 5-element Sequence is preserved inside `body`: `[<start>, <zw-prefix>, "-", <zw-suffix>, <end>]`. The two `class_zero_width*` slots are typically empty `[]`. `class_range` outer typing is a follow-up concern.
+`class_range` is typed `{type:"class_range", start, end}` (slice 29). The two `class_zero_width*` slots (rare PCRE2 `\E`/`\Q\E` markers around the dash) are dropped from the typed shape; consumers needing them can fall back to the raw `class_range` shape.
 
 ## Mixed range and literal — `[a-z0-9_]`
 
@@ -64,8 +64,8 @@ The `class_range` 5-element Sequence is preserved inside `body`: `[<start>, <zw-
     "type": "atom",
     "kind": "char_class",
     "body": [
-      ["a", [], "-", [], "z"],
-      ["0", [], "-", [], "9"],
+      {"type": "class_range", "start": "a", "end": "z"},
+      {"type": "class_range", "start": "0", "end": "9"},
       "_"
     ]
   },
@@ -73,7 +73,26 @@ The `class_range` 5-element Sequence is preserved inside `body`: `[<start>, <zw-
 }
 ```
 
-Three `class_item`s: two ranges and one literal. The body's order matches the source order.
+Three `class_item`s: two typed ranges and one bare literal. The body's order matches the source order.
+
+## Hex-escape range — `[\xA-\xFF]`
+
+```json
+{
+  "atom": {
+    "type": "atom",
+    "kind": "char_class",
+    "body": [{
+      "type": "class_range",
+      "start": {"type": "escape", "kind": "hex", "digits": "A"},
+      "end": {"type": "escape", "kind": "hex", "digits": "FF"}
+    }]
+  },
+  ...
+}
+```
+
+End-to-end typed — the typed escape_unit shape (slice 15) surfaces directly inside `class_range.start`/`end` via slice 29's `class_range_escape -> $2` passthrough.
 
 ## Initial-close class — `[]a]`
 

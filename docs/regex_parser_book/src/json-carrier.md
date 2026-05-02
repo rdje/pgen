@@ -112,6 +112,9 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `conditional` | `-> {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}` | Object. `condition` is heterogeneous (typed signed_digits / "DEFINE" / `["R", ...]` / name string). `no_branch` is `[]` (no else) or `["|", <pieces>]` (else present). |
 | `conditional_branch` | `-> [$1**]` | Flat array of pieces (parallels `concatenation`). |
 | `extended_class` | `-> {type:"atom", kind:"extended_class", body:$2}` | Object. `body` is raw `extended_class_content` shape; sub-rule typing of the recursive set-operation structure is a separate concern. |
+| `class_range` | `-> {type:"class_range", start:$1, end:$5}` | Object. `start`/`end` are typed class_atoms (escape / clean string / quoted_class_range_atom). `class_zero_width*` slots (rare PCRE2 `\E`/`\Q\E` markers around the dash) dropped from typed shape; consumers needing them fall back to raw. |
+| `quoted_class_literal` | `-> {type:"class_quoted_literal", body:$2}` | Object. `body` is array of `quoted_class_literal_char*` matched chars (parallels `quoted_literal` slice 18). |
+| `class_range_escape` | `-> $2` | Transparent passthrough — drops the leading `\` so the typed escape_unit shape (slices 14-17) surfaces directly. Mirrors outer `escape -> $2` (slice 14). |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

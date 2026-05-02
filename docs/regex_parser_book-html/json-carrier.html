@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5224ad7d.js";
+            window.path_to_searchindex_js = "searchindex-d18cb55b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -293,6 +293,9 @@
 <tr><td><code>conditional</code></td><td><code>-&gt; {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}</code></td><td>Object. <code>condition</code> is heterogeneous (typed signed_digits / “DEFINE” / <code>["R", ...]</code> / name string). <code>no_branch</code> is <code>[]</code> (no else) or `[“</td></tr>
 <tr><td><code>conditional_branch</code></td><td><code>-&gt; [$1**]</code></td><td>Flat array of pieces (parallels <code>concatenation</code>).</td></tr>
 <tr><td><code>extended_class</code></td><td><code>-&gt; {type:"atom", kind:"extended_class", body:$2}</code></td><td>Object. <code>body</code> is raw <code>extended_class_content</code> shape; sub-rule typing of the recursive set-operation structure is a separate concern.</td></tr>
+<tr><td><code>class_range</code></td><td><code>-&gt; {type:"class_range", start:$1, end:$5}</code></td><td>Object. <code>start</code>/<code>end</code> are typed class_atoms (escape / clean string / quoted_class_range_atom). <code>class_zero_width*</code> slots (rare PCRE2 <code>\E</code>/<code>\Q\E</code> markers around the dash) dropped from typed shape; consumers needing them fall back to raw.</td></tr>
+<tr><td><code>quoted_class_literal</code></td><td><code>-&gt; {type:"class_quoted_literal", body:$2}</code></td><td>Object. <code>body</code> is array of <code>quoted_class_literal_char*</code> matched chars (parallels <code>quoted_literal</code> slice 18).</td></tr>
+<tr><td><code>class_range_escape</code></td><td><code>-&gt; $2</code></td><td>Transparent passthrough — drops the leading <code>\</code> so the typed escape_unit shape (slices 14-17) surfaces directly. Mirrors outer <code>escape -&gt; $2</code> (slice 14).</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

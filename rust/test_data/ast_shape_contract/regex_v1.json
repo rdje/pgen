@@ -217,6 +217,18 @@
         "normalized_text": "true"
       },
       {
+        "rule": "class_range",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"class_range\", start: $1, end: $5}"
+      },
+      {
+        "rule": "class_range_escape",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
         "rule": "code_block_lang",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -533,6 +545,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"quantifier\", min: $1.min, max: $1.max, greediness: $2}"
+      },
+      {
+        "rule": "quoted_class_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"class_quoted_literal\", body: $2}"
       },
       {
         "rule": "quoted_literal",

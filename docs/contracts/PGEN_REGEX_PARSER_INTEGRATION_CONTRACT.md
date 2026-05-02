@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.60`
+  - `1.1.61`
 - Parser release version:
-  - `1.1.58`
+  - `1.1.59`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-05-01`
+  - `2026-05-03`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -33,6 +33,26 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.59 / Contract 1.1.61 Highlights — slice 29: class_range / quoted_class_literal / class_range_escape typed (char_class sub-rule typing)
+
+- **Internal-driven shape work** (no downstream report). First sub-rule typing slice — typing the inner shapes that show up under the already-typed `char_class` body.
+- **Rules changed:**
+  - `class_range = class_atom class_zero_width* "-" class_zero_width* class_atom -> {type:"class_range", start:$1, end:$5}`. Drops the two `class_zero_width*` slots from the typed shape (rare PCRE2 `\E`/`\Q\E` markers around the dash; consumers needing them fall back to raw shape).
+  - `quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E" -> {type:"class_quoted_literal", body:$2}`. Parallels `quoted_literal` from slice 18.
+  - `class_range_escape = "\\" class_range_escape_unit -> $2`. Transparent passthrough; mirrors slice 14's outer `escape -> $2` annotation. Drops the leading `\` so the typed escape_unit shape (already produced by hex/unicode/octal/control/simple/single_byte/property branches via slices 14-17) surfaces directly.
+- **AST shape change (consumer-visible):**
+  - Before: `[a-z]` body → `[["a", [], "-", [], "z"]]` (raw 5-element class_range Sequence).
+  - After: `[a-z]` body → `[{type:"class_range", start:"a", end:"z"}]`.
+  - Before: `[\xA-\xFF]` body → `[[["\\", ["x", "A", []]], [], "-", [], ["\\", ["x", "F", [["F"]]]]]]` (deeply nested).
+  - After: `[\xA-\xFF]` body → `[{type:"class_range", start:{type:"escape", kind:"hex", digits:"A"}, end:{type:"escape", kind:"hex", digits:"FF"}}]` — fully typed end-to-end.
+  - Before: `[\Qa-z\E]` body → `[["\\Q", ["a", "-", "z"], "\\E"]]`.
+  - After: `[\Qa-z\E]` body → `[{type:"class_quoted_literal", body:["a", "-", "z"]}]`.
+- **`class_range`'s `class_zero_width*` slots dropped from typed shape.** The two slots exist to handle PCRE2 syntax like `[a\E-z]` where `\E` after `\Q...\E` regions can fall around a class-range dash. They're rare and semantically opaque (PCRE2 just ignores them). The typed shape drops them for a cleaner consumer interface; consumers needing them can fall back to the raw `class_range` shape.
+- **Char_class typing now end-to-end inside body for typed branches.** Plain literals (`class_literal`) emit clean strings; ranges emit `{type:"class_range"}` typed objects; class-quoted-literals emit `{type:"class_quoted_literal"}`; escapes emit the typed escape_unit shapes (slices 14-17). The remaining un-typed class_item branches are `quoted_class_range_atom` (already typed by PGEN-RGX-0068 fix), `posix_class` (already typed slice 8), `class_escape` (already propagates typed escape via implicit `$1`), and `stray_class_end_quote` / `empty_quoted_class_literal` (rare auxiliary rules).
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Sub-rule typing campaign progress:** First slice. The atom subtree (25/25) is still 100% typed at the outer level; this slice cleans up the most-visible inner shapes used inside `char_class.body`.
 
 ## Release 1.1.58 / Contract 1.1.60 Highlights — atom subtree slice 28: extended_class typed (recursive structures all closed)
 

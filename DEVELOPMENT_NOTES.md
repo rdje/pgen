@@ -1,4 +1,65 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 29/N — class_range / quoted_class_literal / class_range_escape typed
+
+### What landed
+
+First sub-rule typing slice. Targets the most-visible inner shapes inside `char_class.body`:
+
+```ebnf
+class_range          = class_atom class_zero_width* "-" class_zero_width* class_atom
+                        -> {type: "class_range", start: $1, end: $5}
+quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
+                        -> {type: "class_quoted_literal", body: $2}
+class_range_escape   = "\\" class_range_escape_unit
+                        -> $2
+```
+
+3 annotations.
+
+### Why these three together?
+
+The campaign has a pattern: outer atom rules typed in slices 7-28; sub-rule typing now starts. Picked these three because they all surface inside `char_class.body` (most-visible char-class consumer touchpoint). The 3 work together to give end-to-end typed `char_class` body:
+- `class_range` typed → ranges become `{type, start, end}` instead of 5-element seq.
+- `class_range_escape -> $2` → drops the `\` wrapper so typed escape_unit shape (slices 14-17) shows directly inside `class_range.start`/`end`.
+- `quoted_class_literal` typed → quoted class literals match the convention of `quoted_literal` (slice 18).
+
+### Decision: drop `class_zero_width*` slots from typed `class_range`
+
+`class_range = class_atom class_zero_width* "-" class_zero_width* class_atom`. The two Quantified-* slots exist to handle PCRE2 syntax like `[a\Q\E-z]` where `\E`-after-`\Q\E` markers can fall around a class-range dash. They're rare AND semantically opaque (PCRE2 just ignores them).
+
+Two options for the typed shape:
+1. Include them: `{type:"class_range", start:$1, start_zw:$2, end:$5, end_zw:$4}` — preserves them but clutters every typed range with `[]` fields.
+2. Drop them: `{type:"class_range", start:$1, end:$5}` — clean shape; consumers needing zero-width markers fall back to raw.
+
+Picked (2). The vast majority of consumer code never inspects zero-width markers — they're a PCRE2 quirk for backward-compatibility. The cleaner typed shape is more valuable than preserving every detail.
+
+### `class_range_escape -> $2` mirrors slice 14
+
+Slice 14 added `escape -> $2` (transparent passthrough) so the typed escape_unit shapes show directly inside `escape`'s outer wrapper. Slice 29 does the same for `class_range_escape` so typed escape_unit shapes show inside class-range endpoints.
+
+### Empirical
+- `[a-z]` body → `[{type:"class_range", start:"a", end:"z"}]`.
+- `[A-Z0-9_]` body → mix of typed ranges and bare literals.
+- `[\Qa-z\E]` body → `[{type:"class_quoted_literal", body:["a","-","z"]}]`.
+- `[\xA-\xFF]` body → `[{type:"class_range", start:{type:"escape", kind:"hex", digits:"A"}, end:{type:"escape", kind:"hex", digits:"FF"}}]` — fully typed end-to-end.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 3 new manifest entries inserted at alphabetical slots.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.58` → `1.1.59`. Contract `1.1.60` → `1.1.61`.
+- "Last updated" advanced to `2026-05-03` (also fixed a stray duplicate "Last updated" line in Contract Identity that was cluttering the section).
+- New "Release 1.1.59 / Contract 1.1.61 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.33.0), `json-carrier.md` (3 new entries), `examples-char-class.md` (Range / Mixed-range sections rewritten + new `[\xA-\xFF]` section showing end-to-end typed range with hex escapes).
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- First slice. Atom subtree stays 25/25 typed at outer level.
+- `char_class.body` inner shapes now typed end-to-end (plain literals + ranges + quoted literals + escapes + posix classes + quoted-class-range-atoms all typed).
+- Remaining sub-rule typing concerns: `class_body` Quantified-of-items flattening, `condition` Or-of-9 unification, `modifier_spec`, `callout_arg`, `directive_body`, `code_content`, `extended_class_content`, `returned_capture_group_list` / `returned_capture_subroutine` / `subroutine_target`.
+
 ## 2026-05-02 - regex.ebnf slice 28/N — extended_class typed (recursive structures all closed)
 
 ### What landed
