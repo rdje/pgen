@@ -111,6 +111,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `class_initial_close` | `-> true` | Boolean `true` (matched), `[]` from un-matched `class_initial_close?` slot. |
 | `conditional` | `-> {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}` | Object. `condition` is heterogeneous (typed signed_digits / "DEFINE" / `["R", ...]` / name string). `no_branch` is `[]` (no else) or `["|", <pieces>]` (else present). |
 | `conditional_branch` | `-> [$1**]` | Flat array of pieces (parallels `concatenation`). |
+| `extended_class` | `-> {type:"atom", kind:"extended_class", body:$2}` | Object. `body` is raw `extended_class_content` shape; sub-rule typing of the recursive set-operation structure is a separate concern. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

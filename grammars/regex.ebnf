@@ -680,8 +680,11 @@ directive_name_start = letter
 directive_name_continue = directive_name_start | digit | '_' | '-'
 directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '^' | '_' | '{' | '|' | '}' | '~'
 
-# PCRE2 extended character class syntax (?[ ... ])
-extended_class = "(?[" extended_class_content "])"
+# PCRE2 extended character class syntax (?[ ... ]). `body` is the
+# raw `extended_class_content` shape (Quantified-* of
+# extended_class_element). Sub-rule typing of content/element/nested
+# (the recursive set-operation structure) is a separate concern.
+extended_class = "(?[" extended_class_content "])"                  -> {type: "atom", kind: "extended_class", body: $2}
 extended_class_content = extended_class_element*
 extended_class_element = extended_class_nested
                        | escape

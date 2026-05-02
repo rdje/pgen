@@ -23,6 +23,30 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.58 / Contract 1.1.60 — Atom subtree slice 28: extended_class typed (recursive structures all closed)
+
+**What changed:** `extended_class` now emits typed `{type:"atom", kind:"extended_class", body:<content>}` objects.
+
+```ebnf
+extended_class = "(?[" extended_class_content "])"
+                  -> {type: "atom", kind: "extended_class", body: $2}
+```
+
+**Before / after:**
+
+| Source | After |
+|---|---|
+| `(?[abc])` | `{kind:"extended_class", body:["a","b","c"]}` |
+| `(?[a-z])` | `{body:["a","-","z"]}` |
+| `(?[[abc][def]])` | `{body:[["[", ["a","b","c"], "]"], ["[", ["d","e","f"], "]"]]}` (nested) |
+| `(?[])` | `{body:[]}` |
+
+`body` is the raw `extended_class_content` shape (Quantified-* of extended_class_element). Sub-rule typing of content/element/nested (the recursive set-operation structure: `[X]&[Y]`, `[X]+[Y]`, etc.) is a separate concern.
+
+**Atom subtree campaign progress: 25/25 atom alternatives directly typed.** All recursive structures closed. Only the 3 deferred leaf-char alternatives (literal / whitespace_literal / dot) remain as a separate decision.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.58 / Contract 1.1.60 Highlights".
+
 ### 1.1.57 / Contract 1.1.59 — Atom subtree slice 27: conditional typed
 
 **What changed:** `conditional` now emits typed `{type:"atom", kind:"conditional", condition, yes_branch, no_branch}` objects.

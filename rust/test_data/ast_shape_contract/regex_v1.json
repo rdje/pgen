@@ -301,6 +301,12 @@
         "normalized_text": "$2"
       },
       {
+        "rule": "extended_class",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"extended_class\", body: $2}"
+      },
+      {
         "rule": "hex_escape",
         "branch_index": 0,
         "annotation_type": "return_object",

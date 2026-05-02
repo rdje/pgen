@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 28/N — extended_class typed (recursive structures all closed)
+
+### What landed
+
+```ebnf
+extended_class = "(?[" extended_class_content "])"
+                  -> {type: "atom", kind: "extended_class", body: $2}
+```
+
+Single annotation. Closes the recursive-atom-structures track of the campaign — all 25 atom alternatives now produce typed shapes (counting `extended_class` and the 22 other alternatives covered by slices 7-27, plus `posix_word_boundary_alias` from earlier).
+
+### `body` raw
+
+`extended_class_content = extended_class_element*` — Quantified-* of elements. Each element is `extended_class_nested | escape | extended_class_regular`. The recursive set-operation structure (PCRE2's `(?[ ... ])` syntax allows union/intersection/difference of nested classes via `&`, `+`, `-`, `|` operators) is preserved in `body` as-is.
+
+Sub-rule typing of `extended_class_content` / `extended_class_element` / `extended_class_nested` is a separate concern. The PCRE2 set-operation grammar isn't fully captured by the current EBNF either — `(?[[A]+[B]])` is parsed as two adjacent class atoms with the `+` falling out as a literal char, which is correct under the EBNF shape but doesn't surface the set-operation semantics. A future grammar-extension slice could add explicit set-operation rules; for now `body` carries the raw shape and consumers can do their own set-op interpretation.
+
+### Empirical
+- `(?[abc])` → `{kind:"extended_class", body:["a","b","c"]}`.
+- `(?[a-z])` → `body:["a","-","z"]` (literal `-`).
+- `(?[[abc][def]])` → `body:[["[", ["a","b","c"], "]"], ["[", ["d","e","f"], "]"]]`. Nested classes preserved as raw 3-element Sequences.
+- `(?[])` → `body:[]`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 1 new manifest entry inserted at alphabetical slot (between escape and hex_escape).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.57` → `1.1.58`. Contract `1.1.59` → `1.1.60`.
+- New "Release 1.1.58 / Contract 1.1.60 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.32.0), `json-carrier.md` (1 new entry).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **25/25 atom alternatives directly typed.**
+- 7/7 escape_unit branches typed.
+- Backreference family typed end-to-end (5 syntactic forms).
+- Group typing end-to-end (all 6 sub-rules).
+- Lookaround family typed end-to-end (7 sub-rules).
+- All recursive structures closed.
+
+### Remaining work in task #40
+
+The 3 deferred leaf-char alternatives (`literal`, `whitespace_literal`, `dot`) are deliberately not typed. Reason: typing each leaf char would emit `{type:"atom", kind:"literal", char:"a"}` (4-field object) for every literal char in every regex — a 4× AST size inflation for the most common case. Since literal chars carry no semantic info beyond "this char matches itself", consumers don't gain much from a typed shape. The current bare-string form (`piece.atom == "a"`) is more efficient AND adequate for downstream use.
+
+If task #40 wants to claim "fully typed", the leaf-char decision needs to be made explicitly — either type all 3 (accepting the size cost) or document the bare-string convention as final. Suggest keeping bare strings; consumers dispatch via `match piece.atom { Value::String(s) if s.len() == 1 => /* literal/dot */, Value::Object(o) => /* typed atom */, ... }`.
+
+Other follow-up sub-rule typing concerns the campaign DIDN'T close (these are sub-rules under typed atoms, not atom alternatives themselves):
+- `class_body` flattening (Quantified-of-class_items inside char_class).
+- `class_range` outer (`[a-z]` inside char_class).
+- `condition` Or-of-9 unification.
+- `modifier_spec`, `callout_arg`, `directive_body`, `code_content`, `code_lang` per-rule typing.
+- `extended_class_content` / set-operation grammar extension.
+- `returned_capture_group_list` / `returned_capture_subroutine` / `subroutine_target` per-rule typing.
+
+These are independent slice candidates if/when downstream consumers need them.
+
 ## 2026-05-02 - regex.ebnf slice 27/N — conditional typed
 
 ### What landed

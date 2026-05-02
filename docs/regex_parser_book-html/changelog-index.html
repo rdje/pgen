@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ced8b38f.js";
+            window.path_to_searchindex_js = "searchindex-5224ad7d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,28 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1158--contract-1160--atom-subtree-slice-28-extended_class-typed-recursive-structures-all-closed"><a class="header" href="#1158--contract-1160--atom-subtree-slice-28-extended_class-typed-recursive-structures-all-closed">1.1.58 / Contract 1.1.60 — Atom subtree slice 28: extended_class typed (recursive structures all closed)</a></h3>
+<p><strong>What changed:</strong> <code>extended_class</code> now emits typed <code>{type:"atom", kind:"extended_class", body:&lt;content&gt;}</code> objects.</p>
+<pre><code class="language-ebnf">extended_class = "(?[" extended_class_content "])"
+                  -&gt; {type: "atom", kind: "extended_class", body: $2}
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?[abc])</code></td><td><code>{kind:"extended_class", body:["a","b","c"]}</code></td></tr>
+<tr><td><code>(?[a-z])</code></td><td><code>{body:["a","-","z"]}</code></td></tr>
+<tr><td><code>(?[[abc][def]])</code></td><td><code>{body:[["[", ["a","b","c"], "]"], ["[", ["d","e","f"], "]"]]}</code> (nested)</td></tr>
+<tr><td><code>(?[])</code></td><td><code>{body:[]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>body</code> is the raw <code>extended_class_content</code> shape (Quantified-* of extended_class_element). Sub-rule typing of content/element/nested (the recursive set-operation structure: <code>[X]&amp;[Y]</code>, <code>[X]+[Y]</code>, etc.) is a separate concern.</p>
+<p><strong>Atom subtree campaign progress: 25/25 atom alternatives directly typed.</strong> All recursive structures closed. Only the 3 deferred leaf-char alternatives (literal / whitespace_literal / dot) remain as a separate decision.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.58 / Contract 1.1.60 Highlights”.</p>
 <h3 id="1157--contract-1159--atom-subtree-slice-27-conditional-typed"><a class="header" href="#1157--contract-1159--atom-subtree-slice-27-conditional-typed">1.1.57 / Contract 1.1.59 — Atom subtree slice 27: conditional typed</a></h3>
 <p><strong>What changed:</strong> <code>conditional</code> now emits typed <code>{type:"atom", kind:"conditional", condition, yes_branch, no_branch}</code> objects.</p>
 <pre><code class="language-ebnf">conditional        = "(?(" condition ")" yes_branch ("|" no_branch)? ")"

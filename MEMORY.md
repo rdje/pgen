@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-27-atom-subtree-conditional)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-28-atom-subtree-extended-class-RECURSIVE-STRUCTURES-CLOSED)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 28 of N — `extended_class` typed (recursive structures all closed).** `extended_class -> {type:"atom", kind:"extended_class", body:$2}`. Single annotation. `body` is raw `extended_class_content` shape (Quantified-* of element); sub-rule typing of the recursive set-operation structure is a separate concern. Empirical: `(?[abc])` → `body:["a","b","c"]`; `(?[a-z])` → `body:["a","-","z"]`; `(?[[abc][def]])` → nested classes preserved; `(?[])` → empty. **All recursive atom alternatives now typed: 25/25 directly.** Only the 3 deferred leaf-char alternatives (literal, whitespace_literal, dot) remain. Contract bump: parser release `1.1.57` → `1.1.58`, contract `1.1.59` → `1.1.60`. Regex AST schema version stays `1`. 495/0 tests. 1 new manifest entry. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.32.0), `json-carrier.md` (1 new entry). **Atom subtree campaign substantially complete.** Future task #40 work would either (a) make the leaf-char-typing decision explicitly (probably keep bare strings for AST-size reasons; consumers dispatch via `match piece.atom { Value::String, Value::Object }`) or (b) tackle sub-rule typing concerns under already-typed atoms (class_body flattening, class_range outer, condition Or-of-9 unification, modifier_spec, callout_arg, directive_body, code_content, extended_class_content set-op grammar, returned_capture_*).
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 27 of N — `conditional` typed.** `conditional -> {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}` plus `conditional_branch = piece* -> [$1**]` (flat array, paralleling concatenation). 2 annotations. `yes_branch`/`no_branch` use implicit $1 default. Empirical: `(?(1)abc)` → `condition:{sign:[], value:1}, yes_branch:[3 pieces], no_branch:[]`; `(?(1)abc|xyz)` → `no_branch:["|", [3 pieces]]`; `(?(DEFINE)foo)` → `condition:"DEFINE"`; `(?(R)bar)` → `condition:["R", []]`; `(?(<name>)abc)` → `condition:"name"`. **`condition` is heterogeneous Or-of-9 raw shape** — typed signed_digits propagation `{sign, value}`, "DEFINE" string, `["R", ...]` for recursion, clean name string. Sub-rule typing of condition is its own slice. **`no_branch` preserves `|` separator** — `[]` (no else) vs `["|", <pieces>]` (else matched). Distinguishes "no else" from hypothetical "empty else". Contract bump: parser release `1.1.56` → `1.1.57`, contract `1.1.58` → `1.1.59`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.31.0), `json-carrier.md` (2 new entries). Atom subtree progress: **24/25 alternatives directly typed**. Remaining 1: `extended_class`.
 
 ### Earlier session note (kept for context):

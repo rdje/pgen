@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.59`
+  - `1.1.60`
 - Parser release version:
-  - `1.1.57`
+  - `1.1.58`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,21 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.58 / Contract 1.1.60 Highlights — atom subtree slice 28: extended_class typed (recursive structures all closed)
+
+- **Internal-driven shape work** (no downstream report).
+- **Rule changed:** `extended_class = "(?[" extended_class_content "])" -> {type:"atom", kind:"extended_class", body:$2}`.
+- **AST shape change:** `(?[abc])` → `{type:"atom", kind:"extended_class", body:["a","b","c"]}` (was `["(?[", <content>, "])"]`).
+- **`body` is the raw `extended_class_content` shape** (Quantified-* of extended_class_element). Sub-rule typing of content/element/nested (the recursive set-operation structure) is a separate concern.
+- **Empirical:**
+  - `(?[abc])` → `body:["a","b","c"]`.
+  - `(?[a-z])` → `body:["a","-","z"]` (the `-` is a literal in extended-class set-op syntax).
+  - `(?[[abc][def]])` → `body:[["[", ["a","b","c"], "]"], ["[", ["d","e","f"], "]"]]` (nested classes preserved).
+  - `(?[])` → `body:[]`.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress: 25/25 atom alternatives directly typed.** All recursive structures closed. Only the 3 deferred leaf-char alternatives (literal, whitespace_literal, dot) remain as a separate decision (intentionally deferred for AST-volume reasons — typing each leaf char to a 4-field object would inflate AST size 4× for the most common case).
 
 ## Release 1.1.57 / Contract 1.1.59 Highlights — atom subtree slice 27: conditional typed
 

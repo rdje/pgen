@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 28/N: extended_class typed (recursive structures all closed)
+
+### What landed
+
+```ebnf
+extended_class = "(?[" extended_class_content "])"
+                  -> {type: "atom", kind: "extended_class", body: $2}
+```
+
+Single annotation. `body` is the raw `extended_class_content` shape (Quantified-* of extended_class_element). Sub-rule typing of the recursive set-operation structure (`[X]&[Y]`, `[X]+[Y]`, etc.) is a separate concern.
+
+### Empirical AST shape
+
+| Source | After |
+|---|---|
+| `(?[abc])` | `{kind:"extended_class", body:["a","b","c"]}` |
+| `(?[a-z])` | `{body:["a","-","z"]}` |
+| `(?[[abc][def]])` | `{body:[["[", ["a","b","c"], "]"], ["[", ["d","e","f"], "]"]]}` (nested classes preserved) |
+| `(?[])` | `{body:[]}` |
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 1 new manifest entry (extended_class between escape and hex_escape).
+- `make regex_parser_book_gate` green.
+
+### Contract bump
+
+Parser release `1.1.57` → `1.1.58`. Contract `1.1.59` → `1.1.60`. New "Release 1.1.58 / Contract 1.1.60 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.58 / 1.1.60 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.32.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 1 new entry.
+
+### Atom subtree progress
+**25/25 atom alternatives directly typed.** All recursive structures closed. Only the 3 deferred leaf-char alternatives remain (literal, whitespace_literal, dot — separate decision deferred for AST-volume reasons).
+
 ## 2026-05-02 - regex.ebnf slice 27/N: conditional typed
 
 ### What landed
