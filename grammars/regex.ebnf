@@ -540,12 +540,29 @@ non_atomic_alpha_lookaround_name = "napla"
                     | "non_atomic_positive_lookahead"
                     | "naplb"
                     | "non_atomic_positive_lookbehind"
+# `scan_substring_group` carries the matched syntactic name in
+# `name` (`"scs"` or `"scan_substring"` — both PCRE2-equivalent),
+# the capture-list spec in `captures` (raw
+# `returned_capture_group_list` shape; sub-rule typing is a separate
+# concern), and the inner body in `body`.
 scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
+                       -> {type: "atom", kind: "scan_substring_group", name: $2, captures: $4, body: $5}
 scan_substring_name  = "scs" | "scan_substring"
-script_run_group     = "(*" script_run_name ":" pattern? ")"
+# `script_run_group` carries the matched syntactic name in `name`
+# (one of `"sr"`/`"script_run"`/`"asr"`/`"atomic_script_run"` —
+# atomic vs non-atomic distinction is encoded in the name itself).
+# `body` carries the inner pattern.
+script_run_group     = "(*" script_run_name ":" pattern? ")"   -> {type: "atom", kind: "script_run_group", name: $2, body: $4}
 script_run_name      = "sr" | "script_run" | "asr" | "atomic_script_run"
-subroutine_call      = "(?" returned_capture_subroutine ")"
-                    | "(?" subroutine_target ")"
+# Both branches produce `kind:"subroutine_call"` with `target`
+# carrying the inner shape. Branch 0's `target` is a
+# `returned_capture_subroutine` (subroutine_target +
+# returned_capture_group_list); branch 1's `target` is just a
+# subroutine_target. Consumers inspect `target` shape to determine
+# the syntactic form. Sub-rule typing of the inner shapes is a
+# separate concern.
+subroutine_call      = "(?" returned_capture_subroutine ")"    -> {type: "atom", kind: "subroutine_call", target: $2}
+                    | "(?" subroutine_target ")"               -> {type: "atom", kind: "subroutine_call", target: $2}
 returned_capture_subroutine = subroutine_target returned_capture_group_list
 returned_capture_group_list = "(" returned_capture_group ("," returned_capture_group)* ")"
 returned_capture_group = signed_digits | name_ref

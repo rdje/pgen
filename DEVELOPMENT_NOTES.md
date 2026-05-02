@@ -1,4 +1,76 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 25/N — scan_substring / script_run / subroutine_call typed
+
+### What landed
+
+4 annotations across 3 atom alternatives:
+
+```ebnf
+scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
+                        -> {type: "atom", kind: "scan_substring_group", name: $2, captures: $4, body: $5}
+script_run_group     = "(*" script_run_name ":" pattern? ")"
+                        -> {type: "atom", kind: "script_run_group", name: $2, body: $4}
+subroutine_call      = "(?" returned_capture_subroutine ")"
+                        -> {type: "atom", kind: "subroutine_call", target: $2}
+                     | "(?" subroutine_target ")"
+                        -> {type: "atom", kind: "subroutine_call", target: $2}
+```
+
+### `subroutine_call` design — two-branch collapse with `target` field
+
+The two branches differ syntactically (with-captures vs plain) but both refer to a subroutine. Two design options were considered:
+
+1. **Distinct kinds** (`returned_capture_subroutine_call` vs `subroutine_call`) — preserves syntactic distinction in `kind`.
+2. **Same kind with optional `captures` field** — annotation language doesn't easily express "include field only if present".
+3. **Same kind, `target` carries the inner shape** — picked. Consumer inspects `target` shape to determine the form.
+
+Picked option 3 because:
+- The two forms have the same semantic role (call a subroutine).
+- The structural distinction is preserved in `target`'s inner shape (returned_capture_subroutine has 2 elements: target + capture_list; plain has just target).
+- Consistent with subroutine_target's heterogeneous shapes (string for `R`, 2-element seq for `&name` / `P>name`, typed `{sign, value}` for signed_digits) — `target` is already polymorphic.
+
+### `signed_digits` propagation
+
+Slice 13's `signed_digits -> {sign, value}` typing surfaces directly inside `subroutine_call.target` for numeric refs like `(?+1)`. Visible payoff of the earlier slice with no slice-25 work needed.
+
+### Sub-rule shapes deferred
+
+`returned_capture_group_list`, `returned_capture_subroutine`, `subroutine_target` carry raw shapes. Per-rule typing of these is its own slice.
+
+### Empirical
+- `(*sr:abc)` → `{kind:"script_run_group", name:"sr", body:<pattern>}`.
+- `(*atomic_script_run:foo)` → `{kind:"script_run_group", name:"atomic_script_run"}`.
+- `(a)(*scs:(1)bcd)` → scan_substring atom `{kind:"scan_substring_group", name:"scs", captures:["(", {sign:[], value:1}, [], ")"], body:<pattern>}`. Note that `value:1` is typed-int from signed_digits / digits.
+- `(?&name)` → `{kind:"subroutine_call", target:["&", "name"]}`.
+- `(?R)` → `{kind:"subroutine_call", target:"R"}`.
+- `(?+1)` → `{kind:"subroutine_call", target:{sign:"+", value:1}}`.
+
+### Pre-existing host-validator note
+
+`(*scs:...)` requires the capture-list references to point to existing groups in the surrounding pattern. PGEN's host validator rejects bare `(*scs:(1)abc)` — it needs `(a)(*scs:(1)bcd)` or similar. Out of scope for this slice.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 4 new manifest entries inserted at alphabetical slots.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.54` → `1.1.55`. Contract `1.1.56` → `1.1.57`.
+- New "Release 1.1.55 / Contract 1.1.57 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.29.0), `json-carrier.md` (4 new entries). No examples chapter changes.
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **22/25 atom alternatives directly typed.**
+- 7/7 escape_unit branches typed.
+- Backreference family typed end-to-end.
+- Group typing end-to-end.
+- Lookaround family typed end-to-end.
+- Subroutine_call typed.
+- Remaining 3 atom alternatives:
+  - **Leaf chars (deferred — high-volume):** literal, whitespace_literal, dot.
+  - **Recursive structures:** char_class outer, conditional, extended_class.
+
 ## 2026-05-02 - regex.ebnf slice 24/N — inline-modifier / callout / directive_verb / code_block typed
 
 ### What landed

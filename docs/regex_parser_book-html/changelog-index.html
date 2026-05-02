@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2ac151c6.js";
+            window.path_to_searchindex_js = "searchindex-3566a2a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,40 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1155--contract-1157--atom-subtree-slice-25-scan_substring--script_run--subroutine_call-typed"><a class="header" href="#1155--contract-1157--atom-subtree-slice-25-scan_substring--script_run--subroutine_call-typed">1.1.55 / Contract 1.1.57 — Atom subtree slice 25: scan_substring / script_run / subroutine_call typed</a></h3>
+<p><strong>What changed:</strong> Batched slice — 4 annotations across 3 atom alternatives.</p>
+<pre><code class="language-ebnf">scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
+                        -&gt; {type: "atom", kind: "scan_substring_group", name: $2, captures: $4, body: $5}
+script_run_group     = "(*" script_run_name ":" pattern? ")"
+                        -&gt; {type: "atom", kind: "script_run_group", name: $2, body: $4}
+subroutine_call      = "(?" returned_capture_subroutine ")"
+                        -&gt; {type: "atom", kind: "subroutine_call", target: $2}
+                     | "(?" subroutine_target ")"
+                        -&gt; {type: "atom", kind: "subroutine_call", target: $2}
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(*sr:abc)</code></td><td><code>{kind:"script_run_group", name:"sr", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(*atomic_script_run:foo)</code></td><td><code>{kind:"script_run_group", name:"atomic_script_run", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(a)(*scs:(1)bcd)</code></td><td><code>{kind:"scan_substring_group", name:"scs", captures:["(", {sign:[], value:1}, [], ")"], body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&amp;name)</code></td><td><code>{kind:"subroutine_call", target:["&amp;", "name"]}</code></td></tr>
+<tr><td><code>(?P&gt;name)</code></td><td><code>{kind:"subroutine_call", target:["P&gt;", "name"]}</code></td></tr>
+<tr><td><code>(?R)</code></td><td><code>{kind:"subroutine_call", target:"R"}</code></td></tr>
+<tr><td><code>(?+1)</code></td><td><code>{kind:"subroutine_call", target:{sign:"+", value:1}}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>subroutine_call</code> two-branch collapse:</strong> Both branches produce <code>kind:"subroutine_call"</code> with <code>target</code> carrying the inner shape. Branch 0 is the “with returned captures” form (<code>returned_capture_subroutine</code>); branch 1 is the plain form. Consumers inspect <code>target</code> shape to determine which form.</p>
+<p><strong>Sub-rule shapes deferred:</strong> <code>returned_capture_group_list</code>, <code>returned_capture_subroutine</code>, <code>subroutine_target</code> carry raw shapes. Per-rule typing is a separate concern.</p>
+<p><strong><code>signed_digits</code> propagation already works:</strong> Slice 13’s <code>signed_digits -&gt; {sign, value}</code> typing surfaces directly inside <code>subroutine_call.target</code> for numeric subroutine refs like <code>(?+1)</code>. This wasn’t a slice 25 change but is the visible payoff of the earlier work.</p>
+<p><strong>Pre-existing host-validator note:</strong> PGEN’s host-side compile validator rejects scan_substring capture-list references that don’t have a corresponding group in the surrounding pattern. The annotation is correct when the validator allows; for inputs the validator rejects, no AST is produced.</p>
+<p><strong>Atom subtree campaign progress:</strong> 22/25 atom alternatives directly typed.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.55 / Contract 1.1.57 Highlights”.</p>
 <h3 id="1154--contract-1156--atom-subtree-slice-24-inline-modifier--callout--directive_verb--code_block-typed"><a class="header" href="#1154--contract-1156--atom-subtree-slice-24-inline-modifier--callout--directive_verb--code_block-typed">1.1.54 / Contract 1.1.56 — Atom subtree slice 24: inline-modifier / callout / directive_verb / code_block typed</a></h3>
 <p><strong>What changed:</strong> Batched slice — 6 annotations across 5 atom alternatives.</p>
 <pre><code class="language-ebnf">inline_modifiers        = "(?" modifier_spec? ")"            -&gt; {type: "atom", kind: "inline_modifiers", spec: $2}

@@ -1,4 +1,65 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 25/N: scan_substring / script_run / subroutine_call typed
+
+### What landed
+
+Batched slice — 4 annotations across 3 atom alternatives:
+
+```ebnf
+scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
+                        -> {type: "atom", kind: "scan_substring_group", name: $2, captures: $4, body: $5}
+script_run_group     = "(*" script_run_name ":" pattern? ")"
+                        -> {type: "atom", kind: "script_run_group", name: $2, body: $4}
+subroutine_call      = "(?" returned_capture_subroutine ")"
+                        -> {type: "atom", kind: "subroutine_call", target: $2}
+                     | "(?" subroutine_target ")"
+                        -> {type: "atom", kind: "subroutine_call", target: $2}
+```
+
+### Empirical AST shape
+
+| Source | After |
+|---|---|
+| `(*sr:abc)` | `{kind:"script_run_group", name:"sr", body:<pattern>}` |
+| `(*atomic_script_run:foo)` | `{kind:"script_run_group", name:"atomic_script_run"}` |
+| `(a)(*scs:(1)bcd)` | `{kind:"scan_substring_group", name:"scs", captures:["(", {sign:[], value:1}, [], ")"], body:<pattern>}` |
+| `(?&name)` | `{kind:"subroutine_call", target:["&", "name"]}` |
+| `(?P>name)` | `{kind:"subroutine_call", target:["P>", "name"]}` |
+| `(?R)` | `{kind:"subroutine_call", target:"R"}` |
+| `(?+1)` | `{kind:"subroutine_call", target:{sign:"+", value:1}}` |
+
+### `subroutine_call` two-branch collapse
+
+Both branches → `kind:"subroutine_call"` with `target` carrying the inner shape. Branch 0's `target` is a `returned_capture_subroutine` (target + capture-list); branch 1's `target` is just a `subroutine_target`. Consumer inspects `target` shape to determine the form.
+
+### `signed_digits` propagation
+
+Slice 13's `signed_digits -> {sign, value}` typing surfaces directly inside `subroutine_call.target` for numeric refs like `(?+1)`. The downstream visibility of the earlier slice's typing arrives without slice 25 doing anything extra.
+
+### Pre-existing host-validator note
+
+PGEN's host-side compile validator rejects scan_substring capture-list references that don't have a corresponding group in the surrounding pattern. The annotation is correct when the validator allows; for inputs the validator rejects, no AST is produced. Out of scope for this slice.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 4 new manifest entries inserted at alphabetical slots (scan_substring_group between regex and scoped_inline_modifiers; script_run_group between scoped_inline_modifiers and signed_digits; subroutine_call ×2 between single_byte_escape and subroutine_ref).
+- `make regex_parser_book_gate` green.
+- Empirical sweep: 8 inputs across all 3 atom alternatives + multiple subroutine_target forms — all typed correctly.
+
+### Contract bump
+
+Parser release `1.1.54` → `1.1.55`. Contract `1.1.56` → `1.1.57`. New "Release 1.1.55 / Contract 1.1.57 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.55 / 1.1.57 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.29.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 4 new entries.
+
+### Atom subtree progress
+**22/25 atom alternatives directly typed.** Remaining 3:
+- Leaf chars (deferred — high-volume): literal, whitespace_literal, dot.
+- Recursive structures: char_class outer, conditional, extended_class.
+
 ## 2026-05-02 - regex.ebnf slice 24/N: inline-modifier / callout / directive_verb / code_block typed
 
 ### What landed

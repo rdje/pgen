@@ -23,6 +23,45 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.55 / Contract 1.1.57 — Atom subtree slice 25: scan_substring / script_run / subroutine_call typed
+
+**What changed:** Batched slice — 4 annotations across 3 atom alternatives.
+
+```ebnf
+scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
+                        -> {type: "atom", kind: "scan_substring_group", name: $2, captures: $4, body: $5}
+script_run_group     = "(*" script_run_name ":" pattern? ")"
+                        -> {type: "atom", kind: "script_run_group", name: $2, body: $4}
+subroutine_call      = "(?" returned_capture_subroutine ")"
+                        -> {type: "atom", kind: "subroutine_call", target: $2}
+                     | "(?" subroutine_target ")"
+                        -> {type: "atom", kind: "subroutine_call", target: $2}
+```
+
+**Before / after:**
+
+| Source | After |
+|---|---|
+| `(*sr:abc)` | `{kind:"script_run_group", name:"sr", body:<pattern>}` |
+| `(*atomic_script_run:foo)` | `{kind:"script_run_group", name:"atomic_script_run", body:<pattern>}` |
+| `(a)(*scs:(1)bcd)` | `{kind:"scan_substring_group", name:"scs", captures:["(", {sign:[], value:1}, [], ")"], body:<pattern>}` |
+| `(?&name)` | `{kind:"subroutine_call", target:["&", "name"]}` |
+| `(?P>name)` | `{kind:"subroutine_call", target:["P>", "name"]}` |
+| `(?R)` | `{kind:"subroutine_call", target:"R"}` |
+| `(?+1)` | `{kind:"subroutine_call", target:{sign:"+", value:1}}` |
+
+**`subroutine_call` two-branch collapse:** Both branches produce `kind:"subroutine_call"` with `target` carrying the inner shape. Branch 0 is the "with returned captures" form (`returned_capture_subroutine`); branch 1 is the plain form. Consumers inspect `target` shape to determine which form.
+
+**Sub-rule shapes deferred:** `returned_capture_group_list`, `returned_capture_subroutine`, `subroutine_target` carry raw shapes. Per-rule typing is a separate concern.
+
+**`signed_digits` propagation already works:** Slice 13's `signed_digits -> {sign, value}` typing surfaces directly inside `subroutine_call.target` for numeric subroutine refs like `(?+1)`. This wasn't a slice 25 change but is the visible payoff of the earlier work.
+
+**Pre-existing host-validator note:** PGEN's host-side compile validator rejects scan_substring capture-list references that don't have a corresponding group in the surrounding pattern. The annotation is correct when the validator allows; for inputs the validator rejects, no AST is produced.
+
+**Atom subtree campaign progress:** 22/25 atom alternatives directly typed.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.55 / Contract 1.1.57 Highlights".
+
 ### 1.1.54 / Contract 1.1.56 — Atom subtree slice 24: inline-modifier / callout / directive_verb / code_block typed
 
 **What changed:** Batched slice — 6 annotations across 5 atom alternatives.

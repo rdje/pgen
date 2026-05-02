@@ -517,10 +517,22 @@
         "normalized_text": "{type: \"regex\", pattern: $1}"
       },
       {
+        "rule": "scan_substring_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"scan_substring_group\", name: $2, captures: $4, body: $5}"
+      },
+      {
         "rule": "scoped_inline_modifiers",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"atom\", kind: \"scoped_inline_modifiers\", spec: $2, body: $4}"
+      },
+      {
+        "rule": "script_run_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"script_run_group\", name: $2, body: $4}"
       },
       {
         "rule": "signed_digits",
@@ -539,6 +551,18 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"escape\", kind: \"single_byte\"}"
+      },
+      {
+        "rule": "subroutine_call",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"subroutine_call\", target: $2}"
+      },
+      {
+        "rule": "subroutine_call",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"subroutine_call\", target: $2}"
       },
       {
         "rule": "subroutine_ref",

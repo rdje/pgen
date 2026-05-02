@@ -102,6 +102,10 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `directive_verb` | `-> {type:"atom", kind:"directive_verb", body:$2}` | Object. `body` is the raw `directive_body` shape (sub-rule typing is a separate slice). |
 | `code_block_plain` | `-> {type:"atom", kind:"code_block", lang:null, content:$2}` | Object. `lang:null` distinguishes plain form. `content` is `code_content` (raw). |
 | `code_block_lang` | `-> {type:"atom", kind:"code_block", lang:$2, content:$4}` | Same kind as plain; `lang` is the matched language ident. |
+| `scan_substring_group` | `-> {type:"atom", kind:"scan_substring_group", name:$2, captures:$4, body:$5}` | Object. `name` is `"scs"` or `"scan_substring"` (PCRE2-equivalent). `captures` is the raw `returned_capture_group_list` shape. |
+| `script_run_group` | `-> {type:"atom", kind:"script_run_group", name:$2, body:$4}` | Object. `name` is `"sr"`/`"script_run"`/`"asr"`/`"atomic_script_run"` (atomic vs non-atomic encoded in name). |
+| `subroutine_call` (branch 0, with captures) | `-> {type:"atom", kind:"subroutine_call", target:$2}` | Object. `target` is `returned_capture_subroutine` (target + capture-list). |
+| `subroutine_call` (branch 1, plain) | `-> {type:"atom", kind:"subroutine_call", target:$2}` | Same kind; `target` is just `subroutine_target`. Inspect `target` shape to determine syntactic form. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

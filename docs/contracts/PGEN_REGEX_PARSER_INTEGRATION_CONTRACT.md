@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.56`
+  - `1.1.57`
 - Parser release version:
-  - `1.1.54`
+  - `1.1.55`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,32 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.55 / Contract 1.1.57 Highlights — atom subtree slice 25: scan_substring / script_run / subroutine_call typed
+
+- **Internal-driven shape work** (no downstream report). Batched slice — 4 annotations across 3 atom alternatives.
+- **Rules changed:**
+  - `scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")" -> {type:"atom", kind:"scan_substring_group", name:$2, captures:$4, body:$5}`
+  - `script_run_group = "(*" script_run_name ":" pattern? ")" -> {type:"atom", kind:"script_run_group", name:$2, body:$4}`
+  - `subroutine_call` per-branch (both branches collapse to same kind):
+    - Branch 0 (with returned captures): `"(?" returned_capture_subroutine ")" -> {type:"atom", kind:"subroutine_call", target:$2}`
+    - Branch 1 (plain target): `"(?" subroutine_target ")" -> {type:"atom", kind:"subroutine_call", target:$2}`
+- **AST shape change (consumer-visible):**
+  - `(*sr:abc)` → `{kind:"script_run_group", name:"sr", body:<pattern>}`. `name` carries `sr`/`script_run`/`asr`/`atomic_script_run` directly.
+  - `(*scs:(1)abc)` (with surrounding `(a)` capture so the validator accepts) → `{kind:"scan_substring_group", name:"scs", captures:<raw_capture_list>, body:<pattern>}`.
+  - `(?&name)` → `{kind:"subroutine_call", target:["&", "name"]}`.
+  - `(?P>name)` → `{kind:"subroutine_call", target:["P>", "name"]}`.
+  - `(?R)` → `{kind:"subroutine_call", target:"R"}`.
+  - `(?+1)` → `{kind:"subroutine_call", target:{sign:"+", value:1}}` — `signed_digits` already typed by slice 13 propagates through.
+- **`subroutine_call` two-branch collapse:** Both branches produce `kind:"subroutine_call"` with `target` carrying the inner shape. Branch 0's `target` is a `returned_capture_subroutine` (subroutine_target + returned_capture_group_list); branch 1's `target` is just a subroutine_target. Consumer inspects `target` shape to determine the syntactic form.
+- **Sub-rule shapes deferred:** `returned_capture_group_list`, `returned_capture_subroutine`, `subroutine_target` carry raw shapes. Per-rule typing is a separate concern.
+- **Pre-existing host-validator note:** PGEN's host-side compile validator rejects scan_substring capture-list references that don't have a corresponding group in the surrounding pattern. The slice 25 annotation is correct when the validator allows the input through; for inputs the validator rejects, no AST is produced. Out of scope for this slice.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 22/25 atom alternatives directly typed. Remaining 3 atom alternatives:
+  - **Leaf chars (deferred — high-volume):** `literal`, `whitespace_literal`, `dot`.
+  - **Recursive structures:** `char_class` outer, `conditional`, `extended_class`.
+  - (Note: counted differently — the leaves are 3 separate alternatives but conceptually one decision; recursive structures are 3 separate alternatives.)
 
 ## Release 1.1.54 / Contract 1.1.56 Highlights — atom subtree slice 24: inline-modifier / callout / directive_verb / code_block typed
 
