@@ -480,8 +480,17 @@ named_group          = "(?<" name ">" pattern? ")"
 python_named_group   = "(?P<" name ">" pattern? ")"
 
 atomic_group         = "(?>" pattern? ")" | "(*atomic:" pattern? ")"
-comment_group        = "(?#" comment_text? ")"
-comment_text         = comment_char*
+# `comment_group` annotated `-> {type:"atom", kind:"comment", text:$2}`.
+# `comment_text` rewritten from `comment_char*` (multi-element chain) to
+# a regex literal that captures the whole comment body in one match.
+# PCRE2 accepts any character except `)` inside `(?#...)` — same
+# semantic coverage as the previous `comment_char*` chain (which
+# enumerated letter/digit/whitespace/special/unicode_char alternatives
+# that together exclude `)`). The `?` after `comment_text` was redundant
+# — `comment_text` now accepts the empty match — so the outer rule
+# drops the `?`. Consumers always read a string `text`.
+comment_group        = "(?#" comment_text ")"            -> {type: "atom", kind: "comment", text: $2}
+comment_text         = /([^)]*)/
 comment_char         = letter | digit | whitespace | comment_special | unicode_char
 comment_special      = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 

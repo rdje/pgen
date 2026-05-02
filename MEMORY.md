@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-19-atom-subtree-python-named-backreference)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-20-atom-subtree-comment-group)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 20 of N — `comment_group` typed.** `comment_group = "(?#" comment_text ")" -> {type:"atom", kind:"comment", text:$2}`. `comment_text` rewritten from `comment_char*` chain to regex literal `/([^)]*)/`. The `?` after `comment_text` in `comment_group` body was dropped — the regex literal accepts empty, making the optional marker redundant. Empirical: `(?#hello)` → `{type:"atom", kind:"comment", text:"hello"}`; `(?#)` → `{text:""}`; `(?#multi word comment)` → `{text:"multi word comment"}`; `(?#with [special] chars)` → `{text:"with [special] chars"}`. `text` is always a string. Char-set coverage `[^)]*` matches the previous `comment_char*` semantics (any char except `)`). Continues the multi-char-chain → regex-literal pattern. Contract bump: parser release `1.1.49` → `1.1.50`, contract `1.1.51` → `1.1.52`. Regex AST schema version stays `1`. 495/0 tests. 1 new manifest entry. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.24.0), `json-carrier.md` (2 new entries). Atom subtree progress: **8/25 alternatives directly typed**; 7/7 escape_unit branches typed; backreference family fully typed.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 19 of N — `python_named_backreference` typed.** Single-rule slice: `python_named_backreference = "(?P=" name ")" -> {type:"backreference", kind:"python_named", ref:$2}`. Empirical: `(?P=foo)` → `{type:"backreference",kind:"python_named",ref:"foo"}`; `(?P=bar_baz)` → `{ref:"bar_baz"}`. `name` was already typed to a clean string by slice 11, so 1 grammar line + 1 manifest entry, no rule rewrites. **`kind:"python_named"` distinct from `\k<...>` family's `kind:"named"`** even though PCRE2 matching semantics are equivalent — preserves syntactic origin for tooling. Consumers normalizing all name-based forms: `kind in {"named", "named_braced", "python_named"}` → name-based backref; `ref` is the name in all three. **Backreference family typing is now end-to-end across all 5 syntactic forms** (numeric, named, named_braced, subroutine, python_named). Contract bump: parser release `1.1.48` → `1.1.49`, contract `1.1.50` → `1.1.51`. Regex AST schema version stays `1`. 495/0 tests. 1 new manifest entry. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.23.0), `json-carrier.md`. No examples chapter changes. Atom subtree progress: **7/25 atom alternatives directly typed**; 7/7 escape_unit branches typed; backreference family fully typed.
 
 ### Earlier session note (kept for context):

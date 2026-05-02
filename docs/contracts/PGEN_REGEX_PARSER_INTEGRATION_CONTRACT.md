@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.51`
+  - `1.1.52`
 - Parser release version:
-  - `1.1.49`
+  - `1.1.50`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,20 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.50 / Contract 1.1.52 Highlights — atom subtree slice 20: comment_group typed
+
+- **Internal-driven shape work** (no downstream report).
+- **Rules changed:**
+  - `comment_group` annotated `-> {type:"atom", kind:"comment", text:$2}`.
+  - `comment_text` rewritten from `comment_char*` (multi-element chain) to `/([^)]*)/` (regex literal) — emits a clean string Terminal of the comment body.
+  - The `?` after `comment_text` in `comment_group` body is dropped (the regex literal accepts the empty match, so `?` was redundant).
+- **AST shape change:** `(?#hello)` → `{type:"atom", kind:"comment", text:"hello"}` (was `["(?#", [<comment_char chain>], ")"]` 3-element Sequence).
+- **Empty comment** `(?#)` now emits `text:""` (a real empty string), not `[]` from the un-matched `?` slot.
+- **Char-set coverage:** `comment_text = /([^)]*)/` matches any char except `)`, which is the same semantic coverage as the previous `comment_char*` chain (which enumerated letter/digit/whitespace/special/unicode_char alternatives that together excluded `)`).
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 8/25 atom alternatives directly typed; 7/7 escape_unit branches typed.
 
 ## Release 1.1.49 / Contract 1.1.51 Highlights — atom subtree slice 19: python_named_backreference typed
 

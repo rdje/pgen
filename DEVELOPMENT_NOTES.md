@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 20/N — comment_group typed
+
+### What landed
+
+```ebnf
+comment_group = "(?#" comment_text ")"
+                  -> {type: "atom", kind: "comment", text: $2}
+
+comment_text  = /([^)]*)/    # rewritten from `comment_char*` chain
+```
+
+### Why drop the `?` after `comment_text`?
+
+Previous shape: `comment_group = "(?#" comment_text? ")"`. The `?` made `comment_text` an optional slot. With `comment_text = comment_char*`, the un-matched case would emit `[]`; the matched case would emit a multi-element char chain.
+
+After rewriting `comment_text` to a regex literal that accepts empty (`/([^)]*)/`), `comment_text` always matches (even on `(?#)`). The `?` is redundant. Removed for cleaner shape: `text` is always a string.
+
+This is a small but consistent improvement on top of slices 11 (`name`) / 15 (`hex_digits`) / 16 (`octal_digits`) / 17 (`prop_name`) — replace multi-char-chain rules with regex literals that capture the whole body in one match.
+
+### Char-set coverage
+
+The previous `comment_char` enumeration: `letter | digit | whitespace | comment_special | unicode_char`. Combined char-set: A-Z, a-z, 0-9, whitespace, the `comment_special` set (`!@#$%^&*(-+=[]{}|\:;"'<>,.?/`~_`), unicode chars >= 0x80. The chars EXCLUDED from this combined set: `)` (and that's it, by inspection).
+
+Replaced with `[^)]*` — match any char except `)`. Same accepted set.
+
+### Empirical
+- `(?#hello)` → `{type:"atom", kind:"comment", text:"hello"}`.
+- `(?#)` → `{text:""}`.
+- `(?#multi word comment)` → `{text:"multi word comment"}`.
+- `(?#with [special] chars)` → `{text:"with [special] chars"}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 1 new manifest entry (`comment_group`, alphabetically inserted between `concatenation` and `control_escape`).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.49` → `1.1.50`. Contract `1.1.51` → `1.1.52`.
+- New "Release 1.1.50 / Contract 1.1.52 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.24.0), `json-carrier.md` (2 new entries).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **8/25 atom alternatives directly typed.**
+- 7/7 escape_unit branches typed (escape subtree closed at slice 17).
+- Backreference family typed end-to-end.
+- Remaining 17 atom alternatives: literal, whitespace_literal, dot, char_class outer, group/capturing_group/noncapturing_group/named_group/python_named_group/inline_modifiers/scoped_inline_modifiers/branch_reset_group/callout/conditional/lookaround/atomic_group/scan_substring_group/script_run_group/directive_verb/extended_class/code_block/subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 19/N — python_named_backreference typed
 
 ### What landed

@@ -23,6 +23,35 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.50 / Contract 1.1.52 — Atom subtree slice 20: comment_group typed
+
+**What changed:** `comment_group` now emits typed `{type:"atom", kind:"comment", text:<string>}` objects.
+
+```ebnf
+comment_group = "(?#" comment_text ")"
+                  -> {type: "atom", kind: "comment", text: $2}
+
+# rewritten from `comment_char*` chain:
+comment_text  = /([^)]*)/
+```
+
+**Before / after:**
+
+| Source | Before | After |
+|---|---|---|
+| `(?#hello)` | `["(?#", [<comment_char chain>], ")"]` | `{type:"atom", kind:"comment", text:"hello"}` |
+| `(?#)` | `["(?#", [], ")"]` (empty Quantified) | `{type:"atom", kind:"comment", text:""}` |
+| `(?#multi word comment)` | similar 3-element Sequence | `{text:"multi word comment"}` |
+| `(?#with [special] chars)` | similar | `{text:"with [special] chars"}` |
+
+**`text` is always a string.** Empty comments (`(?#)`) emit `text:""` (real empty string), not `[]` from an un-matched optional slot. The `?` after `comment_text` in `comment_group` was dropped because the regex literal accepts the empty match — `comment_text` always succeeds.
+
+**Char-set coverage** of `[^)]*` matches the previous `comment_char*` chain semantics: any char except `)`.
+
+**Atom subtree campaign progress:** 8/25 atom alternatives directly typed.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.50 / Contract 1.1.52 Highlights".
+
 ### 1.1.49 / Contract 1.1.51 — Atom subtree slice 19: python_named_backreference typed
 
 **What changed:** `python_named_backreference` now emits typed `{type:"backreference", kind:"python_named", ref:<name>}` objects.

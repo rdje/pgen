@@ -169,6 +169,12 @@
         "normalized_text": "$3"
       },
       {
+        "rule": "comment_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"comment\", text: $2}"
+      },
+      {
         "rule": "concatenation",
         "branch_index": 0,
         "annotation_type": "return_array",
