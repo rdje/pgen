@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 22/N: named groups typed (named/python_named)
+
+### What landed
+
+```ebnf
+named_group        = "(?<" name ">" pattern? ")"  -> {type: "atom", kind: "named_group", name: $2, body: $4}
+                   | "(?'" name "'" pattern? ")"  -> {type: "atom", kind: "named_group", name: $2, body: $4}
+python_named_group = "(?P<" name ">" pattern? ")" -> {type: "atom", kind: "python_named_group", name: $2, body: $4}
+```
+
+3 annotations. Both `(?<n>...)` and `(?'n'...)` syntactic forms collapse to `kind:"named_group"`. `(?P<n>...)` gets distinct `kind:"python_named_group"` (paralleling slice 19's `python_named_backreference`). `name` was already typed to a clean string by slice 11.
+
+### Empirical AST shape
+
+| Source | Before | After |
+|---|---|---|
+| `(?<foo>abc)` | `["(?<", "foo", ">", <pattern>, ")"]` | `{type:"atom", kind:"named_group", name:"foo", body:<pattern>}` |
+| `(?'bar'xyz)` | `["(?'", "bar", "'", <pattern>, ")"]` | `{kind:"named_group", name:"bar", body:<pattern>}` |
+| `(?P<baz>123)` | `["(?P<", "baz", ">", <pattern>, ")"]` | `{kind:"python_named_group", name:"baz", body:<pattern>}` |
+| `(?<empty>)` | similar 5-element seq | `{kind:"named_group", name:"empty", body:[[], []]}` |
+
+### Group typing now end-to-end
+
+All 6 group sub-rules typed:
+- Under `group`: capturing_group, noncapturing_group, named_group, python_named_group
+- Standalone: branch_reset_group, atomic_group
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 3 new manifest entries (named_group ×2 + python_named_group), inserted alphabetically per the slice-21 process note: named_group between name_ref and noncapturing_group; python_named_group between python_named_backreference and quant_base.
+- `make regex_parser_book_gate` green.
+- Empirical sweep: `(?<foo>abc)` / `(?'bar'xyz)` / `(?P<baz>123)` / `(?<empty>)` typed correctly.
+
+### Contract bump
+
+Parser release `1.1.51` → `1.1.52`. Contract `1.1.53` → `1.1.54`. New "Release 1.1.52 / Contract 1.1.54 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.52 / 1.1.54 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.26.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 3 new entries.
+- `docs/regex_parser_book/src/examples-groups-alt.md` — chapter intro updated to "all 6 group sub-rules typed"; named/apostrophe/python-style sections rewritten to typed-object form.
+
+### Atom subtree progress
+**13/25 atom alternatives directly typed.** Group typing end-to-end.
+
 ## 2026-05-02 - regex.ebnf slice 21/N: simple groups typed (capturing/noncapturing/branch_reset/atomic)
 
 ### What landed

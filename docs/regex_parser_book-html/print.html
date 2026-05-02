@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9db7c49f.js";
+            window.path_to_searchindex_js = "searchindex-67ac9cc9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -921,6 +921,9 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>branch_reset_group</code></td><td><code>-&gt; {type:"atom", kind:"branch_reset_group", body:$2}</code></td><td>Object <code>{type:"atom", kind:"branch_reset_group", body:&lt;pattern&gt;}</code>.</td></tr>
 <tr><td><code>atomic_group</code> (branch 0, <code>(?&gt;...)</code>)</td><td><code>-&gt; {type:"atom", kind:"atomic_group", body:$2}</code></td><td>Object <code>{type:"atom", kind:"atomic_group", body:&lt;pattern&gt;}</code>.</td></tr>
 <tr><td><code>atomic_group</code> (branch 1, <code>(*atomic:...)</code>)</td><td><code>-&gt; {type:"atom", kind:"atomic_group", body:$2}</code></td><td>Same kind as branch 0 — PCRE2-equivalent semantics.</td></tr>
+<tr><td><code>named_group</code> (branch 0, <code>(?&lt;n&gt;...)</code>)</td><td><code>-&gt; {type:"atom", kind:"named_group", name:$2, body:$4}</code></td><td>Object <code>{type:"atom", kind:"named_group", name:&lt;str&gt;, body:&lt;pattern&gt;}</code>.</td></tr>
+<tr><td><code>named_group</code> (branch 1, <code>(?'n'...)</code>)</td><td><code>-&gt; {type:"atom", kind:"named_group", name:$2, body:$4}</code></td><td>Same kind as branch 0 — PCRE2-equivalent.</td></tr>
+<tr><td><code>python_named_group</code></td><td><code>-&gt; {type:"atom", kind:"python_named_group", name:$2, body:$4}</code></td><td>Distinct kind preserves Python-style syntax origin. PCRE2-equivalent to <code>named_group</code>.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>
@@ -3566,7 +3569,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <p>Until that lands, consumers walk the per-rule raw shapes documented above.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-groups-and-alternations"><a class="header" href="#examples-groups-and-alternations">Examples: Groups and Alternations</a></h1>
-<p>Concrete probe outputs for grouping and alternation constructs. As of slice 21 (post-1.1.51), the four simple group forms (capturing, noncapturing, branch_reset, atomic) emit typed <code>{type:"atom", kind:&lt;group_kind&gt;, body:&lt;pattern&gt;}</code> objects. Named groups (angle / quote / Python <code>(?P&lt;name&gt;...)</code> forms) and recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.</p>
+<p>Concrete probe outputs for grouping and alternation constructs. As of slice 22 (post-1.1.52), <strong>all 6 group sub-rules are typed</strong> — capturing, noncapturing, named (angle + quote), python_named (under <code>group</code>), branch_reset, atomic (standalone). Group typing is end-to-end. Recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.</p>
 <h2 id="capturing-group--abc"><a class="header" href="#capturing-group--abc">Capturing group — <code>(abc)</code></a></h2>
 <pre><code class="language-json">{
   "atom": {"type": "atom", "kind": "capturing_group", "body": &lt;pattern&gt;},
@@ -3584,66 +3587,25 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <p>Identical shape to capturing group except <code>kind</code>. Consumer dispatches on <code>obj.kind</code>.</p>
 <h2 id="named-group-angle-form--nameabc"><a class="header" href="#named-group-angle-form--nameabc">Named group (angle form) — <code>(?&lt;name&gt;abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?&lt;",
-    [&lt;name shape — chars: ["n", ["a", "m", "e"]]&gt;],
-    "&gt;",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "named_group", "name": "name", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
-<p>5-element Sequence. The name at index 1 is the <code>name</code> rule’s 2-element shape: <code>[&lt;first-char&gt;, &lt;Quantified of remaining chars&gt;]</code>.</p>
-<p>A consumer extracting the name:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn extract_named_group_name(atom: &amp;Value) -&gt; Option&lt;String&gt; {
-    let arr = atom.as_array()?;
-    let name_value = arr.get(1)?.as_array()?;
-    let first = name_value.get(0)?.as_str()?;
-    let rest = name_value.get(1)?.as_array()?;
-    let mut s = String::from(first);
-    for c in rest {
-        // each is possibly Alternative-wrapped; descend until string
-        let mut cur = c;
-        loop {
-            match cur {
-                Value::String(c_str) =&gt; { s.push_str(c_str); break; }
-                Value::Array(a) if a.len() == 1 =&gt; cur = &amp;a[0],
-                _ =&gt; break,
-            }
-        }
-    }
-    Some(s)
-}
-<span class="boring">}</span></code></pre>
+<p><code>name</code> is a clean string (typed by slice 11). <code>body</code> is the inner pattern shape. For empty body <code>(?&lt;n&gt;)</code>, <code>body: [[], []]</code> (empty alternation).</p>
 <h2 id="named-group-apostrophe-form--nameabc"><a class="header" href="#named-group-apostrophe-form--nameabc">Named group (apostrophe form) — <code>(?'name'abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?'",
-    [&lt;name shape&gt;],
-    "'",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "named_group", "name": "name", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
-<p>Same as angle form but with <code>'</code> delimiters.</p>
+<p>Same <code>kind:"named_group"</code> as the angle form — PCRE2 treats them as semantically equivalent so the typed shape doesn’t preserve the syntactic origin.</p>
 <h2 id="python-style-named--pnameabc"><a class="header" href="#python-style-named--pnameabc">Python-style named — <code>(?P&lt;name&gt;abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?P&lt;",
-    [&lt;name shape&gt;],
-    "&gt;",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "python_named_group", "name": "name", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
-<p>Opening is <code>"(?P&lt;"</code>.</p>
+<p>Distinct <code>kind:"python_named_group"</code>, paralleling <code>python_named_backreference</code> (slice 19). PCRE2 treats <code>(?P&lt;n&gt;...)</code> as functionally equivalent to <code>(?&lt;n&gt;...)</code>, but tooling that displays the source pattern wants to preserve the syntactic origin. Consumers normalizing all name-based group forms: <code>kind in {"named_group", "python_named_group"}</code> → name-based group; <code>name</code> is the name in both.</p>
 <h2 id="atomic-group--abc"><a class="header" href="#atomic-group--abc">Atomic group — <code>(?&gt;abc)</code></a></h2>
 <pre><code class="language-json">{
   "atom": {"type": "atom", "kind": "atomic_group", "body": &lt;pattern&gt;},
@@ -4516,6 +4478,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.18.0</td><td>1.1.44</td><td><strong>Breaking but correct:</strong> atom subtree slice 14 (escape subtree starts: simple/single_byte/control). <code>escape</code> rule annotated <code>-&gt; $2</code> (transparent passthrough). <code>single_byte_escape -&gt; {type:"escape", kind:"single_byte"}</code>, <code>simple_escape -&gt; {type:"escape", kind:"shorthand", char:$1}</code>, <code>control_escape -&gt; {type:"escape", kind:"control", char:$2}</code>. PCRE2 <code>\d</code>/<code>\w</code>/<code>\s</code>/<code>\.</code>/<code>\\</code> (shorthand), <code>\C</code> (single_byte), <code>\cA</code>/<code>\cz</code> (control) atoms now emit typed <code>{type, kind, char?}</code> objects. The other 4 escape_unit branches (hex/unicode/octal/property) still emit raw shapes — they pass through <code>escape -&gt; $2</code> un-typed; follow-up slices will annotate each.</td></tr>
 <tr><td>0.19.0</td><td>1.1.45</td><td><strong>Breaking but correct:</strong> atom subtree slice 15 (escape subtree continues: hex/unicode). <code>hex_escape</code> annotated per-branch <code>-&gt; {type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code>. <code>unicode_escape</code> annotated <code>-&gt; {type:"escape", kind:"unicode", digits:&lt;hex-string&gt;}</code>. New <code>hex_escape_short_payload</code> regex literal <code>/([0-9A-Fa-f]{1,2})/</code> for the short <code>\xNN</code> form. <code>hex_digits</code> rewritten from <code>hex_digit+</code> chain to a regex literal <code>/([0-9A-Fa-f]+)/</code>. PCRE2 <code>\xF</code>/<code>\xFF</code>/<code>\x{1F}</code>/<code>\x{1F600}</code> (hex) and <code>\u{NNNN}</code> (unicode) atoms emit typed <code>{type, kind, digits}</code> objects. <code>digits</code> is the matched hex string; consumers parse to int via <code>usize::from_str_radix(digits, 16)</code>. Int-decoding via the rule’s <code>@transform</code> would require extending the transform machinery to support <code>from_str_radix</code>-style; saved as a separate codegen-feature slice.</td></tr>
 <tr><td>0.20.0</td><td>1.1.46</td><td><strong>Breaking but correct:</strong> atom subtree slice 16 (escape subtree continues: octal). <code>octal_escape</code> annotated per-branch <code>-&gt; {type:"escape", kind:"octal", digits:&lt;octal-string&gt;}</code>. New <code>octal_escape_short_payload</code> regex literal <code>/([0-7]{1,3})/</code> for the bare 1-3-digit form. <code>octal_digits</code> rewritten from <code>octal_digit+</code> chain to a regex literal <code>/([0-7]+)/</code>. Braced <code>\o{NNN...}</code> (atom) and bare <code>\NNN</code> (in classes via <code>class_range_escape_unit</code>) emit typed <code>{type, kind, digits}</code> objects. <code>digits</code> is the matched octal string; consumers parse with <code>usize::from_str_radix(digits, 8)</code>. Bare <code>\NNN</code> at atom-level remains parsed as <code>backreference</code> (numeric kind) under the existing PEG ordering — pre-existing, not changed by this slice; PEG can’t express PCRE2’s contextual backref-vs-octal disambiguation directly. 6/7 escape_unit branches now typed; only <code>property_escape</code> remains.</td></tr>
+<tr><td>0.26.0</td><td>1.1.52</td><td><strong>Breaking but correct:</strong> atom subtree slice 22 (named groups typed: named/python_named). 3 annotations across 2 rules. <code>named_group</code> (both angle <code>(?&lt;n&gt;...)</code> and quote <code>(?'n'...)</code> forms) → <code>{type:"atom", kind:"named_group", name:&lt;str&gt;, body:&lt;pattern&gt;}</code>. <code>python_named_group</code> (<code>(?P&lt;n&gt;...)</code>) → <code>kind:"python_named_group"</code> (distinct from <code>named_group</code> for syntactic-origin preservation, paralleling slice 19’s <code>python_named_backreference</code>). <code>name</code> was already typed to a clean string by slice 11. <strong>Group typing now end-to-end</strong> — all 6 group sub-rules (capturing, noncapturing, named, python_named under <code>group</code>; branch_reset, atomic standalone) emit typed shapes.</td></tr>
 <tr><td>0.25.0</td><td>1.1.51</td><td><strong>Breaking but correct:</strong> atom subtree slice 21 (simple groups typed: capturing/noncapturing/branch_reset/atomic). 5 annotations (atomic_group has 2 syntactic branches both producing <code>kind:"atomic_group"</code>). All 4 group forms emit <code>{type:"atom", kind:&lt;group_kind&gt;, body:&lt;pattern&gt;}</code>. <code>(abc)</code> now emits <code>{type:"atom", kind:"capturing_group", body:&lt;pattern&gt;}</code>; <code>(?:abc)</code> → <code>kind:"noncapturing_group"</code>; <code>(?&gt;abc)</code> and <code>(*atomic:abc)</code> both → <code>kind:"atomic_group"</code>; `(?</td></tr>
 <tr><td>0.24.0</td><td>1.1.50</td><td><strong>Breaking but correct:</strong> atom subtree slice 20 (<code>comment_group</code> typed). <code>comment_group = "(?#" comment_text ")" -&gt; {type:"atom", kind:"comment", text:$2}</code>. <code>comment_text</code> rewritten from <code>comment_char*</code> chain to regex literal <code>/([^)]*)/</code>. <code>(?#hello)</code> now emits <code>{type:"atom", kind:"comment", text:"hello"}</code> instead of the 3-element <code>["(?#", [&lt;chain&gt;], ")"]</code> Sequence. Empty comments <code>(?#)</code> emit <code>text:""</code> (real empty string), not <code>[]</code> from an un-matched optional slot — the <code>?</code> after <code>comment_text</code> in <code>comment_group</code> was dropped because the regex literal accepts empty. Char-set coverage of <code>[^)]*</code> matches the previous <code>comment_char*</code> chain (any char except <code>)</code>).</td></tr>
 <tr><td>0.23.0</td><td>1.1.49</td><td><strong>Breaking but correct:</strong> atom subtree slice 19 (<code>python_named_backreference</code> typed). <code>python_named_backreference = "(?P=" name ")" -&gt; {type:"backreference", kind:"python_named", ref:$2}</code>. <code>(?P=foo)</code> now emits <code>{type:"backreference", kind:"python_named", ref:"foo"}</code> instead of the 3-element <code>["(?P=", "foo", ")"]</code> Sequence. <code>kind:"python_named"</code> is a distinct value from the regular <code>\k&lt;...&gt;</code> family’s <code>kind:"named"</code> — PCRE2 treats them as functionally equivalent for matching, but the syntax origin is preserved for tooling. Consumers normalizing all name-based forms can use <code>kind in {"named", "named_braced", "python_named"}</code> → name-based backref; <code>ref</code> is the name in all three. Backreference family typing is now end-to-end across all 5 syntactic forms.</td></tr>
@@ -4642,6 +4605,35 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1152--contract-1154--atom-subtree-slice-22-named-groups-typed-namedpython_named"><a class="header" href="#1152--contract-1154--atom-subtree-slice-22-named-groups-typed-namedpython_named">1.1.52 / Contract 1.1.54 — Atom subtree slice 22: named groups typed (named/python_named)</a></h3>
+<p><strong>What changed:</strong> <code>named_group</code> (both angle and quote syntactic forms) and <code>python_named_group</code> now emit typed <code>{type:"atom", kind:&lt;group_kind&gt;, name:&lt;string&gt;, body:&lt;pattern&gt;}</code> objects.</p>
+<pre><code class="language-ebnf">named_group        = "(?&lt;" name "&gt;" pattern? ")"  -&gt; {type: "atom", kind: "named_group", name: $2, body: $4}
+                   | "(?'" name "'" pattern? ")"  -&gt; {type: "atom", kind: "named_group", name: $2, body: $4}
+python_named_group = "(?P&lt;" name "&gt;" pattern? ")" -&gt; {type: "atom", kind: "python_named_group", name: $2, body: $4}
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?&lt;foo&gt;abc)</code></td><td><code>["(?&lt;", "foo", "&gt;", &lt;pattern&gt;, ")"]</code></td><td><code>{type:"atom", kind:"named_group", name:"foo", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?'bar'xyz)</code></td><td><code>["(?'", "bar", "'", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"named_group", name:"bar", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?P&lt;baz&gt;123)</code></td><td><code>["(?P&lt;", "baz", "&gt;", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"python_named_group", name:"baz", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;empty&gt;)</code></td><td>similar 5-element seq</td><td><code>{kind:"named_group", name:"empty", body:[[], []]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>name</code> was already typed to a clean string by slice 11. <code>body</code> is the raw pattern shape (pattern outer typing is a separate slice).</p>
+<p><strong><code>kind:"python_named_group"</code> distinct from <code>kind:"named_group"</code>.</strong> Paralleling slice 19’s <code>python_named_backreference</code> decision: PCRE2 treats <code>(?P&lt;n&gt;...)</code> and <code>(?&lt;n&gt;...)</code> as functionally equivalent, but tooling that displays the source pattern wants to preserve the syntactic origin. Consumers normalizing across name-based group forms: <code>kind in {"named_group", "python_named_group"}</code> → name-based group; <code>name</code> carries the name in both.</p>
+<p><strong>Group typing now end-to-end.</strong> All 6 group sub-rules typed:</p>
+<ul>
+<li><code>capturing_group</code>, <code>noncapturing_group</code>, <code>named_group</code>, <code>python_named_group</code> (under <code>group</code>)</li>
+<li><code>branch_reset_group</code>, <code>atomic_group</code> (standalone)</li>
+</ul>
+<p><strong>Atom subtree campaign progress:</strong> 13/25 atom alternatives directly typed.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.52 / Contract 1.1.54 Highlights”.</p>
 <h3 id="1151--contract-1153--atom-subtree-slice-21-simple-groups-typed-capturingnoncapturingbranch_resetatomic"><a class="header" href="#1151--contract-1153--atom-subtree-slice-21-simple-groups-typed-capturingnoncapturingbranch_resetatomic">1.1.51 / Contract 1.1.53 — Atom subtree slice 21: simple groups typed (capturing/noncapturing/branch_reset/atomic)</a></h3>
 <p><strong>What changed:</strong> Four group forms now emit typed <code>{type:"atom", kind:&lt;group_kind&gt;, body:&lt;pattern&gt;}</code> objects.</p>
 <pre><code class="language-ebnf">capturing_group     = "(" pattern? ")"           -&gt; {type: "atom", kind: "capturing_group", body: $2}

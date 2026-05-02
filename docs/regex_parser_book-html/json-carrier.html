@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9db7c49f.js";
+            window.path_to_searchindex_js = "searchindex-67ac9cc9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -267,6 +267,9 @@
 <tr><td><code>branch_reset_group</code></td><td><code>-&gt; {type:"atom", kind:"branch_reset_group", body:$2}</code></td><td>Object <code>{type:"atom", kind:"branch_reset_group", body:&lt;pattern&gt;}</code>.</td></tr>
 <tr><td><code>atomic_group</code> (branch 0, <code>(?&gt;...)</code>)</td><td><code>-&gt; {type:"atom", kind:"atomic_group", body:$2}</code></td><td>Object <code>{type:"atom", kind:"atomic_group", body:&lt;pattern&gt;}</code>.</td></tr>
 <tr><td><code>atomic_group</code> (branch 1, <code>(*atomic:...)</code>)</td><td><code>-&gt; {type:"atom", kind:"atomic_group", body:$2}</code></td><td>Same kind as branch 0 — PCRE2-equivalent semantics.</td></tr>
+<tr><td><code>named_group</code> (branch 0, <code>(?&lt;n&gt;...)</code>)</td><td><code>-&gt; {type:"atom", kind:"named_group", name:$2, body:$4}</code></td><td>Object <code>{type:"atom", kind:"named_group", name:&lt;str&gt;, body:&lt;pattern&gt;}</code>.</td></tr>
+<tr><td><code>named_group</code> (branch 1, <code>(?'n'...)</code>)</td><td><code>-&gt; {type:"atom", kind:"named_group", name:$2, body:$4}</code></td><td>Same kind as branch 0 — PCRE2-equivalent.</td></tr>
+<tr><td><code>python_named_group</code></td><td><code>-&gt; {type:"atom", kind:"python_named_group", name:$2, body:$4}</code></td><td>Distinct kind preserves Python-style syntax origin. PCRE2-equivalent to <code>named_group</code>.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

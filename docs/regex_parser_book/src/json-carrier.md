@@ -86,6 +86,9 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `branch_reset_group` | `-> {type:"atom", kind:"branch_reset_group", body:$2}` | Object `{type:"atom", kind:"branch_reset_group", body:<pattern>}`. |
 | `atomic_group` (branch 0, `(?>...)`) | `-> {type:"atom", kind:"atomic_group", body:$2}` | Object `{type:"atom", kind:"atomic_group", body:<pattern>}`. |
 | `atomic_group` (branch 1, `(*atomic:...)`) | `-> {type:"atom", kind:"atomic_group", body:$2}` | Same kind as branch 0 — PCRE2-equivalent semantics. |
+| `named_group` (branch 0, `(?<n>...)`) | `-> {type:"atom", kind:"named_group", name:$2, body:$4}` | Object `{type:"atom", kind:"named_group", name:<str>, body:<pattern>}`. |
+| `named_group` (branch 1, `(?'n'...)`) | `-> {type:"atom", kind:"named_group", name:$2, body:$4}` | Same kind as branch 0 — PCRE2-equivalent. |
+| `python_named_group` | `-> {type:"atom", kind:"python_named_group", name:$2, body:$4}` | Distinct kind preserves Python-style syntax origin. PCRE2-equivalent to `named_group`. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

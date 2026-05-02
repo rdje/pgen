@@ -23,6 +23,37 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.52 / Contract 1.1.54 — Atom subtree slice 22: named groups typed (named/python_named)
+
+**What changed:** `named_group` (both angle and quote syntactic forms) and `python_named_group` now emit typed `{type:"atom", kind:<group_kind>, name:<string>, body:<pattern>}` objects.
+
+```ebnf
+named_group        = "(?<" name ">" pattern? ")"  -> {type: "atom", kind: "named_group", name: $2, body: $4}
+                   | "(?'" name "'" pattern? ")"  -> {type: "atom", kind: "named_group", name: $2, body: $4}
+python_named_group = "(?P<" name ">" pattern? ")" -> {type: "atom", kind: "python_named_group", name: $2, body: $4}
+```
+
+**Before / after:**
+
+| Source | Before | After |
+|---|---|---|
+| `(?<foo>abc)` | `["(?<", "foo", ">", <pattern>, ")"]` | `{type:"atom", kind:"named_group", name:"foo", body:<pattern>}` |
+| `(?'bar'xyz)` | `["(?'", "bar", "'", <pattern>, ")"]` | `{kind:"named_group", name:"bar", body:<pattern>}` |
+| `(?P<baz>123)` | `["(?P<", "baz", ">", <pattern>, ")"]` | `{kind:"python_named_group", name:"baz", body:<pattern>}` |
+| `(?<empty>)` | similar 5-element seq | `{kind:"named_group", name:"empty", body:[[], []]}` |
+
+`name` was already typed to a clean string by slice 11. `body` is the raw pattern shape (pattern outer typing is a separate slice).
+
+**`kind:"python_named_group"` distinct from `kind:"named_group"`.** Paralleling slice 19's `python_named_backreference` decision: PCRE2 treats `(?P<n>...)` and `(?<n>...)` as functionally equivalent, but tooling that displays the source pattern wants to preserve the syntactic origin. Consumers normalizing across name-based group forms: `kind in {"named_group", "python_named_group"}` → name-based group; `name` carries the name in both.
+
+**Group typing now end-to-end.** All 6 group sub-rules typed:
+- `capturing_group`, `noncapturing_group`, `named_group`, `python_named_group` (under `group`)
+- `branch_reset_group`, `atomic_group` (standalone)
+
+**Atom subtree campaign progress:** 13/25 atom alternatives directly typed.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.52 / Contract 1.1.54 Highlights".
+
 ### 1.1.51 / Contract 1.1.53 — Atom subtree slice 21: simple groups typed (capturing/noncapturing/branch_reset/atomic)
 
 **What changed:** Four group forms now emit typed `{type:"atom", kind:<group_kind>, body:<pattern>}` objects.

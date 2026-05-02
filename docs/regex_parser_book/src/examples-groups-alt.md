@@ -1,6 +1,6 @@
 # Examples: Groups and Alternations
 
-Concrete probe outputs for grouping and alternation constructs. As of slice 21 (post-1.1.51), the four simple group forms (capturing, noncapturing, branch_reset, atomic) emit typed `{type:"atom", kind:<group_kind>, body:<pattern>}` objects. Named groups (angle / quote / Python `(?P<name>...)` forms) and recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.
+Concrete probe outputs for grouping and alternation constructs. As of slice 22 (post-1.1.52), **all 6 group sub-rules are typed** — capturing, noncapturing, named (angle + quote), python_named (under `group`), branch_reset, atomic (standalone). Group typing is end-to-end. Recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.
 
 ## Capturing group — `(abc)`
 
@@ -29,76 +29,34 @@ Identical shape to capturing group except `kind`. Consumer dispatches on `obj.ki
 
 ```json
 {
-  "atom": [
-    "(?<",
-    [<name shape — chars: ["n", ["a", "m", "e"]]>],
-    ">",
-    [<pattern array>],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "named_group", "name": "name", "body": <pattern>},
   ...
 }
 ```
 
-5-element Sequence. The name at index 1 is the `name` rule's 2-element shape: `[<first-char>, <Quantified of remaining chars>]`.
-
-A consumer extracting the name:
-
-```rust
-fn extract_named_group_name(atom: &Value) -> Option<String> {
-    let arr = atom.as_array()?;
-    let name_value = arr.get(1)?.as_array()?;
-    let first = name_value.get(0)?.as_str()?;
-    let rest = name_value.get(1)?.as_array()?;
-    let mut s = String::from(first);
-    for c in rest {
-        // each is possibly Alternative-wrapped; descend until string
-        let mut cur = c;
-        loop {
-            match cur {
-                Value::String(c_str) => { s.push_str(c_str); break; }
-                Value::Array(a) if a.len() == 1 => cur = &a[0],
-                _ => break,
-            }
-        }
-    }
-    Some(s)
-}
-```
+`name` is a clean string (typed by slice 11). `body` is the inner pattern shape. For empty body `(?<n>)`, `body: [[], []]` (empty alternation).
 
 ## Named group (apostrophe form) — `(?'name'abc)`
 
 ```json
 {
-  "atom": [
-    "(?'",
-    [<name shape>],
-    "'",
-    [<pattern array>],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "named_group", "name": "name", "body": <pattern>},
   ...
 }
 ```
 
-Same as angle form but with `'` delimiters.
+Same `kind:"named_group"` as the angle form — PCRE2 treats them as semantically equivalent so the typed shape doesn't preserve the syntactic origin.
 
 ## Python-style named — `(?P<name>abc)`
 
 ```json
 {
-  "atom": [
-    "(?P<",
-    [<name shape>],
-    ">",
-    [<pattern array>],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "python_named_group", "name": "name", "body": <pattern>},
   ...
 }
 ```
 
-Opening is `"(?P<"`.
+Distinct `kind:"python_named_group"`, paralleling `python_named_backreference` (slice 19). PCRE2 treats `(?P<n>...)` as functionally equivalent to `(?<n>...)`, but tooling that displays the source pattern wants to preserve the syntactic origin. Consumers normalizing all name-based group forms: `kind in {"named_group", "python_named_group"}` → name-based group; `name` is the name in both.
 
 ## Atomic group — `(?>abc)`
 

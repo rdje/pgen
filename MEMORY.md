@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-21-atom-subtree-simple-groups)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-22-atom-subtree-named-groups)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 22 of N — named groups typed (named/python_named).** 3 annotations across 2 rules; closes group-typing campaign. `named_group` (both `(?<n>...)` and `(?'n'...)` syntactic forms) `-> {type:"atom", kind:"named_group", name:$2, body:$4}`. `python_named_group` (`(?P<n>...)`) `-> kind:"python_named_group"` (distinct kind preserves Python syntax origin — paralleling slice 19). `name` was already typed by slice 11. Empirical: `(?<foo>abc)` → `{type:"atom", kind:"named_group", name:"foo", body:<pattern>}`; `(?P<baz>123)` → `kind:"python_named_group"`; `(?<empty>)` → `body:[[], []]`. **Group typing now end-to-end — all 6 group sub-rules typed** (capturing, noncapturing, named, python_named under `group`; branch_reset, atomic standalone). Applied slice-21 manifest-alphabetical-order process note from the start; manifest entries inserted at lexicographic slots without re-insertion. Contract bump: parser release `1.1.51` → `1.1.52`, contract `1.1.53` → `1.1.54`. Regex AST schema version stays `1`. 495/0 tests. 3 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.26.0), `json-carrier.md` (3 new entries), `examples-groups-alt.md` (chapter intro + 3 sections rewritten). Atom subtree progress: **13/25 alternatives directly typed**.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 21 of N — simple groups typed (capturing/noncapturing/branch_reset/atomic).** Largest atom-subtree slice yet — 5 annotations across 4 group forms in one pass. All produce `{type:"atom", kind:<group_kind>, body:<pattern>}`. Atomic group's 2 syntactic forms (`(?>...)` and `(*atomic:...)`) collapse to `kind:"atomic_group"` (PCRE2-equivalent semantics, syntactic origin not preserved — consistent with property_escape slice 17). `body` is raw pattern shape (pattern outer typing is a separate future slice). Empty groups → `body:[[], []]`. **Process note (saved as workflow gotcha):** the grammar emits annotations alphabetically by rule name; manifest must match. Initial insertion grouped by semantic family failed contract test. Fix: re-insert each at its lexicographic slot — atomic_group between anchor and backreference, capturing_group between branch_reset_group and comment_group, noncapturing_group between name_ref and octal_escape. Contract bump: parser release `1.1.50` → `1.1.51`, contract `1.1.52` → `1.1.53`. Regex AST schema version stays `1`. 495/0 tests. 5 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.25.0), `json-carrier.md` (5 new entries), `examples-groups-alt.md` (chapter intro + 5 sections rewritten). Atom subtree progress: **11/25 alternatives directly typed**.
 
 ### Earlier session note (kept for context):

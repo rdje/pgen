@@ -480,9 +480,19 @@ group          = capturing_group | noncapturing_group | named_group | python_nam
 
 capturing_group      = "(" pattern? ")"               -> {type: "atom", kind: "capturing_group", body: $2}
 noncapturing_group   = "(?:" pattern? ")"             -> {type: "atom", kind: "noncapturing_group", body: $2}
-named_group          = "(?<" name ">" pattern? ")"
-                     | "(?'" name "'" pattern? ")"
-python_named_group   = "(?P<" name ">" pattern? ")"
+# Both `(?<name>...)` (angle) and `(?'name'...)` (quote) syntactic
+# forms produce the same `kind:"named_group"` typed shape; PCRE2
+# treats them as semantically equivalent, paralleling the
+# `atomic_group` 2-form collapse in slice 21.
+named_group          = "(?<" name ">" pattern? ")"    -> {type: "atom", kind: "named_group", name: $2, body: $4}
+                     | "(?'" name "'" pattern? ")"    -> {type: "atom", kind: "named_group", name: $2, body: $4}
+# Python-style `(?P<name>...)`. Distinct `kind:"python_named_group"`
+# preserves the syntactic origin (paralleling
+# `python_named_backreference` in slice 19, which used
+# `kind:"python_named"` rather than collapsing into `"named"`).
+# Consumers that don't care about syntactic origin can normalize:
+# `kind in {"named_group", "python_named_group"}` → name-based group.
+python_named_group   = "(?P<" name ">" pattern? ")"   -> {type: "atom", kind: "python_named_group", name: $2, body: $4}
 
 atomic_group         = "(?>" pattern? ")"             -> {type: "atom", kind: "atomic_group", body: $2}
                      | "(*atomic:" pattern? ")"       -> {type: "atom", kind: "atomic_group", body: $2}

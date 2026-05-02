@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.53`
+  - `1.1.54`
 - Parser release version:
-  - `1.1.51`
+  - `1.1.52`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,24 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.52 / Contract 1.1.54 Highlights — atom subtree slice 22: named groups typed (named/python_named)
+
+- **Internal-driven shape work** (no downstream report). Continues the group-typing campaign from slice 21.
+- **Rules changed:**
+  - `named_group` per-branch annotations producing typed `{type:"atom", kind:"named_group", name:<string>, body:<pattern>}`. Both `(?<name>...)` (angle) and `(?'name'...)` (quote) syntactic forms collapse to `kind:"named_group"`.
+  - `python_named_group = "(?P<" name ">" pattern? ")" -> {type:"atom", kind:"python_named_group", name:<string>, body:<pattern>}`.
+- **AST shape change (consumer-visible):**
+  - Before: `(?<foo>abc)` → `["(?<", "foo", ">", <pattern>, ")"]` (5-element Sequence).
+  - After: `(?<foo>abc)` → `{type:"atom", kind:"named_group", name:"foo", body:<pattern>}` (typed object).
+- **`kind:"python_named_group"` distinct from `kind:"named_group"`** (paralleling slice 19's `python_named_backreference`/`backreference` distinction). PCRE2 treats them as functionally equivalent for matching, but the syntactic origin is preserved. Consumers normalizing across all name-based group forms: `kind in {"named_group", "python_named_group"}` → name-based group; `name` is the name string in both.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.52` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["(?<", "foo", ">", <pattern>, ")"]` (or `(?'...'` / `(?P<...>` equivalents) to use typed `obj.kind` dispatch + `obj.name` + `obj.body` field reads.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 13/25 atom alternatives directly typed (capturing_group, noncapturing_group, named_group, python_named_group, branch_reset_group, atomic_group all counted via `group`'s `-> $1` propagation; the count is "atom alternatives that surface a typed atom shape"). All 6 group sub-rules (capturing/noncapturing/named/python_named under `group`; branch_reset and atomic standalone) are now typed. Group typing is now end-to-end.
 
 ## Release 1.1.51 / Contract 1.1.53 Highlights — atom subtree slice 21: simple groups typed (capturing/noncapturing/branch_reset/atomic)
 

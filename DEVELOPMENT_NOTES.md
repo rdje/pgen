@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 22/N — named groups typed (named/python_named)
+
+### What landed
+
+```ebnf
+named_group        = "(?<" name ">" pattern? ")"  -> {type: "atom", kind: "named_group", name: $2, body: $4}
+                   | "(?'" name "'" pattern? ")"  -> {type: "atom", kind: "named_group", name: $2, body: $4}
+python_named_group = "(?P<" name ">" pattern? ")" -> {type: "atom", kind: "python_named_group", name: $2, body: $4}
+```
+
+3 annotations across 2 rules. Closes the group-typing campaign — all 6 group sub-rules now typed.
+
+### `kind` design — angle vs quote vs Python
+
+`(?<n>...)` and `(?'n'...)` are PCRE2-equivalent: same captures, same matching semantics. Collapsed to `kind:"named_group"` (consistent with slice 21's atomic_group collapsing 2 syntactic forms).
+
+`(?P<n>...)` is also PCRE2-equivalent for matching, but the Python-style syntax origin matters for tooling (formatters, linters, syntax highlighters). Distinct `kind:"python_named_group"`, paralleling slice 19's `python_named_backreference`. Consumers that don't care about origin can normalize: `kind in {"named_group", "python_named_group"}` → name-based group.
+
+### Empirical
+- `(?<foo>abc)` → `{type:"atom", kind:"named_group", name:"foo", body:<pattern>}`.
+- `(?'bar'xyz)` → `{kind:"named_group", name:"bar", body:<pattern>}`.
+- `(?P<baz>123)` → `{kind:"python_named_group", name:"baz", body:<pattern>}`.
+- `(?<empty>)` → `{kind:"named_group", name:"empty", body:[[], []]}` (empty body alternation).
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 3 new manifest entries inserted alphabetically (named_group ×2 between name_ref and noncapturing_group; python_named_group between python_named_backreference and quant_base) — applied the slice-21 process note about manifest alphabetical order from the start, no re-insertion needed.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.51` → `1.1.52`. Contract `1.1.53` → `1.1.54`.
+- New "Release 1.1.52 / Contract 1.1.54 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.26.0), `json-carrier.md` (3 new entries), `examples-groups-alt.md` (chapter intro + named/apostrophe/python-style sections rewritten).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **13/25 atom alternatives directly typed.**
+- Group typing end-to-end (all 6 sub-rules).
+- 7/7 escape_unit branches typed.
+- Backreference family typed end-to-end (5 syntactic forms).
+- Remaining ~12 atom alternatives: literal, whitespace_literal, dot, char_class outer, inline_modifiers, scoped_inline_modifiers, callout, conditional, lookaround, scan_substring_group, script_run_group, directive_verb, extended_class, code_block, subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 21/N — simple groups typed
 
 ### What landed

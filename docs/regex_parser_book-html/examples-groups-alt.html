@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9db7c49f.js";
+            window.path_to_searchindex_js = "searchindex-67ac9cc9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-groups-and-alternations"><a class="header" href="#examples-groups-and-alternations">Examples: Groups and Alternations</a></h1>
-<p>Concrete probe outputs for grouping and alternation constructs. As of slice 21 (post-1.1.51), the four simple group forms (capturing, noncapturing, branch_reset, atomic) emit typed <code>{type:"atom", kind:&lt;group_kind&gt;, body:&lt;pattern&gt;}</code> objects. Named groups (angle / quote / Python <code>(?P&lt;name&gt;...)</code> forms) and recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.</p>
+<p>Concrete probe outputs for grouping and alternation constructs. As of slice 22 (post-1.1.52), <strong>all 6 group sub-rules are typed</strong> — capturing, noncapturing, named (angle + quote), python_named (under <code>group</code>), branch_reset, atomic (standalone). Group typing is end-to-end. Recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.</p>
 <h2 id="capturing-group--abc"><a class="header" href="#capturing-group--abc">Capturing group — <code>(abc)</code></a></h2>
 <pre><code class="language-json">{
   "atom": {"type": "atom", "kind": "capturing_group", "body": &lt;pattern&gt;},
@@ -199,66 +199,25 @@
 <p>Identical shape to capturing group except <code>kind</code>. Consumer dispatches on <code>obj.kind</code>.</p>
 <h2 id="named-group-angle-form--nameabc"><a class="header" href="#named-group-angle-form--nameabc">Named group (angle form) — <code>(?&lt;name&gt;abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?&lt;",
-    [&lt;name shape — chars: ["n", ["a", "m", "e"]]&gt;],
-    "&gt;",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "named_group", "name": "name", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
-<p>5-element Sequence. The name at index 1 is the <code>name</code> rule’s 2-element shape: <code>[&lt;first-char&gt;, &lt;Quantified of remaining chars&gt;]</code>.</p>
-<p>A consumer extracting the name:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn extract_named_group_name(atom: &amp;Value) -&gt; Option&lt;String&gt; {
-    let arr = atom.as_array()?;
-    let name_value = arr.get(1)?.as_array()?;
-    let first = name_value.get(0)?.as_str()?;
-    let rest = name_value.get(1)?.as_array()?;
-    let mut s = String::from(first);
-    for c in rest {
-        // each is possibly Alternative-wrapped; descend until string
-        let mut cur = c;
-        loop {
-            match cur {
-                Value::String(c_str) =&gt; { s.push_str(c_str); break; }
-                Value::Array(a) if a.len() == 1 =&gt; cur = &amp;a[0],
-                _ =&gt; break,
-            }
-        }
-    }
-    Some(s)
-}
-<span class="boring">}</span></code></pre>
+<p><code>name</code> is a clean string (typed by slice 11). <code>body</code> is the inner pattern shape. For empty body <code>(?&lt;n&gt;)</code>, <code>body: [[], []]</code> (empty alternation).</p>
 <h2 id="named-group-apostrophe-form--nameabc"><a class="header" href="#named-group-apostrophe-form--nameabc">Named group (apostrophe form) — <code>(?'name'abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?'",
-    [&lt;name shape&gt;],
-    "'",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "named_group", "name": "name", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
-<p>Same as angle form but with <code>'</code> delimiters.</p>
+<p>Same <code>kind:"named_group"</code> as the angle form — PCRE2 treats them as semantically equivalent so the typed shape doesn’t preserve the syntactic origin.</p>
 <h2 id="python-style-named--pnameabc"><a class="header" href="#python-style-named--pnameabc">Python-style named — <code>(?P&lt;name&gt;abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?P&lt;",
-    [&lt;name shape&gt;],
-    "&gt;",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "python_named_group", "name": "name", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
-<p>Opening is <code>"(?P&lt;"</code>.</p>
+<p>Distinct <code>kind:"python_named_group"</code>, paralleling <code>python_named_backreference</code> (slice 19). PCRE2 treats <code>(?P&lt;n&gt;...)</code> as functionally equivalent to <code>(?&lt;n&gt;...)</code>, but tooling that displays the source pattern wants to preserve the syntactic origin. Consumers normalizing all name-based group forms: <code>kind in {"named_group", "python_named_group"}</code> → name-based group; <code>name</code> is the name in both.</p>
 <h2 id="atomic-group--abc"><a class="header" href="#atomic-group--abc">Atomic group — <code>(?&gt;abc)</code></a></h2>
 <pre><code class="language-json">{
   "atom": {"type": "atom", "kind": "atomic_group", "body": &lt;pattern&gt;},

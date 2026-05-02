@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9db7c49f.js";
+            window.path_to_searchindex_js = "searchindex-67ac9cc9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,35 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1152--contract-1154--atom-subtree-slice-22-named-groups-typed-namedpython_named"><a class="header" href="#1152--contract-1154--atom-subtree-slice-22-named-groups-typed-namedpython_named">1.1.52 / Contract 1.1.54 — Atom subtree slice 22: named groups typed (named/python_named)</a></h3>
+<p><strong>What changed:</strong> <code>named_group</code> (both angle and quote syntactic forms) and <code>python_named_group</code> now emit typed <code>{type:"atom", kind:&lt;group_kind&gt;, name:&lt;string&gt;, body:&lt;pattern&gt;}</code> objects.</p>
+<pre><code class="language-ebnf">named_group        = "(?&lt;" name "&gt;" pattern? ")"  -&gt; {type: "atom", kind: "named_group", name: $2, body: $4}
+                   | "(?'" name "'" pattern? ")"  -&gt; {type: "atom", kind: "named_group", name: $2, body: $4}
+python_named_group = "(?P&lt;" name "&gt;" pattern? ")" -&gt; {type: "atom", kind: "python_named_group", name: $2, body: $4}
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?&lt;foo&gt;abc)</code></td><td><code>["(?&lt;", "foo", "&gt;", &lt;pattern&gt;, ")"]</code></td><td><code>{type:"atom", kind:"named_group", name:"foo", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?'bar'xyz)</code></td><td><code>["(?'", "bar", "'", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"named_group", name:"bar", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?P&lt;baz&gt;123)</code></td><td><code>["(?P&lt;", "baz", "&gt;", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"python_named_group", name:"baz", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;empty&gt;)</code></td><td>similar 5-element seq</td><td><code>{kind:"named_group", name:"empty", body:[[], []]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>name</code> was already typed to a clean string by slice 11. <code>body</code> is the raw pattern shape (pattern outer typing is a separate slice).</p>
+<p><strong><code>kind:"python_named_group"</code> distinct from <code>kind:"named_group"</code>.</strong> Paralleling slice 19’s <code>python_named_backreference</code> decision: PCRE2 treats <code>(?P&lt;n&gt;...)</code> and <code>(?&lt;n&gt;...)</code> as functionally equivalent, but tooling that displays the source pattern wants to preserve the syntactic origin. Consumers normalizing across name-based group forms: <code>kind in {"named_group", "python_named_group"}</code> → name-based group; <code>name</code> carries the name in both.</p>
+<p><strong>Group typing now end-to-end.</strong> All 6 group sub-rules typed:</p>
+<ul>
+<li><code>capturing_group</code>, <code>noncapturing_group</code>, <code>named_group</code>, <code>python_named_group</code> (under <code>group</code>)</li>
+<li><code>branch_reset_group</code>, <code>atomic_group</code> (standalone)</li>
+</ul>
+<p><strong>Atom subtree campaign progress:</strong> 13/25 atom alternatives directly typed.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.52 / Contract 1.1.54 Highlights”.</p>
 <h3 id="1151--contract-1153--atom-subtree-slice-21-simple-groups-typed-capturingnoncapturingbranch_resetatomic"><a class="header" href="#1151--contract-1153--atom-subtree-slice-21-simple-groups-typed-capturingnoncapturingbranch_resetatomic">1.1.51 / Contract 1.1.53 — Atom subtree slice 21: simple groups typed (capturing/noncapturing/branch_reset/atomic)</a></h3>
 <p><strong>What changed:</strong> Four group forms now emit typed <code>{type:"atom", kind:&lt;group_kind&gt;, body:&lt;pattern&gt;}</code> objects.</p>
 <pre><code class="language-ebnf">capturing_group     = "(" pattern? ")"           -&gt; {type: "atom", kind: "capturing_group", body: $2}

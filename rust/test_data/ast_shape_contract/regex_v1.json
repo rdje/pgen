@@ -271,6 +271,18 @@
         "normalized_text": "$2"
       },
       {
+        "rule": "named_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"named_group\", name: $2, body: $4}"
+      },
+      {
+        "rule": "named_group",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"named_group\", name: $2, body: $4}"
+      },
+      {
         "rule": "noncapturing_group",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -365,6 +377,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"backreference\", kind: \"python_named\", ref: $2}"
+      },
+      {
+        "rule": "python_named_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"python_named_group\", name: $2, body: $4}"
       },
       {
         "rule": "quant_base",
