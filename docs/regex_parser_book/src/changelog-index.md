@@ -23,6 +23,39 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.54 / Contract 1.1.56 — Atom subtree slice 24: inline-modifier / callout / directive_verb / code_block typed
+
+**What changed:** Batched slice — 6 annotations across 5 atom alternatives.
+
+```ebnf
+inline_modifiers        = "(?" modifier_spec? ")"            -> {type: "atom", kind: "inline_modifiers", spec: $2}
+scoped_inline_modifiers = "(?" modifier_spec ":" pattern? ")" -> {type: "atom", kind: "scoped_inline_modifiers", spec: $2, body: $4}
+callout                 = "(?C" callout_arg? ")"             -> {type: "atom", kind: "callout", arg: $2}
+directive_verb          = "(*" directive_body ")"            -> {type: "atom", kind: "directive_verb", body: $2}
+code_block_plain        = "(?{" code_content "})"            -> {type: "atom", kind: "code_block", lang: null, content: $2}
+code_block_lang         = "(?{" code_lang ":" ws? code_content "})"
+                                                              -> {type: "atom", kind: "code_block", lang: $2, content: $4}
+```
+
+**Before / after:**
+
+| Source | Before | After |
+|---|---|---|
+| `(?i)` | `["(?", [<modifier_spec>], ")"]` | `{kind:"inline_modifiers", spec:<modifier_spec>}` |
+| `(?i:abc)` | `["(?", <modifier>, ":", <pattern>, ")"]` | `{kind:"scoped_inline_modifiers", spec:<modifier>, body:<pattern>}` |
+| `(?C42)` | `["(?C", 42, ")"]` | `{kind:"callout", arg:42}` |
+| `(*MARK:foo)` | `["(*", <directive>, ")"]` | `{kind:"directive_verb", body:<directive>}` |
+| `(?{print})` | `["(?{", <content>, "})"]` | `{kind:"code_block", lang:null, content:<content>}` |
+| `(?{lua: print})` | `["(?{", "lua", ":", <ws?>, <content>, "})"]` | `{kind:"code_block", lang:"lua", content:<content>}` |
+
+**`code_block` two-branch collapse:** Both `code_block_plain` and `code_block_lang` produce `kind:"code_block"`, distinguished by `lang` (null vs string). Consumer always reads `obj.lang` and `obj.content` — no need to dispatch on which branch matched.
+
+**Sub-rule shapes deferred:** `modifier_spec`, `callout_arg`, `directive_body`, `code_content` carry raw shapes. Their per-rule typing is left to follow-up slices. Atom-level dispatch on `kind` is what slice 24 delivers.
+
+**Atom subtree campaign progress:** 19/25 atom alternatives directly typed (code_block counted as 1 atom alternative; its 2 branches collapse).
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.54 / Contract 1.1.56 Highlights".
+
 ### 1.1.53 / Contract 1.1.55 — Atom subtree slice 23: lookaround family typed (7 sub-rules)
 
 **What changed:** All 7 lookaround sub-rules now emit typed `{type:"atom", kind:<lookaround_kind>, ..., body:<pattern>}` objects.

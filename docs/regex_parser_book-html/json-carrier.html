@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-353061c6.js";
+            window.path_to_searchindex_js = "searchindex-2ac151c6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -277,6 +277,12 @@
 <tr><td><code>non_atomic_lookahead_pos</code></td><td><code>-&gt; {type:"atom", kind:"non_atomic_lookahead", positive:true, body:$2}</code></td><td>Distinct kind; PCRE2 has no negative non-atomic variant.</td></tr>
 <tr><td><code>non_atomic_lookbehind_pos</code></td><td><code>-&gt; {type:"atom", kind:"non_atomic_lookbehind", positive:true, body:$2}</code></td><td>Distinct kind; PCRE2 has no negative non-atomic variant.</td></tr>
 <tr><td><code>alpha_lookaround</code></td><td><code>-&gt; {type:"atom", kind:"alpha_lookaround", name:$2, body:$4}</code></td><td>Object <code>{type:"atom", kind:"alpha_lookaround", name:&lt;alpha_lookaround_name&gt;, body:&lt;pattern&gt;}</code>. Consumers map <code>name</code> to dispatch on semantic equivalent.</td></tr>
+<tr><td><code>inline_modifiers</code></td><td><code>-&gt; {type:"atom", kind:"inline_modifiers", spec:$2}</code></td><td>Object. <code>spec</code> is the raw <code>modifier_spec</code> shape (sub-rule typing is a separate slice). <code>[]</code> when <code>modifier_spec?</code> is un-matched (e.g. <code>(?)</code>).</td></tr>
+<tr><td><code>scoped_inline_modifiers</code></td><td><code>-&gt; {type:"atom", kind:"scoped_inline_modifiers", spec:$2, body:$4}</code></td><td>Object. <code>body</code> is the inner pattern (raw).</td></tr>
+<tr><td><code>callout</code></td><td><code>-&gt; {type:"atom", kind:"callout", arg:$2}</code></td><td>Object. <code>arg</code> is <code>callout_arg</code>’s typed-int (digits) or string (callout_string) shape. <code>[]</code> when un-matched.</td></tr>
+<tr><td><code>directive_verb</code></td><td><code>-&gt; {type:"atom", kind:"directive_verb", body:$2}</code></td><td>Object. <code>body</code> is the raw <code>directive_body</code> shape (sub-rule typing is a separate slice).</td></tr>
+<tr><td><code>code_block_plain</code></td><td><code>-&gt; {type:"atom", kind:"code_block", lang:null, content:$2}</code></td><td>Object. <code>lang:null</code> distinguishes plain form. <code>content</code> is <code>code_content</code> (raw).</td></tr>
+<tr><td><code>code_block_lang</code></td><td><code>-&gt; {type:"atom", kind:"code_block", lang:$2, content:$4}</code></td><td>Same kind as plain; <code>lang</code> is the matched language ident.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

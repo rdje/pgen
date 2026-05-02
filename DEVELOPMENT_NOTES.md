@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 24/N — inline-modifier / callout / directive_verb / code_block typed
+
+### What landed
+
+Batched slice. 6 annotations across 5 atom alternatives. Closes the simpler-shape outer-atom rules that don't require recursive sub-rule typing.
+
+### Sub-rule shapes deferred
+
+`modifier_spec`, `callout_arg`, `directive_body`, `code_content` carry raw shapes — atom-level dispatch on `kind` is what slice 24 delivers; sub-rule per-rule typing is its own concern (would each be a follow-up slice).
+
+For `callout_arg`: it's `digits | callout_string`. `digits` is already typed-int via `@transform`, so `(?C42)` produces `arg:42` directly. `callout_string` is one of 8 quote-styles each with a payload — sub-rule typing would unify these to a single `{quote:..., payload:...}` shape.
+
+For `code_content` and `code_lang`: similar to `comment_text` (slice 20), these could be rewritten as regex literals to emit clean string Terminals. Future cleanup slice.
+
+### `code_block` two-branch collapse
+
+Both branches → `kind:"code_block"`, distinguished by `lang` field (null vs string). Consistent with slice 23's lookahead/lookbehind 2-branch collapse via `positive`, slice 21's atomic_group 2-form collapse, and slice 17's property_escape 4-form collapse.
+
+### Empirical
+- `(?i)` → `{kind:"inline_modifiers", spec:[["i"], []]}`.
+- `(?i:abc)` → `{kind:"scoped_inline_modifiers", spec, body:<pattern>}`.
+- `(?C42)` → `{kind:"callout", arg:42}`.
+- `(*MARK:foo)` → `{kind:"directive_verb", body:<directive>}`.
+- `(?{print})` → `{kind:"code_block", lang:null, content:<chars>}`.
+- `(?{lua: print})` → `{kind:"code_block", lang:"lua", content:<chars>}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 6 new manifest entries inserted at alphabetical slots (applied slice-21 process note from the start, no re-insertion needed).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.53` → `1.1.54`. Contract `1.1.55` → `1.1.56`.
+- New "Release 1.1.54 / Contract 1.1.56 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.28.0), `json-carrier.md` (6 new entries). No examples chapter changes — these atoms not in any existing examples chapter.
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **19/25 atom alternatives directly typed.**
+- 7/7 escape_unit branches typed.
+- Backreference family typed end-to-end.
+- Group typing end-to-end.
+- Lookaround family typed end-to-end.
+- Remaining ~6 atom alternatives:
+  - **Leaf chars (deferred — high-volume):** literal, whitespace_literal, dot.
+  - **Recursive groups (more complex):** char_class outer, conditional, scan_substring_group, script_run_group, extended_class, subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 23/N — lookaround family typed (7 sub-rules)
 
 ### What landed

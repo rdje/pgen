@@ -560,11 +560,16 @@ subroutine_target    = "&" name
 # matching, but the syntax origin is preserved in `kind` for tooling).
 python_named_backreference = "(?P=" name ")"   -> {type: "backreference", kind: "python_named", ref: $2}
 
-# Inline modifier changes: global and scoped
-inline_modifiers           = "(?" modifier_spec? ")"                 # e.g., (?i-mx), (?^i), (?)
-scoped_inline_modifiers    = "(?" modifier_spec ":" pattern? ")"     # e.g., (?x: ...), (?^x: ...)
+# Inline modifier changes: global and scoped. `spec` carries the
+# raw modifier_spec shape; modifier_spec sub-rule typing is a
+# separate concern.
+inline_modifiers           = "(?" modifier_spec? ")"                 -> {type: "atom", kind: "inline_modifiers", spec: $2}
+scoped_inline_modifiers    = "(?" modifier_spec ":" pattern? ")"     -> {type: "atom", kind: "scoped_inline_modifiers", spec: $2, body: $4}
 branch_reset_group         = "(?|" pattern? ")"                     -> {type: "atom", kind: "branch_reset_group", body: $2}
-callout                    = "(?C" callout_arg? ")"
+# `arg` carries the raw callout_arg shape (Or of digits | callout_string).
+# Consumer dispatches on inner shape: integer → numeric callout-arg;
+# string-shaped → string callout-arg.
+callout                    = "(?C" callout_arg? ")"                 -> {type: "atom", kind: "callout", arg: $2}
 callout_arg                = digits | callout_string
 callout_string             = callout_backtick_string
                            | callout_single_string
@@ -623,7 +628,7 @@ recursion_condition = "R" digits?
                     | "R&" name
 
 # PCRE2 verbs and start-of-pattern directives
-directive_verb    = "(*" directive_body ")"
+directive_verb    = "(*" directive_body ")"                        -> {type: "atom", kind: "directive_verb", body: $2}
 directive_body    = directive_named | directive_mark_shorthand
 directive_named   = directive_name directive_payload_suffix?
 directive_mark_shorthand = ":" directive_payload_simple?
@@ -654,9 +659,13 @@ extended_class_special = '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | 
 # - lua/js/javascript/rhai payloads are preserved structurally as tagged source bodies
 # - native/wasm payloads are preserved structurally as tagged reference-style payloads
 # - runtime execution semantics remain out of scope
+# Embedded code blocks `(?{...})` and `(?{lang: ...})`. Both
+# branches collapse to `kind:"code_block"`. `lang` is `null` for the
+# plain form and the matched language ident for the lang form.
+# Consumer reads `obj.lang` and `obj.content` directly.
 code_block     = code_block_lang | code_block_plain
-code_block_plain = "(?{" code_content "})"
-code_block_lang  = "(?{" code_lang ":" ws? code_content "})"
+code_block_plain = "(?{" code_content "})"                          -> {type: "atom", kind: "code_block", lang: null, content: $2}
+code_block_lang  = "(?{" code_lang ":" ws? code_content "})"        -> {type: "atom", kind: "code_block", lang: $2, content: $4}
 code_lang      = "lua" | "js" | "javascript" | "rhai" | "native" | "wasm"
 
 # Code content with proper brace balancing and quoted string handling

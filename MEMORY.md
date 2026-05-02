@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-23-atom-subtree-lookaround-family)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-24-atom-subtree-modifiers-callout-directive-codeblock)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 24 of N — inline-modifier / callout / directive_verb / code_block typed.** Batched slice: 6 annotations across 5 atom alternatives. All produce `{type:"atom", kind:<...>, ...}`. `code_block`'s 2 branches collapse to `kind:"code_block"` distinguished by `lang` (null vs string). Sub-rule shapes (modifier_spec, callout_arg, directive_body, code_content) carry raw shapes — atom-level `kind` dispatch is what slice 24 delivers. Empirical: `(?i)` → `inline_modifiers`; `(?i:abc)` → `scoped_inline_modifiers`; `(?C42)` → `callout, arg:42` (typed int via existing `digits` @transform); `(*MARK:foo)` → `directive_verb`; `(?{print})` → `code_block, lang:null`; `(?{lua: print})` → `code_block, lang:"lua"`. Contract bump: parser release `1.1.53` → `1.1.54`, contract `1.1.55` → `1.1.56`. Regex AST schema version stays `1`. 495/0 tests. 6 new manifest entries at alphabetical slots. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.28.0), `json-carrier.md` (6 new entries). Atom subtree progress: **19/25 alternatives directly typed**. Remaining ~6: literal/whitespace_literal/dot (deferred — high-volume leaf chars), char_class outer, conditional, scan_substring_group, script_run_group, extended_class, subroutine_call.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 23 of N — lookaround family typed (7 sub-rules).** Largest slice yet — 7 annotations across 7 sub-rules. `lookahead_pos`/`lookahead_neg` collapse to `kind:"lookahead"` with `positive:true|false`; same pattern for `lookbehind`. Non-atomic forms get distinct kinds (`kind:"non_atomic_lookahead"`/`kind:"non_atomic_lookbehind"`) since PCRE2 only supports positive variants; `positive:true` field included for uniform consumer code. Alpha-form `(*<name>:...)` carries `name` (one of pla/positive_lookahead/nla/negative_lookahead/etc.). Empirical: `(?=foo)` → `{kind:"lookahead", positive:true, body:<pattern>}`; `(?!bar)` → `positive:false`; `(?<=baz)`/`(?<!qux)` → `kind:"lookbehind"`; `(?*alpha)`/`(?<*beta)` → `non_atomic_*`; `(*pla:gamma)` → `kind:"alpha_lookaround", name:"pla"`. **Lookaround family typed end-to-end.** Contract bump: parser release `1.1.52` → `1.1.53`, contract `1.1.54` → `1.1.55`. Regex AST schema version stays `1`. 495/0 tests. 7 new manifest entries at alphabetical slots. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.27.0), `json-carrier.md` (7 new entries), `examples-groups-alt.md` (chapter intro + 4 sections rewritten). Atom subtree progress: **14/25 alternatives directly typed**.
 
 ### Earlier session note (kept for context):

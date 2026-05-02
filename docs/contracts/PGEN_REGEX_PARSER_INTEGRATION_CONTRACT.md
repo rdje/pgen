@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.55`
+  - `1.1.56`
 - Parser release version:
-  - `1.1.53`
+  - `1.1.54`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,29 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.54 / Contract 1.1.56 Highlights — atom subtree slice 24: inline-modifier / callout / directive_verb / code_block typed
+
+- **Internal-driven shape work** (no downstream report). Batched slice — 6 annotations across 5 atom alternatives (code_block has 2 branches both producing `kind:"code_block"`).
+- **Rules changed:**
+  - `inline_modifiers = "(?" modifier_spec? ")" -> {type:"atom", kind:"inline_modifiers", spec:$2}`
+  - `scoped_inline_modifiers = "(?" modifier_spec ":" pattern? ")" -> {type:"atom", kind:"scoped_inline_modifiers", spec:$2, body:$4}`
+  - `callout = "(?C" callout_arg? ")" -> {type:"atom", kind:"callout", arg:$2}`
+  - `directive_verb = "(*" directive_body ")" -> {type:"atom", kind:"directive_verb", body:$2}`
+  - `code_block_plain = "(?{" code_content "})" -> {type:"atom", kind:"code_block", lang:null, content:$2}`
+  - `code_block_lang = "(?{" code_lang ":" ws? code_content "})" -> {type:"atom", kind:"code_block", lang:$2, content:$4}`
+- **AST shape change (consumer-visible):**
+  - `(?i)` → `{type:"atom", kind:"inline_modifiers", spec:[["i"], []]}`. `spec` carries raw `modifier_spec` shape (sub-rule typing is a separate concern).
+  - `(?i:abc)` → `{type:"atom", kind:"scoped_inline_modifiers", spec:<modifier_spec>, body:<pattern>}`.
+  - `(?C42)` → `{type:"atom", kind:"callout", arg:42}` (callout_arg's digits sub-rule is already typed-int via `@transform`).
+  - `(*MARK:foo)` → `{type:"atom", kind:"directive_verb", body:<raw_directive_body>}`.
+  - `(?{print})` → `{type:"atom", kind:"code_block", lang:null, content:<chars>}`. `lang:null` distinguishes plain form.
+  - `(?{lua: print})` → `{type:"atom", kind:"code_block", lang:"lua", content:<chars>}`.
+- **`code_block` two-branch collapse:** Both `code_block_plain` and `code_block_lang` produce `kind:"code_block"`, distinguished by `lang` (null vs string). Consumer always reads `obj.lang` and `obj.content` — no need to dispatch on which branch matched.
+- **`spec`/`body`/`arg`/`content` carry raw shapes.** Sub-rule typing (modifier_spec, callout_arg, directive_body, code_content) is left to follow-up slices. Atom-level dispatch on `kind` is what slice 24 delivers.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 19/25 atom alternatives directly typed (counting code_block as 1 atom alternative; the 2 branches collapse). Remaining ~6 atom alternatives: literal, whitespace_literal, dot, char_class outer, conditional, scan_substring_group, script_run_group, extended_class, subroutine_call.
 
 ## Release 1.1.53 / Contract 1.1.55 Highlights — atom subtree slice 23: lookaround family typed (7 sub-rules)
 

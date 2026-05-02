@@ -1,4 +1,57 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 24/N: inline-modifier / callout / directive_verb / code_block typed
+
+### What landed
+
+Batched slice — 6 annotations across 5 atom alternatives:
+
+```ebnf
+inline_modifiers        = "(?" modifier_spec? ")"            -> {type: "atom", kind: "inline_modifiers", spec: $2}
+scoped_inline_modifiers = "(?" modifier_spec ":" pattern? ")" -> {type: "atom", kind: "scoped_inline_modifiers", spec: $2, body: $4}
+callout                 = "(?C" callout_arg? ")"             -> {type: "atom", kind: "callout", arg: $2}
+directive_verb          = "(*" directive_body ")"            -> {type: "atom", kind: "directive_verb", body: $2}
+code_block_plain        = "(?{" code_content "})"            -> {type: "atom", kind: "code_block", lang: null, content: $2}
+code_block_lang         = "(?{" code_lang ":" ws? code_content "})"
+                                                              -> {type: "atom", kind: "code_block", lang: $2, content: $4}
+```
+
+### Empirical AST shape
+
+| Source | After |
+|---|---|
+| `(?i)` | `{kind:"inline_modifiers", spec:[["i"], []]}` |
+| `(?i:abc)` | `{kind:"scoped_inline_modifiers", spec:<modifier>, body:<pattern>}` |
+| `(?C42)` | `{kind:"callout", arg:42}` (callout_arg → digits @transform → typed int) |
+| `(*MARK:foo)` | `{kind:"directive_verb", body:<directive_body>}` |
+| `(?{print})` | `{kind:"code_block", lang:null, content:<chars>}` |
+| `(?{lua: print})` | `{kind:"code_block", lang:"lua", content:<chars>}` |
+
+### `code_block` two-branch collapse
+
+Both `code_block_plain` and `code_block_lang` produce `kind:"code_block"`, distinguished by `lang` (null vs string). Consumer always reads `obj.lang` and `obj.content` — no need to dispatch on which branch matched.
+
+### Sub-rule shapes deferred
+
+`modifier_spec`, `callout_arg`, `directive_body`, `code_content` carry raw shapes. Their per-rule typing is left to follow-up slices.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 6 new manifest entries inserted at alphabetical slots (callout before capturing_group; code_block_lang/_plain between capturing_group and comment_group; directive_verb between counted_quantifier_body and escape; inline_modifiers between hex_escape and lookahead_neg; scoped_inline_modifiers between regex and signed_digits).
+- `make regex_parser_book_gate` green.
+- Empirical sweep: all 6 inputs typed correctly.
+
+### Contract bump
+
+Parser release `1.1.53` → `1.1.54`. Contract `1.1.55` → `1.1.56`. New "Release 1.1.54 / Contract 1.1.56 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.54 / 1.1.56 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.28.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 6 new entries.
+
+### Atom subtree progress
+**19/25 atom alternatives directly typed.** Remaining ~6: literal, whitespace_literal, dot, char_class outer, conditional, scan_substring_group, script_run_group, extended_class, subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 23/N: lookaround family typed (7 sub-rules)
 
 ### What landed
