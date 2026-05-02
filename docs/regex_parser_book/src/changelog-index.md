@@ -23,6 +23,31 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.49 / Contract 1.1.51 — Atom subtree slice 19: python_named_backreference typed
+
+**What changed:** `python_named_backreference` now emits typed `{type:"backreference", kind:"python_named", ref:<name>}` objects.
+
+```ebnf
+python_named_backreference = "(?P=" name ")"
+                              -> {type: "backreference", kind: "python_named", ref: $2}
+```
+
+**Before / after:**
+
+| Source | Before | After |
+|---|---|---|
+| `(?P=foo)` | `["(?P=", "foo", ")"]` | `{type:"backreference", kind:"python_named", ref:"foo"}` |
+| `(?P=bar_baz)` | similar 3-element Sequence | `{kind:"python_named", ref:"bar_baz"}` |
+| `(?P=x)` | similar | `{kind:"python_named", ref:"x"}` |
+
+`name` was already a clean string after slice 11 (named-ref cleanup), so `$2` extracts directly.
+
+**`kind` distinguishes from `\k<...>` even though semantics are equivalent.** PCRE2 treats `(?P=foo)` and `\k<foo>` as the same match operation, but tooling that wants to preserve the syntax origin can dispatch on `kind`. Consumers normalizing across all name-based forms: `kind in {"named", "named_braced", "python_named"}` → "name-based backref"; `ref` is the name string in all three.
+
+**Atom subtree campaign progress:** 7/25 atom alternatives directly typed. **Backreference family typing is now end-to-end across all 5 syntactic forms** (numeric, named, named_braced, subroutine, python_named).
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.49 / Contract 1.1.51 Highlights".
+
 ### 1.1.48 / Contract 1.1.50 — Atom subtree slice 18: quoted_literal typed
 
 **What changed:** `quoted_literal` now emits typed `{type:"atom", kind:"quoted_literal", body:<chars>}` objects.

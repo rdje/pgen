@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.50`
+  - `1.1.51`
 - Parser release version:
-  - `1.1.48`
+  - `1.1.49`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,16 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.49 / Contract 1.1.51 Highlights — atom subtree slice 19: python_named_backreference typed
+
+- **Internal-driven shape work** (no downstream report).
+- **Rule changed:** `python_named_backreference = "(?P=" name ")" -> {type:"backreference", kind:"python_named", ref:$2}`.
+- **AST shape change:** `(?P=foo)` → `{type:"backreference", kind:"python_named", ref:"foo"}` (was `["(?P=", "foo", ")"]` 3-element Sequence; `name` was already a clean string after slice 11).
+- **Why a separate `kind` value:** PCRE2 treats `(?P=foo)` as functionally equivalent to `\k<foo>` for matching purposes, but the syntax origin (Python-specific `(?P=...)` vs PCRE2 `\k<...>`) is preserved in `kind` for tooling. Consumers that don't care about syntax origin can normalize: `kind in {"named", "named_braced", "python_named"}` → "name-based backref"; `ref` is the name in all three.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 7/25 atom alternatives directly typed; 7/7 escape_unit branches typed. Backreference family typing is now end-to-end across all 5 syntactic forms (numeric `\N`, named `\k<...>`/`\k'...'`, named_braced `\k{...}`, subroutine `\g<...>`/`\g'...'`/`\g{...}`/`\g+digit`, python_named `(?P=...)`).
 
 ## Release 1.1.48 / Contract 1.1.50 Highlights — atom subtree slice 18: quoted_literal typed
 

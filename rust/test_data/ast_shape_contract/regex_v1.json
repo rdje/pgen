@@ -325,6 +325,12 @@
         "normalized_text": "{type: \"escape\", kind: \"property\", name: $2, negated: true}"
       },
       {
+        "rule": "python_named_backreference",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"backreference\", kind: \"python_named\", ref: $2}"
+      },
+      {
         "rule": "quant_base",
         "branch_index": 0,
         "annotation_type": "return_object",

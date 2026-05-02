@@ -78,6 +78,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `quant_suffix` (branch 0) | `-> "lazy"` | String `"lazy"` |
 | `quant_suffix` (branch 1) | `-> "possessive"` | String `"possessive"` |
 | `quoted_literal` | `-> {type:"atom", kind:"quoted_literal", body:$2}` | Object `{type:"atom", kind:"quoted_literal", body:<array-of-chars>}`. Array elements are single-char strings; `quoted_literal_escaped_char` produces 2-char strings preserving the `\` and the escaped char. |
+| `python_named_backreference` | `-> {type:"backreference", kind:"python_named", ref:$2}` | Object `{type:"backreference", kind:"python_named", ref:<name>}`. PCRE2-equivalent to `\k<name>` for matching; `kind` preserves syntax origin. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

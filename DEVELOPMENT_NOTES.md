@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 19/N — python_named_backreference typed
+
+### What landed
+
+```ebnf
+python_named_backreference = "(?P=" name ")"
+                              -> {type: "backreference", kind: "python_named", ref: $2}
+```
+
+Single-rule slice. Most efficient slice in the campaign: 1 grammar line, 1 manifest entry, no rule rewrites needed (`name` was already typed to a clean string by slice 11).
+
+### Why a separate `kind`?
+
+PCRE2 treats `(?P=foo)` and `\k<foo>` as functionally equivalent for matching — both reference the previously-captured group named `foo`. Three options for the typed shape:
+
+1. Use `kind:"named"` (same as `\k<foo>`) — masks the syntactic origin.
+2. Use `kind:"python_named"` — preserves origin; consumers that don't care normalize.
+3. Use a separate `subkind` field.
+
+Picked (2). Tooling that displays the source pattern wants to preserve `(?P=foo)` vs `\k<foo>` (e.g. linters, formatters, syntax highlighters); for them the syntactic origin matters. Tooling that only cares about matching semantics normalizes via `kind in {"named", "named_braced", "python_named"}`.
+
+### Empirical
+- `(?P=foo)` → `{type:"backreference", kind:"python_named", ref:"foo"}`.
+- `(?P=bar_baz)` → `{ref:"bar_baz"}`.
+- `(?P=x)` → `{ref:"x"}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 1 new manifest entry (`python_named_backreference`, alphabetically inserted between `property_escape` branch 3 and `quant_base`).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.48` → `1.1.49`. Contract `1.1.50` → `1.1.51`.
+- New "Release 1.1.49 / Contract 1.1.51 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.23.0), `json-carrier.md`. No examples chapter changes — `(?P=...)` syntax not in any of the existing examples chapters.
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **7/25 atom alternatives directly typed.**
+- 7/7 escape_unit branches typed (escape subtree closed at slice 17).
+- **Backreference family typing end-to-end across all 5 syntactic forms** (numeric, named, named_braced, subroutine, python_named).
+- Remaining 18 atom alternatives: literal, whitespace_literal, dot, char_class outer, group/capturing_group/noncapturing_group/named_group/python_named_group/inline_modifiers/scoped_inline_modifiers/branch_reset_group/callout/conditional/lookaround/atomic_group/scan_substring_group/script_run_group/directive_verb/extended_class/code_block/comment_group/subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 18/N — quoted_literal typed
 
 ### What landed

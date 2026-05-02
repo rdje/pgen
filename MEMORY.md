@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-18-atom-subtree-quoted-literal)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-19-atom-subtree-python-named-backreference)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 19 of N — `python_named_backreference` typed.** Single-rule slice: `python_named_backreference = "(?P=" name ")" -> {type:"backreference", kind:"python_named", ref:$2}`. Empirical: `(?P=foo)` → `{type:"backreference",kind:"python_named",ref:"foo"}`; `(?P=bar_baz)` → `{ref:"bar_baz"}`. `name` was already typed to a clean string by slice 11, so 1 grammar line + 1 manifest entry, no rule rewrites. **`kind:"python_named"` distinct from `\k<...>` family's `kind:"named"`** even though PCRE2 matching semantics are equivalent — preserves syntactic origin for tooling. Consumers normalizing all name-based forms: `kind in {"named", "named_braced", "python_named"}` → name-based backref; `ref` is the name in all three. **Backreference family typing is now end-to-end across all 5 syntactic forms** (numeric, named, named_braced, subroutine, python_named). Contract bump: parser release `1.1.48` → `1.1.49`, contract `1.1.50` → `1.1.51`. Regex AST schema version stays `1`. 495/0 tests. 1 new manifest entry. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.23.0), `json-carrier.md`. No examples chapter changes. Atom subtree progress: **7/25 atom alternatives directly typed**; 7/7 escape_unit branches typed; backreference family fully typed.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 18 of N — `quoted_literal` typed.** First atom-subtree slice after the escape closure. `quoted_literal = "\\Q" quoted_literal_char* "\\E" -> {type:"atom", kind:"quoted_literal", body:$2}`. Empirical: `\Qhello\E` → `{type:"atom", kind:"quoted_literal", body:["h","e","l","l","o"]}`; `\Q\E` → `{body:[]}`; `\Qabc def\E` → `{body:["a","b","c"," ","d","e","f"]}`. `body` is array of single-char strings (`quoted_literal_escaped_char` produces 2-char preserving the `\`); consumers join for raw string. Routes through `quoted_literal`: only the atom-fallback cases of `\Q...\E quantifier?` family table — the multi-piece fast path goes through `piece_quoted_run_quantified` which doesn't touch `quoted_literal`, so PGEN-RGX-0074/0077 cases are unchanged. **Decision (saved as design rationale):** picked `quoted_literal` over leaf-char atoms (literal/dot/whitespace_literal) because typing leaf chars would inflate AST size 4× for the most common case (`"a"` → `{type, kind, char}` per literal char). Leaf-char typing deferred to a separate decision. Contract bump: parser release `1.1.47` → `1.1.48`, contract `1.1.49` → `1.1.50`. Regex AST schema version stays `1`. 495/0 tests. Manifest gets 1 new entry. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.22.0), `json-carrier.md`, `examples-quoted-literal.md` (atom-fallback shapes updated to typed form). Atom subtree progress: 6/25 alternatives directly typed; 7/7 escape_unit branches typed.
 
 ### Earlier session note (kept for context):

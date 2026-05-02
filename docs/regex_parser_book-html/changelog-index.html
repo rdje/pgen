@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1f03f987.js";
+            window.path_to_searchindex_js = "searchindex-dbc89f9b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,28 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1149--contract-1151--atom-subtree-slice-19-python_named_backreference-typed"><a class="header" href="#1149--contract-1151--atom-subtree-slice-19-python_named_backreference-typed">1.1.49 / Contract 1.1.51 — Atom subtree slice 19: python_named_backreference typed</a></h3>
+<p><strong>What changed:</strong> <code>python_named_backreference</code> now emits typed <code>{type:"backreference", kind:"python_named", ref:&lt;name&gt;}</code> objects.</p>
+<pre><code class="language-ebnf">python_named_backreference = "(?P=" name ")"
+                              -&gt; {type: "backreference", kind: "python_named", ref: $2}
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?P=foo)</code></td><td><code>["(?P=", "foo", ")"]</code></td><td><code>{type:"backreference", kind:"python_named", ref:"foo"}</code></td></tr>
+<tr><td><code>(?P=bar_baz)</code></td><td>similar 3-element Sequence</td><td><code>{kind:"python_named", ref:"bar_baz"}</code></td></tr>
+<tr><td><code>(?P=x)</code></td><td>similar</td><td><code>{kind:"python_named", ref:"x"}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>name</code> was already a clean string after slice 11 (named-ref cleanup), so <code>$2</code> extracts directly.</p>
+<p><strong><code>kind</code> distinguishes from <code>\k&lt;...&gt;</code> even though semantics are equivalent.</strong> PCRE2 treats <code>(?P=foo)</code> and <code>\k&lt;foo&gt;</code> as the same match operation, but tooling that wants to preserve the syntax origin can dispatch on <code>kind</code>. Consumers normalizing across all name-based forms: <code>kind in {"named", "named_braced", "python_named"}</code> → “name-based backref”; <code>ref</code> is the name string in all three.</p>
+<p><strong>Atom subtree campaign progress:</strong> 7/25 atom alternatives directly typed. <strong>Backreference family typing is now end-to-end across all 5 syntactic forms</strong> (numeric, named, named_braced, subroutine, python_named).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.49 / Contract 1.1.51 Highlights”.</p>
 <h3 id="1148--contract-1150--atom-subtree-slice-18-quoted_literal-typed"><a class="header" href="#1148--contract-1150--atom-subtree-slice-18-quoted_literal-typed">1.1.48 / Contract 1.1.50 — Atom subtree slice 18: quoted_literal typed</a></h3>
 <p><strong>What changed:</strong> <code>quoted_literal</code> now emits typed <code>{type:"atom", kind:"quoted_literal", body:&lt;chars&gt;}</code> objects.</p>
 <pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char* "\\E"

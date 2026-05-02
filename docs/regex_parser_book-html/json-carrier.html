@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1f03f987.js";
+            window.path_to_searchindex_js = "searchindex-dbc89f9b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -259,6 +259,7 @@
 <tr><td><code>quant_suffix</code> (branch 0)</td><td><code>-&gt; "lazy"</code></td><td>String <code>"lazy"</code></td></tr>
 <tr><td><code>quant_suffix</code> (branch 1)</td><td><code>-&gt; "possessive"</code></td><td>String <code>"possessive"</code></td></tr>
 <tr><td><code>quoted_literal</code></td><td><code>-&gt; {type:"atom", kind:"quoted_literal", body:$2}</code></td><td>Object <code>{type:"atom", kind:"quoted_literal", body:&lt;array-of-chars&gt;}</code>. Array elements are single-char strings; <code>quoted_literal_escaped_char</code> produces 2-char strings preserving the <code>\</code> and the escaped char.</td></tr>
+<tr><td><code>python_named_backreference</code></td><td><code>-&gt; {type:"backreference", kind:"python_named", ref:$2}</code></td><td>Object <code>{type:"backreference", kind:"python_named", ref:&lt;name&gt;}</code>. PCRE2-equivalent to <code>\k&lt;name&gt;</code> for matching; <code>kind</code> preserves syntax origin.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 19/N: python_named_backreference typed
+
+### What landed
+
+```ebnf
+python_named_backreference = "(?P=" name ")"
+                              -> {type: "backreference", kind: "python_named", ref: $2}
+```
+
+Single-rule slice. `python_named_backreference` is a separate atom alternative from `backreference` (Python's `(?P=name)` syntax), but its semantics are equivalent to PCRE2's `\k<name>` for matching purposes.
+
+### Empirical AST shape
+
+| Source | Before | After |
+|---|---|---|
+| `(?P=foo)` | `["(?P=", "foo", ")"]` | `{type:"backreference", kind:"python_named", ref:"foo"}` |
+| `(?P=bar_baz)` | similar 3-element Sequence | `{kind:"python_named", ref:"bar_baz"}` |
+| `(?P=x)` | similar | `{kind:"python_named", ref:"x"}` |
+
+### `kind` design
+
+`kind:"python_named"` is a distinct value from `\k<...>` family's `kind:"named"`. Functionally equivalent for matching, but syntactic origin is preserved. Consumers that want to normalize across all name-based forms can dispatch on `kind in {"named", "named_braced", "python_named"}`; `ref` carries the name string in all three.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 1 new manifest entry (`python_named_backreference`).
+- `make regex_parser_book_gate` green.
+- Empirical sweep: `(?P=foo)` / `(?P=bar_baz)` / `(?P=x)` typed correctly.
+
+### Contract bump
+
+Parser release `1.1.48` → `1.1.49`. Contract `1.1.50` → `1.1.51`. New "Release 1.1.49 / Contract 1.1.51 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.49 / 1.1.51 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.23.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 1 new entry.
+
+### Atom subtree progress
+**7/25 atom alternatives directly typed.** Backreference family typing is **end-to-end across all 5 syntactic forms** (numeric, named, named_braced, subroutine, python_named).
+
 ## 2026-05-02 - regex.ebnf slice 18/N: quoted_literal typed
 
 ### What landed

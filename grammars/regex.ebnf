@@ -519,7 +519,12 @@ subroutine_target    = "&" name
                     | "P>" name
                     | "R"
                     | signed_digits
-python_named_backreference = "(?P=" name ")"
+# Annotated to surface the same `{type:"backreference", kind:<form>, ref:<string>}`
+# shape used by the regular backreference family (slices 10-12). `kind` is a
+# distinct value `"python_named"` so consumers can dispatch on Python-specific
+# semantics (PCRE2 treats it as functionally equivalent to `\k<name>` for
+# matching, but the syntax origin is preserved in `kind` for tooling).
+python_named_backreference = "(?P=" name ")"   -> {type: "backreference", kind: "python_named", ref: $2}
 
 # Inline modifier changes: global and scoped
 inline_modifiers           = "(?" modifier_spec? ")"                 # e.g., (?i-mx), (?^i), (?)
