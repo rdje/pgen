@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-25-atom-subtree-scan-substring-script-run-subroutine-call)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-26-atom-subtree-char-class-outer)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 26 of N — `char_class` outer typed.** `char_class -> {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}`. `negation -> true` and `class_initial_close -> true` (real booleans paralleling slice 8 `posix_negation`). `body` is raw class_body shape; inner items already typed by earlier slices (posix_class slice 8, class_range_escape family) propagate transparently. Empirical: `[abc]` → `{negated:[], initial_close:[], body:["a","b","c"]}`; `[^abc]` → `negated:true`; `[]abc]` → `initial_close:true`; `[a-z]` → body has class_range 5-element shape; `[[:alpha:]]` → body has typed posix_class. Pure char-class typing is end-to-end at outer level. `class_body` per-rule typing (Quantified-of-items + class_range / class_literal / class_escape) is its own future concern. Contract bump: parser release `1.1.55` → `1.1.56`, contract `1.1.57` → `1.1.58`. Regex AST schema version stays `1`. 495/0 tests. 3 new manifest entries at alphabetical slots. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.30.0), `json-carrier.md` (3 new entries), `examples-char-class.md` (chapter intro + every section rewritten). Atom subtree progress: **23/25 alternatives directly typed**. Remaining 2: `conditional`, `extended_class`.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 25 of N — scan_substring / script_run / subroutine_call typed.** Batched slice: 4 annotations across 3 atom alternatives. `scan_substring_group` and `script_run_group` carry `name` (the matched syntactic-form name like "scs" or "atomic_script_run") plus `body` (and `captures` for scan_substring). `subroutine_call` both branches collapse to `kind:"subroutine_call"` with `target` carrying heterogeneous inner shape (string `"R"` for `(?R)`, 2-element seq for `(?&name)`/`(?P>name)`, typed `{sign,value}` for numeric refs from slice-13 signed_digits propagation). Empirical: `(*sr:abc)` → `kind:"script_run_group", name:"sr"`; `(a)(*scs:(1)bcd)` → `kind:"scan_substring_group", name:"scs", captures` carries raw shape with `value:1` typed-int; `(?+1)` → `target:{sign:"+", value:1}` (signed_digits propagation). Sub-rule typing of returned_capture_group_list / returned_capture_subroutine / subroutine_target deferred to follow-up slices. Pre-existing host-validator note: `(*scs:(N)...)` requires N to reference an existing group in the surrounding pattern; annotation correct when validator allows. Contract bump: parser release `1.1.54` → `1.1.55`, contract `1.1.56` → `1.1.57`. Regex AST schema version stays `1`. 495/0 tests. 4 new manifest entries at alphabetical slots. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.29.0), `json-carrier.md` (4 new entries). Atom subtree progress: **22/25 alternatives directly typed**. Remaining 3: leaf chars (literal/whitespace_literal/dot — deferred high-volume) + recursive structures (char_class outer, conditional, extended_class).
 
 ### Earlier session note (kept for context):

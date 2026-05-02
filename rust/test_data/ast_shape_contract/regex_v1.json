@@ -205,6 +205,18 @@
         "normalized_text": "{type: \"atom\", kind: \"capturing_group\", body: $2}"
       },
       {
+        "rule": "char_class",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: $2, initial_close: $3, body: $4}"
+      },
+      {
+        "rule": "class_initial_close",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "true"
+      },
+      {
         "rule": "code_block_lang",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -341,6 +353,12 @@
         "branch_index": 1,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"atom\", kind: \"named_group\", name: $2, body: $4}"
+      },
+      {
+        "rule": "negation",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "true"
       },
       {
         "rule": "non_atomic_lookahead_pos",

@@ -244,12 +244,22 @@ posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_star
 @generate: generate_char_class_matcher(has_negation($2), collect_class_items($2))
 @optimize: count(flatten($2)) > 8 ? "lookup_table" : "linear_checks"
 @validate: all(extract_ranges($2), r => valid_range(r.start, r.end))
-char_class     = "[" negation? class_initial_close? class_body "]"
-class_initial_close = "]"
+# `char_class` annotated to surface `{type:"atom", kind:"char_class",
+# negated:<bool>, initial_close:<bool>, body:<class_body>}`.
+# `negated` is a real boolean via `negation -> true` (paralleling
+# `posix_negation` from slice 8 / PGEN-RGX-0076). `initial_close` is
+# the boolean form of the un-matched-Quantified-? slot via
+# `class_initial_close -> true` — the consumer doesn't need the
+# literal `"]"` string, just the existence of the slot. `body` is
+# the raw `class_body` shape (the typed `posix_class`,
+# `class_range`, `quoted_class_literal`, etc. inside propagate
+# already; class_body sub-rule typing is its own concern).
+char_class     = "[" negation? class_initial_close? class_body "]"   -> {type: "atom", kind: "char_class", negated: $2, initial_close: $3, body: $4}
+class_initial_close = "]"                                            -> true
 
 @generate: "^" if $1 else ""
 @semantic_value: $1 != null
-negation       = "^"
+negation       = "^"                                                 -> true
 
 @generate: build_class_items_list($1)
 @semantic_value: flatten($1)

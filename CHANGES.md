@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 26/N: char_class outer typed
+
+### What landed
+
+```ebnf
+char_class          = "[" negation? class_initial_close? class_body "]"
+                       -> {type: "atom", kind: "char_class", negated: $2, initial_close: $3, body: $4}
+class_initial_close = "]"                                            -> true
+negation            = "^"                                            -> true
+```
+
+3 annotations. `negation -> true` and `class_initial_close -> true` mirror `posix_negation -> true` (slice 8). `body` is the raw `class_body` shape; inner items already typed by earlier slices propagate.
+
+### Empirical AST shape
+
+| Source | After |
+|---|---|
+| `[abc]` | `{type:"atom", kind:"char_class", negated:[], initial_close:[], body:["a","b","c"]}` |
+| `[^abc]` | `{negated:true, body:["a","b","c"]}` |
+| `[a-z]` | `{body:[["a", [], "-", [], "z"]]}` |
+| `[]abc]` | `{initial_close:true, body:["a","b","c"]}` |
+| `[^]abc]` | `{negated:true, initial_close:true, body:["a","b","c"]}` |
+| `[[:alpha:]]` | `{body:[{type:"posix_class", name:"alpha", negated:[]}]}` (typed posix_class propagates) |
+
+### `body` is raw class_body shape
+
+`class_body = class_item*` is a Quantified-of-class_items. Inner items typed by earlier slices propagate transparently — `posix_class` (slice 8), `class_range_escape` (escape subtree slices), `quoted_class_range_atom` (PGEN-RGX-0068 fix). Pure char-class typing is end-to-end at the outer level. `class_body` per-rule typing (e.g. flattening Quantified-of-class_items into a clean array of typed items) is its own concern.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 3 new manifest entries (char_class between capturing_group and code_block_lang; class_initial_close between char_class and code_block_lang; negation between named_group and non_atomic_lookahead_pos).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 6 inputs covering negated/non-negated/initial-close/range/posix-inside variants — all typed correctly.
+
+### Contract bump
+
+Parser release `1.1.55` → `1.1.56`. Contract `1.1.57` → `1.1.58`. New "Release 1.1.56 / Contract 1.1.58 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.56 / 1.1.58 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.30.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 3 new entries.
+- `docs/regex_parser_book/src/examples-char-class.md` — chapter intro + every section rewritten to typed-object form.
+
+### Atom subtree progress
+**23/25 atom alternatives directly typed.** Remaining 2: `conditional` and `extended_class`.
+
 ## 2026-05-02 - regex.ebnf slice 25/N: scan_substring / script_run / subroutine_call typed
 
 ### What landed

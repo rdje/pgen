@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3566a2a4.js";
+            window.path_to_searchindex_js = "searchindex-3a154a34.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,33 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1156--contract-1158--atom-subtree-slice-26-char_class-outer-typed"><a class="header" href="#1156--contract-1158--atom-subtree-slice-26-char_class-outer-typed">1.1.56 / Contract 1.1.58 — Atom subtree slice 26: char_class outer typed</a></h3>
+<p><strong>What changed:</strong> <code>char_class</code> now emits typed <code>{type:"atom", kind:"char_class", negated:&lt;bool&gt;, initial_close:&lt;bool&gt;, body:&lt;class_body&gt;}</code> objects.</p>
+<pre><code class="language-ebnf">char_class          = "[" negation? class_initial_close? class_body "]"
+                       -&gt; {type: "atom", kind: "char_class", negated: $2, initial_close: $3, body: $4}
+class_initial_close = "]"                                            -&gt; true
+negation            = "^"                                            -&gt; true
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[abc]</code></td><td><code>["[", [], [], &lt;body&gt;, "]"]</code></td><td><code>{type:"atom", kind:"char_class", negated:[], initial_close:[], body:["a","b","c"]}</code></td></tr>
+<tr><td><code>[^abc]</code></td><td>similar w/ <code>negation</code> shape</td><td><code>{kind:"char_class", negated:true, body:["a","b","c"]}</code></td></tr>
+<tr><td><code>[a-z]</code></td><td>similar w/ <code>class_range</code> body</td><td><code>{kind:"char_class", body:[["a", [], "-", [], "z"]]}</code></td></tr>
+<tr><td><code>[]abc]</code></td><td>similar w/ <code>class_initial_close</code></td><td><code>{kind:"char_class", initial_close:true, body:["a","b","c"]}</code></td></tr>
+<tr><td><code>[^]abc]</code></td><td>both</td><td><code>{negated:true, initial_close:true, body:["a","b","c"]}</code></td></tr>
+<tr><td><code>[[:alpha:]]</code></td><td>typed posix_class inside</td><td><code>{kind:"char_class", body:[{type:"posix_class", name:"alpha", negated:[]}]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>negated</code> and <code>initial_close</code> are real booleans</strong> (<code>true</code> matched, <code>[]</code> un-matched). Same convention as <code>posix_negation</code> from slice 8 (PGEN-RGX-0076) — <code>BooleanLiteral</code> rule-level scalar emits <code>Json(Bool(true))</code>.</p>
+<p><strong><code>body</code> is raw <code>class_body</code> shape.</strong> Inner items already typed by earlier slices propagate transparently — <code>posix_class</code> (slice 8), <code>class_range_escape</code> (escape subtree slices), <code>quoted_class_range_atom</code> (PGEN-RGX-0068 fix). Pure char-class typing is end-to-end at the outer level; <code>class_body</code> per-rule typing is a separate concern.</p>
+<p><strong>Atom subtree campaign progress:</strong> 23/25 atom alternatives directly typed.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.56 / Contract 1.1.58 Highlights”.</p>
 <h3 id="1155--contract-1157--atom-subtree-slice-25-scan_substring--script_run--subroutine_call-typed"><a class="header" href="#1155--contract-1157--atom-subtree-slice-25-scan_substring--script_run--subroutine_call-typed">1.1.55 / Contract 1.1.57 — Atom subtree slice 25: scan_substring / script_run / subroutine_call typed</a></h3>
 <p><strong>What changed:</strong> Batched slice — 4 annotations across 3 atom alternatives.</p>
 <pre><code class="language-ebnf">scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"

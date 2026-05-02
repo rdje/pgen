@@ -1,49 +1,25 @@
 # Examples: Character Classes
 
-Concrete probe outputs for character class regexes. The `char_class` rule is **un-annotated** at this release — the AST emits the raw 4-element Sequence wrapper.
+Concrete probe outputs for character class regexes. As of slice 26 (post-1.1.56), `char_class` emits typed `{type:"atom", kind:"char_class", negated:<bool>, initial_close:<bool>, body:<class_body>}` objects. Inner items already typed by earlier slices (`posix_class` from slice 8, `class_range_escape` family) propagate transparently inside `body`. `class_body` per-rule typing (the `class_item*` Quantified-of-items shape) is its own concern.
 
 ## Simple class — `[abc]`
 
 ```json
 {
-  "content": {
-    "Json": {
-      "pattern": [
-        [[
-          {
-            "atom": [
-              "[",
-              [],                      // not negated
-              [],                      // no initial-close
-              [
-                [["a"]],                // class_item for "a" — class_literal Terminal in nested-Alternative wrappers
-                [["b"]],
-                [["c"]]
-              ],
-              "]"
-            ],
-            "quantifier": [],
-            "type": "piece"
-          }
-        ]],
-        []
-      ],
-      "type": "regex"
-    }
-  },
-  "rule_name": "regex",
-  "span": { "start": 0, "end": 5 }
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": [], "body": ["a", "b", "c"]},
+  "quantifier": [],
+  "type": "piece"
 }
 ```
 
-The `class_body` content (atom[3]) is a `Quantified-*` of `class_item` shapes. Each item for a plain literal is the un-annotated chain `class_item → class_literal → Terminal`, which serialises to a nested array per the un-annotated wrappers. Once those rules are annotated, the nesting collapses.
+`body` is the array of class_items. For plain literals the items are bare strings (after slice 15's `class_literal` regex-literal rewrite). `negated:[]` (un-matched optional slot — consumer maps to `false`); `initial_close:[]` (same).
 
 A consumer extracting class items:
 
 ```rust
 fn extract_class_items(class_atom: &Value) -> Vec<&Value> {
-    class_atom.as_array()
-        .and_then(|a| a.get(3))
+    class_atom.as_object()
+        .and_then(|o| o.get("body"))
         .and_then(|b| b.as_array())
         .map(|items| items.iter().collect())
         .unwrap_or_default()
@@ -56,63 +32,43 @@ For each item, classify by structural signature (per the [Atom Subtree](rules-at
 
 ```json
 {
-  "atom": [
-    "[",
-    "^",                        // negation matched — atom[1] is the literal "^"
-    [],
-    [
-      [["a"]],
-      [["b"]],
-      [["c"]]
-    ],
-    "]"
-  ],
+  "atom": {"type": "atom", "kind": "char_class", "negated": true, "initial_close": [], "body": ["a", "b", "c"]},
   ...
 }
 ```
 
-`atom[1]` is `"^"` when negated, `[]` when not.
+`negated:true` (matched) or `[]` (un-matched — consumer maps to `false`). Real boolean via `negation -> true`.
 
 ## Range — `[a-z]`
 
 ```json
 {
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [
-        [<class_atom for "a">],   // class_range starting atom
-        [],                       // class_zero_width* prefix — empty
-        "-",
-        [],                       // class_zero_width* suffix — empty
-        [<class_atom for "z">]    // class_range ending atom
-      ]
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom",
+    "kind": "char_class",
+    "negated": [],
+    "initial_close": [],
+    "body": [["a", [], "-", [], "z"]]
+  },
   ...
 }
 ```
 
-The `class_range` 5-element Sequence: `[<start>, <zw-prefix>, "-", <zw-suffix>, <end>]`. The two `class_zero_width*` slots are typically empty `[]`; they exist for PCRE2's `\E` / empty-`\Q\E` markers around the dash.
+The `class_range` 5-element Sequence is preserved inside `body`: `[<start>, <zw-prefix>, "-", <zw-suffix>, <end>]`. The two `class_zero_width*` slots are typically empty `[]`. `class_range` outer typing is a follow-up concern.
 
 ## Mixed range and literal — `[a-z0-9_]`
 
 ```json
 {
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [<class_range a-z>],
-      [<class_range 0-9>],
-      [["_"]]                  // plain literal class_item
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom",
+    "kind": "char_class",
+    "body": [
+      ["a", [], "-", [], "z"],
+      ["0", [], "-", [], "9"],
+      "_"
+    ]
+  },
   ...
 }
 ```
@@ -125,20 +81,12 @@ PCRE2 quirk — a literal `]` as the FIRST class char is allowed:
 
 ```json
 {
-  "atom": [
-    "[",
-    [],                         // not negated
-    "]",                        // class_initial_close matched
-    [
-      [["a"]]
-    ],
-    "]"
-  ],
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": true, "body": ["a"]},
   ...
 }
 ```
 
-`atom[2]` distinguishes: `[]` (no initial close) vs `"]"` (initial close present).
+`initial_close:true` (matched) or `[]` (un-matched — consumer maps to `false`). Real boolean via `class_initial_close -> true`.
 
 ## POSIX class — `[[:alpha:]]`
 
@@ -146,15 +94,12 @@ As of slice 8 (post-1.1.36, fixes [PGEN-RGX-0076](changelog-index.md)), POSIX cl
 
 ```json
 {
-  "atom": [
-    "[",
-    [],
-    [],
-    [
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
       {"type": "posix_class", "name": "alpha", "negated": []}
-    ],
-    "]"
-  ],
+    ]
+  },
   ...
 }
 ```
@@ -165,15 +110,12 @@ As of slice 8 (post-1.1.36, fixes [PGEN-RGX-0076](changelog-index.md)), POSIX cl
 
 ```json
 {
-  "atom": [
-    "[",
-    [],
-    [],
-    [
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
       {"type": "posix_class", "name": "alpha", "negated": true}
-    ],
-    "]"
-  ],
+    ]
+  },
   ...
 }
 ```
@@ -182,16 +124,13 @@ As of slice 8 (post-1.1.36, fixes [PGEN-RGX-0076](changelog-index.md)), POSIX cl
 
 ```json
 {
-  "atom": [
-    "[",
-    [],
-    [],
-    [
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
       {"type": "posix_class", "name": "alpha", "negated": []},
       {"type": "posix_class", "name": "digit", "negated": []}
-    ],
-    "]"
-  ],
+    ]
+  },
   ...
 }
 ```

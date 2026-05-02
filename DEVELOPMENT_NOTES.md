@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 26/N — char_class outer typed
+
+### What landed
+
+```ebnf
+char_class          = "[" negation? class_initial_close? class_body "]"
+                       -> {type: "atom", kind: "char_class", negated: $2, initial_close: $3, body: $4}
+class_initial_close = "]"                                            -> true
+negation            = "^"                                            -> true
+```
+
+### Why `class_initial_close -> true`?
+
+`class_initial_close` matches the literal `]` as the FIRST char of a class body (PCRE2 quirk: `[]abc]` matches `]` or `a` or `b` or `c`). Pre-slice-26 the rule emitted the literal string `"]"` when matched, `[]` when un-matched. The literal-string form gives consumers a tri-state shape (`"]"`/`[]`) which is awkward — coercing to a bool (`true`/`[]`) follows the consistent convention from `posix_negation` (slice 8) and `negation` (this slice).
+
+### Pure char-class typing is end-to-end at the outer level
+
+`body` is the raw `class_body` shape. But class_body's items are class_items — and the typed inner shapes from earlier slices propagate transparently:
+- `posix_class` typed in slice 8 (PGEN-RGX-0076).
+- `class_range_escape_unit` branches typed by escape-subtree slices 14-17.
+- `quoted_class_range_atom` typed by PGEN-RGX-0068 fix.
+
+So `[[:alpha:]]` already shows `body:[{type:"posix_class", name:"alpha", negated:[]}]`. `[\Qa-z\E]` shows the typed quoted_class_range_atom. Etc. The remaining un-typed pieces inside char_class are `class_range` (the dash-form), `class_literal` (raw chars — already a clean string after slice 15), and `class_escape` (the `\` + escape inside a class).
+
+### Empirical
+- `[abc]` → `{type:"atom", kind:"char_class", negated:[], initial_close:[], body:["a","b","c"]}`.
+- `[^abc]` → `{negated:true, body:["a","b","c"]}`.
+- `[a-z]` → `body:[["a", [], "-", [], "z"]]` — `class_range` 5-element shape preserved.
+- `[]abc]` → `{initial_close:true, body:["a","b","c"]}`.
+- `[^]abc]` → `{negated:true, initial_close:true, body:["a","b","c"]}`.
+- `[[:alpha:]]` → `body:[{type:"posix_class", name:"alpha", negated:[]}]` (typed propagation).
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 3 new manifest entries inserted at alphabetical slots.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.55` → `1.1.56`. Contract `1.1.57` → `1.1.58`.
+- New "Release 1.1.56 / Contract 1.1.58 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.30.0), `json-carrier.md` (3 new entries), `examples-char-class.md` (chapter intro + every section rewritten).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **23/25 atom alternatives directly typed.**
+- Remaining 2: `conditional`, `extended_class`. (Plus the 3 deferred leaf-char alternatives.)
+
 ## 2026-05-02 - regex.ebnf slice 25/N — scan_substring / script_run / subroutine_call typed
 
 ### What landed

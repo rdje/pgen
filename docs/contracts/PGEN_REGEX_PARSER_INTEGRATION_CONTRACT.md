@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.57`
+  - `1.1.58`
 - Parser release version:
-  - `1.1.55`
+  - `1.1.56`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,32 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.56 / Contract 1.1.58 Highlights — atom subtree slice 26: char_class outer typed
+
+- **Internal-driven shape work** (no downstream report).
+- **Rules changed:**
+  - `char_class = "[" negation? class_initial_close? class_body "]" -> {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}`
+  - `negation = "^" -> true` (paralleling `posix_negation` from slice 8 / PGEN-RGX-0076).
+  - `class_initial_close = "]" -> true` (`true` for matched, `[]` for un-matched optional slot).
+- **AST shape change (consumer-visible):**
+  - `[abc]` → `{type:"atom", kind:"char_class", negated:[], initial_close:[], body:["a","b","c"]}`. Was `["[", [], [], <class_body>, "]"]` (5-element Sequence).
+  - `[^abc]` → `{kind:"char_class", negated:true, body:["a","b","c"]}`.
+  - `[]abc]` (literal `]` first char) → `{kind:"char_class", initial_close:true, body:["a","b","c"]}`.
+  - `[^]abc]` → `{negated:true, initial_close:true, body:["a","b","c"]}`.
+  - `[[:alpha:]]` → `{kind:"char_class", body:[{type:"posix_class", name:"alpha", negated:[]}]}` — the already-typed `posix_class` shape (slice 8) propagates inside `body`.
+- **`negated` and `initial_close` are real booleans** (matched) OR `[]` (un-matched optional slot — consumer maps to false, same convention as `posix_negation`/`negated` in posix_class).
+- **`body` is the raw `class_body` shape.** The `class_body` rule is `class_item*` — Quantified of class_items. Each class_item is one of `posix_class` (typed by slice 8), `class_range`, `quoted_class_literal`, `class_literal`, `class_escape`. The typed inner shapes propagate; `class_body` per-rule typing is its own concern.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.56` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["[", <negation?>, <initial_close?>, <class_body>, "]"]` shape to use typed `obj.kind == "char_class"` dispatch + `obj.negated` + `obj.initial_close` boolean reads + `obj.body` array iteration.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 23/25 atom alternatives directly typed. Remaining 2 atom alternatives:
+  - `conditional` (multi-branch with condition + yes_branch + no_branch).
+  - `extended_class` (recursive nested classes).
+  - (Plus the 3 deferred leaf-char alternatives — separate decision.)
 
 ## Release 1.1.55 / Contract 1.1.57 Highlights — atom subtree slice 25: scan_substring / script_run / subroutine_call typed
 

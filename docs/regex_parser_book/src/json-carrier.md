@@ -106,6 +106,9 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `script_run_group` | `-> {type:"atom", kind:"script_run_group", name:$2, body:$4}` | Object. `name` is `"sr"`/`"script_run"`/`"asr"`/`"atomic_script_run"` (atomic vs non-atomic encoded in name). |
 | `subroutine_call` (branch 0, with captures) | `-> {type:"atom", kind:"subroutine_call", target:$2}` | Object. `target` is `returned_capture_subroutine` (target + capture-list). |
 | `subroutine_call` (branch 1, plain) | `-> {type:"atom", kind:"subroutine_call", target:$2}` | Same kind; `target` is just `subroutine_target`. Inspect `target` shape to determine syntactic form. |
+| `char_class` | `-> {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}` | Object. `negated`/`initial_close` are `true` matched, `[]` un-matched. `body` is raw class_body shape; inner posix_class/class_range/etc. items typed by earlier slices propagate. |
+| `negation` | `-> true` | Boolean `true` (matched), `[]` from un-matched `negation?` slot. |
+| `class_initial_close` | `-> true` | Boolean `true` (matched), `[]` from un-matched `class_initial_close?` slot. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

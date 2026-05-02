@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3566a2a4.js";
+            window.path_to_searchindex_js = "searchindex-3a154a34.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,45 +181,21 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-character-classes"><a class="header" href="#examples-character-classes">Examples: Character Classes</a></h1>
-<p>Concrete probe outputs for character class regexes. The <code>char_class</code> rule is <strong>un-annotated</strong> at this release — the AST emits the raw 4-element Sequence wrapper.</p>
+<p>Concrete probe outputs for character class regexes. As of slice 26 (post-1.1.56), <code>char_class</code> emits typed <code>{type:"atom", kind:"char_class", negated:&lt;bool&gt;, initial_close:&lt;bool&gt;, body:&lt;class_body&gt;}</code> objects. Inner items already typed by earlier slices (<code>posix_class</code> from slice 8, <code>class_range_escape</code> family) propagate transparently inside <code>body</code>. <code>class_body</code> per-rule typing (the <code>class_item*</code> Quantified-of-items shape) is its own concern.</p>
 <h2 id="simple-class--abc"><a class="header" href="#simple-class--abc">Simple class — <code>[abc]</code></a></h2>
 <pre><code class="language-json">{
-  "content": {
-    "Json": {
-      "pattern": [
-        [[
-          {
-            "atom": [
-              "[",
-              [],                      // not negated
-              [],                      // no initial-close
-              [
-                [["a"]],                // class_item for "a" — class_literal Terminal in nested-Alternative wrappers
-                [["b"]],
-                [["c"]]
-              ],
-              "]"
-            ],
-            "quantifier": [],
-            "type": "piece"
-          }
-        ]],
-        []
-      ],
-      "type": "regex"
-    }
-  },
-  "rule_name": "regex",
-  "span": { "start": 0, "end": 5 }
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": [], "body": ["a", "b", "c"]},
+  "quantifier": [],
+  "type": "piece"
 }
 </code></pre>
-<p>The <code>class_body</code> content (atom[3]) is a <code>Quantified-*</code> of <code>class_item</code> shapes. Each item for a plain literal is the un-annotated chain <code>class_item → class_literal → Terminal</code>, which serialises to a nested array per the un-annotated wrappers. Once those rules are annotated, the nesting collapses.</p>
+<p><code>body</code> is the array of class_items. For plain literals the items are bare strings (after slice 15’s <code>class_literal</code> regex-literal rewrite). <code>negated:[]</code> (un-matched optional slot — consumer maps to <code>false</code>); <code>initial_close:[]</code> (same).</p>
 <p>A consumer extracting class items:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn extract_class_items(class_atom: &amp;Value) -&gt; Vec&lt;&amp;Value&gt; {
-    class_atom.as_array()
-        .and_then(|a| a.get(3))
+    class_atom.as_object()
+        .and_then(|o| o.get("body"))
         .and_then(|b| b.as_array())
         .map(|items| items.iter().collect())
         .unwrap_or_default()
@@ -228,55 +204,35 @@
 <p>For each item, classify by structural signature (per the <a href="rules-atom.html">Atom Subtree</a> discriminator table).</p>
 <h2 id="negated-class--abc"><a class="header" href="#negated-class--abc">Negated class — <code>[^abc]</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    "^",                        // negation matched — atom[1] is the literal "^"
-    [],
-    [
-      [["a"]],
-      [["b"]],
-      [["c"]]
-    ],
-    "]"
-  ],
+  "atom": {"type": "atom", "kind": "char_class", "negated": true, "initial_close": [], "body": ["a", "b", "c"]},
   ...
 }
 </code></pre>
-<p><code>atom[1]</code> is <code>"^"</code> when negated, <code>[]</code> when not.</p>
+<p><code>negated:true</code> (matched) or <code>[]</code> (un-matched — consumer maps to <code>false</code>). Real boolean via <code>negation -&gt; true</code>.</p>
 <h2 id="range--a-z"><a class="header" href="#range--a-z">Range — <code>[a-z]</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [
-        [&lt;class_atom for "a"&gt;],   // class_range starting atom
-        [],                       // class_zero_width* prefix — empty
-        "-",
-        [],                       // class_zero_width* suffix — empty
-        [&lt;class_atom for "z"&gt;]    // class_range ending atom
-      ]
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom",
+    "kind": "char_class",
+    "negated": [],
+    "initial_close": [],
+    "body": [["a", [], "-", [], "z"]]
+  },
   ...
 }
 </code></pre>
-<p>The <code>class_range</code> 5-element Sequence: <code>[&lt;start&gt;, &lt;zw-prefix&gt;, "-", &lt;zw-suffix&gt;, &lt;end&gt;]</code>. The two <code>class_zero_width*</code> slots are typically empty <code>[]</code>; they exist for PCRE2’s <code>\E</code> / empty-<code>\Q\E</code> markers around the dash.</p>
+<p>The <code>class_range</code> 5-element Sequence is preserved inside <code>body</code>: <code>[&lt;start&gt;, &lt;zw-prefix&gt;, "-", &lt;zw-suffix&gt;, &lt;end&gt;]</code>. The two <code>class_zero_width*</code> slots are typically empty <code>[]</code>. <code>class_range</code> outer typing is a follow-up concern.</p>
 <h2 id="mixed-range-and-literal--a-z0-9_"><a class="header" href="#mixed-range-and-literal--a-z0-9_">Mixed range and literal — <code>[a-z0-9_]</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [&lt;class_range a-z&gt;],
-      [&lt;class_range 0-9&gt;],
-      [["_"]]                  // plain literal class_item
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom",
+    "kind": "char_class",
+    "body": [
+      ["a", [], "-", [], "z"],
+      ["0", [], "-", [], "9"],
+      "_"
+    ]
+  },
   ...
 }
 </code></pre>
@@ -284,61 +240,44 @@
 <h2 id="initial-close-class--a"><a class="header" href="#initial-close-class--a">Initial-close class — <code>[]a]</code></a></h2>
 <p>PCRE2 quirk — a literal <code>]</code> as the FIRST class char is allowed:</p>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],                         // not negated
-    "]",                        // class_initial_close matched
-    [
-      [["a"]]
-    ],
-    "]"
-  ],
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": true, "body": ["a"]},
   ...
 }
 </code></pre>
-<p><code>atom[2]</code> distinguishes: <code>[]</code> (no initial close) vs <code>"]"</code> (initial close present).</p>
+<p><code>initial_close:true</code> (matched) or <code>[]</code> (un-matched — consumer maps to <code>false</code>). Real boolean via <code>class_initial_close -&gt; true</code>.</p>
 <h2 id="posix-class--alpha"><a class="header" href="#posix-class--alpha">POSIX class — <code>[[:alpha:]]</code></a></h2>
 <p>As of slice 8 (post-1.1.36, fixes <a href="changelog-index.html">PGEN-RGX-0076</a>), POSIX classes inside character classes emit a fully typed <code>{type, name, negated}</code> shape:</p>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],
-    [],
-    [
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
       {"type": "posix_class", "name": "alpha", "negated": []}
-    ],
-    "]"
-  ],
+    ]
+  },
   ...
 }
 </code></pre>
 <p><code>name</code> is the matched POSIX class name string. <code>negated</code> is the typed boolean <code>true</code> when the source has <code>^</code> after <code>[:</code>, or the empty array <code>[]</code> (un-matched <code>posix_negation?</code> slot — consumers map <code>[]</code> → <code>false</code>).</p>
 <h3 id="alpha--negated-posix-class"><a class="header" href="#alpha--negated-posix-class"><code>[[:^alpha:]]</code> — negated POSIX class</a></h3>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],
-    [],
-    [
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
       {"type": "posix_class", "name": "alpha", "negated": true}
-    ],
-    "]"
-  ],
+    ]
+  },
   ...
 }
 </code></pre>
 <h3 id="alphadigit--multiple-posix-classes"><a class="header" href="#alphadigit--multiple-posix-classes"><code>[[:alpha:][:digit:]]</code> — multiple POSIX classes</a></h3>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],
-    [],
-    [
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
       {"type": "posix_class", "name": "alpha", "negated": []},
       {"type": "posix_class", "name": "digit", "negated": []}
-    ],
-    "]"
-  ],
+    ]
+  },
   ...
 }
 </code></pre>

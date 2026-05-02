@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.56 / Contract 1.1.58 — Atom subtree slice 26: char_class outer typed
+
+**What changed:** `char_class` now emits typed `{type:"atom", kind:"char_class", negated:<bool>, initial_close:<bool>, body:<class_body>}` objects.
+
+```ebnf
+char_class          = "[" negation? class_initial_close? class_body "]"
+                       -> {type: "atom", kind: "char_class", negated: $2, initial_close: $3, body: $4}
+class_initial_close = "]"                                            -> true
+negation            = "^"                                            -> true
+```
+
+**Before / after:**
+
+| Source | Before | After |
+|---|---|---|
+| `[abc]` | `["[", [], [], <body>, "]"]` | `{type:"atom", kind:"char_class", negated:[], initial_close:[], body:["a","b","c"]}` |
+| `[^abc]` | similar w/ `negation` shape | `{kind:"char_class", negated:true, body:["a","b","c"]}` |
+| `[a-z]` | similar w/ `class_range` body | `{kind:"char_class", body:[["a", [], "-", [], "z"]]}` |
+| `[]abc]` | similar w/ `class_initial_close` | `{kind:"char_class", initial_close:true, body:["a","b","c"]}` |
+| `[^]abc]` | both | `{negated:true, initial_close:true, body:["a","b","c"]}` |
+| `[[:alpha:]]` | typed posix_class inside | `{kind:"char_class", body:[{type:"posix_class", name:"alpha", negated:[]}]}` |
+
+**`negated` and `initial_close` are real booleans** (`true` matched, `[]` un-matched). Same convention as `posix_negation` from slice 8 (PGEN-RGX-0076) — `BooleanLiteral` rule-level scalar emits `Json(Bool(true))`.
+
+**`body` is raw `class_body` shape.** Inner items already typed by earlier slices propagate transparently — `posix_class` (slice 8), `class_range_escape` (escape subtree slices), `quoted_class_range_atom` (PGEN-RGX-0068 fix). Pure char-class typing is end-to-end at the outer level; `class_body` per-rule typing is a separate concern.
+
+**Atom subtree campaign progress:** 23/25 atom alternatives directly typed.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.56 / Contract 1.1.58 Highlights".
+
 ### 1.1.55 / Contract 1.1.57 — Atom subtree slice 25: scan_substring / script_run / subroutine_call typed
 
 **What changed:** Batched slice — 4 annotations across 3 atom alternatives.
