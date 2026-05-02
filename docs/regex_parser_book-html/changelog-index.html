@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-67ac9cc9.js";
+            window.path_to_searchindex_js = "searchindex-353061c6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,39 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1153--contract-1155--atom-subtree-slice-23-lookaround-family-typed-7-sub-rules"><a class="header" href="#1153--contract-1155--atom-subtree-slice-23-lookaround-family-typed-7-sub-rules">1.1.53 / Contract 1.1.55 — Atom subtree slice 23: lookaround family typed (7 sub-rules)</a></h3>
+<p><strong>What changed:</strong> All 7 lookaround sub-rules now emit typed <code>{type:"atom", kind:&lt;lookaround_kind&gt;, ..., body:&lt;pattern&gt;}</code> objects.</p>
+<pre><code class="language-ebnf">lookahead_pos             = "(?=" pattern ")"            -&gt; {type: "atom", kind: "lookahead",   positive: true,  body: $2}
+lookahead_neg             = "(?!" pattern ")"            -&gt; {type: "atom", kind: "lookahead",   positive: false, body: $2}
+lookbehind_pos            = "(?&lt;=" pattern ")"           -&gt; {type: "atom", kind: "lookbehind",  positive: true,  body: $2}
+lookbehind_neg            = "(?&lt;!" pattern ")"           -&gt; {type: "atom", kind: "lookbehind",  positive: false, body: $2}
+non_atomic_lookahead_pos  = "(?*" pattern ")"            -&gt; {type: "atom", kind: "non_atomic_lookahead",  positive: true, body: $2}
+non_atomic_lookbehind_pos = "(?&lt;*" pattern ")"           -&gt; {type: "atom", kind: "non_atomic_lookbehind", positive: true, body: $2}
+alpha_lookaround          = "(*" alpha_lookaround_name ":" pattern? ")"
+                                                          -&gt; {type: "atom", kind: "alpha_lookaround", name: $2, body: $4}
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?=foo)</code></td><td><code>["(?=", &lt;pattern&gt;, ")"]</code></td><td><code>{type:"atom", kind:"lookahead", positive:true, body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?!bar)</code></td><td><code>["(?!", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"lookahead", positive:false, body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;=baz)</code></td><td><code>["(?&lt;=", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"lookbehind", positive:true, body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;!qux)</code></td><td><code>["(?&lt;!", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"lookbehind", positive:false, body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?*alpha)</code></td><td><code>["(?*", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"non_atomic_lookahead", positive:true, body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;*beta)</code></td><td><code>["(?&lt;*", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"non_atomic_lookbehind", positive:true, body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(*pla:gamma)</code></td><td><code>["(*", "pla", ":", &lt;pattern&gt;, ")"]</code></td><td><code>{kind:"alpha_lookaround", name:"pla", body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(*nla:delta)</code></td><td>similar</td><td><code>{kind:"alpha_lookaround", name:"nla", body:&lt;pattern&gt;}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>kind</code> + <code>positive</code> design:</strong> Lookahead and lookbehind each collapse 2 syntactic forms (<code>_pos</code>/<code>_neg</code>) to one <code>kind</code> with a <code>positive</code> boolean — consistent with the property_escape <code>negated</code> field convention from slice 17. Non-atomic forms get distinct <code>kind</code> values since PCRE2 only supports positive variants for them.</p>
+<p><strong>Alpha-form</strong> carries the alpha_lookaround_name in <code>name</code>. PCRE2 admits <code>pla</code>/<code>positive_lookahead</code>, <code>nla</code>/<code>negative_lookahead</code>, <code>plb</code>/<code>positive_lookbehind</code>, <code>nlb</code>/<code>negative_lookbehind</code>, <code>napla</code>/<code>non_atomic_positive_lookahead</code>, <code>naplb</code>/<code>non_atomic_positive_lookbehind</code>. Consumers map by <code>name</code> to dispatch on the semantic equivalent.</p>
+<p><strong>Atom subtree campaign progress:</strong> 14/25 atom alternatives directly typed. Lookaround family typed end-to-end.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.53 / Contract 1.1.55 Highlights”.</p>
 <h3 id="1152--contract-1154--atom-subtree-slice-22-named-groups-typed-namedpython_named"><a class="header" href="#1152--contract-1154--atom-subtree-slice-22-named-groups-typed-namedpython_named">1.1.52 / Contract 1.1.54 — Atom subtree slice 22: named groups typed (named/python_named)</a></h3>
 <p><strong>What changed:</strong> <code>named_group</code> (both angle and quote syntactic forms) and <code>python_named_group</code> now emit typed <code>{type:"atom", kind:&lt;group_kind&gt;, name:&lt;string&gt;, body:&lt;pattern&gt;}</code> objects.</p>
 <pre><code class="language-ebnf">named_group        = "(?&lt;" name "&gt;" pattern? ")"  -&gt; {type: "atom", kind: "named_group", name: $2, body: $4}

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-67ac9cc9.js";
+            window.path_to_searchindex_js = "searchindex-353061c6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-groups-and-alternations"><a class="header" href="#examples-groups-and-alternations">Examples: Groups and Alternations</a></h1>
-<p>Concrete probe outputs for grouping and alternation constructs. As of slice 22 (post-1.1.52), <strong>all 6 group sub-rules are typed</strong> — capturing, noncapturing, named (angle + quote), python_named (under <code>group</code>), branch_reset, atomic (standalone). Group typing is end-to-end. Recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.</p>
+<p>Concrete probe outputs for grouping and alternation constructs. As of slice 23 (post-1.1.53), <strong>all 6 group sub-rules</strong> AND <strong>all 7 lookaround sub-rules</strong> are typed. Group typing is end-to-end. Lookaround family typing is end-to-end. Conditionals, scan_substring, and script_run still emit raw envelope shapes pending follow-up slices.</p>
 <h2 id="capturing-group--abc"><a class="header" href="#capturing-group--abc">Capturing group — <code>(abc)</code></a></h2>
 <pre><code class="language-json">{
   "atom": {"type": "atom", "kind": "capturing_group", "body": &lt;pattern&gt;},
@@ -309,45 +309,27 @@
 <tr><th>Form</th><th>Atom shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>(?=foo)</code></td><td><code>["(?=", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td><code>(?!foo)</code></td><td><code>["(?!", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td><code>(?&lt;=foo)</code></td><td><code>["(?&lt;=", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td><code>(?&lt;!foo)</code></td><td><code>["(?&lt;!", &lt;pattern&gt;, ")"]</code></td></tr>
+<tr><td><code>(?=foo)</code></td><td><code>{type:"atom", kind:"lookahead",  positive:true,  body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?!foo)</code></td><td><code>{type:"atom", kind:"lookahead",  positive:false, body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;=foo)</code></td><td><code>{type:"atom", kind:"lookbehind", positive:true,  body:&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;!foo)</code></td><td><code>{type:"atom", kind:"lookbehind", positive:false, body:&lt;pattern&gt;}</code></td></tr>
 </tbody>
 </table>
 </div>
-<pre><code class="language-json">"atom": [
-  "(?=",
-  [&lt;pattern for "foo"&gt;],
-  ")"
-]
+<pre><code class="language-json">"atom": {"type": "atom", "kind": "lookahead", "positive": true, "body": &lt;pattern&gt;}
 </code></pre>
-<p>All four forms produce 3-element Sequences distinguished by the opening-prefix literal at index 0.</p>
+<p><code>lookahead</code>/<code>lookbehind</code> each collapse 2 syntactic forms (<code>_pos</code>/<code>_neg</code>) to one <code>kind</code> with a <code>positive</code> boolean — same convention as <code>property_escape</code>’s <code>negated</code> field.</p>
 <h2 id="non-atomic-lookahead--foo"><a class="header" href="#non-atomic-lookahead--foo">Non-atomic lookahead — <code>(?*foo)</code></a></h2>
-<pre><code class="language-json">"atom": [
-  "(?*",
-  [&lt;pattern&gt;],
-  ")"
-]
+<pre><code class="language-json">"atom": {"type": "atom", "kind": "non_atomic_lookahead", "positive": true, "body": &lt;pattern&gt;}
 </code></pre>
 <h2 id="non-atomic-lookbehind--foo"><a class="header" href="#non-atomic-lookbehind--foo">Non-atomic lookbehind — <code>(?&lt;*foo)</code></a></h2>
-<pre><code class="language-json">"atom": [
-  "(?&lt;*",
-  [&lt;pattern&gt;],
-  ")"
-]
+<pre><code class="language-json">"atom": {"type": "atom", "kind": "non_atomic_lookbehind", "positive": true, "body": &lt;pattern&gt;}
 </code></pre>
+<p>PCRE2 only supports positive variants of non-atomic lookarounds. The <code>positive:true</code> field is included for consumer-code uniformity even though it’s always true.</p>
 <h2 id="alpha-form-lookarounds--plafoo-nlafoo-plbfoo-etc"><a class="header" href="#alpha-form-lookarounds--plafoo-nlafoo-plbfoo-etc">Alpha-form lookarounds — <code>(*pla:foo)</code>, <code>(*nla:foo)</code>, <code>(*plb:foo)</code>, etc.</a></h2>
-<p>These match <code>alpha_lookaround</code> (one of the <code>lookaround</code> Or branches):</p>
-<pre><code class="language-json">"atom": [
-  "(*",
-  "pla",                      // alpha_lookaround_name
-  ":",
-  [&lt;pattern&gt;],
-  ")"
-]
+<pre><code class="language-json">"atom": {"type": "atom", "kind": "alpha_lookaround", "name": "pla", "body": &lt;pattern&gt;}
 </code></pre>
-<p>The <code>alpha_lookaround_name</code> rule’s content is one of <code>"pla"</code>, <code>"positive_lookahead"</code>, <code>"nla"</code>, <code>"negative_lookahead"</code>, <code>"plb"</code>, <code>"positive_lookbehind"</code>, <code>"nlb"</code>, <code>"negative_lookbehind"</code>, <code>"napla"</code>, <code>"non_atomic_positive_lookahead"</code>, <code>"naplb"</code>, <code>"non_atomic_positive_lookbehind"</code>. Consumers map by name.</p>
+<p><code>name</code> carries the alpha_lookaround_name (one of <code>"pla"</code>, <code>"positive_lookahead"</code>, <code>"nla"</code>, <code>"negative_lookahead"</code>, <code>"plb"</code>, <code>"positive_lookbehind"</code>, <code>"nlb"</code>, <code>"negative_lookbehind"</code>, <code>"napla"</code>, <code>"non_atomic_positive_lookahead"</code>, <code>"naplb"</code>, <code>"non_atomic_positive_lookbehind"</code>). Consumers map by name to dispatch on the semantic equivalent.</p>
 <h2 id="conditional--condyesno"><a class="header" href="#conditional--condyesno">Conditional — <code>(?(cond)yes|no)</code></a></h2>
 <pre><code class="language-json">"atom": [
   "(?(",

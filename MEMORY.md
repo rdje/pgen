@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-22-atom-subtree-named-groups)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-23-atom-subtree-lookaround-family)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 23 of N — lookaround family typed (7 sub-rules).** Largest slice yet — 7 annotations across 7 sub-rules. `lookahead_pos`/`lookahead_neg` collapse to `kind:"lookahead"` with `positive:true|false`; same pattern for `lookbehind`. Non-atomic forms get distinct kinds (`kind:"non_atomic_lookahead"`/`kind:"non_atomic_lookbehind"`) since PCRE2 only supports positive variants; `positive:true` field included for uniform consumer code. Alpha-form `(*<name>:...)` carries `name` (one of pla/positive_lookahead/nla/negative_lookahead/etc.). Empirical: `(?=foo)` → `{kind:"lookahead", positive:true, body:<pattern>}`; `(?!bar)` → `positive:false`; `(?<=baz)`/`(?<!qux)` → `kind:"lookbehind"`; `(?*alpha)`/`(?<*beta)` → `non_atomic_*`; `(*pla:gamma)` → `kind:"alpha_lookaround", name:"pla"`. **Lookaround family typed end-to-end.** Contract bump: parser release `1.1.52` → `1.1.53`, contract `1.1.54` → `1.1.55`. Regex AST schema version stays `1`. 495/0 tests. 7 new manifest entries at alphabetical slots. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.27.0), `json-carrier.md` (7 new entries), `examples-groups-alt.md` (chapter intro + 4 sections rewritten). Atom subtree progress: **14/25 alternatives directly typed**.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 22 of N — named groups typed (named/python_named).** 3 annotations across 2 rules; closes group-typing campaign. `named_group` (both `(?<n>...)` and `(?'n'...)` syntactic forms) `-> {type:"atom", kind:"named_group", name:$2, body:$4}`. `python_named_group` (`(?P<n>...)`) `-> kind:"python_named_group"` (distinct kind preserves Python syntax origin — paralleling slice 19). `name` was already typed by slice 11. Empirical: `(?<foo>abc)` → `{type:"atom", kind:"named_group", name:"foo", body:<pattern>}`; `(?P<baz>123)` → `kind:"python_named_group"`; `(?<empty>)` → `body:[[], []]`. **Group typing now end-to-end — all 6 group sub-rules typed** (capturing, noncapturing, named, python_named under `group`; branch_reset, atomic standalone). Applied slice-21 manifest-alphabetical-order process note from the start; manifest entries inserted at lexicographic slots without re-insertion. Contract bump: parser release `1.1.51` → `1.1.52`, contract `1.1.53` → `1.1.54`. Regex AST schema version stays `1`. 495/0 tests. 3 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.26.0), `json-carrier.md` (3 new entries), `examples-groups-alt.md` (chapter intro + 3 sections rewritten). Atom subtree progress: **13/25 alternatives directly typed**.
 
 ### Earlier session note (kept for context):

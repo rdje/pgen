@@ -1,6 +1,6 @@
 # Examples: Groups and Alternations
 
-Concrete probe outputs for grouping and alternation constructs. As of slice 22 (post-1.1.52), **all 6 group sub-rules are typed** — capturing, noncapturing, named (angle + quote), python_named (under `group`), branch_reset, atomic (standalone). Group typing is end-to-end. Recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.
+Concrete probe outputs for grouping and alternation constructs. As of slice 23 (post-1.1.53), **all 6 group sub-rules** AND **all 7 lookaround sub-rules** are typed. Group typing is end-to-end. Lookaround family typing is end-to-end. Conditionals, scan_substring, and script_run still emit raw envelope shapes pending follow-up slices.
 
 ## Capturing group — `(abc)`
 
@@ -166,56 +166,38 @@ fn extract_alternatives(regex: &Value) -> Vec<&Value> {
 
 | Form | Atom shape |
 |---|---|
-| `(?=foo)` | `["(?=", <pattern>, ")"]` |
-| `(?!foo)` | `["(?!", <pattern>, ")"]` |
-| `(?<=foo)` | `["(?<=", <pattern>, ")"]` |
-| `(?<!foo)` | `["(?<!", <pattern>, ")"]` |
+| `(?=foo)` | `{type:"atom", kind:"lookahead",  positive:true,  body:<pattern>}` |
+| `(?!foo)` | `{type:"atom", kind:"lookahead",  positive:false, body:<pattern>}` |
+| `(?<=foo)` | `{type:"atom", kind:"lookbehind", positive:true,  body:<pattern>}` |
+| `(?<!foo)` | `{type:"atom", kind:"lookbehind", positive:false, body:<pattern>}` |
 
 ```json
-"atom": [
-  "(?=",
-  [<pattern for "foo">],
-  ")"
-]
+"atom": {"type": "atom", "kind": "lookahead", "positive": true, "body": <pattern>}
 ```
 
-All four forms produce 3-element Sequences distinguished by the opening-prefix literal at index 0.
+`lookahead`/`lookbehind` each collapse 2 syntactic forms (`_pos`/`_neg`) to one `kind` with a `positive` boolean — same convention as `property_escape`'s `negated` field.
 
 ## Non-atomic lookahead — `(?*foo)`
 
 ```json
-"atom": [
-  "(?*",
-  [<pattern>],
-  ")"
-]
+"atom": {"type": "atom", "kind": "non_atomic_lookahead", "positive": true, "body": <pattern>}
 ```
 
 ## Non-atomic lookbehind — `(?<*foo)`
 
 ```json
-"atom": [
-  "(?<*",
-  [<pattern>],
-  ")"
-]
+"atom": {"type": "atom", "kind": "non_atomic_lookbehind", "positive": true, "body": <pattern>}
 ```
+
+PCRE2 only supports positive variants of non-atomic lookarounds. The `positive:true` field is included for consumer-code uniformity even though it's always true.
 
 ## Alpha-form lookarounds — `(*pla:foo)`, `(*nla:foo)`, `(*plb:foo)`, etc.
 
-These match `alpha_lookaround` (one of the `lookaround` Or branches):
-
 ```json
-"atom": [
-  "(*",
-  "pla",                      // alpha_lookaround_name
-  ":",
-  [<pattern>],
-  ")"
-]
+"atom": {"type": "atom", "kind": "alpha_lookaround", "name": "pla", "body": <pattern>}
 ```
 
-The `alpha_lookaround_name` rule's content is one of `"pla"`, `"positive_lookahead"`, `"nla"`, `"negative_lookahead"`, `"plb"`, `"positive_lookbehind"`, `"nlb"`, `"negative_lookbehind"`, `"napla"`, `"non_atomic_positive_lookahead"`, `"naplb"`, `"non_atomic_positive_lookbehind"`. Consumers map by name.
+`name` carries the alpha_lookaround_name (one of `"pla"`, `"positive_lookahead"`, `"nla"`, `"negative_lookahead"`, `"plb"`, `"positive_lookbehind"`, `"nlb"`, `"negative_lookbehind"`, `"napla"`, `"non_atomic_positive_lookahead"`, `"naplb"`, `"non_atomic_positive_lookbehind"`). Consumers map by name to dispatch on the semantic equivalent.
 
 ## Conditional — `(?(cond)yes|no)`
 

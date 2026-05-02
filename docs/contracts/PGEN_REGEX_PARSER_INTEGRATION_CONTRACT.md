@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.54`
+  - `1.1.55`
 - Parser release version:
-  - `1.1.52`
+  - `1.1.53`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,30 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.53 / Contract 1.1.55 Highlights — atom subtree slice 23: lookaround family typed (7 sub-rules)
+
+- **Internal-driven shape work** (no downstream report). Largest slice yet — 7 annotations across 7 lookaround sub-rules in one batch.
+- **Rules changed:**
+  - `lookahead_pos = "(?=" pattern ")" -> {type:"atom", kind:"lookahead", positive:true, body:$2}`
+  - `lookahead_neg = "(?!" pattern ")" -> {type:"atom", kind:"lookahead", positive:false, body:$2}`
+  - `lookbehind_pos = "(?<=" pattern ")" -> {type:"atom", kind:"lookbehind", positive:true, body:$2}`
+  - `lookbehind_neg = "(?<!" pattern ")" -> {type:"atom", kind:"lookbehind", positive:false, body:$2}`
+  - `non_atomic_lookahead_pos = "(?*" pattern ")" -> {type:"atom", kind:"non_atomic_lookahead", positive:true, body:$2}`
+  - `non_atomic_lookbehind_pos = "(?<*" pattern ")" -> {type:"atom", kind:"non_atomic_lookbehind", positive:true, body:$2}`
+  - `alpha_lookaround = "(*" alpha_lookaround_name ":" pattern? ")" -> {type:"atom", kind:"alpha_lookaround", name:$2, body:$4}`
+- **AST shape change (consumer-visible):**
+  - Before: `(?=foo)` → `["(?=", <pattern>, ")"]` (3-element Sequence).
+  - After: `(?=foo)` → `{type:"atom", kind:"lookahead", positive:true, body:<pattern>}`.
+- **`kind` + `positive` design:** `lookahead_pos`/`lookahead_neg` collapse to `kind:"lookahead"` with `positive:true`/`false` (consistent with property_escape's `negated` field convention). Same for `lookbehind`. Non-atomic forms get distinct `kind` values (`non_atomic_lookahead`/`non_atomic_lookbehind`) since PCRE2 only supports positive variants for them — no need for a `positive:true` boolean (it's always true), but the field is included for uniform consumer code.
+- **Alpha-form `(*<name>:...)` carries `alpha_lookaround_name` in `name` field.** PCRE2 admits `pla` / `positive_lookahead` / `nla` / `negative_lookahead` / `plb` / `positive_lookbehind` / `nlb` / `negative_lookbehind` / `napla` / `non_atomic_positive_lookahead` / `naplb` / `non_atomic_positive_lookbehind`. Consumers map by `name` to dispatch on the semantic equivalent.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.53` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["(?=", <pattern>, ")"]` (or `(?!`/`(?<=`/`(?<!`/`(?*`/`(?<*`/`(*<name>:` equivalents) to use typed `obj.kind` dispatch + `obj.positive` (where present) + `obj.body` (always) + `obj.name` (alpha-form only) field reads.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 14/25 atom alternatives directly typed (counting `lookaround` as 1 atom alternative now that all 7 sub-rules are typed via `lookaround`'s implicit `-> $1` propagation). Group typing end-to-end. Lookaround family typed end-to-end. 7/7 escape_unit branches typed.
 
 ## Release 1.1.52 / Contract 1.1.54 Highlights — atom subtree slice 22: named groups typed (named/python_named)
 

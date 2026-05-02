@@ -89,6 +89,13 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `named_group` (branch 0, `(?<n>...)`) | `-> {type:"atom", kind:"named_group", name:$2, body:$4}` | Object `{type:"atom", kind:"named_group", name:<str>, body:<pattern>}`. |
 | `named_group` (branch 1, `(?'n'...)`) | `-> {type:"atom", kind:"named_group", name:$2, body:$4}` | Same kind as branch 0 — PCRE2-equivalent. |
 | `python_named_group` | `-> {type:"atom", kind:"python_named_group", name:$2, body:$4}` | Distinct kind preserves Python-style syntax origin. PCRE2-equivalent to `named_group`. |
+| `lookahead_pos` | `-> {type:"atom", kind:"lookahead", positive:true, body:$2}` | Object `{type:"atom", kind:"lookahead", positive:true, body:<pattern>}`. |
+| `lookahead_neg` | `-> {type:"atom", kind:"lookahead", positive:false, body:$2}` | Same kind as `_pos`; `positive:false` for negation. |
+| `lookbehind_pos` | `-> {type:"atom", kind:"lookbehind", positive:true, body:$2}` | Object `{type:"atom", kind:"lookbehind", positive:true, body:<pattern>}`. |
+| `lookbehind_neg` | `-> {type:"atom", kind:"lookbehind", positive:false, body:$2}` | Same kind as `_pos`; `positive:false` for negation. |
+| `non_atomic_lookahead_pos` | `-> {type:"atom", kind:"non_atomic_lookahead", positive:true, body:$2}` | Distinct kind; PCRE2 has no negative non-atomic variant. |
+| `non_atomic_lookbehind_pos` | `-> {type:"atom", kind:"non_atomic_lookbehind", positive:true, body:$2}` | Distinct kind; PCRE2 has no negative non-atomic variant. |
+| `alpha_lookaround` | `-> {type:"atom", kind:"alpha_lookaround", name:$2, body:$4}` | Object `{type:"atom", kind:"alpha_lookaround", name:<alpha_lookaround_name>, body:<pattern>}`. Consumers map `name` to dispatch on semantic equivalent. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 23/N — lookaround family typed (7 sub-rules)
+
+### What landed
+
+7 annotations across 7 lookaround sub-rules in one batch. Largest slice yet by annotation count.
+
+### Design — `kind` + `positive` + `name`
+
+Three patterns combine:
+
+1. **Two-syntactic-form collapse:** `lookahead_pos`/`lookahead_neg` → `kind:"lookahead"` with `positive` boolean. Same for `lookbehind`. Mirrors property_escape's `negated` field convention from slice 17 and atomic_group's 2-form collapse from slice 21.
+
+2. **Distinct kind for non-atomic:** `non_atomic_lookahead_pos` / `non_atomic_lookbehind_pos` → distinct kinds. PCRE2 only supports positive variants; the `positive:true` field is included for uniform consumer code (consumers can read `obj.positive` regardless of kind).
+
+3. **Alpha-form opens with `name` field:** `(*<alpha_lookaround_name>:...)` → `kind:"alpha_lookaround"` + `name` string. Name carries one of pla/positive_lookahead/nla/negative_lookahead/etc. Consumers map by name.
+
+### Why batch all 7 in one slice
+
+Splitting wouldn't add value:
+- All 7 are uniform shape (`"<opener>" pattern? ")"`).
+- Contract bump cost (one bump for 7 forms vs seven bumps).
+- Documentation cost (one chapter section update vs seven).
+
+### Empirical
+- `(?=foo)` → `{type:"atom", kind:"lookahead", positive:true, body:<pattern>}`.
+- `(?!bar)` → `{kind:"lookahead", positive:false}`.
+- `(?<=baz)` → `{kind:"lookbehind", positive:true}`.
+- `(?<!qux)` → `{kind:"lookbehind", positive:false}`.
+- `(?*alpha)` → `{kind:"non_atomic_lookahead", positive:true}`.
+- `(?<*beta)` → `{kind:"non_atomic_lookbehind", positive:true}`.
+- `(*pla:gamma)` → `{kind:"alpha_lookaround", name:"pla", body:<pattern>}`.
+- `(*nla:delta)` → `{kind:"alpha_lookaround", name:"nla"}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 7 new manifest entries inserted alphabetically per the slice-21 process note (alpha_lookaround at the very beginning before anchor; lookahead_*/lookbehind_* between hex_escape and name_ref; non_atomic_lookahead_pos/non_atomic_lookbehind_pos between named_group and noncapturing_group).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.52` → `1.1.53`. Contract `1.1.54` → `1.1.55`.
+- New "Release 1.1.53 / Contract 1.1.55 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.27.0), `json-carrier.md` (7 new entries), `examples-groups-alt.md` (chapter intro + lookaround/non-atomic/alpha-form sections rewritten).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **14/25 atom alternatives directly typed.**
+- Lookaround family typed end-to-end (all 7 sub-rules).
+- Group typing end-to-end (all 6 sub-rules).
+- 7/7 escape_unit branches typed.
+- Backreference family typed end-to-end (5 syntactic forms).
+- Remaining ~11 atom alternatives: literal, whitespace_literal, dot, char_class outer, inline_modifiers, scoped_inline_modifiers, callout, conditional, scan_substring_group, script_run_group, directive_verb, extended_class, code_block, subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 22/N — named groups typed (named/python_named)
 
 ### What landed

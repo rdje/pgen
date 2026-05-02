@@ -23,6 +23,42 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.53 / Contract 1.1.55 — Atom subtree slice 23: lookaround family typed (7 sub-rules)
+
+**What changed:** All 7 lookaround sub-rules now emit typed `{type:"atom", kind:<lookaround_kind>, ..., body:<pattern>}` objects.
+
+```ebnf
+lookahead_pos             = "(?=" pattern ")"            -> {type: "atom", kind: "lookahead",   positive: true,  body: $2}
+lookahead_neg             = "(?!" pattern ")"            -> {type: "atom", kind: "lookahead",   positive: false, body: $2}
+lookbehind_pos            = "(?<=" pattern ")"           -> {type: "atom", kind: "lookbehind",  positive: true,  body: $2}
+lookbehind_neg            = "(?<!" pattern ")"           -> {type: "atom", kind: "lookbehind",  positive: false, body: $2}
+non_atomic_lookahead_pos  = "(?*" pattern ")"            -> {type: "atom", kind: "non_atomic_lookahead",  positive: true, body: $2}
+non_atomic_lookbehind_pos = "(?<*" pattern ")"           -> {type: "atom", kind: "non_atomic_lookbehind", positive: true, body: $2}
+alpha_lookaround          = "(*" alpha_lookaround_name ":" pattern? ")"
+                                                          -> {type: "atom", kind: "alpha_lookaround", name: $2, body: $4}
+```
+
+**Before / after:**
+
+| Source | Before | After |
+|---|---|---|
+| `(?=foo)` | `["(?=", <pattern>, ")"]` | `{type:"atom", kind:"lookahead", positive:true, body:<pattern>}` |
+| `(?!bar)` | `["(?!", <pattern>, ")"]` | `{kind:"lookahead", positive:false, body:<pattern>}` |
+| `(?<=baz)` | `["(?<=", <pattern>, ")"]` | `{kind:"lookbehind", positive:true, body:<pattern>}` |
+| `(?<!qux)` | `["(?<!", <pattern>, ")"]` | `{kind:"lookbehind", positive:false, body:<pattern>}` |
+| `(?*alpha)` | `["(?*", <pattern>, ")"]` | `{kind:"non_atomic_lookahead", positive:true, body:<pattern>}` |
+| `(?<*beta)` | `["(?<*", <pattern>, ")"]` | `{kind:"non_atomic_lookbehind", positive:true, body:<pattern>}` |
+| `(*pla:gamma)` | `["(*", "pla", ":", <pattern>, ")"]` | `{kind:"alpha_lookaround", name:"pla", body:<pattern>}` |
+| `(*nla:delta)` | similar | `{kind:"alpha_lookaround", name:"nla", body:<pattern>}` |
+
+**`kind` + `positive` design:** Lookahead and lookbehind each collapse 2 syntactic forms (`_pos`/`_neg`) to one `kind` with a `positive` boolean — consistent with the property_escape `negated` field convention from slice 17. Non-atomic forms get distinct `kind` values since PCRE2 only supports positive variants for them.
+
+**Alpha-form** carries the alpha_lookaround_name in `name`. PCRE2 admits `pla`/`positive_lookahead`, `nla`/`negative_lookahead`, `plb`/`positive_lookbehind`, `nlb`/`negative_lookbehind`, `napla`/`non_atomic_positive_lookahead`, `naplb`/`non_atomic_positive_lookbehind`. Consumers map by `name` to dispatch on the semantic equivalent.
+
+**Atom subtree campaign progress:** 14/25 atom alternatives directly typed. Lookaround family typed end-to-end.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.53 / Contract 1.1.55 Highlights".
+
 ### 1.1.52 / Contract 1.1.54 — Atom subtree slice 22: named groups typed (named/python_named)
 
 **What changed:** `named_group` (both angle and quote syntactic forms) and `python_named_group` now emit typed `{type:"atom", kind:<group_kind>, name:<string>, body:<pattern>}` objects.

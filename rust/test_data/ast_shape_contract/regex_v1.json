@@ -79,6 +79,12 @@
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
+        "rule": "alpha_lookaround",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"alpha_lookaround\", name: $2, body: $4}"
+      },
+      {
         "rule": "anchor",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -259,6 +265,30 @@
         "normalized_text": "{type: \"escape\", kind: \"hex\", digits: $3}"
       },
       {
+        "rule": "lookahead_neg",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"lookahead\", positive: false, body: $2}"
+      },
+      {
+        "rule": "lookahead_pos",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"lookahead\", positive: true, body: $2}"
+      },
+      {
+        "rule": "lookbehind_neg",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"lookbehind\", positive: false, body: $2}"
+      },
+      {
+        "rule": "lookbehind_pos",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"lookbehind\", positive: true, body: $2}"
+      },
+      {
         "rule": "name_ref",
         "branch_index": 0,
         "annotation_type": "return_scalar",
@@ -281,6 +311,18 @@
         "branch_index": 1,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"atom\", kind: \"named_group\", name: $2, body: $4}"
+      },
+      {
+        "rule": "non_atomic_lookahead_pos",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"non_atomic_lookahead\", positive: true, body: $2}"
+      },
+      {
+        "rule": "non_atomic_lookbehind_pos",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"non_atomic_lookbehind\", positive: true, body: $2}"
       },
       {
         "rule": "noncapturing_group",

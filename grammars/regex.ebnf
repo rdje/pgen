@@ -510,14 +510,23 @@ comment_text         = /([^)]*)/
 comment_char         = letter | digit | whitespace | comment_special | unicode_char
 comment_special      = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
+# Lookarounds. Each sub-rule produces a typed
+# `{type:"atom", kind:<lookaround_kind>, ..., body:<pattern>}`
+# object. `kind` distinguishes direction (lookahead vs lookbehind)
+# and atomicity (atomic vs non-atomic). `positive` is `true` for `=`
+# / `*` openers and `false` for `!`-openers (negative variants).
+# Non-atomic lookarounds only have positive variants in PCRE2.
+# Alpha-form `(*<name>:...)` carries the alpha_lookaround_name in
+# the `name` field; consumers map by name to dispatch on the
+# semantic equivalent.
 lookaround           = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg | non_atomic_lookahead_pos | non_atomic_lookbehind_pos | alpha_lookaround
-lookahead_pos        = "(?=" pattern ")"
-lookahead_neg        = "(?!" pattern ")"
-lookbehind_pos       = "(?<=" pattern ")"
-lookbehind_neg       = "(?<!" pattern ")"
-non_atomic_lookahead_pos = "(?*" pattern ")"
-non_atomic_lookbehind_pos = "(?<*" pattern ")"
-alpha_lookaround     = "(*" alpha_lookaround_name ":" pattern? ")"
+lookahead_pos        = "(?=" pattern ")"            -> {type: "atom", kind: "lookahead", positive: true, body: $2}
+lookahead_neg        = "(?!" pattern ")"            -> {type: "atom", kind: "lookahead", positive: false, body: $2}
+lookbehind_pos       = "(?<=" pattern ")"           -> {type: "atom", kind: "lookbehind", positive: true, body: $2}
+lookbehind_neg       = "(?<!" pattern ")"           -> {type: "atom", kind: "lookbehind", positive: false, body: $2}
+non_atomic_lookahead_pos  = "(?*" pattern ")"       -> {type: "atom", kind: "non_atomic_lookahead", positive: true, body: $2}
+non_atomic_lookbehind_pos = "(?<*" pattern ")"      -> {type: "atom", kind: "non_atomic_lookbehind", positive: true, body: $2}
+alpha_lookaround     = "(*" alpha_lookaround_name ":" pattern? ")"  -> {type: "atom", kind: "alpha_lookaround", name: $2, body: $4}
 alpha_lookaround_name = atomic_alpha_lookaround_name | non_atomic_alpha_lookaround_name
 atomic_alpha_lookaround_name = "pla"
                     | "positive_lookahead"

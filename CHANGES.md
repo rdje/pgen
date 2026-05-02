@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 23/N: lookaround family typed (7 sub-rules)
+
+### What landed
+
+Largest slice yet — 7 annotations across 7 lookaround sub-rules in one batch:
+
+```ebnf
+lookahead_pos             = "(?=" pattern ")"            -> {type: "atom", kind: "lookahead",   positive: true,  body: $2}
+lookahead_neg             = "(?!" pattern ")"            -> {type: "atom", kind: "lookahead",   positive: false, body: $2}
+lookbehind_pos            = "(?<=" pattern ")"           -> {type: "atom", kind: "lookbehind",  positive: true,  body: $2}
+lookbehind_neg            = "(?<!" pattern ")"           -> {type: "atom", kind: "lookbehind",  positive: false, body: $2}
+non_atomic_lookahead_pos  = "(?*" pattern ")"            -> {type: "atom", kind: "non_atomic_lookahead",  positive: true, body: $2}
+non_atomic_lookbehind_pos = "(?<*" pattern ")"           -> {type: "atom", kind: "non_atomic_lookbehind", positive: true, body: $2}
+alpha_lookaround          = "(*" alpha_lookaround_name ":" pattern? ")"
+                                                          -> {type: "atom", kind: "alpha_lookaround", name: $2, body: $4}
+```
+
+### Empirical AST shape
+
+| Source | Before | After |
+|---|---|---|
+| `(?=foo)` | `["(?=", <pattern>, ")"]` | `{type:"atom", kind:"lookahead", positive:true, body:<pattern>}` |
+| `(?!bar)` | similar | `{kind:"lookahead", positive:false, body:<pattern>}` |
+| `(?<=baz)` | similar | `{kind:"lookbehind", positive:true, body:<pattern>}` |
+| `(?<!qux)` | similar | `{kind:"lookbehind", positive:false, body:<pattern>}` |
+| `(?*alpha)` | similar | `{kind:"non_atomic_lookahead", positive:true, body:<pattern>}` |
+| `(?<*beta)` | similar | `{kind:"non_atomic_lookbehind", positive:true, body:<pattern>}` |
+| `(*pla:gamma)` | 5-element seq `["(*", "pla", ":", <pattern>, ")"]` | `{kind:"alpha_lookaround", name:"pla", body:<pattern>}` |
+| `(*nla:delta)` | similar | `{kind:"alpha_lookaround", name:"nla", body:<pattern>}` |
+
+### `kind` + `positive` design
+
+Lookahead and lookbehind each collapse 2 syntactic forms (`_pos`/`_neg`) to one `kind` with a `positive` boolean — consistent with property_escape's `negated` field convention from slice 17. Non-atomic forms get distinct `kind` values since PCRE2 only supports positive variants for them; the `positive:true` field is included for uniform consumer code.
+
+### Alpha-form `name` field
+
+`alpha_lookaround` carries the alpha_lookaround_name in `name` (one of `pla`/`positive_lookahead`/`nla`/`negative_lookahead`/`plb`/`positive_lookbehind`/`nlb`/`negative_lookbehind`/`napla`/`non_atomic_positive_lookahead`/`naplb`/`non_atomic_positive_lookbehind`). Consumers map by name to dispatch on the semantic equivalent.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 7 new manifest entries inserted alphabetically (alpha_lookaround at the very beginning before anchor; lookahead_*/lookbehind_* between hex_escape and name_ref; non_atomic_lookahead_pos/non_atomic_lookbehind_pos between named_group and noncapturing_group).
+- `make regex_parser_book_gate` green.
+- Empirical sweep: 8 inputs covering all 7 sub-rules + 1 negative alpha-form variant — all typed correctly.
+
+### Contract bump
+
+Parser release `1.1.52` → `1.1.53`. Contract `1.1.54` → `1.1.55`. New "Release 1.1.53 / Contract 1.1.55 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.53 / 1.1.55 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.27.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 7 new entries.
+- `docs/regex_parser_book/src/examples-groups-alt.md` — chapter intro updated to "all 6 group + all 7 lookaround sub-rules typed"; lookaround / non-atomic / alpha-form sections rewritten to typed-object form.
+
+### Atom subtree progress
+**14/25 atom alternatives directly typed.** Lookaround family typed end-to-end.
+
 ## 2026-05-02 - regex.ebnf slice 22/N: named groups typed (named/python_named)
 
 ### What landed
