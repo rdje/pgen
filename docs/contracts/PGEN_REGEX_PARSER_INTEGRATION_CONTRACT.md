@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.49`
+  - `1.1.50`
 - Parser release version:
-  - `1.1.47`
+  - `1.1.48`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,23 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.48 / Contract 1.1.50 Highlights — atom subtree slice 18: quoted_literal typed
+
+- **Internal-driven shape work** (no downstream report). First atom-subtree slice after the escape subtree closure.
+- **Rule changed:**
+  - `quoted_literal` annotated `-> {type:"atom", kind:"quoted_literal", body:$2}`. `body` is the array of `quoted_literal_char*` matched chars.
+- **AST shape change (consumer-visible):**
+  - Before: `\Qhello\E` → `["\\Q", ["h","e","l","l","o"], "\\E"]` (3-element Sequence).
+  - After: `\Qhello\E` → `{type:"atom", kind:"quoted_literal", body:["h","e","l","l","o"]}` (typed object).
+- **`body` is an array of single-char strings**, one per `quoted_literal_char` match. `quoted_literal_escaped_char` produces 2 chars (the `\` and the tail). Consumers that want the raw string join the array; consumers with semantic needs can distinguish escaped vs raw chars from the array element shapes (escaped chars stay as 2-char strings).
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.48` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["\\Q", <chars>, "\\E"]` shape to use typed `obj.kind == "quoted_literal"` dispatch + `obj.body.join("")` to recover the literal string.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 6/25 alternatives directly typed (+1 from slice 17 to count quoted_literal); 7/7 escape_unit branches typed (escape subtree closed). Remaining atom alternatives: literal, whitespace_literal, dot, char_class outer, group/conditional/lookaround/atomic_group/scan_substring_group/script_run_group/inline_modifiers/scoped_inline_modifiers/branch_reset_group/callout/directive_verb/extended_class/code_block/comment_group/python_named_backreference/group/subroutine_call.
 
 ## Release 1.1.47 / Contract 1.1.49 Highlights — atom subtree slice 17: escape subtree closes (property)
 

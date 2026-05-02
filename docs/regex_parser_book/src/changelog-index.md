@@ -23,6 +23,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.48 / Contract 1.1.50 — Atom subtree slice 18: quoted_literal typed
+
+**What changed:** `quoted_literal` now emits typed `{type:"atom", kind:"quoted_literal", body:<chars>}` objects.
+
+```ebnf
+quoted_literal = "\\Q" quoted_literal_char* "\\E"
+                  -> {type: "atom", kind: "quoted_literal", body: $2}
+```
+
+**Before / after:**
+
+| Source | Before | After |
+|---|---|---|
+| `\Qhello\E` | `["\\Q", ["h","e","l","l","o"], "\\E"]` | `{type:"atom", kind:"quoted_literal", body:["h","e","l","l","o"]}` |
+| `\Q\E` (empty) | `["\\Q", [], "\\E"]` | `{type:"atom", kind:"quoted_literal", body:[]}` |
+| `\Qabc def\E` | similar 3-element seq | `{body:["a","b","c"," ","d","e","f"]}` |
+
+`body` is the array of `quoted_literal_char*` matches — one element per char. `quoted_literal_escaped_char` produces 2-char strings (the `\` and the escaped char). Consumers join to recover the literal string; consumers with semantic needs can distinguish escaped vs raw chars from element shapes.
+
+**Atom subtree campaign progress:** 6/25 atom alternatives directly typed; 7/7 escape_unit branches typed.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.48 / Contract 1.1.50 Highlights".
+
 ### 1.1.47 / Contract 1.1.49 — Atom subtree slice 17: escape subtree closes (property)
 
 **What changed:** `property_escape` per-branch annotations now emit typed `{type:"escape", kind:"property", name:<string>, negated:<bool>}` objects. `prop_name` and `short_prop_letter` rewritten from chained forms to regex literals so they emit clean string Terminals.

@@ -81,11 +81,7 @@ Two pieces: `a` (no quantifier — `quantifier: []`) and `b` (with typed `{3}` q
 "pattern": [
   [[
     {
-      "atom": [
-        "\\Q",
-        ["a"],                      // single-char Quantified
-        "\\E"
-      ],
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": ["a"]},
       "quantifier": {"type": "quantifier", "min": 3, "max": 3, "greediness": []},
       "type": "piece"
     }
@@ -94,7 +90,7 @@ Two pieces: `a` (no quantifier — `quantifier: []`) and `b` (with typed `{3}` q
 ]
 ```
 
-ONE piece. The `piece_quoted_run_quantified` branch requires at least one prefix char BEFORE the trailing char, so for single-char quoted runs it fails and the parser falls through to `piece`'s branch 1 (`atom quantifier?` matching the whole `\Qa\E` as a `quoted_literal` atom). Semantically correct: "quantify the only char in `\Qa\E`" is exactly the same as "quantify the whole 1-char block."
+ONE piece. The `piece_quoted_run_quantified` branch requires at least one prefix char BEFORE the trailing char, so for single-char quoted runs it fails and the parser falls through to `piece`'s branch 1 (`atom quantifier?` matching the whole `\Qa\E` as a `quoted_literal` atom). Post-slice-18 the atom is the typed `{type:"atom", kind:"quoted_literal", body:["a"]}` object instead of the pre-slice 3-element `["\\Q", ["a"], "\\E"]` Sequence. Semantically correct: "quantify the only char in `\Qa\E`" is exactly the same as "quantify the whole 1-char block."
 
 ## `\Q\E{2}` — empty quoted run with quantifier
 
@@ -102,11 +98,7 @@ ONE piece. The `piece_quoted_run_quantified` branch requires at least one prefix
 "pattern": [
   [[
     {
-      "atom": [
-        "\\Q",
-        [],                         // empty chars Quantified
-        "\\E"
-      ],
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": []},
       "quantifier": {"type": "quantifier", "min": 2, "max": 2, "greediness": []},
       "type": "piece"
     }
@@ -123,11 +115,7 @@ ONE piece. Empty `\Q...\E` falls through to atom-path. PCRE2 treats `\Q\E{2}` as
 "pattern": [
   [[
     {
-      "atom": [
-        "\\Q",
-        ["a", "b"],
-        "\\E"
-      ],
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": ["a", "b"]},
       "quantifier": [],
       "type": "piece"
     }
@@ -136,7 +124,7 @@ ONE piece. Empty `\Q...\E` falls through to atom-path. PCRE2 treats `\Q\E{2}` as
 ]
 ```
 
-ONE piece. The `piece_quoted_run_quantified` branch requires a trailing quantifier — without one, the parser falls through to `piece`'s branch 1 with the whole `\Qab\E` as a single `quoted_literal` atom. Semantically correct: "literal a, literal b" with no quantifier.
+ONE piece. The `piece_quoted_run_quantified` branch requires a trailing quantifier — without one, the parser falls through to `piece`'s branch 1 with the whole `\Qab\E` as a single `quoted_literal` atom. Post-slice-18 the atom is the typed `{type:"atom", kind:"quoted_literal", body:["a","b"]}` object. Semantically correct: "literal a, literal b" with no quantifier.
 
 ## How `piece_quoted_run_quantified` decides
 

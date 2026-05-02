@@ -367,6 +367,12 @@
         "normalized_text": "{type: \"quantifier\", min: $1.min, max: $1.max, greediness: $2}"
       },
       {
+        "rule": "quoted_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"quoted_literal\", body: $2}"
+      },
+      {
         "rule": "quoted_run_inner_piece",
         "branch_index": 0,
         "annotation_type": "return_object",

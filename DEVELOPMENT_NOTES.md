@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 18/N — quoted_literal typed
+
+### What landed
+
+```ebnf
+quoted_literal = "\\Q" quoted_literal_char* "\\E"
+                  -> {type: "atom", kind: "quoted_literal", body: $2}
+```
+
+First atom-subtree slice after the escape subtree closure. Picked `quoted_literal` because:
+1. Its existing 3-element Sequence (`["\\Q", [<chars>], "\\E"]`) is the messiest atom-alternative shape after the escape subtree was typed.
+2. It's structurally complex (has body content) so the typed shape adds real value beyond `kind` dispatch.
+3. Low blast radius: `\Q...\E` only appears in a small fraction of regexes; the family-table fast path (`piece_quoted_run_quantified`) doesn't go through `quoted_literal` so PGEN-RGX-0074/0077-tested cases are unchanged.
+
+### `body` shape
+
+`$2` references `quoted_literal_char*` (a Quantified). Slice 15+ codegen (Quantified base $N peel-arm fix) ensures `$2` returns the whole Quantified content as an array. So `body` is `["h","e","l","l","o"]` for `\Qhello\E` — array of single-char strings.
+
+`quoted_literal_escaped_char` (the alternative that handles escapes inside `\Q...\E`) produces 2-char strings (`\` + escaped char). Consumers join the array (`body.join("")`) for the raw string; consumers needing semantic info can distinguish escaped-vs-raw by element length.
+
+### Why I didn't do dot / literal / whitespace_literal first
+
+These three atom alternatives are simpler-looking but high-volume — every literal char in every regex is a `literal` match. Typing them inflates AST size for the most common case (`"a"` becomes `{type:"atom", kind:"literal", char:"a"}` — 4× growth). Slice 18 picks the lower-volume, higher-value `quoted_literal` first; dot/literal/whitespace_literal can be considered later as a separate "leaf-atom typing" decision.
+
+### Empirical
+- `\Qhello\E` → `{type:"atom", kind:"quoted_literal", body:["h","e","l","l","o"]}`.
+- `\Q\E` (empty) → `{body:[]}`.
+- `\Qabc def\E` → `{body:["a","b","c"," ","d","e","f"]}`.
+- `\Qa\E{3}` (atom-fallback) → atom carries typed object, quantifier attaches normally.
+- `\Q\E{2}` (degenerate) → atom is `{body:[]}`, quantifier `{min:2,max:2}`.
+
+### Routes through `quoted_literal` vs through `piece_quoted_run_quantified`
+
+The `\Q...\E quantifier?` family table:
+- Family-table cases (≥2 chars + trailing quantifier): go through `piece_quoted_run_quantified` which builds the multi-piece array directly. Doesn't go through `quoted_literal`. Slice 18 has no effect here.
+- Atom-fallback cases (no trailing quantifier OR single-char body OR empty body with quantifier): go through `piece`'s branch 1 (`atom quantifier?`) where `atom` matches `quoted_literal`. Slice 18 applies.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 1 new manifest entry (`quoted_literal`).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.47` → `1.1.48`. Contract `1.1.49` → `1.1.50`.
+- New "Release 1.1.48 / Contract 1.1.50 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md` (new row), `schema-versioning.md` (0.22.0), `json-carrier.md` (1 new entry), `examples-quoted-literal.md` (atom-fallback shapes updated to typed form).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- 6/25 atom alternatives directly typed.
+- 7/7 escape_unit branches typed (escape subtree closed at slice 17).
+- Remaining 19 atom alternatives: literal, whitespace_literal, dot, char_class outer, group/capturing_group/noncapturing_group/named_group/python_named_group/inline_modifiers/scoped_inline_modifiers/branch_reset_group/callout/conditional/lookaround/atomic_group/scan_substring_group/script_run_group/directive_verb/extended_class/code_block/comment_group/python_named_backreference/subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 17/N — escape subtree closes (property)
 
 ### What landed

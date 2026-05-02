@@ -143,7 +143,15 @@ atom           = literal
 # Literals and escapes
 literal        = literal_char
 whitespace_literal = whitespace
-quoted_literal = "\\Q" quoted_literal_char* "\\E"
+# `quoted_literal` annotated to surface the typed
+# `{type:"atom", kind:"quoted_literal", body:<chars>}` shape.
+# `body` is the array of `quoted_literal_char*` matched chars
+# (each `quoted_literal_char` is a single-char string —
+# `quoted_literal_escaped_char` produces 2 chars, the `\` and
+# the tail). Consumers join the array to recover the string
+# literal; the array form preserves which chars were escaped vs
+# raw (consumers with semantic needs can distinguish).
+quoted_literal = "\\Q" quoted_literal_char* "\\E"      -> {type: "atom", kind: "quoted_literal", body: $2}
 quoted_literal_char = quoted_literal_escaped_char | letter | digit | whitespace | class_safe_special | ']' | unicode_char
 quoted_literal_escaped_char = "\\" quoted_literal_escape_tail
 quoted_literal_escape_tail = letter_no_upper_e | digit | whitespace | class_safe_special | ']' | unicode_char

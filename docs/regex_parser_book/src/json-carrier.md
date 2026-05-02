@@ -77,6 +77,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `quantifier` | `-> {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}` | Object `{type, min, max, greediness}` |
 | `quant_suffix` (branch 0) | `-> "lazy"` | String `"lazy"` |
 | `quant_suffix` (branch 1) | `-> "possessive"` | String `"possessive"` |
+| `quoted_literal` | `-> {type:"atom", kind:"quoted_literal", body:$2}` | Object `{type:"atom", kind:"quoted_literal", body:<array-of-chars>}`. Array elements are single-char strings; `quoted_literal_escaped_char` produces 2-char strings preserving the `\` and the escaped char. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f5a6e759.js";
+            window.path_to_searchindex_js = "searchindex-1f03f987.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,27 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1148--contract-1150--atom-subtree-slice-18-quoted_literal-typed"><a class="header" href="#1148--contract-1150--atom-subtree-slice-18-quoted_literal-typed">1.1.48 / Contract 1.1.50 — Atom subtree slice 18: quoted_literal typed</a></h3>
+<p><strong>What changed:</strong> <code>quoted_literal</code> now emits typed <code>{type:"atom", kind:"quoted_literal", body:&lt;chars&gt;}</code> objects.</p>
+<pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char* "\\E"
+                  -&gt; {type: "atom", kind: "quoted_literal", body: $2}
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\Qhello\E</code></td><td><code>["\\Q", ["h","e","l","l","o"], "\\E"]</code></td><td><code>{type:"atom", kind:"quoted_literal", body:["h","e","l","l","o"]}</code></td></tr>
+<tr><td><code>\Q\E</code> (empty)</td><td><code>["\\Q", [], "\\E"]</code></td><td><code>{type:"atom", kind:"quoted_literal", body:[]}</code></td></tr>
+<tr><td><code>\Qabc def\E</code></td><td>similar 3-element seq</td><td><code>{body:["a","b","c"," ","d","e","f"]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>body</code> is the array of <code>quoted_literal_char*</code> matches — one element per char. <code>quoted_literal_escaped_char</code> produces 2-char strings (the <code>\</code> and the escaped char). Consumers join to recover the literal string; consumers with semantic needs can distinguish escaped vs raw chars from element shapes.</p>
+<p><strong>Atom subtree campaign progress:</strong> 6/25 atom alternatives directly typed; 7/7 escape_unit branches typed.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.48 / Contract 1.1.50 Highlights”.</p>
 <h3 id="1147--contract-1149--atom-subtree-slice-17-escape-subtree-closes-property"><a class="header" href="#1147--contract-1149--atom-subtree-slice-17-escape-subtree-closes-property">1.1.47 / Contract 1.1.49 — Atom subtree slice 17: escape subtree closes (property)</a></h3>
 <p><strong>What changed:</strong> <code>property_escape</code> per-branch annotations now emit typed <code>{type:"escape", kind:"property", name:&lt;string&gt;, negated:&lt;bool&gt;}</code> objects. <code>prop_name</code> and <code>short_prop_letter</code> rewritten from chained forms to regex literals so they emit clean string Terminals.</p>
 <pre><code class="language-ebnf">property_escape = "p{" prop_name "}"      -&gt; {type: "escape", kind: "property", name: $2, negated: false}

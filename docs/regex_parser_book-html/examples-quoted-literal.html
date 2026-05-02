@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f5a6e759.js";
+            window.path_to_searchindex_js = "searchindex-1f03f987.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -253,11 +253,7 @@
 <pre><code class="language-json">"pattern": [
   [[
     {
-      "atom": [
-        "\\Q",
-        ["a"],                      // single-char Quantified
-        "\\E"
-      ],
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": ["a"]},
       "quantifier": {"type": "quantifier", "min": 3, "max": 3, "greediness": []},
       "type": "piece"
     }
@@ -265,16 +261,12 @@
   []
 ]
 </code></pre>
-<p>ONE piece. The <code>piece_quoted_run_quantified</code> branch requires at least one prefix char BEFORE the trailing char, so for single-char quoted runs it fails and the parser falls through to <code>piece</code>’s branch 1 (<code>atom quantifier?</code> matching the whole <code>\Qa\E</code> as a <code>quoted_literal</code> atom). Semantically correct: “quantify the only char in <code>\Qa\E</code>” is exactly the same as “quantify the whole 1-char block.”</p>
+<p>ONE piece. The <code>piece_quoted_run_quantified</code> branch requires at least one prefix char BEFORE the trailing char, so for single-char quoted runs it fails and the parser falls through to <code>piece</code>’s branch 1 (<code>atom quantifier?</code> matching the whole <code>\Qa\E</code> as a <code>quoted_literal</code> atom). Post-slice-18 the atom is the typed <code>{type:"atom", kind:"quoted_literal", body:["a"]}</code> object instead of the pre-slice 3-element <code>["\\Q", ["a"], "\\E"]</code> Sequence. Semantically correct: “quantify the only char in <code>\Qa\E</code>” is exactly the same as “quantify the whole 1-char block.”</p>
 <h2 id="qe2--empty-quoted-run-with-quantifier"><a class="header" href="#qe2--empty-quoted-run-with-quantifier"><code>\Q\E{2}</code> — empty quoted run with quantifier</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
     {
-      "atom": [
-        "\\Q",
-        [],                         // empty chars Quantified
-        "\\E"
-      ],
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": []},
       "quantifier": {"type": "quantifier", "min": 2, "max": 2, "greediness": []},
       "type": "piece"
     }
@@ -287,11 +279,7 @@
 <pre><code class="language-json">"pattern": [
   [[
     {
-      "atom": [
-        "\\Q",
-        ["a", "b"],
-        "\\E"
-      ],
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": ["a", "b"]},
       "quantifier": [],
       "type": "piece"
     }
@@ -299,7 +287,7 @@
   []
 ]
 </code></pre>
-<p>ONE piece. The <code>piece_quoted_run_quantified</code> branch requires a trailing quantifier — without one, the parser falls through to <code>piece</code>’s branch 1 with the whole <code>\Qab\E</code> as a single <code>quoted_literal</code> atom. Semantically correct: “literal a, literal b” with no quantifier.</p>
+<p>ONE piece. The <code>piece_quoted_run_quantified</code> branch requires a trailing quantifier — without one, the parser falls through to <code>piece</code>’s branch 1 with the whole <code>\Qab\E</code> as a single <code>quoted_literal</code> atom. Post-slice-18 the atom is the typed <code>{type:"atom", kind:"quoted_literal", body:["a","b"]}</code> object. Semantically correct: “literal a, literal b” with no quantifier.</p>
 <h2 id="how-piece_quoted_run_quantified-decides"><a class="header" href="#how-piece_quoted_run_quantified-decides">How <code>piece_quoted_run_quantified</code> decides</a></h2>
 <p>The branch:</p>
 <pre><code class="language-ebnf">piece_quoted_run_quantified

@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 18/N: quoted_literal typed
+
+### What landed
+
+```ebnf
+quoted_literal = "\\Q" quoted_literal_char* "\\E"
+                  -> {type: "atom", kind: "quoted_literal", body: $2}
+```
+
+First atom-subtree slice after the escape closure. `quoted_literal` now emits a typed `{type:"atom", kind:"quoted_literal", body:<chars>}` object. `body` is the array of `quoted_literal_char*` matched chars — one element per char (`quoted_literal_escaped_char` produces 2-char strings preserving the `\` and the escaped char).
+
+### Empirical AST shape
+
+| Source | Before | After |
+|---|---|---|
+| `\Qhello\E` | `["\\Q", ["h","e","l","l","o"], "\\E"]` | `{type:"atom", kind:"quoted_literal", body:["h","e","l","l","o"]}` |
+| `\Q\E` (empty body) | `["\\Q", [], "\\E"]` | `{type:"atom", kind:"quoted_literal", body:[]}` |
+| `\Qabc def\E` | similar 3-element seq | `{body:["a","b","c"," ","d","e","f"]}` |
+
+### Atom-fallback path through `quoted_literal`
+
+The `\Q...\E` family table (PGEN-RGX-0074 + PGEN-RGX-0077) routes most cases through `piece_quoted_run_quantified` which doesn't go through `quoted_literal`. Only the atom-fallback cases reach `quoted_literal` directly:
+- `\Q...\E` with NO trailing quantifier (`\Qab\E`).
+- `\Q...\E` with single-char body and trailing quantifier (`\Qa\E{3}` — fallback because `piece_quoted_run_quantified` requires ≥1 prefix char before trailing).
+- `\Q\E{N}` — empty body with quantifier (PCRE2 zero-width quantified empty match).
+
+These all now surface the typed atom shape. The family-table multi-piece path is unchanged.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 1 new manifest entry (`quoted_literal`).
+- `make regex_parser_book_gate` green.
+- Empirical sweep: `\Qhello\E` / `\Q\E` / `\Qabc def\E` typed correctly.
+
+### Contract bump
+
+Parser release `1.1.47` → `1.1.48`. Contract `1.1.49` → `1.1.50`. New "Release 1.1.48 / Contract 1.1.50 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.48 / 1.1.50 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.22.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 1 new entry.
+- `docs/regex_parser_book/src/examples-quoted-literal.md` — atom-fallback shapes (`\Qa\E{3}`, `\Q\E{2}`, `\Qab\E`) updated to typed object form.
+
+### Atom subtree progress
+6/25 atom alternatives directly typed; 7/7 escape_unit branches typed (escape subtree closed). Remaining atom alternatives: literal, whitespace_literal, dot, char_class outer, group/conditional/lookaround/atomic_group/scan_substring_group/script_run_group/inline_modifiers/scoped_inline_modifiers/branch_reset_group/callout/directive_verb/extended_class/code_block/comment_group/python_named_backreference/group/subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 17/N: escape subtree closes (property)
 
 ### What landed
