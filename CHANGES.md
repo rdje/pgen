@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 30/N: subroutine_target typed (subroutine_call.target now end-to-end typed)
+
+### What landed
+
+```ebnf
+subroutine_target = "&" name           -> {kind: "named", name: $2}
+                  | "P>" name          -> {kind: "python_named", name: $2}
+                  | "R"                -> {kind: "recursion"}
+                  | signed_digits      -> {kind: "numeric", value: $1.value, sign: $1.sign}
+```
+
+4 annotations. Numeric form uses field-access (`$1.value`, `$1.sign`) to inline signed_digits' typed `{sign, value}` shape (slice 13).
+
+### Empirical AST shape (visible inside `subroutine_call.target`)
+
+| Source | Before (slice 25) | After |
+|---|---|---|
+| `(?&name)` | `target:["&", "name"]` | `target:{kind:"named", name:"name"}` |
+| `(?P>foo)` | `target:["P>", "foo"]` | `target:{kind:"python_named", name:"foo"}` |
+| `(?R)` | `target:"R"` | `target:{kind:"recursion"}` |
+| `(?+1)` | `target:{sign:"+", value:1}` | `target:{kind:"numeric", sign:"+", value:1}` |
+| `(?-2)` | similar | `target:{kind:"numeric", sign:"-", value:2}` |
+| `(?42)` | `target:{sign:[], value:42}` | `target:{kind:"numeric", sign:[], value:42}` |
+
+### `subroutine_call.target` end-to-end typed
+
+All 4 syntactic forms surface as `{kind, ...}` objects with consistent dispatch. Consumers normalize across name-based forms via `target.kind in {"named", "python_named"}` (parallels slice 19's python_named_backreference / slice 22's python_named_group).
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 4 new manifest entries (subroutine_target ×4 between subroutine_ref and unicode_escape).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 6 subroutine_target forms (named, python-named, recursion, signed numerics) — all typed correctly.
+
+### Contract bump
+
+Parser release `1.1.59` → `1.1.60`. Contract `1.1.61` → `1.1.62`. New "Release 1.1.60 / Contract 1.1.62 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.60 / 1.1.62 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.34.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 4 new entries.
+
+### Sub-rule typing campaign progress
+Second slice. `subroutine_call.target` now end-to-end typed; consumers can dispatch on `target.kind` directly.
+
 ## 2026-05-03 - regex.ebnf slice 29/N: class_range / quoted_class_literal / class_range_escape typed (sub-rule typing inside char_class)
 
 ### What landed

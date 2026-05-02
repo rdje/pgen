@@ -115,6 +115,10 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `class_range` | `-> {type:"class_range", start:$1, end:$5}` | Object. `start`/`end` are typed class_atoms (escape / clean string / quoted_class_range_atom). `class_zero_width*` slots (rare PCRE2 `\E`/`\Q\E` markers around the dash) dropped from typed shape; consumers needing them fall back to raw. |
 | `quoted_class_literal` | `-> {type:"class_quoted_literal", body:$2}` | Object. `body` is array of `quoted_class_literal_char*` matched chars (parallels `quoted_literal` slice 18). |
 | `class_range_escape` | `-> $2` | Transparent passthrough — drops the leading `\` so the typed escape_unit shape (slices 14-17) surfaces directly. Mirrors outer `escape -> $2` (slice 14). |
+| `subroutine_target` (branch 0, `&name`) | `-> {kind:"named", name:$2}` | Object. Surfaces inside `subroutine_call.target`. |
+| `subroutine_target` (branch 1, `P>name`) | `-> {kind:"python_named", name:$2}` | Distinct kind preserves Python syntax origin (paralleling `python_named_backreference` slice 19). |
+| `subroutine_target` (branch 2, `R`) | `-> {kind:"recursion"}` | Bare object; no fields. |
+| `subroutine_target` (branch 3, signed_digits) | `-> {kind:"numeric", value:$1.value, sign:$1.sign}` | Inlines signed_digits' typed `{sign, value}` shape via field-access (slice 13). |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

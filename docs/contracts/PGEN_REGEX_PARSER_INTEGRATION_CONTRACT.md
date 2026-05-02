@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.61`
+  - `1.1.62`
 - Parser release version:
-  - `1.1.59`
+  - `1.1.60`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,28 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.60 / Contract 1.1.62 Highlights — slice 30: subroutine_target typed (subroutine_call.target now end-to-end typed)
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — types the inner shape that shows up under already-typed `subroutine_call.target`.
+- **Rule changed:**
+  - `subroutine_target` per-branch annotations:
+    - `"&" name -> {kind:"named", name:$2}`
+    - `"P>" name -> {kind:"python_named", name:$2}` (preserves Python syntax origin, paralleling slices 19/22)
+    - `"R" -> {kind:"recursion"}`
+    - `signed_digits -> {kind:"numeric", value:$1.value, sign:$1.sign}` (inlines signed_digits' typed `{sign, value}` shape from slice 13)
+- **AST shape change (consumer-visible):**
+  - Before: `(?&name)` → `{kind:"subroutine_call", target:["&", "name"]}`.
+  - After: `(?&name)` → `{kind:"subroutine_call", target:{kind:"named", name:"name"}}`.
+  - Before: `(?R)` → `target:"R"`.
+  - After: `(?R)` → `target:{kind:"recursion"}`.
+  - Before: `(?+1)` → `target:{sign:"+", value:1}` (signed_digits raw shape).
+  - After: `(?+1)` → `target:{kind:"numeric", sign:"+", value:1}` (kind-tagged uniform shape).
+- **`subroutine_call.target` now end-to-end typed.** All 4 syntactic forms surface as `{kind, ...}` objects with consistent dispatch.
+- **Consumer normalization across name-based forms:** `target.kind in {"named", "python_named"}` → name-based subroutine; `target.name` carries the name string in both. Same convention as slice 19's `python_named_backreference` and slice 22's `python_named_group`.
+- **`returned_capture_subroutine` (the with-captures form) propagates the typed `subroutine_target` automatically:** `(?<target>(<groups>))` → `target:{<typed subroutine_target>, <capture-list raw shape>}`. Sub-rule typing of `returned_capture_subroutine` and `returned_capture_group_list` is a separate concern.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.59 / Contract 1.1.61 Highlights — slice 29: class_range / quoted_class_literal / class_range_escape typed (char_class sub-rule typing)
 

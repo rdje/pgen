@@ -595,10 +595,17 @@ subroutine_call      = "(?" returned_capture_subroutine ")"    -> {type: "atom",
 returned_capture_subroutine = subroutine_target returned_capture_group_list
 returned_capture_group_list = "(" returned_capture_group ("," returned_capture_group)* ")"
 returned_capture_group = signed_digits | name_ref
-subroutine_target    = "&" name
-                    | "P>" name
-                    | "R"
-                    | signed_digits
+# `subroutine_target` per-branch typed `{kind:<form>, ...}`.
+# `kind:"python_named"` parallels slices 19/22 (preserve Python syntax
+# origin even though semantically equivalent to `kind:"named"`).
+# `kind:"recursion"` for the bare `R` form. `kind:"numeric"` for
+# signed-digits refs — `value` and `sign` are inlined from
+# signed_digits' `{sign, value}` typed shape (slice 13). Consumer
+# reads `target.value` / `target.sign` / `target.name` directly.
+subroutine_target    = "&" name                                    -> {kind: "named", name: $2}
+                    | "P>" name                                    -> {kind: "python_named", name: $2}
+                    | "R"                                          -> {kind: "recursion"}
+                    | signed_digits                                -> {kind: "numeric", value: $1.value, sign: $1.sign}
 # Annotated to surface the same `{type:"backreference", kind:<form>, ref:<string>}`
 # shape used by the regular backreference family (slices 10-12). `kind` is a
 # distinct value `"python_named"` so consumers can dispatch on Python-specific

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d18cb55b.js";
+            window.path_to_searchindex_js = "searchindex-85a0acab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,33 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1160--contract-1162--slice-30-subroutine_target-typed"><a class="header" href="#1160--contract-1162--slice-30-subroutine_target-typed">1.1.60 / Contract 1.1.62 — Slice 30: subroutine_target typed</a></h3>
+<p><strong>What changed:</strong> <code>subroutine_target</code> now emits typed <code>{kind, ...}</code> objects per branch.</p>
+<pre><code class="language-ebnf">subroutine_target = "&amp;" name           -&gt; {kind: "named", name: $2}
+                  | "P&gt;" name          -&gt; {kind: "python_named", name: $2}
+                  | "R"                -&gt; {kind: "recursion"}
+                  | signed_digits      -&gt; {kind: "numeric", value: $1.value, sign: $1.sign}
+</code></pre>
+<p><strong>Before / after (visible inside <code>subroutine_call.target</code>):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 25)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?&amp;name)</code></td><td><code>target:["&amp;", "name"]</code></td><td><code>target:{kind:"named", name:"name"}</code></td></tr>
+<tr><td><code>(?P&gt;foo)</code></td><td><code>target:["P&gt;", "foo"]</code></td><td><code>target:{kind:"python_named", name:"foo"}</code></td></tr>
+<tr><td><code>(?R)</code></td><td><code>target:"R"</code></td><td><code>target:{kind:"recursion"}</code></td></tr>
+<tr><td><code>(?+1)</code></td><td><code>target:{sign:"+", value:1}</code></td><td><code>target:{kind:"numeric", sign:"+", value:1}</code></td></tr>
+<tr><td><code>(?-2)</code></td><td>similar</td><td><code>target:{kind:"numeric", sign:"-", value:2}</code></td></tr>
+<tr><td><code>(?42)</code></td><td><code>target:{sign:[], value:42}</code></td><td><code>target:{kind:"numeric", sign:[], value:42}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>subroutine_call.target</code> now end-to-end typed.</strong> All 4 syntactic forms surface as <code>{kind, ...}</code> objects with consistent dispatch.</p>
+<p><strong><code>kind:"python_named"</code> vs <code>kind:"named"</code></strong> — preserves Python syntax origin, paralleling slice 19’s <code>python_named_backreference</code> and slice 22’s <code>python_named_group</code>. Consumers normalizing across name-based forms: <code>target.kind in {"named", "python_named"}</code> → name-based subroutine; <code>target.name</code> carries the name string in both.</p>
+<p><strong>Numeric form: <code>signed_digits</code> field-access inline.</strong> The annotation <code>{kind:"numeric", value:$1.value, sign:$1.sign}</code> uses the field-access syntax to inline signed_digits’ <code>{sign, value}</code> typed shape (slice 13) into subroutine_target’s typed shape. Consumer reads <code>target.value</code> / <code>target.sign</code> directly without an extra nested object.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.60 / Contract 1.1.62 Highlights”.</p>
 <h3 id="1159--contract-1161--slice-29-class_range--quoted_class_literal--class_range_escape-typed"><a class="header" href="#1159--contract-1161--slice-29-class_range--quoted_class_literal--class_range_escape-typed">1.1.59 / Contract 1.1.61 — Slice 29: class_range / quoted_class_literal / class_range_escape typed</a></h3>
 <p><strong>What changed:</strong> First sub-rule typing slice — the inner shapes that show up under <code>char_class.body</code>.</p>
 <pre><code class="language-ebnf">class_range          = class_atom class_zero_width* "-" class_zero_width* class_atom

@@ -1,4 +1,61 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 30/N — subroutine_target typed
+
+### What landed
+
+```ebnf
+subroutine_target = "&" name           -> {kind: "named", name: $2}
+                  | "P>" name          -> {kind: "python_named", name: $2}
+                  | "R"                -> {kind: "recursion"}
+                  | signed_digits      -> {kind: "numeric", value: $1.value, sign: $1.sign}
+```
+
+4 annotations.
+
+### Field-access for the numeric branch
+
+`signed_digits` was typed in slice 13 as `{sign: $1, value: $2}` where sign is `"+"`/`"-"`/`[]` (un-matched optional) and value is typed-int. For `subroutine_target`'s numeric branch, two design options:
+
+1. Wrap signed_digits' shape: `{kind:"numeric", target:$1}` → consumer reads `target.target.value`. Awkward double-target.
+2. Inline via field-access: `{kind:"numeric", value:$1.value, sign:$1.sign}` → consumer reads `target.value`/`target.sign` directly.
+
+Picked (2). Annotation language supports member access (used in slice 12 for `quantifier`'s `$1.min`/`$1.max`). Cleaner consumer interface.
+
+### Why preserve `kind:"python_named"` distinction
+
+PCRE2 treats `(?&name)` and `(?P>name)` as semantically equivalent for matching (both invoke the named subroutine). Tooling that wants to preserve the syntactic origin (formatters, linters) needs the distinction. Same convention from slice 19's `python_named_backreference` and slice 22's `python_named_group`. Consumers normalizing across name-based forms use `target.kind in {"named", "python_named"}`.
+
+### Empirical
+- `(?&name)` → `target:{kind:"named", name:"name"}`.
+- `(?P>foo)` → `target:{kind:"python_named", name:"foo"}`.
+- `(?R)` → `target:{kind:"recursion"}`.
+- `(?+1)` → `target:{kind:"numeric", sign:"+", value:1}`.
+- `(?-2)` → `target:{kind:"numeric", sign:"-", value:2}`.
+- `(?42)` → `target:{kind:"numeric", sign:[], value:42}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 4 new manifest entries inserted at alphabetical slot (subroutine_target ×4 after subroutine_ref's last entry).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.59` → `1.1.60`. Contract `1.1.61` → `1.1.62`.
+- New "Release 1.1.60 / Contract 1.1.62 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.34.0), `json-carrier.md` (4 new entries). No examples chapter changes — subroutine_call wasn't in any examples chapter.
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Second slice (after slice 29's char_class.body cleanup).
+- `subroutine_call.target` now end-to-end typed.
+- Remaining sub-rule typing concerns (independent slice candidates):
+  - `condition` Or-of-9 unification (largest remaining)
+  - `modifier_spec` (typing the `(?i-mx)` flag-set inside inline_modifiers)
+  - `callout_arg` / `callout_string` (8 quote-style payloads to unify)
+  - `directive_body` / `directive_named` / `directive_mark_shorthand` (PCRE2 verb names like MARK, COMMIT)
+  - `extended_class_content` set-op grammar extension
+  - `returned_capture_group_list` / `returned_capture_subroutine` (parens-grouped list typing — task #38 may apply)
+  - `class_body` Quantified-of-items flattening
+
 ## 2026-05-03 - regex.ebnf slice 29/N — class_range / quoted_class_literal / class_range_escape typed
 
 ### What landed

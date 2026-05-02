@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-29-sub-rule-typing-class-range-quoted-class-literal-class-range-escape)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-30-sub-rule-typing-subroutine-target)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 30 of N — `subroutine_target` typed.** Second sub-rule typing slice. 4 per-branch annotations: `kind:"named"`/`"python_named"`/`"recursion"`/`"numeric"`. Numeric form uses field-access (`$1.value`/`$1.sign`) to inline signed_digits' typed `{sign, value}` shape (slice 13). Empirical (visible inside `subroutine_call.target`): `(?&name)` → `{kind:"named", name:"name"}`; `(?P>foo)` → `{kind:"python_named"}`; `(?R)` → `{kind:"recursion"}`; `(?+1)` → `{kind:"numeric", sign:"+", value:1}`. **`subroutine_call.target` now end-to-end typed** across all 4 syntactic forms. Consumers normalize name-based forms via `target.kind in {"named", "python_named"}`. Contract bump: parser release `1.1.59` → `1.1.60`, contract `1.1.61` → `1.1.62`. Regex AST schema version stays `1`. 495/0 tests. 4 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.34.0), `json-carrier.md` (4 new entries).
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 29 of N — class_range / quoted_class_literal / class_range_escape typed.** First sub-rule typing slice. 3 annotations targeting the most-visible inner shapes inside `char_class.body`. `class_range -> {type:"class_range", start, end}` (drops rare `class_zero_width*` slots — clean shape, consumers fall back to raw if needed); `quoted_class_literal -> {type:"class_quoted_literal", body}` (parallels quoted_literal slice 18); `class_range_escape -> $2` (transparent passthrough mirroring slice 14's outer `escape -> $2`). Empirical: `[a-z]` body → `[{type:"class_range", start:"a", end:"z"}]`; `[\xA-\xFF]` body → fully typed end-to-end with hex escapes inside class_range start/end. **Char_class body now end-to-end typed** across all major class_item branches. Atom subtree stays 25/25 at outer level. Contract bump: parser release `1.1.58` → `1.1.59`, contract `1.1.60` → `1.1.61`. "Last updated" advanced to `2026-05-03`; fixed a stray duplicate "Last updated" line in Contract Identity. Regex AST schema version stays `1`. 495/0 tests. 3 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.33.0), `json-carrier.md` (3 new entries), `examples-char-class.md` (3 sections rewritten / added). **Sub-rule typing campaign opened.** Remaining sub-rule typing concerns: class_body Quantified-of-items flattening, condition Or-of-9 unification, modifier_spec, callout_arg, directive_body, code_content, extended_class_content, returned_capture_group_list / returned_capture_subroutine / subroutine_target.
 
 ### Earlier session note (kept for context):

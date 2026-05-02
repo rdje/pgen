@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d18cb55b.js";
+            window.path_to_searchindex_js = "searchindex-85a0acab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -296,6 +296,10 @@
 <tr><td><code>class_range</code></td><td><code>-&gt; {type:"class_range", start:$1, end:$5}</code></td><td>Object. <code>start</code>/<code>end</code> are typed class_atoms (escape / clean string / quoted_class_range_atom). <code>class_zero_width*</code> slots (rare PCRE2 <code>\E</code>/<code>\Q\E</code> markers around the dash) dropped from typed shape; consumers needing them fall back to raw.</td></tr>
 <tr><td><code>quoted_class_literal</code></td><td><code>-&gt; {type:"class_quoted_literal", body:$2}</code></td><td>Object. <code>body</code> is array of <code>quoted_class_literal_char*</code> matched chars (parallels <code>quoted_literal</code> slice 18).</td></tr>
 <tr><td><code>class_range_escape</code></td><td><code>-&gt; $2</code></td><td>Transparent passthrough — drops the leading <code>\</code> so the typed escape_unit shape (slices 14-17) surfaces directly. Mirrors outer <code>escape -&gt; $2</code> (slice 14).</td></tr>
+<tr><td><code>subroutine_target</code> (branch 0, <code>&amp;name</code>)</td><td><code>-&gt; {kind:"named", name:$2}</code></td><td>Object. Surfaces inside <code>subroutine_call.target</code>.</td></tr>
+<tr><td><code>subroutine_target</code> (branch 1, <code>P&gt;name</code>)</td><td><code>-&gt; {kind:"python_named", name:$2}</code></td><td>Distinct kind preserves Python syntax origin (paralleling <code>python_named_backreference</code> slice 19).</td></tr>
+<tr><td><code>subroutine_target</code> (branch 2, <code>R</code>)</td><td><code>-&gt; {kind:"recursion"}</code></td><td>Bare object; no fields.</td></tr>
+<tr><td><code>subroutine_target</code> (branch 3, signed_digits)</td><td><code>-&gt; {kind:"numeric", value:$1.value, sign:$1.sign}</code></td><td>Inlines signed_digits’ typed <code>{sign, value}</code> shape via field-access (slice 13).</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.60 / Contract 1.1.62 — Slice 30: subroutine_target typed
+
+**What changed:** `subroutine_target` now emits typed `{kind, ...}` objects per branch.
+
+```ebnf
+subroutine_target = "&" name           -> {kind: "named", name: $2}
+                  | "P>" name          -> {kind: "python_named", name: $2}
+                  | "R"                -> {kind: "recursion"}
+                  | signed_digits      -> {kind: "numeric", value: $1.value, sign: $1.sign}
+```
+
+**Before / after (visible inside `subroutine_call.target`):**
+
+| Source | Before (slice 25) | After |
+|---|---|---|
+| `(?&name)` | `target:["&", "name"]` | `target:{kind:"named", name:"name"}` |
+| `(?P>foo)` | `target:["P>", "foo"]` | `target:{kind:"python_named", name:"foo"}` |
+| `(?R)` | `target:"R"` | `target:{kind:"recursion"}` |
+| `(?+1)` | `target:{sign:"+", value:1}` | `target:{kind:"numeric", sign:"+", value:1}` |
+| `(?-2)` | similar | `target:{kind:"numeric", sign:"-", value:2}` |
+| `(?42)` | `target:{sign:[], value:42}` | `target:{kind:"numeric", sign:[], value:42}` |
+
+**`subroutine_call.target` now end-to-end typed.** All 4 syntactic forms surface as `{kind, ...}` objects with consistent dispatch.
+
+**`kind:"python_named"` vs `kind:"named"`** — preserves Python syntax origin, paralleling slice 19's `python_named_backreference` and slice 22's `python_named_group`. Consumers normalizing across name-based forms: `target.kind in {"named", "python_named"}` → name-based subroutine; `target.name` carries the name string in both.
+
+**Numeric form: `signed_digits` field-access inline.** The annotation `{kind:"numeric", value:$1.value, sign:$1.sign}` uses the field-access syntax to inline signed_digits' `{sign, value}` typed shape (slice 13) into subroutine_target's typed shape. Consumer reads `target.value` / `target.sign` directly without an extra nested object.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.60 / Contract 1.1.62 Highlights".
+
 ### 1.1.59 / Contract 1.1.61 — Slice 29: class_range / quoted_class_literal / class_range_escape typed
 
 **What changed:** First sub-rule typing slice — the inner shapes that show up under `char_class.body`.
