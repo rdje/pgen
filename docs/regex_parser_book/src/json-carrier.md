@@ -81,6 +81,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `python_named_backreference` | `-> {type:"backreference", kind:"python_named", ref:$2}` | Object `{type:"backreference", kind:"python_named", ref:<name>}`. PCRE2-equivalent to `\k<name>` for matching; `kind` preserves syntax origin. |
 | `comment_group` | `-> {type:"atom", kind:"comment", text:$2}` | Object `{type:"atom", kind:"comment", text:<string>}`. `text` is always a string (empty for `(?#)`). |
 | `comment_text` | regex literal `/([^)]*)/` | Terminal of the comment body — any chars except `)` (was `comment_char*` chain). |
+| `capturing_group` | `-> {type:"atom", kind:"capturing_group", body:$2}` | Object `{type:"atom", kind:"capturing_group", body:<pattern>}`. `body` is `[[], []]` for `()`. |
+| `noncapturing_group` | `-> {type:"atom", kind:"noncapturing_group", body:$2}` | Object `{type:"atom", kind:"noncapturing_group", body:<pattern>}`. |
+| `branch_reset_group` | `-> {type:"atom", kind:"branch_reset_group", body:$2}` | Object `{type:"atom", kind:"branch_reset_group", body:<pattern>}`. |
+| `atomic_group` (branch 0, `(?>...)`) | `-> {type:"atom", kind:"atomic_group", body:$2}` | Object `{type:"atom", kind:"atomic_group", body:<pattern>}`. |
+| `atomic_group` (branch 1, `(*atomic:...)`) | `-> {type:"atom", kind:"atomic_group", body:$2}` | Same kind as branch 0 — PCRE2-equivalent semantics. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

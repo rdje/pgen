@@ -23,6 +23,37 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.51 / Contract 1.1.53 — Atom subtree slice 21: simple groups typed (capturing/noncapturing/branch_reset/atomic)
+
+**What changed:** Four group forms now emit typed `{type:"atom", kind:<group_kind>, body:<pattern>}` objects.
+
+```ebnf
+capturing_group     = "(" pattern? ")"           -> {type: "atom", kind: "capturing_group", body: $2}
+noncapturing_group  = "(?:" pattern? ")"         -> {type: "atom", kind: "noncapturing_group", body: $2}
+branch_reset_group  = "(?|" pattern? ")"         -> {type: "atom", kind: "branch_reset_group", body: $2}
+atomic_group        = "(?>" pattern? ")"         -> {type: "atom", kind: "atomic_group", body: $2}
+                    | "(*atomic:" pattern? ")"   -> {type: "atom", kind: "atomic_group", body: $2}
+```
+
+**Before / after:**
+
+| Source | Before | After |
+|---|---|---|
+| `(abc)` | `["(", <pattern>, ")"]` | `{type:"atom", kind:"capturing_group", body:<pattern>}` |
+| `(?:abc)` | `["(?:", <pattern>, ")"]` | `{kind:"noncapturing_group", body:<pattern>}` |
+| `(?>abc)` | `["(?>", <pattern>, ")"]` | `{kind:"atomic_group", body:<pattern>}` |
+| `(*atomic:abc)` | `["(*atomic:", <pattern>, ")"]` | `{kind:"atomic_group", body:<pattern>}` (same kind as `(?>...)`) |
+| `(?|a|b)` | `["(?|", <pattern>, ")"]` | `{kind:"branch_reset_group", body:<pattern>}` |
+| `()` / `(?:)` | similar 3-element Sequence | `body: [[], []]` (empty alternation shape from `pattern?` matched-empty) |
+
+**`body` is the raw pattern shape**, not itself typed. Pattern outer typing is a separate slice.
+
+**Atomic group's two syntactic forms both produce `kind:"atomic_group"`.** PCRE2 treats `(?>...)` and `(*atomic:...)` as semantically equivalent; the typed shape doesn't preserve the syntactic origin (consistent with how `property_escape`'s 4 forms all produce `kind:"property"`).
+
+**Atom subtree campaign progress:** 11/25 atom alternatives directly typed.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.51 / Contract 1.1.53 Highlights".
+
 ### 1.1.50 / Contract 1.1.52 — Atom subtree slice 20: comment_group typed
 
 **What changed:** `comment_group` now emits typed `{type:"atom", kind:"comment", text:<string>}` objects.

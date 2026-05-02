@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-18ee2616.js";
+            window.path_to_searchindex_js = "searchindex-9db7c49f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -262,6 +262,11 @@
 <tr><td><code>python_named_backreference</code></td><td><code>-&gt; {type:"backreference", kind:"python_named", ref:$2}</code></td><td>Object <code>{type:"backreference", kind:"python_named", ref:&lt;name&gt;}</code>. PCRE2-equivalent to <code>\k&lt;name&gt;</code> for matching; <code>kind</code> preserves syntax origin.</td></tr>
 <tr><td><code>comment_group</code></td><td><code>-&gt; {type:"atom", kind:"comment", text:$2}</code></td><td>Object <code>{type:"atom", kind:"comment", text:&lt;string&gt;}</code>. <code>text</code> is always a string (empty for <code>(?#)</code>).</td></tr>
 <tr><td><code>comment_text</code></td><td>regex literal <code>/([^)]*)/</code></td><td>Terminal of the comment body — any chars except <code>)</code> (was <code>comment_char*</code> chain).</td></tr>
+<tr><td><code>capturing_group</code></td><td><code>-&gt; {type:"atom", kind:"capturing_group", body:$2}</code></td><td>Object <code>{type:"atom", kind:"capturing_group", body:&lt;pattern&gt;}</code>. <code>body</code> is <code>[[], []]</code> for <code>()</code>.</td></tr>
+<tr><td><code>noncapturing_group</code></td><td><code>-&gt; {type:"atom", kind:"noncapturing_group", body:$2}</code></td><td>Object <code>{type:"atom", kind:"noncapturing_group", body:&lt;pattern&gt;}</code>.</td></tr>
+<tr><td><code>branch_reset_group</code></td><td><code>-&gt; {type:"atom", kind:"branch_reset_group", body:$2}</code></td><td>Object <code>{type:"atom", kind:"branch_reset_group", body:&lt;pattern&gt;}</code>.</td></tr>
+<tr><td><code>atomic_group</code> (branch 0, <code>(?&gt;...)</code>)</td><td><code>-&gt; {type:"atom", kind:"atomic_group", body:$2}</code></td><td>Object <code>{type:"atom", kind:"atomic_group", body:&lt;pattern&gt;}</code>.</td></tr>
+<tr><td><code>atomic_group</code> (branch 1, <code>(*atomic:...)</code>)</td><td><code>-&gt; {type:"atom", kind:"atomic_group", body:$2}</code></td><td>Same kind as branch 0 — PCRE2-equivalent semantics.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

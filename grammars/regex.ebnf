@@ -470,16 +470,22 @@ prop_name      = /([A-Za-z0-9 \t\n\r\f\v_:\-=&^]+)/
 
 prop_name_chars = letter | digit | whitespace | '_' | ':' | '-' | '=' | '&' | '^'
 
-# Groups
+# Groups. Each group sub-rule produces a typed
+# `{type:"atom", kind:<group_kind>, body:<pattern>}` object. `body` is
+# the inner pattern when matched, or `[]` when un-matched (consumer
+# maps `[]` → null/empty). Atomic-group's two syntactic forms
+# (`(?>...)` and `(*atomic:...)`) both produce the same typed shape;
+# PCRE2 treats them as semantically equivalent.
 group          = capturing_group | noncapturing_group | named_group | python_named_group
 
-capturing_group      = "(" pattern? ")"
-noncapturing_group   = "(?:" pattern? ")"
+capturing_group      = "(" pattern? ")"               -> {type: "atom", kind: "capturing_group", body: $2}
+noncapturing_group   = "(?:" pattern? ")"             -> {type: "atom", kind: "noncapturing_group", body: $2}
 named_group          = "(?<" name ">" pattern? ")"
                      | "(?'" name "'" pattern? ")"
 python_named_group   = "(?P<" name ">" pattern? ")"
 
-atomic_group         = "(?>" pattern? ")" | "(*atomic:" pattern? ")"
+atomic_group         = "(?>" pattern? ")"             -> {type: "atom", kind: "atomic_group", body: $2}
+                     | "(*atomic:" pattern? ")"       -> {type: "atom", kind: "atomic_group", body: $2}
 # `comment_group` annotated `-> {type:"atom", kind:"comment", text:$2}`.
 # `comment_text` rewritten from `comment_char*` (multi-element chain) to
 # a regex literal that captures the whole comment body in one match.
@@ -538,7 +544,7 @@ python_named_backreference = "(?P=" name ")"   -> {type: "backreference", kind: 
 # Inline modifier changes: global and scoped
 inline_modifiers           = "(?" modifier_spec? ")"                 # e.g., (?i-mx), (?^i), (?)
 scoped_inline_modifiers    = "(?" modifier_spec ":" pattern? ")"     # e.g., (?x: ...), (?^x: ...)
-branch_reset_group         = "(?|" pattern? ")"
+branch_reset_group         = "(?|" pattern? ")"                     -> {type: "atom", kind: "branch_reset_group", body: $2}
 callout                    = "(?C" callout_arg? ")"
 callout_arg                = digits | callout_string
 callout_string             = callout_backtick_string

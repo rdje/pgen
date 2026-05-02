@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-18ee2616.js";
+            window.path_to_searchindex_js = "searchindex-9db7c49f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -181,40 +181,22 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-groups-and-alternations"><a class="header" href="#examples-groups-and-alternations">Examples: Groups and Alternations</a></h1>
-<p>Concrete probe outputs for grouping and alternation constructs. None of these rules are annotated at this release — all emit raw envelope shapes.</p>
+<p>Concrete probe outputs for grouping and alternation constructs. As of slice 21 (post-1.1.51), the four simple group forms (capturing, noncapturing, branch_reset, atomic) emit typed <code>{type:"atom", kind:&lt;group_kind&gt;, body:&lt;pattern&gt;}</code> objects. Named groups (angle / quote / Python <code>(?P&lt;name&gt;...)</code> forms) and recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.</p>
 <h2 id="capturing-group--abc"><a class="header" href="#capturing-group--abc">Capturing group — <code>(abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(",
-    [&lt;pattern array for "abc"&gt;],   // pattern? — Quantified-? containing 1 element
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "capturing_group", "body": &lt;pattern&gt;},
   "quantifier": [],
   "type": "piece"
 }
 </code></pre>
-<p><code>atom[1]</code> is the <code>Quantified-?</code> carrier of the inner pattern. For non-empty groups it’s a 1-element array; for empty <code>()</code>, an empty array.</p>
-<p>A consumer extracting the inner pattern:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn extract_group_inner(group_atom: &amp;Value) -&gt; Option&lt;&amp;Value&gt; {
-    let arr = group_atom.as_array()?;
-    let inner_quantified = arr.get(1)?.as_array()?;
-    inner_quantified.first()
-}
-<span class="boring">}</span></code></pre>
-<p>The returned value is the inner <code>pattern</code> shape — recurse with the same regex-walking logic used for the top-level pattern.</p>
+<p><code>body</code> is the inner <code>pattern</code> shape. For empty <code>()</code> it’s the empty alternation <code>[[], []]</code>. Consumer reads <code>obj.kind</code> for dispatch and <code>obj.body</code> for the inner pattern (recurse with the same regex-walking logic used for the top-level pattern).</p>
 <h2 id="non-capturing-group--abc"><a class="header" href="#non-capturing-group--abc">Non-capturing group — <code>(?:abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?:",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "noncapturing_group", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
-<p>Same shape as capturing group, but the opening literal is <code>"(?:"</code>. Consumer dispatches on the literal at index 0.</p>
+<p>Identical shape to capturing group except <code>kind</code>. Consumer dispatches on <code>obj.kind</code>.</p>
 <h2 id="named-group-angle-form--nameabc"><a class="header" href="#named-group-angle-form--nameabc">Named group (angle form) — <code>(?&lt;name&gt;abc)</code></a></h2>
 <pre><code class="language-json">{
   "atom": [
@@ -279,35 +261,24 @@
 <p>Opening is <code>"(?P&lt;"</code>.</p>
 <h2 id="atomic-group--abc"><a class="header" href="#atomic-group--abc">Atomic group — <code>(?&gt;abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?&gt;",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "atomic_group", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
 <h2 id="alpha-form-atomic--atomicabc"><a class="header" href="#alpha-form-atomic--atomicabc">Alpha-form atomic — <code>(*atomic:abc)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(*atomic:",
-    [&lt;pattern array&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "atomic_group", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
+<p>Both syntactic forms produce <code>kind:"atomic_group"</code> — PCRE2 treats them as semantically equivalent so the typed shape doesn’t preserve the syntactic origin.</p>
 <h2 id="branch-reset--abc"><a class="header" href="#branch-reset--abc">Branch reset — <code>(?|a|b|c)</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "(?|",
-    [&lt;pattern array containing alternation a|b|c&gt;],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "branch_reset_group", "body": &lt;pattern&gt;},
   ...
 }
 </code></pre>
-<p>The inner <code>pattern</code> carries the alternation itself.</p>
+<p>The inner <code>pattern</code> carries the alternation itself (raw <code>[[&lt;head_alt&gt;], [&lt;tail_alts&gt;]]</code> shape — pattern outer typing is a separate slice).</p>
 <h2 id="alternation-top-level--ab"><a class="header" href="#alternation-top-level--ab">Alternation (top-level) — <code>a|b</code></a></h2>
 <pre><code class="language-json">{
   "content": {

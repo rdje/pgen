@@ -1,49 +1,29 @@
 # Examples: Groups and Alternations
 
-Concrete probe outputs for grouping and alternation constructs. None of these rules are annotated at this release — all emit raw envelope shapes.
+Concrete probe outputs for grouping and alternation constructs. As of slice 21 (post-1.1.51), the four simple group forms (capturing, noncapturing, branch_reset, atomic) emit typed `{type:"atom", kind:<group_kind>, body:<pattern>}` objects. Named groups (angle / quote / Python `(?P<name>...)` forms) and recursive-pattern groups (lookarounds, conditionals, scan_substring, script_run) still emit raw envelope shapes pending follow-up slices.
 
 ## Capturing group — `(abc)`
 
 ```json
 {
-  "atom": [
-    "(",
-    [<pattern array for "abc">],   // pattern? — Quantified-? containing 1 element
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "capturing_group", "body": <pattern>},
   "quantifier": [],
   "type": "piece"
 }
 ```
 
-`atom[1]` is the `Quantified-?` carrier of the inner pattern. For non-empty groups it's a 1-element array; for empty `()`, an empty array.
-
-A consumer extracting the inner pattern:
-
-```rust
-fn extract_group_inner(group_atom: &Value) -> Option<&Value> {
-    let arr = group_atom.as_array()?;
-    let inner_quantified = arr.get(1)?.as_array()?;
-    inner_quantified.first()
-}
-```
-
-The returned value is the inner `pattern` shape — recurse with the same regex-walking logic used for the top-level pattern.
+`body` is the inner `pattern` shape. For empty `()` it's the empty alternation `[[], []]`. Consumer reads `obj.kind` for dispatch and `obj.body` for the inner pattern (recurse with the same regex-walking logic used for the top-level pattern).
 
 ## Non-capturing group — `(?:abc)`
 
 ```json
 {
-  "atom": [
-    "(?:",
-    [<pattern array>],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "noncapturing_group", "body": <pattern>},
   ...
 }
 ```
 
-Same shape as capturing group, but the opening literal is `"(?:"`. Consumer dispatches on the literal at index 0.
+Identical shape to capturing group except `kind`. Consumer dispatches on `obj.kind`.
 
 ## Named group (angle form) — `(?<name>abc)`
 
@@ -124,11 +104,7 @@ Opening is `"(?P<"`.
 
 ```json
 {
-  "atom": [
-    "(?>",
-    [<pattern array>],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "atomic_group", "body": <pattern>},
   ...
 }
 ```
@@ -137,29 +113,23 @@ Opening is `"(?P<"`.
 
 ```json
 {
-  "atom": [
-    "(*atomic:",
-    [<pattern array>],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "atomic_group", "body": <pattern>},
   ...
 }
 ```
+
+Both syntactic forms produce `kind:"atomic_group"` — PCRE2 treats them as semantically equivalent so the typed shape doesn't preserve the syntactic origin.
 
 ## Branch reset — `(?|a|b|c)`
 
 ```json
 {
-  "atom": [
-    "(?|",
-    [<pattern array containing alternation a|b|c>],
-    ")"
-  ],
+  "atom": {"type": "atom", "kind": "branch_reset_group", "body": <pattern>},
   ...
 }
 ```
 
-The inner `pattern` carries the alternation itself.
+The inner `pattern` carries the alternation itself (raw `[[<head_alt>], [<tail_alts>]]` shape — pattern outer typing is a separate slice).
 
 ## Alternation (top-level) — `a|b`
 

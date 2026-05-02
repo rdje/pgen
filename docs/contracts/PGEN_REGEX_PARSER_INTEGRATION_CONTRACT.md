@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.52`
+  - `1.1.53`
 - Parser release version:
-  - `1.1.50`
+  - `1.1.51`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,27 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.51 / Contract 1.1.53 Highlights — atom subtree slice 21: simple groups typed (capturing/noncapturing/branch_reset/atomic)
+
+- **Internal-driven shape work** (no downstream report). Largest atom-subtree slice yet — types 4 group forms (5 annotations counting atomic_group's 2 syntactic branches) in one pass.
+- **Rules changed:**
+  - `capturing_group = "(" pattern? ")" -> {type:"atom", kind:"capturing_group", body:$2}`.
+  - `noncapturing_group = "(?:" pattern? ")" -> {type:"atom", kind:"noncapturing_group", body:$2}`.
+  - `branch_reset_group = "(?|" pattern? ")" -> {type:"atom", kind:"branch_reset_group", body:$2}`.
+  - `atomic_group = "(?>" pattern? ")" -> {type:"atom", kind:"atomic_group", body:$2}` and `"(*atomic:" pattern? ")" -> {type:"atom", kind:"atomic_group", body:$2}` — both syntactic forms produce the same typed shape (PCRE2 treats them as semantically equivalent).
+- **AST shape change (consumer-visible):**
+  - Before: `(abc)` → `["(", <pattern>, ")"]` (3-element Sequence).
+  - After: `(abc)` → `{type:"atom", kind:"capturing_group", body:<pattern>}` (typed object).
+- **`body` is the raw pattern shape**, NOT itself typed. Pattern outer typing is a separate slice (the `pattern → alternation → alternative → concatenation → piece+` chain has its own rule-typing story).
+- **Empty groups** `()` / `(?:)` emit `body: [[], []]` (the empty alternation shape from `pattern? = alternation?` matched-empty).
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.51` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["(", <pattern>, ")"]` (or sub-rule equivalents) to use typed `obj.kind` dispatch + `obj.body` field read for the pattern content.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 11/25 atom alternatives directly typed (counting `capturing_group` and `noncapturing_group` separately even though both are sub-rules of `group`; the typing reaches `group`'s output transparently). 7/7 escape_unit branches typed; backreference family fully typed.
 
 ## Release 1.1.50 / Contract 1.1.52 Highlights — atom subtree slice 20: comment_group typed
 

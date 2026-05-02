@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 21/N: simple groups typed (capturing/noncapturing/branch_reset/atomic)
+
+### What landed
+
+Largest atom-subtree slice yet. Five annotations across four group forms:
+
+```ebnf
+capturing_group     = "(" pattern? ")"           -> {type: "atom", kind: "capturing_group", body: $2}
+noncapturing_group  = "(?:" pattern? ")"         -> {type: "atom", kind: "noncapturing_group", body: $2}
+branch_reset_group  = "(?|" pattern? ")"         -> {type: "atom", kind: "branch_reset_group", body: $2}
+atomic_group        = "(?>" pattern? ")"         -> {type: "atom", kind: "atomic_group", body: $2}
+                    | "(*atomic:" pattern? ")"   -> {type: "atom", kind: "atomic_group", body: $2}
+```
+
+### Empirical AST shape
+
+| Source | Before | After |
+|---|---|---|
+| `(abc)` | `["(", <pattern>, ")"]` | `{type:"atom", kind:"capturing_group", body:<pattern>}` |
+| `(?:abc)` | `["(?:", <pattern>, ")"]` | `{kind:"noncapturing_group", body:<pattern>}` |
+| `(?>abc)` | `["(?>", <pattern>, ")"]` | `{kind:"atomic_group", body:<pattern>}` |
+| `(*atomic:abc)` | `["(*atomic:", <pattern>, ")"]` | `{kind:"atomic_group", body:<pattern>}` |
+| `(?|a|b)` | `["(?|", <pattern>, ")"]` | `{kind:"branch_reset_group", body:<pattern>}` |
+| `()` / `(?:)` | similar 3-element seq | `body:[[], []]` (empty alternation) |
+
+### `body` is raw pattern shape
+
+Pattern outer typing (the `pattern → alternation → alternative → concatenation → piece+` chain) is a separate slice. For now `body` carries the raw `[[<head_alt>], [<tail_alts>]]` shape that consumers walk recursively with the same regex-walking logic used at the top level.
+
+### Atomic group: 2 syntactic forms, 1 kind
+
+Both `(?>...)` and `(*atomic:...)` produce `kind:"atomic_group"`. PCRE2 treats them as semantically equivalent; the typed shape doesn't preserve the syntactic origin (consistent with `property_escape`'s 4 forms collapsing to `kind:"property"` in slice 17).
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 5 new manifest entries (capturing_group, noncapturing_group, branch_reset_group, atomic_group ×2). Manifest entries now ordered alphabetically (atomic_group before backreference; noncapturing_group between name_ref and octal_escape) — caught a manifest-ordering gotcha during the slice.
+- `make regex_parser_book_gate` green.
+- Empirical sweep: `(abc)` / `(?:abc)` / `(?>abc)` / `(*atomic:abc)` / `(?|a|b)` / `()` / `(?:)` — all typed correctly.
+
+### Manifest-ordering gotcha
+
+The grammar emits annotations alphabetically. Manifest must match. First insertion attempt (alphabetically wrong) failed the contract test. Fixed by relocating: atomic_group entries inserted before backreference (a < b); noncapturing_group between name_ref and octal_escape (n between m and o). Saved as a process note for future batched-slice manifest updates.
+
+### Contract bump
+
+Parser release `1.1.50` → `1.1.51`. Contract `1.1.52` → `1.1.53`. New "Release 1.1.51 / Contract 1.1.53 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.51 / 1.1.53 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.25.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 5 new entries.
+- `docs/regex_parser_book/src/examples-groups-alt.md` — capturing/noncapturing/atomic/alpha-atomic/branch-reset sections rewritten to typed-object form. Chapter intro updated to reflect 4/N group forms typed.
+
+### Atom subtree progress
+**11/25 atom alternatives directly typed.** 7/7 escape_unit branches typed. Backreference family fully typed.
+
 ## 2026-05-02 - regex.ebnf slice 20/N: comment_group typed
 
 ### What landed

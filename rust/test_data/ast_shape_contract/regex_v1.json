@@ -133,6 +133,18 @@
         "normalized_text": "{type: \"anchor\", kind: \"keep_out\"}"
       },
       {
+        "rule": "atomic_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"atomic_group\", body: $2}"
+      },
+      {
+        "rule": "atomic_group",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"atomic_group\", body: $2}"
+      },
+      {
         "rule": "backreference",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -167,6 +179,18 @@
         "branch_index": 0,
         "annotation_type": "return_scalar",
         "normalized_text": "$3"
+      },
+      {
+        "rule": "branch_reset_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"branch_reset_group\", body: $2}"
+      },
+      {
+        "rule": "capturing_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"capturing_group\", body: $2}"
       },
       {
         "rule": "comment_group",
@@ -245,6 +269,12 @@
         "branch_index": 1,
         "annotation_type": "return_scalar",
         "normalized_text": "$2"
+      },
+      {
+        "rule": "noncapturing_group",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"noncapturing_group\", body: $2}"
       },
       {
         "rule": "octal_escape",

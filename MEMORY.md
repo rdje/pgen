@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-20-atom-subtree-comment-group)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-21-atom-subtree-simple-groups)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 21 of N — simple groups typed (capturing/noncapturing/branch_reset/atomic).** Largest atom-subtree slice yet — 5 annotations across 4 group forms in one pass. All produce `{type:"atom", kind:<group_kind>, body:<pattern>}`. Atomic group's 2 syntactic forms (`(?>...)` and `(*atomic:...)`) collapse to `kind:"atomic_group"` (PCRE2-equivalent semantics, syntactic origin not preserved — consistent with property_escape slice 17). `body` is raw pattern shape (pattern outer typing is a separate future slice). Empty groups → `body:[[], []]`. **Process note (saved as workflow gotcha):** the grammar emits annotations alphabetically by rule name; manifest must match. Initial insertion grouped by semantic family failed contract test. Fix: re-insert each at its lexicographic slot — atomic_group between anchor and backreference, capturing_group between branch_reset_group and comment_group, noncapturing_group between name_ref and octal_escape. Contract bump: parser release `1.1.50` → `1.1.51`, contract `1.1.52` → `1.1.53`. Regex AST schema version stays `1`. 495/0 tests. 5 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.25.0), `json-carrier.md` (5 new entries), `examples-groups-alt.md` (chapter intro + 5 sections rewritten). Atom subtree progress: **11/25 alternatives directly typed**.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 20 of N — `comment_group` typed.** `comment_group = "(?#" comment_text ")" -> {type:"atom", kind:"comment", text:$2}`. `comment_text` rewritten from `comment_char*` chain to regex literal `/([^)]*)/`. The `?` after `comment_text` in `comment_group` body was dropped — the regex literal accepts empty, making the optional marker redundant. Empirical: `(?#hello)` → `{type:"atom", kind:"comment", text:"hello"}`; `(?#)` → `{text:""}`; `(?#multi word comment)` → `{text:"multi word comment"}`; `(?#with [special] chars)` → `{text:"with [special] chars"}`. `text` is always a string. Char-set coverage `[^)]*` matches the previous `comment_char*` semantics (any char except `)`). Continues the multi-char-chain → regex-literal pattern. Contract bump: parser release `1.1.49` → `1.1.50`, contract `1.1.51` → `1.1.52`. Regex AST schema version stays `1`. 495/0 tests. 1 new manifest entry. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.24.0), `json-carrier.md` (2 new entries). Atom subtree progress: **8/25 alternatives directly typed**; 7/7 escape_unit branches typed; backreference family fully typed.
 
 ### Earlier session note (kept for context):

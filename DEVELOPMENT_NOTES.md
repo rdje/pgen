@@ -1,4 +1,65 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 21/N — simple groups typed
+
+### What landed
+
+Largest atom-subtree slice yet — 5 annotations across 4 group forms in one pass:
+
+```ebnf
+capturing_group     = "(" pattern? ")"           -> {type: "atom", kind: "capturing_group", body: $2}
+noncapturing_group  = "(?:" pattern? ")"         -> {type: "atom", kind: "noncapturing_group", body: $2}
+branch_reset_group  = "(?|" pattern? ")"         -> {type: "atom", kind: "branch_reset_group", body: $2}
+atomic_group        = "(?>" pattern? ")"         -> {type: "atom", kind: "atomic_group", body: $2}
+                    | "(*atomic:" pattern? ")"   -> {type: "atom", kind: "atomic_group", body: $2}
+```
+
+### Why batch 4 forms?
+
+All four forms have identical shape (`"<opener>" pattern? ")"`) and differ only in `kind`. Batching keeps the contract bump count down (one bump for 4 forms instead of four bumps) and surfaces the common pattern uniformly to consumers.
+
+### `body` is raw pattern shape — pattern outer typing deferred
+
+The `pattern → alternation → alternative → concatenation → piece+` chain has its own rule-typing story. Slice 21 doesn't touch it. `body` carries the raw `[[<head_alt>], [<tail_alts>]]` shape; consumers walk it recursively with the same logic used at the top level.
+
+### Atomic group: 2 syntactic forms collapsed to 1 kind
+
+Both `(?>...)` and `(*atomic:...)` produce `kind:"atomic_group"`. PCRE2 treats them as semantically equivalent for backtracking control. Consistent with property_escape (slice 17) collapsing 4 forms to `kind:"property"` and the rationale established for atomic_group's lack of `syntax` distinction field.
+
+### Manifest-ordering gotcha
+
+The grammar emits annotations alphabetically by rule name. Manifest must match. Initial insertion attempt put atomic_group / capturing_group / noncapturing_group between branch_reset_group and comment_group (intuitive grouping order, NOT alphabetical). Tests failed with diagnostic messages showing manifest[N] != grammar[N] for many indices.
+
+Fixed by relocating:
+- `atomic_group` (×2) inserted after `anchor` (last branch index 8) and before `backreference` (a < b alphabetically).
+- `capturing_group` inserted after `branch_reset_group` (b < c) and before `comment_group` (c < c... actually c=c but capturing < comment alphabetically).
+- `noncapturing_group` inserted after `name_ref` (n > n... no, name vs noncap... 'name' < 'noncap' so noncap comes after name) and before `octal_escape` (n < o).
+
+Saved as a process note for future batched-slice manifest updates: when adding multiple manifest entries in a single slice, traverse the rules alphabetically and insert each at its lexicographic slot. Don't group by semantic family.
+
+### Empirical
+- `(abc)` → `{type:"atom", kind:"capturing_group", body:<pattern>}`.
+- `(?:abc)` → `{kind:"noncapturing_group"}`.
+- `(?>abc)` and `(*atomic:abc)` → `{kind:"atomic_group"}`.
+- `(?|a|b)` → `{kind:"branch_reset_group"}`.
+- `()` and `(?:)` → `body:[[], []]` (empty alternation shape).
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 5 new manifest entries.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.50` → `1.1.51`. Contract `1.1.52` → `1.1.53`.
+- New "Release 1.1.51 / Contract 1.1.53 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.25.0), `json-carrier.md` (5 new entries), `examples-groups-alt.md` (chapter intro + capturing/noncapturing/atomic/alpha-atomic/branch-reset sections rewritten to typed-object form).
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **11/25 atom alternatives directly typed** (capturing_group + noncapturing_group + branch_reset_group + atomic_group all counted; technically capturing/noncapturing are sub-rules of `group` but they ARE atom alternatives via `group`'s implicit `-> $1` propagation).
+- 7/7 escape_unit branches typed.
+- Backreference family typed end-to-end.
+- Remaining ~14 atom alternatives: literal, whitespace_literal, dot, char_class outer, named_group, python_named_group, inline_modifiers, scoped_inline_modifiers, callout, conditional, lookaround, scan_substring_group, script_run_group, directive_verb, extended_class, code_block, subroutine_call.
+
 ## 2026-05-02 - regex.ebnf slice 20/N — comment_group typed
 
 ### What landed
