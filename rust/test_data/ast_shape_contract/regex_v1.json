@@ -241,6 +241,18 @@
         "normalized_text": "[$1**]"
       },
       {
+        "rule": "conditional",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"conditional\", condition: $2, yes_branch: $4, no_branch: $5}"
+      },
+      {
+        "rule": "conditional_branch",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1**]"
+      },
+      {
         "rule": "control_escape",
         "branch_index": 0,
         "annotation_type": "return_object",

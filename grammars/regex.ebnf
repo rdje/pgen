@@ -634,10 +634,20 @@ ascii_restrict_modifier    = "D" | "S" | "W" | "P" | "T"
 modifier_char              = "i" | "m" | "s" | "U" | "J" | "n" | "r"
 
 # Conditionals: (?(cond)yes|no)
-conditional       = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
+# `conditional` annotated to surface
+# `{type:"atom", kind:"conditional", condition, yes_branch, no_branch}`.
+# `condition` is the raw `condition` Or-of-9-alternatives shape;
+# sub-rule typing of condition is a separate concern. `no_branch`
+# is `[]` (no else-clause) or `["|", <conditional_branch>]` (matched)
+# — the parens-grouped expression `("|" no_branch)?` preserves the
+# `|` separator. Consumer reads `no_branch[1]` to extract the actual
+# no-branch when present, or maps `[]` to null.
+# `conditional_branch = piece*` annotated `[$1**]` — flat array of
+# pieces, same shape as `concatenation`.
+conditional       = "(?(" condition ")" yes_branch ("|" no_branch)? ")"   -> {type: "atom", kind: "conditional", condition: $2, yes_branch: $4, no_branch: $5}
 yes_branch        = conditional_branch
 no_branch         = conditional_branch
-conditional_branch = piece*
+conditional_branch = piece*                                                -> [$1**]
 condition         = define_condition | version_condition | condition_callout_assertion | condition_assertion | name_ref | recursion_condition | name | signed_digits | digits
 define_condition  = "DEFINE"
 version_condition = "VERSION" version_operator version_number

@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-02 - regex.ebnf slice 27/N — conditional typed
+
+### What landed
+
+```ebnf
+conditional        = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
+                       -> {type: "atom", kind: "conditional", condition: $2, yes_branch: $4, no_branch: $5}
+conditional_branch = piece*    -> [$1**]
+```
+
+2 annotations. `yes_branch = conditional_branch` and `no_branch = conditional_branch` are single-element non-Quantified rules — implicit `$1` default propagates `conditional_branch`'s typed shape upward, so no explicit annotations needed on yes_branch/no_branch.
+
+### `no_branch` parens-grouped Or
+
+The `("|" no_branch)?` parens-grouped expression preserves the `|` separator. This avoids the task #38 (parens-grouped-Or branch-attribution) bug because we don't put an annotation on the parens-grouped expression — we just reference it via `$5` from the outer rule. The pre-fix bug was about annotation attribution; we don't run into it here.
+
+`no_branch` shape:
+- `[]` — no else-clause (un-matched optional).
+- `["|", <pieces>]` — else-clause matched. Consumer reads `no_branch[1]` for the actual pieces.
+
+This intentionally distinguishes "no else-clause" from a hypothetical "empty else-clause" (which would be `["|", []]`).
+
+### `condition` heterogeneous
+
+The `condition` rule is `define_condition | version_condition | condition_callout_assertion | condition_assertion | name_ref | recursion_condition | name | signed_digits | digits`. 9 alternatives, each with different shape. Some are already typed by earlier slices:
+- `signed_digits` → `{sign, value}` (slice 13).
+- `name` → clean string (slice 11).
+- `name_ref` → clean string (slice 11).
+- `digits` → typed int (slice 1).
+
+Others remain raw:
+- `define_condition` = `"DEFINE"` (single-token, returns the string).
+- `version_condition` = `"VERSION" version_operator version_number` (3-element).
+- `recursion_condition` = `"R" digits?` or `"R&" name` (2-element).
+- `condition_assertion` (5 alternatives, lookahead/lookbehind variants).
+- `condition_callout_assertion` = `condition_callout "(" condition_assertion` (3-element).
+
+Sub-rule typing of `condition` would unify these to typed `{kind:"...", ...}` shapes. Separate slice.
+
+### Empirical
+- `(?(1)abc)` → `condition:{sign:[], value:1}`, yes_branch:[3 pieces], no_branch:[].
+- `(?(1)abc|xyz)` → no_branch:["|", [3 pieces]].
+- `(?(DEFINE)foo)` → condition:"DEFINE".
+- `(?(R)bar)` → condition:["R", []].
+- `(?(<name>)abc)` → condition:"name".
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 2 new manifest entries (conditional and conditional_branch between concatenation and control_escape).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.56` → `1.1.57`. Contract `1.1.58` → `1.1.59`.
+- New "Release 1.1.57 / Contract 1.1.59 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.31.0), `json-carrier.md` (2 new entries). No examples chapter changes — conditionals not in any current examples chapter.
+- Regex AST schema version stays `1`.
+
+### Atom subtree campaign progress
+- **24/25 atom alternatives directly typed.**
+- Remaining 1: `extended_class` (recursive nested classes).
+- (Plus the 3 deferred leaf-char alternatives.)
+
 ## 2026-05-02 - regex.ebnf slice 26/N — char_class outer typed
 
 ### What landed

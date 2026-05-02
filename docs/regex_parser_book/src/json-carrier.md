@@ -109,6 +109,8 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `char_class` | `-> {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}` | Object. `negated`/`initial_close` are `true` matched, `[]` un-matched. `body` is raw class_body shape; inner posix_class/class_range/etc. items typed by earlier slices propagate. |
 | `negation` | `-> true` | Boolean `true` (matched), `[]` from un-matched `negation?` slot. |
 | `class_initial_close` | `-> true` | Boolean `true` (matched), `[]` from un-matched `class_initial_close?` slot. |
+| `conditional` | `-> {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}` | Object. `condition` is heterogeneous (typed signed_digits / "DEFINE" / `["R", ...]` / name string). `no_branch` is `[]` (no else) or `["|", <pieces>]` (else present). |
+| `conditional_branch` | `-> [$1**]` | Flat array of pieces (parallels `concatenation`). |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

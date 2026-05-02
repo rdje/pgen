@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3a154a34.js";
+            window.path_to_searchindex_js = "searchindex-ced8b38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -290,6 +290,8 @@
 <tr><td><code>char_class</code></td><td><code>-&gt; {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}</code></td><td>Object. <code>negated</code>/<code>initial_close</code> are <code>true</code> matched, <code>[]</code> un-matched. <code>body</code> is raw class_body shape; inner posix_class/class_range/etc. items typed by earlier slices propagate.</td></tr>
 <tr><td><code>negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), <code>[]</code> from un-matched <code>negation?</code> slot.</td></tr>
 <tr><td><code>class_initial_close</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), <code>[]</code> from un-matched <code>class_initial_close?</code> slot.</td></tr>
+<tr><td><code>conditional</code></td><td><code>-&gt; {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}</code></td><td>Object. <code>condition</code> is heterogeneous (typed signed_digits / “DEFINE” / <code>["R", ...]</code> / name string). <code>no_branch</code> is <code>[]</code> (no else) or `[“</td></tr>
+<tr><td><code>conditional_branch</code></td><td><code>-&gt; [$1**]</code></td><td>Flat array of pieces (parallels <code>concatenation</code>).</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

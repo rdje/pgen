@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-05-02 - regex.ebnf slice 27/N: conditional typed
+
+### What landed
+
+```ebnf
+conditional        = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
+                       -> {type: "atom", kind: "conditional", condition: $2, yes_branch: $4, no_branch: $5}
+conditional_branch = piece*    -> [$1**]
+```
+
+2 annotations. `conditional_branch`'s `[$1**]` flat-piece-array form parallels `concatenation`'s shape.
+
+### Empirical AST shape
+
+| Source | After |
+|---|---|
+| `(?(1)abc)` | `{kind:"conditional", condition:{sign:[], value:1}, yes_branch:[<3 pieces>], no_branch:[]}` |
+| `(?(1)abc\|xyz)` | `{condition:{sign:[], value:1}, yes_branch:<3 pieces>, no_branch:["\|", <3 pieces>]}` |
+| `(?(DEFINE)foo)` | `{condition:"DEFINE", yes_branch:<3 pieces>, no_branch:[]}` |
+| `(?(R)bar)` | `{condition:["R", []], yes_branch:<3 pieces>, no_branch:[]}` |
+| `(?(<name>)abc)` | `{condition:"name", yes_branch:<3 pieces>, no_branch:[]}` |
+
+### `condition` heterogeneous shape
+
+The `condition` rule has 9 alternatives (define_condition / version_condition / condition_callout_assertion / condition_assertion / name_ref / recursion_condition / name / signed_digits / digits). Each emits a different shape:
+- numeric refs (signed_digits) → `{sign, value}` typed-int (slice 13 propagation).
+- `"DEFINE"` → string.
+- recursion (`R` / `R&name` / `R<digits>`) → `["R", ...]` 2-element seq.
+- named refs (name) → clean string (slice 11).
+- assertions (lookarounds) → various typed shapes.
+- version → version_condition raw shape.
+- callout-assertion → condition_callout_assertion raw shape.
+
+Sub-rule typing of `condition` is a separate concern. Consumer dispatches on `condition`'s shape.
+
+### `no_branch` preserves `|` separator
+
+`[]` when no else-clause; `["|", <pieces>]` when matched. Distinguishes "no else-clause" (null/missing) from "empty else-clause" (`["|", []]`). Consumer reads `no_branch[1]` to extract pieces.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 2 new manifest entries (conditional and conditional_branch between concatenation and control_escape).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 5 conditional forms (numeric, DEFINE, R, named, with else-clause) — all typed correctly.
+
+### Contract bump
+
+Parser release `1.1.56` → `1.1.57`. Contract `1.1.58` → `1.1.59`. New "Release 1.1.57 / Contract 1.1.59 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.57 / 1.1.59 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.31.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 2 new entries.
+
+### Atom subtree progress
+**24/25 atom alternatives directly typed.** Remaining 1: `extended_class`.
+
 ## 2026-05-02 - regex.ebnf slice 26/N: char_class outer typed
 
 ### What landed

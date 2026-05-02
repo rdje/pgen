@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.58`
+  - `1.1.59`
 - Parser release version:
-  - `1.1.56`
+  - `1.1.57`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,27 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.57 / Contract 1.1.59 Highlights — atom subtree slice 27: conditional typed
+
+- **Internal-driven shape work** (no downstream report).
+- **Rules changed:**
+  - `conditional = "(?(" condition ")" yes_branch ("|" no_branch)? ")" -> {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}`
+  - `conditional_branch = piece* -> [$1**]` (flat array of pieces, paralleling `concatenation`).
+- **AST shape change (consumer-visible):**
+  - Before: `(?(1)abc)` → 5-element Sequence `["(?(", <condition>, ")", <yes_branch>, [], ")"]`.
+  - After: `(?(1)abc)` → `{type:"atom", kind:"conditional", condition:{sign:[], value:1}, yes_branch:[<3 piece objects>], no_branch:[]}`.
+  - With else-clause `(?(1)abc|xyz)` → `no_branch:["|", [<3 piece objects>]]` — the parens-grouped pair preserves the `|` separator.
+- **`condition` is the heterogeneous Or-of-9 raw shape:** typed `signed_digits` `{sign, value}` for numeric refs (slice 13 propagation); `"DEFINE"` string for `(?(DEFINE)...)`; `["R", []]` 2-element Sequence for recursion conditions; `name` string for named-group refs (already typed by slice 11); etc. Sub-rule typing of `condition` is a separate concern.
+- **`no_branch` shape:** `[]` when no else-clause, `["|", <pieces>]` when matched. Consumer reads `no_branch[1]` to extract the actual no-branch pieces, or maps `[]` to null. The `|` separator preservation is intentional — disambiguates "no else-clause" (null/missing) from "empty else-clause" (`["|", []]`).
+- **`conditional_branch` flat-piece-array shape** parallels `concatenation`'s `[$1**]` form. Consumer iterates the array directly.
+- **Recommended RGX integration steps:**
+  1. Update PGEN dependency to the post-`1.1.57` commit on `main`.
+  2. Regenerate the regex parser via `make regex_parser` or `make regex_parser_fresh`.
+  3. Update any code that walked the raw `["(?(", <condition>, ")", <yes>, <no?>, ")"]` shape to use typed `obj.kind == "conditional"` dispatch + `obj.condition` (heterogeneous shape) + `obj.yes_branch` (piece array) + `obj.no_branch` (`[]` or `["|", <pieces>]`).
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Atom subtree campaign progress:** 24/25 atom alternatives directly typed. Remaining 1: `extended_class`. (Plus the 3 deferred leaf-char alternatives.)
 
 ## Release 1.1.56 / Contract 1.1.58 Highlights — atom subtree slice 26: char_class outer typed
 

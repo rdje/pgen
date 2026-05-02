@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.57 / Contract 1.1.59 — Atom subtree slice 27: conditional typed
+
+**What changed:** `conditional` now emits typed `{type:"atom", kind:"conditional", condition, yes_branch, no_branch}` objects.
+
+```ebnf
+conditional        = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
+                       -> {type: "atom", kind: "conditional", condition: $2, yes_branch: $4, no_branch: $5}
+conditional_branch = piece*    -> [$1**]
+```
+
+**Before / after:**
+
+| Source | After |
+|---|---|
+| `(?(1)abc)` | `{kind:"conditional", condition:{sign:[], value:1}, yes_branch:[<3 pieces>], no_branch:[]}` |
+| `(?(1)abc|xyz)` | `{condition:{sign:[], value:1}, yes_branch:<3 pieces>, no_branch:["|", <3 pieces>]}` |
+| `(?(DEFINE)foo)` | `{condition:"DEFINE", yes_branch:<3 pieces>, no_branch:[]}` |
+| `(?(R)bar)` | `{condition:["R", []], yes_branch:<3 pieces>, no_branch:[]}` |
+| `(?(<name>)abc)` | `{condition:"name", yes_branch:<3 pieces>, no_branch:[]}` |
+
+**`condition` is the heterogeneous Or-of-9 raw shape.** Typed signed_digits propagation (slice 13) gives `{sign, value}` for numeric refs; `"DEFINE"` string for `(?(DEFINE)...)`; `["R", []]` for recursion conditions; clean `name` string for named-group refs. Sub-rule typing of `condition` is a separate concern.
+
+**`no_branch` preserves the `|` separator.** `[]` when no else-clause; `["|", <pieces>]` when matched. Consumer reads `no_branch[1]` to extract pieces or maps `[]` to null. Distinguishing "no else-clause" from "empty else-clause" is intentional.
+
+**`conditional_branch` flat-piece-array** (`[$1**]`) parallels `concatenation`'s shape — consumer iterates directly.
+
+**Atom subtree campaign progress:** 24/25 atom alternatives directly typed.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.57 / Contract 1.1.59 Highlights".
+
 ### 1.1.56 / Contract 1.1.58 — Atom subtree slice 26: char_class outer typed
 
 **What changed:** `char_class` now emits typed `{type:"atom", kind:"char_class", negated:<bool>, initial_close:<bool>, body:<class_body>}` objects.

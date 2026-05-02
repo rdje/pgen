@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-26-atom-subtree-char-class-outer)
+Last updated: 2026-05-02 (+0200, task: regex-ebnf-slice-27-atom-subtree-conditional)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 27 of N — `conditional` typed.** `conditional -> {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}` plus `conditional_branch = piece* -> [$1**]` (flat array, paralleling concatenation). 2 annotations. `yes_branch`/`no_branch` use implicit $1 default. Empirical: `(?(1)abc)` → `condition:{sign:[], value:1}, yes_branch:[3 pieces], no_branch:[]`; `(?(1)abc|xyz)` → `no_branch:["|", [3 pieces]]`; `(?(DEFINE)foo)` → `condition:"DEFINE"`; `(?(R)bar)` → `condition:["R", []]`; `(?(<name>)abc)` → `condition:"name"`. **`condition` is heterogeneous Or-of-9 raw shape** — typed signed_digits propagation `{sign, value}`, "DEFINE" string, `["R", ...]` for recursion, clean name string. Sub-rule typing of condition is its own slice. **`no_branch` preserves `|` separator** — `[]` (no else) vs `["|", <pieces>]` (else matched). Distinguishes "no else" from hypothetical "empty else". Contract bump: parser release `1.1.56` → `1.1.57`, contract `1.1.58` → `1.1.59`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.31.0), `json-carrier.md` (2 new entries). Atom subtree progress: **24/25 alternatives directly typed**. Remaining 1: `extended_class`.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 26 of N — `char_class` outer typed.** `char_class -> {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}`. `negation -> true` and `class_initial_close -> true` (real booleans paralleling slice 8 `posix_negation`). `body` is raw class_body shape; inner items already typed by earlier slices (posix_class slice 8, class_range_escape family) propagate transparently. Empirical: `[abc]` → `{negated:[], initial_close:[], body:["a","b","c"]}`; `[^abc]` → `negated:true`; `[]abc]` → `initial_close:true`; `[a-z]` → body has class_range 5-element shape; `[[:alpha:]]` → body has typed posix_class. Pure char-class typing is end-to-end at outer level. `class_body` per-rule typing (Quantified-of-items + class_range / class_literal / class_escape) is its own future concern. Contract bump: parser release `1.1.55` → `1.1.56`, contract `1.1.57` → `1.1.58`. Regex AST schema version stays `1`. 495/0 tests. 3 new manifest entries at alphabetical slots. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.30.0), `json-carrier.md` (3 new entries), `examples-char-class.md` (chapter intro + every section rewritten). Atom subtree progress: **23/25 alternatives directly typed**. Remaining 2: `conditional`, `extended_class`.
 
 ### Earlier session note (kept for context):

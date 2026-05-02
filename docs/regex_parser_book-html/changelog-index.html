@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3a154a34.js";
+            window.path_to_searchindex_js = "searchindex-ced8b38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,32 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1157--contract-1159--atom-subtree-slice-27-conditional-typed"><a class="header" href="#1157--contract-1159--atom-subtree-slice-27-conditional-typed">1.1.57 / Contract 1.1.59 — Atom subtree slice 27: conditional typed</a></h3>
+<p><strong>What changed:</strong> <code>conditional</code> now emits typed <code>{type:"atom", kind:"conditional", condition, yes_branch, no_branch}</code> objects.</p>
+<pre><code class="language-ebnf">conditional        = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
+                       -&gt; {type: "atom", kind: "conditional", condition: $2, yes_branch: $4, no_branch: $5}
+conditional_branch = piece*    -&gt; [$1**]
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?(1)abc)</code></td><td><code>{kind:"conditional", condition:{sign:[], value:1}, yes_branch:[&lt;3 pieces&gt;], no_branch:[]}</code></td></tr>
+<tr><td>`(?(1)abc</td><td>xyz)`</td></tr>
+<tr><td><code>(?(DEFINE)foo)</code></td><td><code>{condition:"DEFINE", yes_branch:&lt;3 pieces&gt;, no_branch:[]}</code></td></tr>
+<tr><td><code>(?(R)bar)</code></td><td><code>{condition:["R", []], yes_branch:&lt;3 pieces&gt;, no_branch:[]}</code></td></tr>
+<tr><td><code>(?(&lt;name&gt;)abc)</code></td><td><code>{condition:"name", yes_branch:&lt;3 pieces&gt;, no_branch:[]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>condition</code> is the heterogeneous Or-of-9 raw shape.</strong> Typed signed_digits propagation (slice 13) gives <code>{sign, value}</code> for numeric refs; <code>"DEFINE"</code> string for <code>(?(DEFINE)...)</code>; <code>["R", []]</code> for recursion conditions; clean <code>name</code> string for named-group refs. Sub-rule typing of <code>condition</code> is a separate concern.</p>
+<p><strong><code>no_branch</code> preserves the <code>|</code> separator.</strong> <code>[]</code> when no else-clause; <code>["|", &lt;pieces&gt;]</code> when matched. Consumer reads <code>no_branch[1]</code> to extract pieces or maps <code>[]</code> to null. Distinguishing “no else-clause” from “empty else-clause” is intentional.</p>
+<p><strong><code>conditional_branch</code> flat-piece-array</strong> (<code>[$1**]</code>) parallels <code>concatenation</code>’s shape — consumer iterates directly.</p>
+<p><strong>Atom subtree campaign progress:</strong> 24/25 atom alternatives directly typed.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.57 / Contract 1.1.59 Highlights”.</p>
 <h3 id="1156--contract-1158--atom-subtree-slice-26-char_class-outer-typed"><a class="header" href="#1156--contract-1158--atom-subtree-slice-26-char_class-outer-typed">1.1.56 / Contract 1.1.58 — Atom subtree slice 26: char_class outer typed</a></h3>
 <p><strong>What changed:</strong> <code>char_class</code> now emits typed <code>{type:"atom", kind:"char_class", negated:&lt;bool&gt;, initial_close:&lt;bool&gt;, body:&lt;class_body&gt;}</code> objects.</p>
 <pre><code class="language-ebnf">char_class          = "[" negation? class_initial_close? class_body "]"
