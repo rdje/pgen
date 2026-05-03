@@ -673,9 +673,22 @@ callout_brace_payload      = /([^}]|}})*/
 # modifier_group / modifier_item is a separate concern.
 modifier_spec              = "^" modifier_seq?                     -> {reset: true, seq: $2}
                            | modifier_seq                          -> {reset: false, seq: $1}
-modifier_seq               = modifier_group ("-" modifier_group)?
-                           | "-" modifier_group
-modifier_group             = modifier_item+
+# `modifier_seq` split from 2 branches `modifier_group
+# ("-" modifier_group)? | "-" modifier_group` into 3 explicit
+# branches so each carries a clean `{set, unset}` typed shape.
+# The annotation language doesn't currently support extracting
+# from a parens-grouped optional pair, so the 3-branch split
+# is the simplest typed shape. Same accept set; PEG tries the
+# longest form (set + `-` + unset) first, falls back to set-only,
+# then unset-only.
+# `set` and `unset` carry the typed `modifier_group` shape (flat
+# array of raw modifier_item entries — per-rule typing of items
+# is a separate concern; most are single-char strings, the `a`
+# and `x` forms with suffixes/doublings are 2-element seqs).
+modifier_seq               = modifier_group "-" modifier_group        -> {set: $1, unset: $3}
+                           | modifier_group                           -> {set: $1, unset: []}
+                           | "-" modifier_group                       -> {set: [], unset: $2}
+modifier_group             = modifier_item+                           -> [$1**]
 modifier_item              = "a" ascii_restrict_modifier?
                            | "x" "x"?
                            | modifier_char

@@ -23,6 +23,32 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.69 / Contract 1.1.71 — Slice 39: modifier_seq + modifier_group typed (`{set, unset}` shape)
+
+**What changed:** `modifier_seq` split into 3 explicit branches with `{set, unset}` typed shape; `modifier_group` flattened.
+
+```ebnf
+modifier_seq   = modifier_group "-" modifier_group  -> {set: $1, unset: $3}
+               | modifier_group                      -> {set: $1, unset: []}
+               | "-" modifier_group                  -> {set: [], unset: $2}
+modifier_group = modifier_item+                      -> [$1**]
+```
+
+**Before / after (visible inside `inline_modifiers.spec.seq` / `scoped_inline_modifiers.spec.seq`):**
+
+| Source | Before (slice 31) | After |
+|---|---|---|
+| `(?i)` | `seq:[[...], []]` (raw 2-element) | `seq:{set:["i"], unset:[]}` |
+| `(?ix-m)` | `seq:[[...], ["-", [...]]]` | `seq:{set:["i", "x", []], unset:["m"]}` |
+| `(?-i)` | `seq:["-", [...]]` | `seq:{set:[], unset:["i"]}` |
+| `(?ix)` | `seq:[[...], []]` | `seq:{set:["i", "x", []], unset:[]}` |
+
+**Set/unset arrays may have interleaved `[]` markers** for optional-sub-element items: `(?ix)` → `set:["i", "x", []]` (the `[]` is the un-matched `"x"?` slot for the `"x" "x"?` modifier_item branch). Per-rule typing of `modifier_item` (would clean these — split `"x" "x"?` into `"xx" | "x"`, type `"a" ascii_restrict_modifier?` to `{char, restrict}`) is a separate concern.
+
+**3-branch split rationale:** annotation language doesn't currently support extracting from a parens-grouped optional pair. Splitting `modifier_seq` into 3 explicit branches gives the cleanest typed shape. Same accept set; PEG tries longest form first.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.69 / Contract 1.1.71 Highlights".
+
 ### 1.1.68 / Contract 1.1.70 — Slice 38: returned_capture_subroutine outer typed
 
 **What changed:** `returned_capture_subroutine` typed `{subroutine, captures}`.

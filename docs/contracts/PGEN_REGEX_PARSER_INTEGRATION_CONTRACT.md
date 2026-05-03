@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.70`
+  - `1.1.71`
 - Parser release version:
-  - `1.1.68`
+  - `1.1.69`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,25 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.69 / Contract 1.1.71 Highlights — slice 39: modifier_seq + modifier_group typed (`{set, unset}` shape)
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — closes inline_modifiers/scoped_inline_modifiers `spec` one more level.
+- **Rules changed:**
+  - `modifier_seq` split from 2 branches `modifier_group ("-" modifier_group)? | "-" modifier_group` into 3 explicit branches:
+    - `modifier_group "-" modifier_group -> {set:$1, unset:$3}`
+    - `modifier_group -> {set:$1, unset:[]}`
+    - `"-" modifier_group -> {set:[], unset:$2}`
+  - `modifier_group = modifier_item+ -> [$1**]` (flat array of modifier_items).
+- **AST shape change (visible inside `inline_modifiers.spec.seq` / `scoped_inline_modifiers.spec.seq`):**
+  - `(?i)` → `spec:{reset:false, seq:{set:["i"], unset:[]}}`. Was `spec:{reset:false, seq:[[...], []]}`.
+  - `(?ix-m)` → `spec:{reset:false, seq:{set:["i", "x", []], unset:["m"]}}`.
+  - `(?-i)` → `spec:{reset:false, seq:{set:[], unset:["i"]}}`.
+  - `(?^i)` → `spec:{reset:true, seq:{set:["i"], unset:[]}}`.
+- **Set/unset arrays may have interleaved `[]` markers** for optional-sub-element items: `(?ix)` → `set:["i", "x", []]` (the trailing `[]` is the un-matched `"x"?` slot for the `"x" "x"?` modifier_item branch). Per-rule typing of `modifier_item` (which would clean these — split `"x" "x"?` into `"xx" | "x"`, type `"a" ascii_restrict_modifier?` to `{char, restrict}`) is a separate concern. For most simple cases (`(?i)`, `(?-i)`, `(?ix-m)`), set/unset are clean arrays of single-char strings.
+- **`modifier_seq` 3-branch split rationale:** annotation language doesn't currently support extracting from a parens-grouped optional pair (`("-" modifier_group)?`). Splitting into 3 explicit branches gives the cleanest typed shape. Same accept set; PEG tries longest form first.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.68 / Contract 1.1.70 Highlights — slice 38: returned_capture_subroutine outer typed
 

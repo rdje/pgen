@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 39/N: modifier_seq + modifier_group typed (`{set, unset}` shape)
+
+### What landed
+
+```ebnf
+modifier_seq   = modifier_group "-" modifier_group  -> {set: $1, unset: $3}
+               | modifier_group                      -> {set: $1, unset: []}
+               | "-" modifier_group                  -> {set: [], unset: $2}
+modifier_group = modifier_item+                      -> [$1**]
+```
+
+4 grammar changes: modifier_seq split from 2 branches with parens-grouped optional pair into 3 explicit branches; modifier_group flatten-spread.
+
+### Empirical AST shape (visible inside `inline_modifiers.spec.seq` / `scoped_inline_modifiers.spec.seq`)
+
+| Source | After |
+|---|---|
+| `(?i)` | `seq:{set:["i"], unset:[]}` |
+| `(?ix-m)` | `seq:{set:["i", "x", []], unset:["m"]}` |
+| `(?-i)` | `seq:{set:[], unset:["i"]}` |
+| `(?ix)` | `seq:{set:["i", "x", []], unset:[]}` |
+| `(?ax)` | `seq:{set:["a", [], "x", []], unset:[]}` |
+
+### Set/unset interleaved-`[]` markers
+
+For most simple cases (`(?i)`, `(?-i)`, `(?ix-m)`), set/unset are clean arrays of single-char strings. For `(?ix)` etc. the set carries an extra `[]` after `"x"` — the un-matched `"x"?` slot inside the `"x" "x"?` modifier_item branch. Per-rule typing of `modifier_item` would clean these (split `"x" "x"?` into `"xx" | "x"`, type `"a" ascii_restrict_modifier?` to `{char, restrict}`). Saved for follow-up slice.
+
+### 3-branch split rationale
+
+The annotation language doesn't currently support extracting from a parens-grouped optional pair (`("-" modifier_group)?`). Splitting into 3 explicit branches gives the cleanest typed shape. Same accept set; PEG tries longest form first.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 4 new manifest entries (modifier_group + modifier_seq ×3 between lookbehind_pos and modifier_spec).
+- `make regex_parser_book_gate` green.
+
+### Contract bump
+
+Parser release `1.1.68` → `1.1.69`. Contract `1.1.70` → `1.1.71`. New "Release 1.1.69 / Contract 1.1.71 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.69 / 1.1.71 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.43.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 4 new entries.
+
+### Sub-rule typing campaign progress
+Eleventh slice. `inline_modifiers.spec.seq` typed `{set, unset}`. Modifier_item per-branch typing (would clean `[]` interleaving) deferred.
+
 ## 2026-05-03 - PGEN-RGX-0080 logged (queued behind return-annotations campaign; fix order: 0080 → 0079 → 0078)
 
 RGX filed PGEN-RGX-0080 — counted quantifier `{m,n}` rejects whitespace next to the comma. PCRE2 default mode accepts whitespace anywhere inside `{...}` (per `pcre2pattern(3) §"Repetition"`). When PGEN can't fit the inner-whitespace shape, it backtracks to literal pieces (10 separate atoms for `a{ 1 , 2 }` instead of one quantified atom).

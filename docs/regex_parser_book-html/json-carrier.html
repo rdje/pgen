@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-975824df.js";
+            window.path_to_searchindex_js = "searchindex-15196471.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -330,6 +330,10 @@
 <tr><td><code>version_number</code> (branch 0, <code>digits "." digits</code>)</td><td><code>-&gt; {major:$1, minor:$3}</code></td><td>Object. Both fields are typed ints (digits @transform).</td></tr>
 <tr><td><code>version_number</code> (branch 1, <code>digits</code>)</td><td><code>-&gt; {major:$1, minor:null}</code></td><td>Object. <code>minor:null</code> for absent-minor case.</td></tr>
 <tr><td><code>returned_capture_subroutine</code></td><td><code>-&gt; {subroutine:$1, captures:$2}</code></td><td>Object. <code>subroutine</code> is the typed <code>subroutine_target</code> (slice 30); <code>captures</code> is the raw <code>returned_capture_group_list</code> shape pending follow-up flattening. Inner field named <code>subroutine</code> (not <code>target</code>) to avoid <code>target.target.kind</code> collision with the outer <code>subroutine_call.target</code>.</td></tr>
+<tr><td><code>modifier_group</code></td><td><code>-&gt; [$1**]</code></td><td>Flat array of <code>modifier_item+</code> matches.</td></tr>
+<tr><td><code>modifier_seq</code> (branch 0, set+<code>-</code>+unset)</td><td><code>-&gt; {set:$1, unset:$3}</code></td><td>Object. Set/unset are typed modifier_group arrays.</td></tr>
+<tr><td><code>modifier_seq</code> (branch 1, set-only)</td><td><code>-&gt; {set:$1, unset:[]}</code></td><td>Object. <code>unset:[]</code> for no <code>-group</code> clause.</td></tr>
+<tr><td><code>modifier_seq</code> (branch 2, unset-only)</td><td><code>-&gt; {set:[], unset:$2}</code></td><td>Object. <code>set:[]</code> for leading-<code>-</code> form.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

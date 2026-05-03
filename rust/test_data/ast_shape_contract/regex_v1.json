@@ -481,6 +481,30 @@
         "normalized_text": "{type: \"atom\", kind: \"lookbehind\", positive: true, body: $2}"
       },
       {
+        "rule": "modifier_group",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1**]"
+      },
+      {
+        "rule": "modifier_seq",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{set: $1, unset: $3}"
+      },
+      {
+        "rule": "modifier_seq",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{set: $1, unset: []}"
+      },
+      {
+        "rule": "modifier_seq",
+        "branch_index": 2,
+        "annotation_type": "return_object",
+        "normalized_text": "{set: [], unset: $2}"
+      },
+      {
         "rule": "modifier_spec",
         "branch_index": 0,
         "annotation_type": "return_object",

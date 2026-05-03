@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-38-sub-rule-typing-returned-capture-subroutine-outer)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-39-sub-rule-typing-modifier-seq-modifier-group)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 39 of N — `modifier_seq` + `modifier_group` typed (`{set, unset}` shape).** Eleventh sub-rule typing slice. 4 grammar changes: modifier_seq split from 2 branches (with parens-grouped optional pair) into 3 explicit branches; modifier_group `[$1**]` flatten-spread. Empirical: `(?i)` → `seq:{set:["i"], unset:[]}`; `(?ix-m)` → `seq:{set:["i", "x", []], unset:["m"]}`; `(?-i)` → `seq:{set:[], unset:["i"]}`. Same parens-grouped-optional-pair workaround pattern as slice 37 (version_number). Set/unset may have interleaved `[]` markers from optional-sub-element items (modifier_item branches 0/1 produce 2-element seqs); per-rule typing of modifier_item deferred. Contract bump: parser release `1.1.68` → `1.1.69`, contract `1.1.70` → `1.1.71`. Regex AST schema version stays `1`. 495/0 tests. 4 new manifest entries. `make regex_parser_book_gate` green.
+
+### Earlier session note (kept for context):
 - **PGEN-RGX-0080 logged (queued behind return-annotations campaign; fix order updated to 0080 → 0079 → 0078).** RGX filed report 2026-05-03 — counted quantifier `{m,n}` rejects whitespace next to the comma (`a{ 1 , 2 }` parses as 10 literal pieces instead of 1 quantified piece). PCRE2 default mode accepts whitespace anywhere inside `{...}`. Same misparse class as PGEN-RGX-0006 (closed) and PGEN-RGX-0079. Fix direction: `counted_quantifier` rule's whitespace handling is partially-instrumented (outer boundaries only); make it skippable at every position between `{` and `}`. **User-directed sequencing (2026-05-03):** continue regex.ebnf return-annotations campaign to FULL completion FIRST; THEN fix in order 0080 → 0079 → 0078. Logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` as `REGEX-0080`. No release/contract bump.
 
 ### Earlier session note (kept for context):

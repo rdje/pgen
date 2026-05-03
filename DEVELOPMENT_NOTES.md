@@ -1,4 +1,60 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 39/N — modifier_seq + modifier_group typed (`{set, unset}` shape)
+
+Eleventh sub-rule typing slice. 4 grammar changes across 2 rules (modifier_seq split into 3 branches; modifier_group flatten-spread).
+
+### What landed
+
+```ebnf
+modifier_seq   = modifier_group "-" modifier_group  -> {set: $1, unset: $3}
+               | modifier_group                      -> {set: $1, unset: []}
+               | "-" modifier_group                  -> {set: [], unset: $2}
+modifier_group = modifier_item+                      -> [$1**]
+```
+
+### Same pattern as slice 37 (version_number)
+
+Both slices had the same constraint: parens-grouped optional pair (`("." digits)?` for version_number, `("-" modifier_group)?` for modifier_seq) can't be extracted via the annotation language. Both slices solved by splitting into N explicit branches.
+
+### Modifier_item interleaving issue
+
+modifier_item = `"a" ascii_restrict_modifier? | "x" "x"? | modifier_char`. Branches 0/1 produce 2-element seqs; branch 2 produces a single char. With `[$1**]` flatten-spread, the 2-element seqs interleave their literal char + optional-marker:
+- `(?ix)` → set:`["i", "x", []]` (the `[]` is `"x"?` un-matched)
+- `(?ax)` → set:`["a", [], "x", []]` (the first `[]` is `ascii_restrict_modifier?` un-matched, the second is `"x"?`)
+
+Per-rule typing of modifier_item would clean these:
+- branch 0: `"a" ascii_restrict_modifier?` → `{char:"a", restrict:$2}` (or special-case "ax"/"aD"/etc.)
+- branch 1: `"x" "x"?` → split into `"xx" | "x"` to drop optional, return matched span
+- branch 2: pass through char
+
+Saved for follow-up slice. For most simple cases (`(?i)`, `(?-i)`, `(?ix-m)`), the current shape is clean.
+
+### Empirical
+- `(?i)` → `seq:{set:["i"], unset:[]}`.
+- `(?ix-m)` → `seq:{set:["i", "x", []], unset:["m"]}`.
+- `(?-i)` → `seq:{set:[], unset:["i"]}`.
+- `(?^i)` → `seq:{set:["i"], unset:[]}` (combined with slice 31's `reset:true`).
+- `(?ax)` → `seq:{set:["a", [], "x", []], unset:[]}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 4 new manifest entries inserted at alphabetical slots between lookbehind_pos and modifier_spec.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.68` → `1.1.69`. Contract `1.1.70` → `1.1.71`.
+- New "Release 1.1.69 / Contract 1.1.71 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.43.0), `json-carrier.md` (4 new entries).
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Eleventh slice (after 29-38).
+- `inline_modifiers.spec.seq` and `scoped_inline_modifiers.spec.seq` typed `{set, unset}`.
+- Remaining sub-rule typing concerns:
+  - `modifier_item` per-branch typing (would clean the `[]` interleaving)
+  - `returned_capture_group_list` flattening (annotation language extension or grammar restructuring)
+  - `extended_class_content` set-op grammar extension
+
 ## 2026-05-03 - regex.ebnf slice 38/N — returned_capture_subroutine outer typed
 
 Tenth sub-rule typing slice. 1 annotation.

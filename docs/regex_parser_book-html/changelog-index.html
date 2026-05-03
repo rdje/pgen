@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-975824df.js";
+            window.path_to_searchindex_js = "searchindex-15196471.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,30 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1169--contract-1171--slice-39-modifier_seq--modifier_group-typed-set-unset-shape"><a class="header" href="#1169--contract-1171--slice-39-modifier_seq--modifier_group-typed-set-unset-shape">1.1.69 / Contract 1.1.71 — Slice 39: modifier_seq + modifier_group typed (<code>{set, unset}</code> shape)</a></h3>
+<p><strong>What changed:</strong> <code>modifier_seq</code> split into 3 explicit branches with <code>{set, unset}</code> typed shape; <code>modifier_group</code> flattened.</p>
+<pre><code class="language-ebnf">modifier_seq   = modifier_group "-" modifier_group  -&gt; {set: $1, unset: $3}
+               | modifier_group                      -&gt; {set: $1, unset: []}
+               | "-" modifier_group                  -&gt; {set: [], unset: $2}
+modifier_group = modifier_item+                      -&gt; [$1**]
+</code></pre>
+<p><strong>Before / after (visible inside <code>inline_modifiers.spec.seq</code> / <code>scoped_inline_modifiers.spec.seq</code>):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 31)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?i)</code></td><td><code>seq:[[...], []]</code> (raw 2-element)</td><td><code>seq:{set:["i"], unset:[]}</code></td></tr>
+<tr><td><code>(?ix-m)</code></td><td><code>seq:[[...], ["-", [...]]]</code></td><td><code>seq:{set:["i", "x", []], unset:["m"]}</code></td></tr>
+<tr><td><code>(?-i)</code></td><td><code>seq:["-", [...]]</code></td><td><code>seq:{set:[], unset:["i"]}</code></td></tr>
+<tr><td><code>(?ix)</code></td><td><code>seq:[[...], []]</code></td><td><code>seq:{set:["i", "x", []], unset:[]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Set/unset arrays may have interleaved <code>[]</code> markers</strong> for optional-sub-element items: <code>(?ix)</code> → <code>set:["i", "x", []]</code> (the <code>[]</code> is the un-matched <code>"x"?</code> slot for the <code>"x" "x"?</code> modifier_item branch). Per-rule typing of <code>modifier_item</code> (would clean these — split <code>"x" "x"?</code> into <code>"xx" | "x"</code>, type <code>"a" ascii_restrict_modifier?</code> to <code>{char, restrict}</code>) is a separate concern.</p>
+<p><strong>3-branch split rationale:</strong> annotation language doesn’t currently support extracting from a parens-grouped optional pair. Splitting <code>modifier_seq</code> into 3 explicit branches gives the cleanest typed shape. Same accept set; PEG tries longest form first.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.69 / Contract 1.1.71 Highlights”.</p>
 <h3 id="1168--contract-1170--slice-38-returned_capture_subroutine-outer-typed"><a class="header" href="#1168--contract-1170--slice-38-returned_capture_subroutine-outer-typed">1.1.68 / Contract 1.1.70 — Slice 38: returned_capture_subroutine outer typed</a></h3>
 <p><strong>What changed:</strong> <code>returned_capture_subroutine</code> typed <code>{subroutine, captures}</code>.</p>
 <pre><code class="language-ebnf">returned_capture_subroutine = subroutine_target returned_capture_group_list
