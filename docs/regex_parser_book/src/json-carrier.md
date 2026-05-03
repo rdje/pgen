@@ -153,6 +153,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `modifier_seq` (branch 0, set+`-`+unset) | `-> {set:$1, unset:$3}` | Object. Set/unset are typed modifier_group arrays. |
 | `modifier_seq` (branch 1, set-only) | `-> {set:$1, unset:[]}` | Object. `unset:[]` for no `-group` clause. |
 | `modifier_seq` (branch 2, unset-only) | `-> {set:[], unset:$2}` | Object. `set:[]` for leading-`-` form. |
+| `modifier_item` (branch 0, `a` + restrict) | `-> {char:"a", restrict:$2}` | Object for ASCII-restricted `a` form (e.g. `aD`/`aS`/etc.). |
+| `modifier_item` (branch 1, bare `a`) | `-> "a"` | Bare string. |
+| `modifier_item` (branch 2, `xx`) | `-> "xx"` | Bare string for doubled-x form. |
+| `modifier_item` (branch 3, bare `x`) | `-> "x"` | Bare string. |
+| `modifier_item` (branch 4, modifier_char) | (implicit `$1`) | Whatever modifier_char matched (single char). |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

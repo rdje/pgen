@@ -1,4 +1,67 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 40/N — modifier_item per-branch typed (closes inline_modifiers spec end-to-end)
+
+Twelfth sub-rule typing slice. Closes the modifier subtree at all 4 sub-rule levels.
+
+### What landed
+
+```ebnf
+modifier_item = "a" ascii_restrict_modifier  -> {char: "a", restrict: $2}
+              | "a"                          -> "a"
+              | "xx"                         -> "xx"
+              | "x"                          -> "x"
+              | modifier_char
+```
+
+### `inline_modifiers.spec` 4-level composition
+
+Combining slices 24 + 31 + 39 + 40:
+1. **Slice 24:** `inline_modifiers -> {type:"atom", kind:"inline_modifiers", spec:$2}`. Atom-level wrapper.
+2. **Slice 31:** `modifier_spec` per-branch `-> {reset:<bool>, seq:$N}`. Adds reset boolean.
+3. **Slice 39:** `modifier_seq` 3-branch split + modifier_group flatten → `{set, unset}` arrays.
+4. **Slice 40:** `modifier_item` 5-branch split → clean items inside set/unset arrays.
+
+A complete `(?aDx-m)` pattern now surfaces:
+```json
+{"type":"atom", "kind":"inline_modifiers",
+  "spec":{"reset":false,
+    "seq":{
+      "set":[{"char":"a", "restrict":"D"}, "x"],
+      "unset":["m"]}}}
+```
+
+Consumer reads `obj.spec.seq.set` / `obj.spec.seq.unset` as arrays of items. Each item is either a bare string (simple flag like `"i"`/`"m"`/`"x"`/`"xx"`) or a `{char, restrict}` object (ASCII-restricted `a` form). Dispatch via `match item { Value::String, Value::Object }`.
+
+### `(?xx)` → `["xx"]` not `["x","x"]`
+
+The branch ordering matters for PEG. Branch 2 (`"xx"`) tried before branch 3 (`"x"`). For input `xx`: matches branch 2 → "xx" string. For input `x`: branch 2 fails, branch 3 matches → "x" string. So `(?xx)` set = `["xx"]` (single doubled-x item) not `["x", "x"]` (two single-x items). Matches PCRE2 semantic (`xx` is an extended-extended mode flag, distinct from `x`).
+
+### Empirical
+- `(?i)` → `set:["i"]`.
+- `(?ix)` → `set:["i", "x"]`.
+- `(?ix-m)` → `set:["i", "x"], unset:["m"]`.
+- `(?ax)` → `set:["a", "x"]`.
+- `(?aDx)` → `set:[{char:"a", restrict:"D"}, "x"]`.
+- `(?xx)` → `set:["xx"]`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 4 new manifest entries (modifier_item ×4; branch 4 passthrough doesn't need an explicit entry).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.69` → `1.1.70`. Contract `1.1.71` → `1.1.72`.
+- New "Release 1.1.70 / Contract 1.1.72 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.44.0), `json-carrier.md` (5 new entries).
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Twelfth slice (after 29-39).
+- `inline_modifiers.spec` and `scoped_inline_modifiers.spec` end-to-end typed across 4 sub-rule levels.
+- Remaining sub-rule typing concerns:
+  - `returned_capture_group_list` flattening (annotation language extension or grammar restructuring)
+  - `extended_class_content` set-op grammar extension
+
 ## 2026-05-03 - regex.ebnf slice 39/N — modifier_seq + modifier_group typed (`{set, unset}` shape)
 
 Eleventh sub-rule typing slice. 4 grammar changes across 2 rules (modifier_seq split into 3 branches; modifier_group flatten-spread).

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-15196471.js";
+            window.path_to_searchindex_js = "searchindex-1c30592e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,32 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1170--contract-1172--slice-40-modifier_item-per-branch-typed-closes-inline_modifiers-spec-end-to-end"><a class="header" href="#1170--contract-1172--slice-40-modifier_item-per-branch-typed-closes-inline_modifiers-spec-end-to-end">1.1.70 / Contract 1.1.72 — Slice 40: modifier_item per-branch typed (closes inline_modifiers spec end-to-end)</a></h3>
+<p><strong>What changed:</strong> <code>modifier_item</code> split from 3 branches with internal optionals into 5 explicit branches; eliminates the <code>[]</code> interleaving from slice 39’s set/unset arrays.</p>
+<pre><code class="language-ebnf">modifier_item = "a" ascii_restrict_modifier  -&gt; {char: "a", restrict: $2}
+              | "a"                          -&gt; "a"
+              | "xx"                         -&gt; "xx"
+              | "x"                          -&gt; "x"
+              | modifier_char
+</code></pre>
+<p><strong>Before / after:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 39)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?ix)</code></td><td><code>set:["i", "x", []]</code></td><td><code>set:["i", "x"]</code></td></tr>
+<tr><td><code>(?ax)</code></td><td><code>set:["a", [], "x", []]</code></td><td><code>set:["a", "x"]</code></td></tr>
+<tr><td><code>(?aDx)</code></td><td>similar interleaved</td><td><code>set:[{char:"a", restrict:"D"}, "x"]</code></td></tr>
+<tr><td><code>(?xx)</code></td><td>similar</td><td><code>set:["xx"]</code> (matched doubled-x branch)</td></tr>
+<tr><td><code>(?ix-m)</code></td><td><code>set:["i", "x", []], unset:["m"]</code></td><td><code>set:["i", "x"], unset:["m"]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Mixed string/object array</strong> for the <code>aD</code> form: <code>(?aDx)</code> produces <code>set:[{char:"a", restrict:"D"}, "x"]</code>. Consumer dispatches <code>Value::String</code>/<code>Value::Object</code>.</p>
+<p><strong><code>inline_modifiers.spec</code> end-to-end typed.</strong> Combined slices: 24 (<code>kind:"inline_modifiers"</code>) + 31 (<code>spec:{reset, seq}</code>) + 39 (<code>seq:{set, unset}</code>) + 40 (clean items in set/unset).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.70 / Contract 1.1.72 Highlights”.</p>
 <h3 id="1169--contract-1171--slice-39-modifier_seq--modifier_group-typed-set-unset-shape"><a class="header" href="#1169--contract-1171--slice-39-modifier_seq--modifier_group-typed-set-unset-shape">1.1.69 / Contract 1.1.71 — Slice 39: modifier_seq + modifier_group typed (<code>{set, unset}</code> shape)</a></h3>
 <p><strong>What changed:</strong> <code>modifier_seq</code> split into 3 explicit branches with <code>{set, unset}</code> typed shape; <code>modifier_group</code> flattened.</p>
 <pre><code class="language-ebnf">modifier_seq   = modifier_group "-" modifier_group  -&gt; {set: $1, unset: $3}

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-39-sub-rule-typing-modifier-seq-modifier-group)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-40-sub-rule-typing-modifier-item-CLOSES-INLINE-MODIFIERS-END-TO-END)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 40 of N — `modifier_item` per-branch typed (closes `inline_modifiers.spec` end-to-end across 4 sub-rule levels).** Twelfth sub-rule typing slice. modifier_item split from 3 branches with internal optionals into 5 explicit branches. Eliminates `[]` interleaving from slice 39's set/unset arrays. Empirical: `(?ix)` → `set:["i", "x"]`; `(?aDx)` → `set:[{char:"a", restrict:"D"}, "x"]`; `(?xx)` → `set:["xx"]`. **`inline_modifiers.spec` end-to-end typed** combining slices 24+31+39+40. Contract bump: parser release `1.1.69` → `1.1.70`, contract `1.1.71` → `1.1.72`. Regex AST schema version stays `1`. 495/0 tests. 4 new manifest entries. `make regex_parser_book_gate` green.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 39 of N — `modifier_seq` + `modifier_group` typed (`{set, unset}` shape).** Eleventh sub-rule typing slice. 4 grammar changes: modifier_seq split from 2 branches (with parens-grouped optional pair) into 3 explicit branches; modifier_group `[$1**]` flatten-spread. Empirical: `(?i)` → `seq:{set:["i"], unset:[]}`; `(?ix-m)` → `seq:{set:["i", "x", []], unset:["m"]}`; `(?-i)` → `seq:{set:[], unset:["i"]}`. Same parens-grouped-optional-pair workaround pattern as slice 37 (version_number). Set/unset may have interleaved `[]` markers from optional-sub-element items (modifier_item branches 0/1 produce 2-element seqs); per-rule typing of modifier_item deferred. Contract bump: parser release `1.1.68` → `1.1.69`, contract `1.1.70` → `1.1.71`. Regex AST schema version stays `1`. 495/0 tests. 4 new manifest entries. `make regex_parser_book_gate` green.
 
 ### Earlier session note (kept for context):

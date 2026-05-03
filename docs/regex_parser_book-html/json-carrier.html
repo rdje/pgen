@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-15196471.js";
+            window.path_to_searchindex_js = "searchindex-1c30592e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -334,6 +334,11 @@
 <tr><td><code>modifier_seq</code> (branch 0, set+<code>-</code>+unset)</td><td><code>-&gt; {set:$1, unset:$3}</code></td><td>Object. Set/unset are typed modifier_group arrays.</td></tr>
 <tr><td><code>modifier_seq</code> (branch 1, set-only)</td><td><code>-&gt; {set:$1, unset:[]}</code></td><td>Object. <code>unset:[]</code> for no <code>-group</code> clause.</td></tr>
 <tr><td><code>modifier_seq</code> (branch 2, unset-only)</td><td><code>-&gt; {set:[], unset:$2}</code></td><td>Object. <code>set:[]</code> for leading-<code>-</code> form.</td></tr>
+<tr><td><code>modifier_item</code> (branch 0, <code>a</code> + restrict)</td><td><code>-&gt; {char:"a", restrict:$2}</code></td><td>Object for ASCII-restricted <code>a</code> form (e.g. <code>aD</code>/<code>aS</code>/etc.).</td></tr>
+<tr><td><code>modifier_item</code> (branch 1, bare <code>a</code>)</td><td><code>-&gt; "a"</code></td><td>Bare string.</td></tr>
+<tr><td><code>modifier_item</code> (branch 2, <code>xx</code>)</td><td><code>-&gt; "xx"</code></td><td>Bare string for doubled-x form.</td></tr>
+<tr><td><code>modifier_item</code> (branch 3, bare <code>x</code>)</td><td><code>-&gt; "x"</code></td><td>Bare string.</td></tr>
+<tr><td><code>modifier_item</code> (branch 4, modifier_char)</td><td>(implicit <code>$1</code>)</td><td>Whatever modifier_char matched (single char).</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

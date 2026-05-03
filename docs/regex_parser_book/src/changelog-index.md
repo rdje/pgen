@@ -23,6 +23,34 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.70 / Contract 1.1.72 — Slice 40: modifier_item per-branch typed (closes inline_modifiers spec end-to-end)
+
+**What changed:** `modifier_item` split from 3 branches with internal optionals into 5 explicit branches; eliminates the `[]` interleaving from slice 39's set/unset arrays.
+
+```ebnf
+modifier_item = "a" ascii_restrict_modifier  -> {char: "a", restrict: $2}
+              | "a"                          -> "a"
+              | "xx"                         -> "xx"
+              | "x"                          -> "x"
+              | modifier_char
+```
+
+**Before / after:**
+
+| Source | Before (slice 39) | After |
+|---|---|---|
+| `(?ix)` | `set:["i", "x", []]` | `set:["i", "x"]` |
+| `(?ax)` | `set:["a", [], "x", []]` | `set:["a", "x"]` |
+| `(?aDx)` | similar interleaved | `set:[{char:"a", restrict:"D"}, "x"]` |
+| `(?xx)` | similar | `set:["xx"]` (matched doubled-x branch) |
+| `(?ix-m)` | `set:["i", "x", []], unset:["m"]` | `set:["i", "x"], unset:["m"]` |
+
+**Mixed string/object array** for the `aD` form: `(?aDx)` produces `set:[{char:"a", restrict:"D"}, "x"]`. Consumer dispatches `Value::String`/`Value::Object`.
+
+**`inline_modifiers.spec` end-to-end typed.** Combined slices: 24 (`kind:"inline_modifiers"`) + 31 (`spec:{reset, seq}`) + 39 (`seq:{set, unset}`) + 40 (clean items in set/unset).
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.70 / Contract 1.1.72 Highlights".
+
 ### 1.1.69 / Contract 1.1.71 — Slice 39: modifier_seq + modifier_group typed (`{set, unset}` shape)
 
 **What changed:** `modifier_seq` split into 3 explicit branches with `{set, unset}` typed shape; `modifier_group` flattened.

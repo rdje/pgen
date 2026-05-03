@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 40/N: modifier_item per-branch typed (closes inline_modifiers spec end-to-end)
+
+### What landed
+
+```ebnf
+modifier_item = "a" ascii_restrict_modifier  -> {char: "a", restrict: $2}
+              | "a"                          -> "a"
+              | "xx"                         -> "xx"
+              | "x"                          -> "x"
+              | modifier_char
+```
+
+Splits 3-branch form (with internal optionals) into 5 explicit branches. PEG ordering: longer forms first.
+
+### Empirical AST shape
+
+| Source | Before (slice 39) | After |
+|---|---|---|
+| `(?ix)` | `set:["i", "x", []]` | `set:["i", "x"]` |
+| `(?ax)` | `set:["a", [], "x", []]` | `set:["a", "x"]` |
+| `(?aDx)` | similar interleaved | `set:[{char:"a", restrict:"D"}, "x"]` (mixed string + object) |
+| `(?xx)` | similar | `set:["xx"]` (matched doubled-x branch) |
+| `(?ix-m)` | `set:["i", "x", []], unset:["m"]` | `set:["i", "x"], unset:["m"]` |
+
+### `inline_modifiers.spec` end-to-end typed
+
+Combined slices: 24 (`kind:"inline_modifiers"`) + 31 (`spec:{reset, seq}`) + 39 (`seq:{set, unset}`) + 40 (clean items in set/unset). Same for `scoped_inline_modifiers.spec` (which adds `body`).
+
+### Mixed string/object array
+
+For `(?aDx)`, set is `[{char:"a", restrict:"D"}, "x"]`. Consumer dispatches on element type:
+```rust
+match item {
+    Value::String(s) => /* simple flag */,
+    Value::Object(o) => /* {char, restrict} */,
+    _ => /* shouldn't happen */,
+}
+```
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 4 new manifest entries (modifier_item ×4 between modifier_group and modifier_seq).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 6 modifier inputs — all clean.
+
+### Contract bump
+
+Parser release `1.1.69` → `1.1.70`. Contract `1.1.71` → `1.1.72`. New "Release 1.1.70 / Contract 1.1.72 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.70 / 1.1.72 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.44.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 5 new entries (modifier_item ×4 + branch 4 passthrough note).
+
+### Sub-rule typing campaign progress
+Twelfth slice. `inline_modifiers.spec` and `scoped_inline_modifiers.spec` end-to-end typed across 4 sub-rule levels.
+
 ## 2026-05-03 - regex.ebnf slice 39/N: modifier_seq + modifier_group typed (`{set, unset}` shape)
 
 ### What landed

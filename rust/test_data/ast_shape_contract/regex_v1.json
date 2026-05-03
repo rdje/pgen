@@ -487,6 +487,30 @@
         "normalized_text": "[$1**]"
       },
       {
+        "rule": "modifier_item",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{char: \"a\", restrict: $2}"
+      },
+      {
+        "rule": "modifier_item",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "\"a\""
+      },
+      {
+        "rule": "modifier_item",
+        "branch_index": 2,
+        "annotation_type": "return_scalar",
+        "normalized_text": "\"xx\""
+      },
+      {
+        "rule": "modifier_item",
+        "branch_index": 3,
+        "annotation_type": "return_scalar",
+        "normalized_text": "\"x\""
+      },
+      {
         "rule": "modifier_seq",
         "branch_index": 0,
         "annotation_type": "return_object",

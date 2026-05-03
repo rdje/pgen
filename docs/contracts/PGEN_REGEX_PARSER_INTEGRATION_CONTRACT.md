@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.71`
+  - `1.1.72`
 - Parser release version:
-  - `1.1.69`
+  - `1.1.70`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,27 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.70 / Contract 1.1.72 Highlights — slice 40: modifier_item per-branch typed (cleans `[]` interleaving — closes inline_modifiers spec end-to-end)
+
+- **Internal-driven shape work** (no downstream report). Closes `inline_modifiers.spec` and `scoped_inline_modifiers.spec` end-to-end. Eliminates the `[]` interleaving introduced in slice 39's set/unset arrays.
+- **Rule changed:** `modifier_item` split from 3 branches with internal optionals into 5 explicit branches:
+  - `"a" ascii_restrict_modifier -> {char:"a", restrict:$2}` (with restrict suffix)
+  - `"a" -> "a"` (alone)
+  - `"xx" -> "xx"` (doubled)
+  - `"x" -> "x"` (single)
+  - `modifier_char` (passthrough; implicit `$1` returns the matched char)
+- **AST shape change (visible inside `spec.seq.set` / `spec.seq.unset`):**
+  - `(?ix)` → `set:["i", "x"]`. Was `set:["i", "x", []]` (slice 39).
+  - `(?ax)` → `set:["a", "x"]`. Was `set:["a", [], "x", []]`.
+  - `(?aDx)` → `set:[{char:"a", restrict:"D"}, "x"]` (mixed string + object).
+  - `(?xx)` → `set:["xx"]` (matched the doubled-x branch).
+  - `(?ix-m)` → `set:["i", "x"], unset:["m"]`. Was `set:["i", "x", []], unset:["m"]`.
+- **Same accept set as the 3-branch form.** PEG ordering tries longest forms first: `"a" ascii_restrict_modifier` before bare `"a"`; `"xx"` before bare `"x"`. Successful match commits; failure backtracks to the next branch. Tested with `aD`, `a`, `xx`, `x`, modifier_char chars — all dispatch correctly.
+- **`(?aDx)` mixed shape:** `set` array contains `{char, restrict}` object for the `aD` item and bare strings for plain chars. Consumer dispatches: `match item { Value::String(s) => simple, Value::Object(o) => o.get("char")/o.get("restrict") }`.
+- **`inline_modifiers.spec` and `scoped_inline_modifiers.spec` now end-to-end typed.** Combined with slice 24 (atom-level `kind:"inline_modifiers"`) + slice 31 (`spec:{reset, seq}`) + slice 39 (`seq:{set, unset}`) + slice 40 (clean items in set/unset).
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.69 / Contract 1.1.71 Highlights — slice 39: modifier_seq + modifier_group typed (`{set, unset}` shape)
 

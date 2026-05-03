@@ -689,8 +689,16 @@ modifier_seq               = modifier_group "-" modifier_group        -> {set: $
                            | modifier_group                           -> {set: $1, unset: []}
                            | "-" modifier_group                       -> {set: [], unset: $2}
 modifier_group             = modifier_item+                           -> [$1**]
-modifier_item              = "a" ascii_restrict_modifier?
-                           | "x" "x"?
+# `modifier_item` split from 3 branches with internal optionals
+# into 5 explicit branches so each carries a single typed value
+# (string or object). This eliminates the `[]` interleaving
+# previously seen in `modifier_group` arrays (e.g. `(?ix)` was
+# `set:["i", "x", []]`; now `set:["i", "x"]`). PEG order: longer
+# forms first.
+modifier_item              = "a" ascii_restrict_modifier              -> {char: "a", restrict: $2}
+                           | "a"                                       -> "a"
+                           | "xx"                                      -> "xx"
+                           | "x"                                       -> "x"
                            | modifier_char
 ascii_restrict_modifier    = "D" | "S" | "W" | "P" | "T"
 modifier_char              = "i" | "m" | "s" | "U" | "J" | "n" | "r"
