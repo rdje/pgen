@@ -102,10 +102,20 @@ counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
 # alternation tries each branch in order; the first match wins. The most
 # specific shapes come first so `{2,5}` matches the range form before
 # falling through to {2,} or {2}.
-counted_quantifier_body = digits "," digits ws?  -> {min: $1, max: $3}
-                      | digits "," ws?          -> {min: $1, max: null}
-                      | digits ws?              -> {min: $1, max: $1}
-                      | "," ws? digits          -> {min: 0,  max: $3}
+#
+# PGEN-RGX-0080 fix: `ws?` allowed at every position between the outer
+# `{` and `}`, mirroring PCRE2 default-mode behavior (per
+# `pcre2pattern(3) §"Repetition"`: "spaces and tabs may appear at any
+# point inside the curly brackets"). Pre-fix, `ws?` was only between
+# digits and `}` (trailing); whitespace abutting the comma
+# (`{ 1 , 2 }`, `{1 ,2}`, `{1, 2}`) caused the rule to fail and the
+# parser to fall back to literal piece interpretation. Post-fix, all 5
+# patterns in the bug report (a{1,2}, a{ 1,2 }, a{ 1 , 2 }, a{1 ,2},
+# a{1, 2}) parse to the same {min:1, max:2} typed shape.
+counted_quantifier_body = digits ws? "," ws? digits ws?  -> {min: $1, max: $5}
+                      | digits ws? "," ws?               -> {min: $1, max: null}
+                      | digits ws?                       -> {min: $1, max: $1}
+                      | "," ws? digits                   -> {min: 0,  max: $3}
 # Each branch surfaces its semantic name directly as a typed string,
 # so consumers don't need to compare against the literal `"?"` / `"+"`
 # tokens or know which suffix character means which thing. Used by

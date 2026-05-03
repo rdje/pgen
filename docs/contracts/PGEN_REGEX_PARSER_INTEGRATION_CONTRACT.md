@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.73`
+  - `1.1.74`
 - Parser release version:
-  - `1.1.71`
+  - `1.1.72`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,26 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.72 / Contract 1.1.74 Highlights — PGEN-RGX-0080 fix: counted_quantifier accepts inner whitespace (PCRE2-conformance)
+
+- **Downstream-driven fix** for PGEN-RGX-0080. Counted quantifier `{m,n}` now accepts whitespace at every position between `{` and `}`, matching PCRE2 default-mode behavior per `pcre2pattern(3) §"Repetition"` ("spaces and tabs may appear at any point inside the curly brackets").
+- **Pre-fix:** Only outer-boundary whitespace worked (`a{ 1,2 }`). Whitespace abutting the comma (`a{ 1 , 2 }`, `a{1 ,2}`, `a{1, 2}`) caused the rule to fail and the parser to fall back to per-character literal pieces — a structurally-wrong successful parse (10 separate atoms for `a{ 1 , 2 }` instead of 1 quantified atom).
+- **Fix:** `counted_quantifier_body` rule rewritten to allow `ws?` at every position between digits, comma, and digits.
+  - Before: `digits "," digits ws? | digits "," ws? | digits ws? | "," ws? digits`
+  - After: `digits ws? "," ws? digits ws? | digits ws? "," ws? | digits ws? | "," ws? digits`
+- **Reproducer matrix verified — all 5 patterns now produce identical `quantifier:{min:1, max:2}`:**
+  - `a{1,2}` ✓
+  - `a{ 1,2 }` ✓
+  - `a{ 1 , 2 }` ✓ (was 10 literal pieces)
+  - `a{1 ,2}` ✓ (was 7 literal pieces)
+  - `a{1, 2}` ✓ (was 7 literal pieces)
+- **Regression test:** `regex_parser_pgen_rgx_0080_counted_quantifier_accepts_inner_whitespace` in `rust/src/embedding_api.rs` pins the typed-shape across the 5-pattern matrix.
+- **PCRE2 conformance:** testinput1:6679 (`/a{ 1 , 2 }/`) stops being a false-negative.
+- **`counted_quantifier_body` annotation index updates:** branch 0 annotation changed from `{min:$1, max:$3}` to `{min:$1, max:$5}` (positional shift due to added `ws?` slots before/after the comma). Other 3 branches unchanged.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Bug ledger update:** `REGEX-0080` status moves from "Acknowledged" to "Released" (released in `1.1.72`).
 
 ## Release 1.1.71 / Contract 1.1.73 Highlights — slice 42: quoted_class_range_atom typed (closes class_range start/end end-to-end for the PCRE2 `\Q...\E` form)
 

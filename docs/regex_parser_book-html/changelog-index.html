@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-74b82d59.js";
+            window.path_to_searchindex_js = "searchindex-41172d96.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,26 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1172--contract-1174--pgen-rgx-0080-fix-counted_quantifier-accepts-inner-whitespace"><a class="header" href="#1172--contract-1174--pgen-rgx-0080-fix-counted_quantifier-accepts-inner-whitespace">1.1.72 / Contract 1.1.74 — PGEN-RGX-0080 fix: counted_quantifier accepts inner whitespace</a></h3>
+<p><strong>What changed:</strong> <code>counted_quantifier_body</code> rule now allows <code>ws?</code> at every position between <code>{</code> and <code>}</code>, matching PCRE2 default-mode behavior.</p>
+<pre><code class="language-ebnf">counted_quantifier_body = digits ws? "," ws? digits ws?  -&gt; {min: $1, max: $5}
+                        | digits ws? "," ws?              -&gt; {min: $1, max: null}
+                        | digits ws?                       -&gt; {min: $1, max: $1}
+                        | "," ws? digits                   -&gt; {min: 0,  max: $3}
+</code></pre>
+<p><strong>Bug class:</strong> “parses but returns the wrong AST/dump” — same as PGEN-RGX-0006 / PGEN-RGX-0079. Pre-fix, whitespace abutting the comma (<code>a{ 1 , 2 }</code>, <code>a{1 ,2}</code>, <code>a{1, 2}</code>) caused the rule to fail and the parser to fall back to per-character literal pieces (10 separate atoms for <code>a{ 1 , 2 }</code> instead of 1 quantified atom).</p>
+<p><strong>Reproducer matrix verified — all 5 patterns now produce identical <code>quantifier:{min:1, max:2}</code>:</strong></p>
+<ul>
+<li><code>a{1,2}</code> ✓</li>
+<li><code>a{ 1,2 }</code> ✓</li>
+<li><code>a{ 1 , 2 }</code> ✓ (was 10 literal pieces)</li>
+<li><code>a{1 ,2}</code> ✓ (was 7 literal pieces)</li>
+<li><code>a{1, 2}</code> ✓ (was 7 literal pieces)</li>
+</ul>
+<p><strong>PCRE2 conformance:</strong> testinput1:6679 (<code>/a{ 1 , 2 }/</code>) stops being a false-negative.</p>
+<p><strong>Annotation index shift:</strong> branch 0’s <code>max:$3</code> became <code>max:$5</code> due to added <code>ws?</code> slots before/after the comma. Other branches unchanged.</p>
+<p><strong>Bug ledger:</strong> <a href="../../contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.html"><code>REGEX-0080</code></a> status moves from “Acknowledged” to “Released”.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.72 / Contract 1.1.74 Highlights”.</p>
 <h3 id="1171--contract-1173--slice-42-quoted_class_range_atom-typed"><a class="header" href="#1171--contract-1173--slice-42-quoted_class_range_atom-typed">1.1.71 / Contract 1.1.73 — Slice 42: quoted_class_range_atom typed</a></h3>
 <p><strong>What changed:</strong> <code>quoted_class_range_atom</code> typed <code>{type, char}</code>.</p>
 <pre><code class="language-ebnf">quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"

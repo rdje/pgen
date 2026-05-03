@@ -23,6 +23,34 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.72 / Contract 1.1.74 — PGEN-RGX-0080 fix: counted_quantifier accepts inner whitespace
+
+**What changed:** `counted_quantifier_body` rule now allows `ws?` at every position between `{` and `}`, matching PCRE2 default-mode behavior.
+
+```ebnf
+counted_quantifier_body = digits ws? "," ws? digits ws?  -> {min: $1, max: $5}
+                        | digits ws? "," ws?              -> {min: $1, max: null}
+                        | digits ws?                       -> {min: $1, max: $1}
+                        | "," ws? digits                   -> {min: 0,  max: $3}
+```
+
+**Bug class:** "parses but returns the wrong AST/dump" — same as PGEN-RGX-0006 / PGEN-RGX-0079. Pre-fix, whitespace abutting the comma (`a{ 1 , 2 }`, `a{1 ,2}`, `a{1, 2}`) caused the rule to fail and the parser to fall back to per-character literal pieces (10 separate atoms for `a{ 1 , 2 }` instead of 1 quantified atom).
+
+**Reproducer matrix verified — all 5 patterns now produce identical `quantifier:{min:1, max:2}`:**
+- `a{1,2}` ✓
+- `a{ 1,2 }` ✓
+- `a{ 1 , 2 }` ✓ (was 10 literal pieces)
+- `a{1 ,2}` ✓ (was 7 literal pieces)
+- `a{1, 2}` ✓ (was 7 literal pieces)
+
+**PCRE2 conformance:** testinput1:6679 (`/a{ 1 , 2 }/`) stops being a false-negative.
+
+**Annotation index shift:** branch 0's `max:$3` became `max:$5` due to added `ws?` slots before/after the comma. Other branches unchanged.
+
+**Bug ledger:** [`REGEX-0080`](../../contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md) status moves from "Acknowledged" to "Released".
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.72 / Contract 1.1.74 Highlights".
+
 ### 1.1.71 / Contract 1.1.73 — Slice 42: quoted_class_range_atom typed
 
 **What changed:** `quoted_class_range_atom` typed `{type, char}`.

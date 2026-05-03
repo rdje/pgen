@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-05-03 - PGEN-RGX-0080 fix: counted_quantifier accepts inner whitespace (PCRE2-conformance)
+
+### What landed
+
+```ebnf
+counted_quantifier_body = digits ws? "," ws? digits ws?  -> {min: $1, max: $5}
+                        | digits ws? "," ws?              -> {min: $1, max: null}
+                        | digits ws?                       -> {min: $1, max: $1}
+                        | "," ws? digits                   -> {min: 0,  max: $3}
+```
+
+`counted_quantifier_body` rule rewritten to allow `ws?` at every position between digits, comma, and digits. Same accept set for all existing forms; PCRE2 default-mode whitespace inside `{...}` now accepted at every position.
+
+### Reproducer matrix verified — all 5 patterns from the bug report now produce identical `quantifier:{min:1, max:2}`
+
+| pattern | before | after |
+|---|---|---|
+| `a{1,2}` | ✓ works | ✓ unchanged |
+| `a{ 1,2 }` | ✓ works (outer ws only) | ✓ unchanged |
+| `a{ 1 , 2 }` | ✗ 10 literal pieces | ✓ `{min:1, max:2}` |
+| `a{1 ,2}` | ✗ 7 literal pieces | ✓ `{min:1, max:2}` |
+| `a{1, 2}` | ✗ 7 literal pieces | ✓ `{min:1, max:2}` |
+
+PCRE2 conformance test suite testinput1:6679 (`/a{ 1 , 2 }/`) stops being a false-negative.
+
+### Annotation index shift
+
+Branch 0's `max:$3` became `max:$5` due to added `ws?` slots before/after the comma. Other 3 branches' annotations unchanged.
+
+### Regression test
+
+Added `regex_parser_pgen_rgx_0080_counted_quantifier_accepts_inner_whitespace` in `rust/src/embedding_api.rs` pinning the typed-shape across the 5-pattern matrix.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 496 / 0 (one new regression test added).
+- Manifest annotation for branch 0 updated to `{min:$1, max:$5}`.
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 5 PGEN-RGX-0080 reproducer patterns + 3 additional forms (`{ 1 ,2 }`, `{,2}`, `{1,}`) — all typed correctly.
+
+### Bug-ledger update
+
+`REGEX-0080` status moves from "Acknowledged" to "Released" (released in `1.1.72`).
+
+### Contract bump
+
+Parser release `1.1.71` → `1.1.72`. Contract `1.1.73` → `1.1.74`. New "Release 1.1.72 / Contract 1.1.74 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.72 / 1.1.74 entry.
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` — REGEX-0080 row updated to "Released".
+
+### RGX bug-fix sequencing per user directive
+
+1. ✓ **PGEN-RGX-0080 fixed** (this commit).
+2. ⏳ PGEN-RGX-0079 next (bare `\o{N...}` non-octal-digit silent misparse).
+3. ⏳ PGEN-RGX-0078 last (PCRE2-relative perf gap, deferred non-blocking).
+
 ## 2026-05-03 - regex.ebnf slice 42/N: quoted_class_range_atom typed (closes class_range start/end end-to-end)
 
 ### What landed

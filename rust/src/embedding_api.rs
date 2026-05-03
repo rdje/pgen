@@ -3131,6 +3131,90 @@ mod tests {
         }
     }
 
+    /// PGEN-RGX-0080 regression — counted quantifier `{m,n}` must accept
+    /// whitespace at every position between `{` and `}`, not just at the
+    /// outer boundaries. PCRE2 default-mode rule per
+    /// `pcre2pattern(3) §"Repetition"`: "spaces and tabs may appear at
+    /// any point inside the curly brackets". Pre-fix, only outer-boundary
+    /// whitespace worked (`a{ 1,2 }`); whitespace abutting the comma
+    /// (`a{ 1 , 2 }`, `a{1 ,2}`, `a{1, 2}`) failed and the parser fell
+    /// back to per-character literal pieces (a structurally-wrong
+    /// successful parse).
+    ///
+    /// Fix: `counted_quantifier_body` rule rewritten to allow `ws?` at
+    /// every position between digits, comma, and digits.
+    ///
+    /// Pinning the typed-shape so the bug cannot regress.
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0080_counted_quantifier_accepts_inner_whitespace() {
+        // Each pattern should produce a single piece with quantifier
+        // {min:1, max:2}, regardless of whitespace placement inside `{...}`.
+        let cases = [
+            "a{1,2}",
+            "a{ 1,2 }",
+            "a{ 1 , 2 }",
+            "a{1 ,2}",
+            "a{1, 2}",
+            "a{ 1 ,2 }",
+        ];
+
+        for input in cases {
+            let dump = regex_ast_dump_json(input);
+            let pieces = dump
+                .pointer("/content/Json/pattern/0/0")
+                .and_then(|v| v.as_array())
+                .unwrap_or_else(|| {
+                    panic!(
+                        "input {:?}: pattern[0][0] is not an array — typed-shape regression?\n\
+                         full dump: {}",
+                        input,
+                        serde_json::to_string_pretty(&dump).unwrap_or_default()
+                    )
+                });
+            assert_eq!(
+                pieces.len(),
+                1,
+                "input {:?}: expected 1 quantified piece, got {} — \
+                 PGEN-RGX-0080 regressed (parser fell back to literal pieces)?\n\
+                 pattern: {}",
+                input,
+                pieces.len(),
+                serde_json::to_string_pretty(&dump["content"]["Json"]["pattern"])
+                    .unwrap_or_default()
+            );
+            let quantifier = pieces[0].pointer("/quantifier").unwrap_or_else(|| {
+                panic!(
+                    "input {:?}: piece has no quantifier field\nfull dump: {}",
+                    input,
+                    serde_json::to_string_pretty(&dump).unwrap_or_default()
+                )
+            });
+            let min = quantifier.pointer("/min").and_then(|v| v.as_u64());
+            let max = quantifier.pointer("/max").and_then(|v| v.as_u64());
+            assert_eq!(
+                min,
+                Some(1),
+                "input {:?}: expected quantifier.min = 1, got {:?} — \
+                 PGEN-RGX-0080 regressed?\n\
+                 quantifier: {}",
+                input,
+                min,
+                serde_json::to_string_pretty(quantifier).unwrap_or_default()
+            );
+            assert_eq!(
+                max,
+                Some(2),
+                "input {:?}: expected quantifier.max = 2, got {:?} — \
+                 PGEN-RGX-0080 regressed?\n\
+                 quantifier: {}",
+                input,
+                max,
+                serde_json::to_string_pretty(quantifier).unwrap_or_default()
+            );
+        }
+    }
+
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     fn run_with_regex_worker_stack<F: FnOnce() + Send + 'static>(f: F) {
         std::thread::Builder::new()
