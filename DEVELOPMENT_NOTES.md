@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 31/N — modifier_spec typed
+
+### What landed
+
+```ebnf
+modifier_spec = "^" modifier_seq?    -> {reset: true, seq: $2}
+              | modifier_seq         -> {reset: false, seq: $1}
+```
+
+2 annotations. Surfaces inside `inline_modifiers.spec` and `scoped_inline_modifiers.spec`.
+
+### `reset` boolean for `(?^...)` form
+
+PCRE2 `(?^...)` resets all flags first, then applies the seq. PCRE2 `(?...)` (no `^`) just toggles flags from the current state. The `reset` boolean cleanly distinguishes the two — consumers can branch on `spec.reset` directly without inspecting branch index or token order.
+
+### `seq` raw — sub-rule typing deferred
+
+`modifier_seq` is itself an Or:
+- `modifier_group ("-" modifier_group)?` — set or set-minus-unset
+- `"-" modifier_group` — unset-only
+
+`modifier_group = modifier_item+`, `modifier_item` is letters with optional sub-modifiers (`a` → `aD`/`aS`/etc. ASCII restrictions; `x` → `x`/`xx` extended modes; `i`/`m`/`s`/`U`/`J`/`n`/`r` — single-letter flags).
+
+A consumer-friendly typed shape would be `{set:["i", "x"], unset:["m"]}`. Getting there requires:
+1. Type modifier_seq into `{set:<group>, unset:<group?>}`.
+2. Type modifier_group as an array of items.
+3. Flatten / extract the modifier_item structure.
+
+Doable but multi-rule. Saved for a future slice. Slice 31 ships the most-visible improvement (the `reset` boolean) and leaves seq raw.
+
+### Empirical
+- `(?i)` → `spec:{reset:false, seq:[["i"], []]}`.
+- `(?^i)` → `spec:{reset:true, seq:[["i"], []]}`.
+- `(?ix-m)` → `spec:{reset:false, seq:[["i", ["x", []]], ["-", ["m"]]]}`.
+- `(?-i)` → `spec:{reset:false, seq:["-", ["i"]]}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 2 new manifest entries inserted at alphabetical slot (modifier_spec ×2 between lookbehind_pos and name_ref).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.60` → `1.1.61`. Contract `1.1.62` → `1.1.63`.
+- New "Release 1.1.61 / Contract 1.1.63 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.35.0), `json-carrier.md` (2 new entries). No examples chapter changes — modifier forms not in any current examples chapter.
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Third slice (after slice 29's char_class.body and slice 30's subroutine_target).
+- `inline_modifiers.spec` / `scoped_inline_modifiers.spec` now carry `{reset, seq}` typed objects.
+- Remaining sub-rule typing concerns: condition Or-of-9 unification, modifier_seq/group/item full typing (would deliver `{set:[...], unset:[...]}`), callout_arg / callout_string, directive_body, extended_class_content set-op grammar, returned_capture_group_list / returned_capture_subroutine, class_body Quantified-of-items flattening.
+
 ## 2026-05-03 - regex.ebnf slice 30/N — subroutine_target typed
 
 ### What landed

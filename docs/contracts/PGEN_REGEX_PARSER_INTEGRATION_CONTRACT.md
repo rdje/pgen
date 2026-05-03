@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.62`
+  - `1.1.63`
 - Parser release version:
-  - `1.1.60`
+  - `1.1.61`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,21 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.61 / Contract 1.1.63 Highlights — slice 31: modifier_spec typed
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — types the inner shape that shows up under `inline_modifiers.spec` and `scoped_inline_modifiers.spec`.
+- **Rule changed:**
+  - `modifier_spec` per-branch annotations:
+    - `"^" modifier_seq? -> {reset:true, seq:$2}` (the `(?^...)` form that resets all flags first)
+    - `modifier_seq -> {reset:false, seq:$1}` (the plain form)
+- **AST shape change (visible inside `inline_modifiers.spec` / `scoped_inline_modifiers.spec`):**
+  - `(?i)` → `spec:{reset:false, seq:[["i"], []]}`. Was `spec:[[...], []]` (raw 2-element).
+  - `(?^i)` → `spec:{reset:true, seq:[["i"], []]}` — `reset` boolean distinguishes the form.
+  - `(?ix-m)` → `spec:{reset:false, seq:[["i", ["x", []]], ["-", ["m"]]]}`.
+- **`seq` carries the raw `modifier_seq` shape.** Per-rule typing of `modifier_seq` / `modifier_group` / `modifier_item` (which would unify the flag-set into `{set:["i", "x"], unset:["m"]}` shape) is a separate concern. Atom-level dispatch on `reset` is what slice 31 delivers.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.60 / Contract 1.1.62 Highlights — slice 30: subroutine_target typed (subroutine_call.target now end-to-end typed)
 

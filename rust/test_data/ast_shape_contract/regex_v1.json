@@ -361,6 +361,18 @@
         "normalized_text": "{type: \"atom\", kind: \"lookbehind\", positive: true, body: $2}"
       },
       {
+        "rule": "modifier_spec",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{reset: true, seq: $2}"
+      },
+      {
+        "rule": "modifier_spec",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{reset: false, seq: $1}"
+      },
+      {
         "rule": "name_ref",
         "branch_index": 0,
         "annotation_type": "return_scalar",

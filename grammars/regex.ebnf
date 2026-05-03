@@ -648,8 +648,13 @@ callout_percent_payload    = /([^%]|%%)*/
 callout_hash_payload       = /([^#]|##)*/
 callout_dollar_payload     = /([^$]|\$\$)*/
 callout_brace_payload      = /([^}]|}})*/
-modifier_spec              = "^" modifier_seq?
-                           | modifier_seq
+# `modifier_spec` per-branch typed `{reset:<bool>, seq:<raw>}`.
+# `reset:true` for the `(?^...)` form (resets all flags first),
+# `reset:false` for the plain form. `seq` carries the raw
+# modifier_seq shape; per-rule typing of modifier_seq /
+# modifier_group / modifier_item is a separate concern.
+modifier_spec              = "^" modifier_seq?                     -> {reset: true, seq: $2}
+                           | modifier_seq                          -> {reset: false, seq: $1}
 modifier_seq               = modifier_group ("-" modifier_group)?
                            | "-" modifier_group
 modifier_group             = modifier_item+

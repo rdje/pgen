@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 31/N: modifier_spec typed
+
+### What landed
+
+```ebnf
+modifier_spec = "^" modifier_seq?    -> {reset: true, seq: $2}
+              | modifier_seq         -> {reset: false, seq: $1}
+```
+
+2 annotations. `reset:true` distinguishes the `(?^...)` form (which resets all flags first).
+
+### Empirical AST shape (visible inside `inline_modifiers.spec` / `scoped_inline_modifiers.spec`)
+
+| Source | After |
+|---|---|
+| `(?i)` | `spec:{reset:false, seq:[["i"], []]}` |
+| `(?ix-m)` | `spec:{reset:false, seq:[["i", ["x", []]], ["-", ["m"]]]}` |
+| `(?-i)` | `spec:{reset:false, seq:["-", ["i"]]}` |
+| `(?^i)` | `spec:{reset:true, seq:[["i"], []]}` |
+| `(?^ix)` | `spec:{reset:true, seq:[["i", ["x", []]], []]}` |
+| `(?i:abc)` | `spec:{reset:false, seq:[["i"], []]}, body:<pattern>` |
+
+### `seq` raw
+
+Per-rule typing of `modifier_seq` / `modifier_group` / `modifier_item` (which would unify the flag-set into `{set:["i", "x"], unset:["m"]}`) is a separate concern. Atom-level dispatch on `reset` is what slice 31 delivers.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 2 new manifest entries (modifier_spec ×2 between lookbehind_pos and name_ref).
+- `make regex_parser_book_gate` green.
+
+### Contract bump
+
+Parser release `1.1.60` → `1.1.61`. Contract `1.1.62` → `1.1.63`. New "Release 1.1.61 / Contract 1.1.63 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.61 / 1.1.63 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.35.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 2 new entries.
+
+### Sub-rule typing campaign progress
+Third slice. `inline_modifiers.spec` and `scoped_inline_modifiers.spec` now carry `{reset, seq}` typed objects.
+
 ## 2026-05-03 - regex.ebnf slice 30/N: subroutine_target typed (subroutine_call.target now end-to-end typed)
 
 ### What landed

@@ -23,6 +23,30 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.61 / Contract 1.1.63 — Slice 31: modifier_spec typed
+
+**What changed:** `modifier_spec` per-branch typed `{reset:<bool>, seq:<raw>}`.
+
+```ebnf
+modifier_spec = "^" modifier_seq?    -> {reset: true, seq: $2}
+              | modifier_seq         -> {reset: false, seq: $1}
+```
+
+**Before / after (visible inside `inline_modifiers.spec` / `scoped_inline_modifiers.spec`):**
+
+| Source | Before (slice 24) | After |
+|---|---|---|
+| `(?i)` | `spec:[[...], []]` | `spec:{reset:false, seq:[["i"], []]}` |
+| `(?^i)` | similar w/ `"^"` token | `spec:{reset:true, seq:[["i"], []]}` |
+| `(?ix-m)` | similar | `spec:{reset:false, seq:[["i", ["x", []]], ["-", ["m"]]]}` |
+| `(?-i)` | similar | `spec:{reset:false, seq:["-", ["i"]]}` |
+
+**`reset:true` distinguishes the `(?^...)` form** (which resets all flags first before applying the seq).
+
+**`seq` carries the raw `modifier_seq` shape.** Per-rule typing of `modifier_seq` / `modifier_group` / `modifier_item` (which would unify the flag-set into a clean `{set:["i", "x"], unset:["m"]}` shape) is a separate concern.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.61 / Contract 1.1.63 Highlights".
+
 ### 1.1.60 / Contract 1.1.62 — Slice 30: subroutine_target typed
 
 **What changed:** `subroutine_target` now emits typed `{kind, ...}` objects per branch.

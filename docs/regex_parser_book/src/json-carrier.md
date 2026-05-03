@@ -119,6 +119,8 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `subroutine_target` (branch 1, `P>name`) | `-> {kind:"python_named", name:$2}` | Distinct kind preserves Python syntax origin (paralleling `python_named_backreference` slice 19). |
 | `subroutine_target` (branch 2, `R`) | `-> {kind:"recursion"}` | Bare object; no fields. |
 | `subroutine_target` (branch 3, signed_digits) | `-> {kind:"numeric", value:$1.value, sign:$1.sign}` | Inlines signed_digits' typed `{sign, value}` shape via field-access (slice 13). |
+| `modifier_spec` (branch 0, `(?^...)`) | `-> {reset:true, seq:$2}` | Object. `reset:true` distinguishes the reset-all-flags form. `seq` is raw modifier_seq shape. |
+| `modifier_spec` (branch 1, plain) | `-> {reset:false, seq:$1}` | Object. `reset:false` for the plain form. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 
