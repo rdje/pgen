@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-05-03 - PGEN-RGX-0079 logged (queued behind return-annotations campaign; fix BEFORE 0078)
+
+RGX filed PGEN-RGX-0079 — invalid `\o{...}` (with non-octal brace content) silently misparses as `\o` simple_escape + `{NNN}` counted_quantifier instead of being rejected.
+
+Same class as PGEN-RGX-0006 (closed 2026-04-06 / fixed in PGEN 1.1.3). 0006's fix only handled valid-octal-digit content; non-octal contents (`\o{1239}` with the `9`, `\o{8}`, `\o{12abc}`, `\o{12 34}`, `\o{}`) still backtrack to the literal+quantifier interpretation.
+
+PCRE2 rejects `\o{1239}` with "error 164: non-octal character in \o{}". PGEN silently succeeds with `quantifier{1239,1239}` on a literal `o` — invalid pattern survives the parser as structurally valid AST.
+
+**User-directed sequencing (2026-05-03):**
+1. Continue the regex.ebnf return-annotations campaign (slices 7-33+ targeting task #40) to full completion.
+2. THEN fix PGEN-RGX-0079 BEFORE PGEN-RGX-0078.
+
+Recommended fix direction (per the report): commit/cut after `\o{` so once the prefix is matched, the parser is required to consume octal digits up to the matching `}` and emit a structured parse error if the contents are not valid octal. Mirrors `\x{...}` braced hex (worth auditing as part of the same fix — `\x{12g}` should likewise be rejected).
+
+Logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` as `REGEX-0079`. No parser release / contract bump.
+
 ## 2026-05-03 - regex.ebnf slice 33/N: callout_string typed (8 quote-form variants, codegen workaround for `\"` limitation)
 
 ### What landed
