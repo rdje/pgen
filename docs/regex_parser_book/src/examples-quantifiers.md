@@ -140,6 +140,27 @@ The unbounded upper bound is encoded as a typed JSON `null`.
 }
 ```
 
+## Inner whitespace inside `{...}` — `a{ 1 , 2 }`, `a{1 ,2}`, `a{1, 2}` (PCRE2 default mode)
+
+PCRE2 default mode allows whitespace at any position inside `{...}` per `pcre2pattern(3) §"Repetition"` — "spaces and tabs may appear at any point inside the curly brackets". Pre-1.1.72 (PGEN-RGX-0080), only outer-boundary whitespace worked; whitespace abutting the comma caused the rule to fail and the parser to fall back to per-character literal pieces. Fixed in 1.1.72.
+
+```json
+{
+  "atom": "a",
+  "quantifier": {"type": "quantifier", "min": 1, "max": 2, "greediness": []},
+  "type": "piece"
+}
+```
+
+All five whitespace variants produce the same shape:
+- `a{1,2}` — no whitespace
+- `a{ 1,2 }` — outer whitespace
+- `a{ 1 , 2 }` — whitespace around the comma (was 10 literal pieces pre-fix)
+- `a{1 ,2}` — whitespace before the comma (was 7 literal pieces pre-fix)
+- `a{1, 2}` — whitespace after the comma (was 7 literal pieces pre-fix)
+
+PCRE2 conformance test suite testinput1:6679 (`/a{ 1 , 2 }/`) covers this case.
+
 ## `a{2,5}?` (lazy range) and `a{2,5}+` (possessive range)
 
 For `a{2,5}?`:

@@ -27,7 +27,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `piece_quoted_run_quantified` | `-> [$2**, {type: "piece", atom: $3, quantifier: $5}]` | Array of piece-objects |
 | `quoted_run_inner_piece` | `-> {type: "piece", atom: $1, quantifier: []}` | Object `{type, atom, quantifier:[]}` |
 | `counted_quantifier` | `-> $3` | Whatever `counted_quantifier_body` produced (transparent passthrough) |
-| `counted_quantifier_body` (branch 0) | `-> {min: $1, max: $3}` | Object `{min, max}` (`{n,m}` form) |
+| `counted_quantifier_body` (branch 0) | `-> {min: $1, max: $5}` | Object `{min, max}` (`{n,m}` form). Index `$5` (not `$3`) since PGEN-RGX-0080 fix added `ws?` slots before/after the comma to accept PCRE2 default-mode whitespace inside `{...}`. |
 | `counted_quantifier_body` (branch 1) | `-> {min: $1, max: null}` | Object `{min, max:null}` (`{n,}` unbounded form) |
 | `counted_quantifier_body` (branch 2) | `-> {min: $1, max: $1}` | Object `{min, max}` (`{n}` form, max == min) |
 | `counted_quantifier_body` (branch 3) | `-> {min: 0, max: $3}` | Object `{min:0, max}` (`{,m}` form) |

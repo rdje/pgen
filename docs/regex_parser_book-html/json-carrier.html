@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-41172d96.js";
+            window.path_to_searchindex_js = "searchindex-f096851c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -208,7 +208,7 @@
 <tr><td><code>piece_quoted_run_quantified</code></td><td><code>-&gt; [$2**, {type: "piece", atom: $3, quantifier: $5}]</code></td><td>Array of piece-objects</td></tr>
 <tr><td><code>quoted_run_inner_piece</code></td><td><code>-&gt; {type: "piece", atom: $1, quantifier: []}</code></td><td>Object <code>{type, atom, quantifier:[]}</code></td></tr>
 <tr><td><code>counted_quantifier</code></td><td><code>-&gt; $3</code></td><td>Whatever <code>counted_quantifier_body</code> produced (transparent passthrough)</td></tr>
-<tr><td><code>counted_quantifier_body</code> (branch 0)</td><td><code>-&gt; {min: $1, max: $3}</code></td><td>Object <code>{min, max}</code> (<code>{n,m}</code> form)</td></tr>
+<tr><td><code>counted_quantifier_body</code> (branch 0)</td><td><code>-&gt; {min: $1, max: $5}</code></td><td>Object <code>{min, max}</code> (<code>{n,m}</code> form). Index <code>$5</code> (not <code>$3</code>) since PGEN-RGX-0080 fix added <code>ws?</code> slots before/after the comma to accept PCRE2 default-mode whitespace inside <code>{...}</code>.</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 1)</td><td><code>-&gt; {min: $1, max: null}</code></td><td>Object <code>{min, max:null}</code> (<code>{n,}</code> unbounded form)</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 2)</td><td><code>-&gt; {min: $1, max: $1}</code></td><td>Object <code>{min, max}</code> (<code>{n}</code> form, max == min)</td></tr>
 <tr><td><code>counted_quantifier_body</code> (branch 3)</td><td><code>-&gt; {min: 0, max: $3}</code></td><td>Object <code>{min:0, max}</code> (<code>{,m}</code> form)</td></tr>
