@@ -733,6 +733,12 @@
         "normalized_text": "{type: \"class_quoted_literal\", body: $2}"
       },
       {
+        "rule": "quoted_class_range_atom",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"class_quoted_range_atom\", char: $2}"
+      },
+      {
         "rule": "quoted_literal",
         "branch_index": 0,
         "annotation_type": "return_object",

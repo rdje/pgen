@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1c30592e.js";
+            window.path_to_searchindex_js = "searchindex-74b82d59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -339,6 +339,7 @@
 <tr><td><code>modifier_item</code> (branch 2, <code>xx</code>)</td><td><code>-&gt; "xx"</code></td><td>Bare string for doubled-x form.</td></tr>
 <tr><td><code>modifier_item</code> (branch 3, bare <code>x</code>)</td><td><code>-&gt; "x"</code></td><td>Bare string.</td></tr>
 <tr><td><code>modifier_item</code> (branch 4, modifier_char)</td><td>(implicit <code>$1</code>)</td><td>Whatever modifier_char matched (single char).</td></tr>
+<tr><td><code>quoted_class_range_atom</code></td><td><code>-&gt; {type:"class_quoted_range_atom", char:$2}</code></td><td>Object. Surfaces inside <code>class_range.start</code> / <code>class_range.end</code> for the PCRE2 <code>\Q...\E</code> quoted-class-range form.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

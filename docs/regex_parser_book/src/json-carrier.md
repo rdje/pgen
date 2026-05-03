@@ -158,6 +158,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `modifier_item` (branch 2, `xx`) | `-> "xx"` | Bare string for doubled-x form. |
 | `modifier_item` (branch 3, bare `x`) | `-> "x"` | Bare string. |
 | `modifier_item` (branch 4, modifier_char) | (implicit `$1`) | Whatever modifier_char matched (single char). |
+| `quoted_class_range_atom` | `-> {type:"class_quoted_range_atom", char:$2}` | Object. Surfaces inside `class_range.start` / `class_range.end` for the PCRE2 `\Q...\E` quoted-class-range form. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

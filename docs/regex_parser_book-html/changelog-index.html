@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1c30592e.js";
+            window.path_to_searchindex_js = "searchindex-74b82d59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,25 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1171--contract-1173--slice-42-quoted_class_range_atom-typed"><a class="header" href="#1171--contract-1173--slice-42-quoted_class_range_atom-typed">1.1.71 / Contract 1.1.73 — Slice 42: quoted_class_range_atom typed</a></h3>
+<p><strong>What changed:</strong> <code>quoted_class_range_atom</code> typed <code>{type, char}</code>.</p>
+<pre><code class="language-ebnf">quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"
+                            -&gt; {type: "class_quoted_range_atom", char: $2}
+</code></pre>
+<p><strong>Before / after (visible inside <code>class_range.start</code> / <code>class_range.end</code> for the PCRE2 <code>\Q...\E</code> quoted form):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 29)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[\Qa\E-\Qz\E]</code> body[0].start</td><td><code>["\\Q", "a", "\\E"]</code> (raw 3-element)</td><td><code>{type:"class_quoted_range_atom", char:"a"}</code></td></tr>
+<tr><td><code>[\Qa\E-\Qz\E]</code> body[0].end</td><td><code>["\\Q", "z", "\\E"]</code></td><td><code>{type:"class_quoted_range_atom", char:"z"}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>class_range.start</code> / <code>class_range.end</code> now end-to-end typed</strong> across all 3 class_atom branches: <code>quoted_class_range_atom</code> (slice 42), <code>class_range_escape</code> (slice 29’s passthrough surfaces the typed escape_unit), <code>class_literal</code> (slice 15’s clean string).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.71 / Contract 1.1.73 Highlights”.</p>
 <h3 id="1170--contract-1172--slice-40-modifier_item-per-branch-typed-closes-inline_modifiers-spec-end-to-end"><a class="header" href="#1170--contract-1172--slice-40-modifier_item-per-branch-typed-closes-inline_modifiers-spec-end-to-end">1.1.70 / Contract 1.1.72 — Slice 40: modifier_item per-branch typed (closes inline_modifiers spec end-to-end)</a></h3>
 <p><strong>What changed:</strong> <code>modifier_item</code> split from 3 branches with internal optionals into 5 explicit branches; eliminates the <code>[]</code> interleaving from slice 39’s set/unset arrays.</p>
 <pre><code class="language-ebnf">modifier_item = "a" ascii_restrict_modifier  -&gt; {char: "a", restrict: $2}

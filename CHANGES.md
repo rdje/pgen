@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 42/N: quoted_class_range_atom typed (closes class_range start/end end-to-end)
+
+### What landed
+
+```ebnf
+quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"
+                            -> {type: "class_quoted_range_atom", char: $2}
+```
+
+1 annotation. Last small typed-shape opportunity in the char_class subtree.
+
+### Empirical AST shape
+
+| Source | Before (slice 29) | After |
+|---|---|---|
+| `[\Qa\E-\Qz\E]` body[0].start | `["\\Q", "a", "\\E"]` (raw) | `{type:"class_quoted_range_atom", char:"a"}` |
+| `[\Qa\E-\Qz\E]` body[0].end | `["\\Q", "z", "\\E"]` | `{type:"class_quoted_range_atom", char:"z"}` |
+
+### `class_range.start` / `class_range.end` end-to-end typed
+
+All 3 class_atom branches now produce typed shapes:
+- `class_literal` → bare clean string (slice 15).
+- `class_range_escape` → typed escape_unit shape (slice 29 passthrough; slices 14-17 escape typing).
+- `quoted_class_range_atom` → `{type:"class_quoted_range_atom", char}` (slice 42).
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 1 new manifest entry between quoted_class_literal and quoted_literal.
+- `make regex_parser_book_gate` green.
+
+### Contract bump
+
+Parser release `1.1.70` → `1.1.71`. Contract `1.1.72` → `1.1.73`. New "Release 1.1.71 / Contract 1.1.73 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.71 / 1.1.73 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.45.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 1 new entry.
+
+### Sub-rule typing campaign progress
+Thirteenth slice (after research-only slice 41). char_class.body fully typed across all class_atom and class_item branches.
+
 ## 2026-05-03 - regex.ebnf slice 41/N: returned_capture_group_list flattening attempt (codegen limitation discovered, slice reverted)
 
 ### Attempted

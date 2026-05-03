@@ -340,7 +340,12 @@ posix_negation = "^" -> true
 @generate: extract_char_value($1)
 @semantic_value: {type: "atom", value: $1}
 class_atom     = quoted_class_range_atom | class_range_escape | class_literal
-quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"
+# `quoted_class_range_atom` typed `{type:"class_quoted_range_atom", char:$2}`.
+# Drops the `\Q`/`\E` delimiters from the typed shape; consumer reads
+# the single quoted char directly. Surfaces inside class_range
+# start/end (slice 29) when ranges use the PCRE2 quoted-class-range
+# form `[\Qa\E-\Qz\E]`.
+quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"      -> {type: "class_quoted_range_atom", char: $2}
 # Transparent passthrough — drops the leading `\` so the typed
 # escape_unit shape (already produced by hex/unicode/octal/control/
 # simple/single_byte/property branches via slices 14-17) surfaces

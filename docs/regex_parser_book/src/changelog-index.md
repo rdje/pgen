@@ -23,6 +23,26 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.71 / Contract 1.1.73 — Slice 42: quoted_class_range_atom typed
+
+**What changed:** `quoted_class_range_atom` typed `{type, char}`.
+
+```ebnf
+quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"
+                            -> {type: "class_quoted_range_atom", char: $2}
+```
+
+**Before / after (visible inside `class_range.start` / `class_range.end` for the PCRE2 `\Q...\E` quoted form):**
+
+| Source | Before (slice 29) | After |
+|---|---|---|
+| `[\Qa\E-\Qz\E]` body[0].start | `["\\Q", "a", "\\E"]` (raw 3-element) | `{type:"class_quoted_range_atom", char:"a"}` |
+| `[\Qa\E-\Qz\E]` body[0].end | `["\\Q", "z", "\\E"]` | `{type:"class_quoted_range_atom", char:"z"}` |
+
+**`class_range.start` / `class_range.end` now end-to-end typed** across all 3 class_atom branches: `quoted_class_range_atom` (slice 42), `class_range_escape` (slice 29's passthrough surfaces the typed escape_unit), `class_literal` (slice 15's clean string).
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.71 / Contract 1.1.73 Highlights".
+
 ### 1.1.70 / Contract 1.1.72 — Slice 40: modifier_item per-branch typed (closes inline_modifiers spec end-to-end)
 
 **What changed:** `modifier_item` split from 3 branches with internal optionals into 5 explicit branches; eliminates the `[]` interleaving from slice 39's set/unset arrays.

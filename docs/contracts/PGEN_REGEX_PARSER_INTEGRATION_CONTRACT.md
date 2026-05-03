@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.72`
+  - `1.1.73`
 - Parser release version:
-  - `1.1.70`
+  - `1.1.71`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,17 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.71 / Contract 1.1.73 Highlights — slice 42: quoted_class_range_atom typed (closes class_range start/end end-to-end for the PCRE2 `\Q...\E` form)
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — last small typed-shape opportunity in the char_class subtree.
+- **Rule changed:** `quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E" -> {type:"class_quoted_range_atom", char:$2}`.
+- **AST shape change (visible inside `class_range.start` / `class_range.end` for the PCRE2 quoted-class-range form):**
+  - Before: `[\Qa\E-\Qz\E]` → `body:[{type:"class_range", start:["\\Q", "a", "\\E"], end:["\\Q", "z", "\\E"]}]` (raw 3-element seq for the quoted atoms).
+  - After: `body:[{type:"class_range", start:{type:"class_quoted_range_atom", char:"a"}, end:{type:"class_quoted_range_atom", char:"z"}}]` (typed objects).
+- **`class_range.start` / `class_range.end` now end-to-end typed across all 3 class_atom branches:** `quoted_class_range_atom` (slice 42), `class_range_escape` (slice 29's `-> $2` passthrough surfaces the typed escape_unit), `class_literal` (slice 15's clean string).
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.70 / Contract 1.1.72 Highlights — slice 40: modifier_item per-branch typed (cleans `[]` interleaving — closes inline_modifiers spec end-to-end)
 
