@@ -146,6 +146,8 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `alpha_condition_assertion` | `-> {kind:"alpha_lookaround", name:$2, body:$4}` | Object. Parallels slice 23's atom-level `alpha_lookaround`. |
 | `condition_callout` | `-> {kind:"callout", arg:$2}` | Object. Inside-condition variant of atom-level callout (without `(?` prefix); same `{kind, arg}` shape. |
 | `condition_callout_assertion` | `-> {kind:"callout_assertion", callout:$1, assertion:$3}` | Object. Wraps the typed callout + assertion sub-shapes. |
+| `version_number` (branch 0, `digits "." digits`) | `-> {major:$1, minor:$3}` | Object. Both fields are typed ints (digits @transform). |
+| `version_number` (branch 1, `digits`) | `-> {major:$1, minor:null}` | Object. `minor:null` for absent-minor case. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

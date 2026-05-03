@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ef285a34.js";
+            window.path_to_searchindex_js = "searchindex-5a195998.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -327,6 +327,8 @@
 <tr><td><code>alpha_condition_assertion</code></td><td><code>-&gt; {kind:"alpha_lookaround", name:$2, body:$4}</code></td><td>Object. Parallels slice 23’s atom-level <code>alpha_lookaround</code>.</td></tr>
 <tr><td><code>condition_callout</code></td><td><code>-&gt; {kind:"callout", arg:$2}</code></td><td>Object. Inside-condition variant of atom-level callout (without <code>(?</code> prefix); same <code>{kind, arg}</code> shape.</td></tr>
 <tr><td><code>condition_callout_assertion</code></td><td><code>-&gt; {kind:"callout_assertion", callout:$1, assertion:$3}</code></td><td>Object. Wraps the typed callout + assertion sub-shapes.</td></tr>
+<tr><td><code>version_number</code> (branch 0, <code>digits "." digits</code>)</td><td><code>-&gt; {major:$1, minor:$3}</code></td><td>Object. Both fields are typed ints (digits @transform).</td></tr>
+<tr><td><code>version_number</code> (branch 1, <code>digits</code>)</td><td><code>-&gt; {major:$1, minor:null}</code></td><td>Object. <code>minor:null</code> for absent-minor case.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

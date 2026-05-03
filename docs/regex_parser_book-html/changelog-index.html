@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ef285a34.js";
+            window.path_to_searchindex_js = "searchindex-5a195998.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,27 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1167--contract-1169--slice-37-version_number-major-minor-typed"><a class="header" href="#1167--contract-1169--slice-37-version_number-major-minor-typed">1.1.67 / Contract 1.1.69 — Slice 37: version_number <code>{major, minor}</code> typed</a></h3>
+<p><strong>What changed:</strong> <code>version_number</code> split into 2 explicit branches with <code>{major, minor}</code> typed shape.</p>
+<pre><code class="language-ebnf">version_number = digits "." digits  -&gt; {major: $1, minor: $3}
+               | digits              -&gt; {major: $1, minor: null}
+</code></pre>
+<p><strong>Before / after (visible inside <code>conditional.condition.number</code>):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 36)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?(VERSION&gt;=10.0)foo)</code></td><td><code>number:[10, [".", 0]]</code></td><td><code>number:{major:10, minor:0}</code></td></tr>
+<tr><td><code>(?(VERSION&gt;=11)foo)</code></td><td><code>number:[11, []]</code></td><td><code>number:{major:11, minor:null}</code></td></tr>
+<tr><td><code>(?(VERSION=10.40)foo)</code></td><td><code>number:[10, [".", 40]]</code></td><td><code>number:{major:10, minor:40}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Why 2 branches instead of one:</strong> the annotation language doesn’t currently support extracting from a parens-grouped optional pair via positional or field access. Splitting <code>digits ("." digits)?</code> into explicit <code>digits "." digits | digits</code> branches gives the cleanest typed shape with <code>null</code> (not <code>[]</code>) for the absent-minor case. Same accept set — PEG tries the longer form first.</p>
+<p><strong><code>version_condition</code> now end-to-end typed.</strong> Combined with slice 32’s outer typing.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.67 / Contract 1.1.69 Highlights”.</p>
 <h3 id="1166--contract-1168--slice-36-condition_assertion--alpha_condition_assertion--condition_callout_assertion--condition_callout-typed-closes-condition-or-of-9-fully"><a class="header" href="#1166--contract-1168--slice-36-condition_assertion--alpha_condition_assertion--condition_callout_assertion--condition_callout-typed-closes-condition-or-of-9-fully">1.1.66 / Contract 1.1.68 — Slice 36: condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes condition Or-of-9 fully)</a></h3>
 <p><strong>What changed:</strong> Closes the remaining 4 of the 9 condition Or-alternatives (combined with slice 32’s 3, 7 of 9 are now typed; the 2 remaining — <code>name_ref</code> and <code>name</code> — stay as bare strings since they’re reused outside condition).</p>
 <pre><code class="language-ebnf">condition_assertion         = "?=" pattern   -&gt; {kind: "lookahead",  positive: true,  body: $2}

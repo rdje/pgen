@@ -23,6 +23,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.67 / Contract 1.1.69 — Slice 37: version_number `{major, minor}` typed
+
+**What changed:** `version_number` split into 2 explicit branches with `{major, minor}` typed shape.
+
+```ebnf
+version_number = digits "." digits  -> {major: $1, minor: $3}
+               | digits              -> {major: $1, minor: null}
+```
+
+**Before / after (visible inside `conditional.condition.number`):**
+
+| Source | Before (slice 36) | After |
+|---|---|---|
+| `(?(VERSION>=10.0)foo)` | `number:[10, [".", 0]]` | `number:{major:10, minor:0}` |
+| `(?(VERSION>=11)foo)` | `number:[11, []]` | `number:{major:11, minor:null}` |
+| `(?(VERSION=10.40)foo)` | `number:[10, [".", 40]]` | `number:{major:10, minor:40}` |
+
+**Why 2 branches instead of one:** the annotation language doesn't currently support extracting from a parens-grouped optional pair via positional or field access. Splitting `digits ("." digits)?` into explicit `digits "." digits | digits` branches gives the cleanest typed shape with `null` (not `[]`) for the absent-minor case. Same accept set — PEG tries the longer form first.
+
+**`version_condition` now end-to-end typed.** Combined with slice 32's outer typing.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.67 / Contract 1.1.69 Highlights".
+
 ### 1.1.66 / Contract 1.1.68 — Slice 36: condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes condition Or-of-9 fully)
 
 **What changed:** Closes the remaining 4 of the 9 condition Or-alternatives (combined with slice 32's 3, 7 of 9 are now typed; the 2 remaining — `name_ref` and `name` — stay as bare strings since they're reused outside condition).

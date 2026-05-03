@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.68`
+  - `1.1.69`
 - Parser release version:
-  - `1.1.66`
+  - `1.1.67`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,21 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.67 / Contract 1.1.69 Highlights — slice 37: version_number `{major, minor}` typed (closes version_condition end-to-end)
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — closes `version_condition.number` shape.
+- **Rule changed:** `version_number` split into 2 explicit branches (instead of `digits ("." digits)?`) so each carries a clean `{major:int, minor:int|null}` typed shape:
+  - `digits "." digits -> {major:$1, minor:$3}`
+  - `digits -> {major:$1, minor:null}`
+- **AST shape change (visible inside `conditional.condition.number`):**
+  - `(?(VERSION>=10.0)foo)` → `condition:{kind:"version", operator:">=", number:{major:10, minor:0}}`. Was `number:[10, [".", 0]]` (raw 2-element with parens-grouped pair).
+  - `(?(VERSION>=11)foo)` → `number:{major:11, minor:null}`.
+  - `(?(VERSION=10.40)foo)` → `number:{major:10, minor:40, operator:"="}`.
+- **Why split into 2 branches:** the annotation language doesn't currently support extracting from a parens-grouped optional pair via positional or field access. Splitting into explicit branches gives the cleanest typed shape with `null` (not `[]`) for the absent-minor case. Same accept set as the original single-branch form (PEG tries longer form first).
+- **`version_condition` now end-to-end typed.** Combined with slice 32's outer typing: `(?(VERSION>=10.0)foo)` surfaces as `condition:{kind:"version", operator:">=", number:{major:10, minor:0}}`.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.66 / Contract 1.1.68 Highlights — slice 36: condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes the condition Or-of-9 fully)
 

@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 37/N — version_number `{major, minor}` typed
+
+Ninth sub-rule typing slice. Closes `version_condition` end-to-end.
+
+### What landed
+
+```ebnf
+version_number = digits "." digits  -> {major: $1, minor: $3}
+               | digits              -> {major: $1, minor: null}
+```
+
+### Why split into 2 branches
+
+Original: `version_number = digits ("." digits)?` — single branch with parens-grouped optional pair.
+
+The annotation language doesn't currently support extracting from a parens-grouped optional pair via positional or field access. Options were:
+1. Annotate as `{major:$1, minor_pair:$2}` where minor_pair is `[]` (un-matched) or `[".", <minor>]`. Awkward consumer dispatch.
+2. Split into 2 explicit branches with separate annotations (picked).
+
+Same accept set — PEG tries longer form first. Greedy `digits` always matches max digits, then the literal `.` succeeds or fails; failure backtracks to bare-digits branch. Tested with `10.0`, `11`, `10.40` — all match correctly.
+
+### Empirical
+- `(?(VERSION>=10.0)foo)` → `number:{major:10, minor:0}`.
+- `(?(VERSION>=11)foo)` → `number:{major:11, minor:null}`.
+- `(?(VERSION=10.40)foo)` → `number:{major:10, minor:40}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 2 new manifest entries appended after version_condition (version_number ×2; both at end of alphabetical list since v is last letter alphabetically among typed rules).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.66` → `1.1.67`. Contract `1.1.68` → `1.1.69`.
+- New "Release 1.1.67 / Contract 1.1.69 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.41.0), `json-carrier.md` (2 new entries).
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Ninth slice (after 29/30/31/32/33/34/35/36).
+- `version_condition` end-to-end typed.
+- Remaining sub-rule typing concerns: modifier_seq/group/item full typing (would deliver `{set, unset}`); extended_class_content set-op grammar extension; returned_capture_group_list / returned_capture_subroutine; class_body Quantified-of-items flattening.
+
 ## 2026-05-03 - regex.ebnf slice 36/N — condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes condition Or-of-9)
 
 Eighth sub-rule typing slice. 7 annotations across 4 condition-context rules.

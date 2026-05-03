@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-36-sub-rule-typing-condition-assertion-CLOSES-CONDITION-OR-OF-9)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-37-sub-rule-typing-version-number-CLOSES-VERSION-CONDITION-END-TO-END)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 37 of N — `version_number` `{major, minor}` typed.** Ninth sub-rule typing slice. Split `version_number = digits ("." digits)?` into 2 explicit branches `digits "." digits | digits` for clean `{major:int, minor:int|null}` typed shape. Empirical: `(?(VERSION>=10.0)foo)` → `number:{major:10, minor:0}`; `(?(VERSION>=11)foo)` → `number:{major:11, minor:null}`. **`version_condition` end-to-end typed.** Annotation language doesn't support extracting from parens-grouped optional pairs via positional/field access; 2-branch split is the simplest typed shape. Contract bump: parser release `1.1.66` → `1.1.67`, contract `1.1.68` → `1.1.69`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 36 of N — condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes condition Or-of-9 fully).** Eighth sub-rule typing slice. 7 annotations across 4 condition-context rules. condition_assertion 4 branches `{kind:"lookahead"|"lookbehind", positive, body}` + alpha-passthrough. alpha_condition_assertion `{kind:"alpha_lookaround", name, body}`. condition_callout `{kind:"callout", arg}`. condition_callout_assertion `{kind:"callout_assertion", callout, assertion}`. Empirical: `(?(?=foo)yes)` → `condition:{kind:"lookahead", positive:true}`; `(?(*pla:foo)yes)` → `condition:{kind:"alpha_lookaround", name:"pla"}`. **Intentional `kind` collision with slice 23 atom-level lookaround** — distinguishing field is `type:"atom"` (atom-level only). **`condition` Or-of-9 status: 7 of 9 typed**; 2 untyped intentionally (name_ref, name — reused outside condition); 2 pre-typed (signed_digits, digits). **`conditional` end-to-end typed.** Contract bump: parser release `1.1.65` → `1.1.66`, contract `1.1.67` → `1.1.68`. Regex AST schema version stays `1`. 495/0 tests. 7 new manifest entries. `make regex_parser_book_gate` green.
 
 ### Earlier session note (kept for context):

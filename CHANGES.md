@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 37/N: version_number `{major, minor}` typed (closes version_condition end-to-end)
+
+### What landed
+
+```ebnf
+version_number = digits "." digits  -> {major: $1, minor: $3}
+               | digits              -> {major: $1, minor: null}
+```
+
+`version_number` split into 2 explicit branches (instead of `digits ("." digits)?`). Same accept set; PEG tries longer form first. Cleanest typed shape with `null` for absent-minor case (annotation language doesn't support extracting from a parens-grouped optional pair via positional/field access).
+
+### Empirical AST shape (visible inside `conditional.condition.number`)
+
+| Source | Before (slice 36) | After |
+|---|---|---|
+| `(?(VERSION>=10.0)foo)` | `number:[10, [".", 0]]` | `number:{major:10, minor:0}` |
+| `(?(VERSION>=11)foo)` | `number:[11, []]` | `number:{major:11, minor:null}` |
+| `(?(VERSION=10.40)foo)` | `number:[10, [".", 40]]` | `number:{major:10, minor:40}` |
+
+### `version_condition` end-to-end typed
+
+Combined with slice 32's outer typing, `(?(VERSION>=10.0)foo)` surfaces as `condition:{kind:"version", operator:">=", number:{major:10, minor:0}}`.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 2 new manifest entries (version_number ×2 after version_condition).
+- `make regex_parser_book_gate` green.
+
+### Contract bump
+
+Parser release `1.1.66` → `1.1.67`. Contract `1.1.68` → `1.1.69`. New "Release 1.1.67 / Contract 1.1.69 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.67 / 1.1.69 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.41.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 2 new entries.
+
+### Sub-rule typing campaign progress
+Ninth slice. `version_condition` end-to-end typed.
+
 ## 2026-05-03 - regex.ebnf slice 36/N: condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes condition Or-of-9 fully)
 
 ### What landed

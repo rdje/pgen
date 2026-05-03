@@ -701,7 +701,16 @@ define_condition  = "DEFINE"                                                  ->
 # `condition.number` directly when `condition.kind == "version"`.
 version_condition = "VERSION" version_operator version_number                 -> {kind: "version", operator: $2, number: $3}
 version_operator  = ">=" | "="
-version_number    = digits ("." digits)?
+# `version_number` split into 2 explicit branches (instead of
+# `digits ("." digits)?`) so each can carry a clean
+# `{major:int, minor:int|null}` typed shape. PEG ordering tries
+# the major.minor form first; falls through to bare-major when
+# no `.` follows. Same accept set as the single-branch form.
+# The annotation language doesn't currently support extracting
+# from a parens-grouped optional pair via positional or field
+# access, so the 2-branch split is the simplest typed shape.
+version_number    = digits "." digits                                       -> {major: $1, minor: $3}
+                  | digits                                                   -> {major: $1, minor: null}
 # `condition_callout_assertion` typed `{kind:"callout_assertion", callout, assertion}`.
 # `callout` and `assertion` carry the typed sub-shapes from
 # `condition_callout` and `condition_assertion`.

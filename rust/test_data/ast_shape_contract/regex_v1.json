@@ -821,6 +821,18 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{kind: \"version\", operator: $2, number: $3}"
+      },
+      {
+        "rule": "version_number",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{major: $1, minor: $3}"
+      },
+      {
+        "rule": "version_number",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{major: $1, minor: null}"
       }
     ]
   }
