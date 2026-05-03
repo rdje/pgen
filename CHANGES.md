@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 41/N: returned_capture_group_list flattening attempt (codegen limitation discovered, slice reverted)
+
+### Attempted
+
+Tried recursive-pair restructuring to flatten `returned_capture_group_list` from raw `["(", group, [<comma-pair>...], ")"]` to a flat array of typed captures:
+
+```ebnf
+returned_capture_group_list = "(" returned_capture_group_tail ")" -> $2
+returned_capture_group_tail = returned_capture_group "," returned_capture_group_tail
+                              -> [$1, $3**]
+                            | returned_capture_group
+                              -> [$1]
+```
+
+### Discovered codegen limitation
+
+Empirical for `(?P>foo(1,2,3))`:
+- Expected: `captures:[<group1>, <group2>, <group3>]` (flat).
+- Got: `captures:[<group1>, [<group2>, [<group3>]]]` (nested).
+
+The `**` flatten-spread works in the **all-spread** array form `[$X**]` (slice 23+ usage) but does NOT flatten in the **mixed** form `[<literal>, $X**]` or `[$X**, <literal>]`. In mixed forms, `**` is silently a no-op spread — the array element is wrapped instead of flattened.
+
+### Reverted
+
+Restored `returned_capture_group_list` to its original parens-grouped form. `captures` stays raw. Updated the grammar comment to document the limitation. Saved as `feedback_annotation_no_mixed_spread.md` workflow gotcha.
+
+### Resolution path
+
+Either:
+1. Extend the codegen `**` flatten-spread to recursively flatten arrays it spreads (currently flattens Quantified bases but not nested array shapes from rule references). Codegen-bootstrap concern — separate slice if/when load-bearing.
+2. Accept the raw shape; consumer walks the parens-grouped structure manually.
+
+For now (2). Filing the codegen extension as a follow-up target.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0 (back to baseline after revert).
+- `make regex_parser_book_gate` green.
+- No contract bump (no shape change actually landed).
+
+### Sub-rule typing campaign progress
+Twelfth attempted slice; no shape change committed. The campaign now hits annotation-language limitations on the remaining concerns (`returned_capture_group_list`, `extended_class_content` set-op grammar). Future progress requires either codegen extensions or larger grammar restructurings.
+
 ## 2026-05-03 - regex.ebnf slice 40/N: modifier_item per-branch typed (closes inline_modifiers spec end-to-end)
 
 ### What landed

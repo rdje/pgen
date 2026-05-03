@@ -601,6 +601,16 @@ subroutine_call      = "(?" returned_capture_subroutine ")"    -> {type: "atom",
 # shape pending follow-up slice for the parens-grouped repetition
 # flattening.
 returned_capture_subroutine = subroutine_target returned_capture_group_list   -> {subroutine: $1, captures: $2}
+# `returned_capture_group_list` left as raw shape — flattening
+# requires either an annotation-language extension to support
+# mixed `[<literal>, <spread>**]` array forms, or a different
+# grammar restructuring approach. Slice 41 attempted recursive-pair
+# `[$1, $3**]` but empirically `**` doesn't flatten in the mixed
+# position — output was nested `[1, [2, [3]]]` instead of `[1, 2, 3]`.
+# Saved as workflow-tip: `[$X**]` (all-spread) works; `[a, b**]` /
+# `[a**, b]` (mixed) doesn't currently. Captures remain raw
+# `["(", first_group, [<comma-pair>...], ")"]` shape; consumer
+# walks the structure to extract groups.
 returned_capture_group_list = "(" returned_capture_group ("," returned_capture_group)* ")"
 returned_capture_group = signed_digits | name_ref
 # `subroutine_target` per-branch typed `{kind:<form>, ...}`.
