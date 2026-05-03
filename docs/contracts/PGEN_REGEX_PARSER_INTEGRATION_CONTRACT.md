@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.63`
+  - `1.1.64`
 - Parser release version:
-  - `1.1.61`
+  - `1.1.62`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,30 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.62 / Contract 1.1.64 Highlights — slice 32: define_condition / version_condition / recursion_condition typed (3 of 9 condition Or-alternatives now typed)
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — types 3 of the 9 condition Or-alternatives that surface inside `conditional.condition`.
+- **Rules changed:**
+  - `define_condition = "DEFINE" -> {kind:"define"}` — disambiguates from a `name`/`name_ref` string condition that happens to match `"DEFINE"` (rare but semantically distinct).
+  - `version_condition = "VERSION" version_operator version_number -> {kind:"version", operator:$2, number:$3}`. `operator` is `">="` or `"="`; `number` is the raw `version_number` shape (`digits ("." digits)?` — major.minor pair).
+  - `recursion_condition` per-branch:
+    - `"R" digits? -> {kind:"recursion", group:$2}` — `group` is `[]` (`(?(R)...)` no group ref) or typed int (`(?(R3)...)` numbered ref).
+    - `"R&" name -> {kind:"recursion_named", name:$2}` — named recursion ref.
+- **AST shape change (visible inside `conditional.condition`):**
+  - `(?(DEFINE)foo)` → `condition:{kind:"define"}`. Was bare string `"DEFINE"`.
+  - `(?(VERSION>=10.0)foo)` → `condition:{kind:"version", operator:">=", number:[10, [".", 0]]}`. Was 3-element raw seq.
+  - `(?(R)bar)` → `condition:{kind:"recursion", group:[]}`. Was `["R", []]`.
+  - `(?(R3)baz)` → `condition:{kind:"recursion", group:3}` (typed int from digits @transform).
+  - `(?(R&name)abc)` → `condition:{kind:"recursion_named", name:"name"}`.
+- **6 of 9 condition Or-alternatives now disambiguated.** The remaining 6 (`condition_callout_assertion`, `condition_assertion`, `name_ref`, `name`, `signed_digits`, `digits`) are reused outside the condition context and weren't wrapped in `{kind: ...}` to avoid changing their shape across all callers. Consumer dispatches by inspecting condition shape:
+  - Object with `kind`: typed condition (define / version / recursion / recursion_named). 
+  - Object with `sign`/`value`: `signed_digits` (numeric with sign).
+  - Number: `digits` (typed int).
+  - String: `name`/`name_ref` (named ref). NOTE — `name` matching `"DEFINE"` is now disambiguated from `define_condition` because the latter wraps as `{kind:"define"}`.
+  - Other: `condition_callout_assertion` / `condition_assertion` (not yet typed; raw shape).
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.61 / Contract 1.1.63 Highlights — slice 31: modifier_spec typed
 

@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 32/N: define_condition / version_condition / recursion_condition typed (3 of 9 condition Or-alternatives now typed)
+
+### What landed
+
+```ebnf
+define_condition  = "DEFINE"                                          -> {kind: "define"}
+version_condition = "VERSION" version_operator version_number         -> {kind: "version", operator: $2, number: $3}
+recursion_condition = "R" digits?                                     -> {kind: "recursion", group: $2}
+                    | "R&" name                                       -> {kind: "recursion_named", name: $2}
+```
+
+4 annotations across 3 condition Or-alternatives.
+
+### Empirical AST shape (visible inside `conditional.condition`)
+
+| Source | After |
+|---|---|
+| `(?(DEFINE)foo)` | `condition:{kind:"define"}` |
+| `(?(VERSION>=10.0)foo)` | `condition:{kind:"version", operator:">=", number:[10, [".", 0]]}` |
+| `(?(R)bar)` | `condition:{kind:"recursion", group:[]}` |
+| `(?(R3)baz)` | `condition:{kind:"recursion", group:3}` |
+| `(?(R&name)abc)` | `condition:{kind:"recursion_named", name:"name"}` |
+
+### Why these 3 (and not all 9)
+
+The other 6 condition Or-alternatives (`condition_callout_assertion`, `condition_assertion`, `name_ref`, `name`, `signed_digits`, `digits`) are reused outside the condition context. Wrapping them in `{kind: ...}` would change their shape across all callers (e.g., signed_digits inside subroutine_call, digits inside backreference, etc.). Slice 32 deliberately limits scope to the 3 condition-specific rules.
+
+Consumer dispatch on `condition`:
+- Object with `kind`: typed condition (define / version / recursion / recursion_named).
+- Object with `sign`/`value`: `signed_digits` (numeric with sign).
+- Number: `digits` (typed int).
+- String: `name`/`name_ref` — now disambiguated from `(?(DEFINE)...)`.
+- Other: `condition_callout_assertion` / `condition_assertion` (raw).
+
+### `define_condition` disambiguation
+
+Pre-slice-32, `(?(DEFINE)...)` produced `condition:"DEFINE"` — a string. But `(?(<name>)...)` ALSO produces `condition:"name"` — a string. Consumer needed to special-case the `"DEFINE"` literal to distinguish. With `{kind:"define"}` wrapping, the two forms have distinct shapes and dispatch is unambiguous.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 4 new manifest entries inserted at alphabetical slots (define_condition between counted_quantifier_body and directive_verb; recursion_condition ×2 between quoted_run_inner_piece and regex; version_condition after unicode_escape).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 5 condition forms — all typed correctly.
+
+### Contract bump
+
+Parser release `1.1.61` → `1.1.62`. Contract `1.1.63` → `1.1.64`. New "Release 1.1.62 / Contract 1.1.64 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.62 / 1.1.64 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.36.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 4 new entries.
+
+### Sub-rule typing campaign progress
+Fourth slice. `conditional.condition` now disambiguated for the 3 condition-specific Or-alternatives. The 6 reused-outside-condition rules left raw to preserve their existing shape across all callers.
+
 ## 2026-05-03 - regex.ebnf slice 31/N: modifier_spec typed
 
 ### What landed

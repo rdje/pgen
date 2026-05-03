@@ -1,4 +1,63 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 32/N — define_condition / version_condition / recursion_condition typed
+
+### What landed
+
+```ebnf
+define_condition  = "DEFINE"                                          -> {kind: "define"}
+version_condition = "VERSION" version_operator version_number         -> {kind: "version", operator: $2, number: $3}
+recursion_condition = "R" digits?                                     -> {kind: "recursion", group: $2}
+                    | "R&" name                                       -> {kind: "recursion_named", name: $2}
+```
+
+4 annotations across 3 condition Or-alternatives.
+
+### Scoping decision: don't wrap reused-outside-condition rules
+
+`condition` is an Or-of-9. Three of the alternatives are condition-specific (`define_condition`, `version_condition`, `recursion_condition`). Six are reused outside the condition context (`condition_callout_assertion`, `condition_assertion` — used inside `condition_callout_assertion`; `name_ref` — inside `backreference`; `name` — inside `named_group` etc.; `signed_digits` — inside `subroutine_target`, etc.; `digits` — inside `digits` references all over).
+
+Wrapping the reused 6 in `{kind: ...}` would break their shape across all callers. Slice 32 deliberately limits scope to the 3 condition-specific rules — giving them `{kind: ...}` markers without affecting callers elsewhere.
+
+Consumer dispatch on `condition` becomes:
+- Object with `kind`: typed condition (define / version / recursion / recursion_named).
+- Object with `sign`/`value`: signed_digits.
+- Number: digits typed int.
+- String: name/name_ref. (Now disambiguated from `(?(DEFINE)...)` because the latter wraps as `{kind:"define"}`.)
+- Other (raw shape): condition_callout_assertion / condition_assertion (5-element / 3-element raw seqs).
+
+Mixed dispatch but unambiguous.
+
+### `define_condition` disambiguation matters
+
+Pre-slice-32, `(?(DEFINE)...)` produced `condition:"DEFINE"` — a string. But `(?(<name>)...)` ALSO produces `condition:"name"` — a string. Without the `define_condition` typing, consumer needed to special-case the literal `"DEFINE"` string to distinguish — fragile because there's no rule preventing a captured group named `"DEFINE"`. Wrapping disambiguates structurally.
+
+### Empirical
+- `(?(DEFINE)foo)` → `condition:{kind:"define"}`.
+- `(?(VERSION>=10.0)foo)` → `condition:{kind:"version", operator:">=", number:[10, [".", 0]]}`.
+- `(?(R)bar)` → `condition:{kind:"recursion", group:[]}`.
+- `(?(R3)baz)` → `condition:{kind:"recursion", group:3}`.
+- `(?(R&name)abc)` → `condition:{kind:"recursion_named", name:"name"}`.
+
+### `version_number` shape
+
+`version_number = digits ("." digits)?`. The optional `("." digits)?` parens-grouped pair is preserved — `version_number:[10, [".", 0]]` for `10.0`. Could be flattened to `[10, 0]` or `{major:10, minor:0}` with additional sub-rule typing — separate slice.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 4 new manifest entries inserted at alphabetical slots (define_condition between counted_quantifier_body and directive_verb; recursion_condition ×2 between quoted_run_inner_piece and regex; version_condition after unicode_escape — last entry alphabetically).
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.61` → `1.1.62`. Contract `1.1.63` → `1.1.64`.
+- New "Release 1.1.62 / Contract 1.1.64 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.36.0), `json-carrier.md` (4 new entries). No examples chapter changes — conditionals not in any current examples chapter.
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Fourth slice (after slice 29's char_class.body, slice 30's subroutine_target, slice 31's modifier_spec).
+- `conditional.condition` now disambiguated for the 3 condition-specific Or-alternatives.
+- Remaining sub-rule typing concerns: condition_callout_assertion / condition_assertion (5-element / 3-element raw inside conditional.condition), modifier_seq/group/item full typing (would deliver `{set, unset}` shape), callout_arg / callout_string (8 quote-style payloads), directive_body / directive_named / directive_mark_shorthand, extended_class_content set-op grammar, returned_capture_group_list / returned_capture_subroutine, class_body Quantified-of-items flattening, version_number `{major, minor}` typing.
+
 ## 2026-05-03 - regex.ebnf slice 31/N — modifier_spec typed
 
 ### What landed

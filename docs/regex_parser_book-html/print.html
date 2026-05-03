@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f543d447.js";
+            window.path_to_searchindex_js = "searchindex-32f85807.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -956,6 +956,10 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>subroutine_target</code> (branch 3, signed_digits)</td><td><code>-&gt; {kind:"numeric", value:$1.value, sign:$1.sign}</code></td><td>Inlines signed_digits’ typed <code>{sign, value}</code> shape via field-access (slice 13).</td></tr>
 <tr><td><code>modifier_spec</code> (branch 0, <code>(?^...)</code>)</td><td><code>-&gt; {reset:true, seq:$2}</code></td><td>Object. <code>reset:true</code> distinguishes the reset-all-flags form. <code>seq</code> is raw modifier_seq shape.</td></tr>
 <tr><td><code>modifier_spec</code> (branch 1, plain)</td><td><code>-&gt; {reset:false, seq:$1}</code></td><td>Object. <code>reset:false</code> for the plain form.</td></tr>
+<tr><td><code>define_condition</code></td><td><code>-&gt; {kind:"define"}</code></td><td>Object. Disambiguates <code>(?(DEFINE)...)</code> from a name-condition string <code>"DEFINE"</code>.</td></tr>
+<tr><td><code>version_condition</code></td><td><code>-&gt; {kind:"version", operator:$2, number:$3}</code></td><td>Object. <code>operator</code> is <code>"&gt;="</code>/<code>"="</code> literal; <code>number</code> is raw <code>version_number</code> shape (<code>digits ("." digits)?</code>).</td></tr>
+<tr><td><code>recursion_condition</code> (branch 0, <code>R</code>/<code>R&lt;digits&gt;</code>)</td><td><code>-&gt; {kind:"recursion", group:$2}</code></td><td>Object. <code>group</code> is <code>[]</code> (no number) or typed int (numbered ref).</td></tr>
+<tr><td><code>recursion_condition</code> (branch 1, <code>R&amp;name</code>)</td><td><code>-&gt; {kind:"recursion_named", name:$2}</code></td><td>Object. <code>name</code> is the named-recursion reference.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>
@@ -4446,6 +4450,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <tr><td>0.18.0</td><td>1.1.44</td><td><strong>Breaking but correct:</strong> atom subtree slice 14 (escape subtree starts: simple/single_byte/control). <code>escape</code> rule annotated <code>-&gt; $2</code> (transparent passthrough). <code>single_byte_escape -&gt; {type:"escape", kind:"single_byte"}</code>, <code>simple_escape -&gt; {type:"escape", kind:"shorthand", char:$1}</code>, <code>control_escape -&gt; {type:"escape", kind:"control", char:$2}</code>. PCRE2 <code>\d</code>/<code>\w</code>/<code>\s</code>/<code>\.</code>/<code>\\</code> (shorthand), <code>\C</code> (single_byte), <code>\cA</code>/<code>\cz</code> (control) atoms now emit typed <code>{type, kind, char?}</code> objects. The other 4 escape_unit branches (hex/unicode/octal/property) still emit raw shapes — they pass through <code>escape -&gt; $2</code> un-typed; follow-up slices will annotate each.</td></tr>
 <tr><td>0.19.0</td><td>1.1.45</td><td><strong>Breaking but correct:</strong> atom subtree slice 15 (escape subtree continues: hex/unicode). <code>hex_escape</code> annotated per-branch <code>-&gt; {type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code>. <code>unicode_escape</code> annotated <code>-&gt; {type:"escape", kind:"unicode", digits:&lt;hex-string&gt;}</code>. New <code>hex_escape_short_payload</code> regex literal <code>/([0-9A-Fa-f]{1,2})/</code> for the short <code>\xNN</code> form. <code>hex_digits</code> rewritten from <code>hex_digit+</code> chain to a regex literal <code>/([0-9A-Fa-f]+)/</code>. PCRE2 <code>\xF</code>/<code>\xFF</code>/<code>\x{1F}</code>/<code>\x{1F600}</code> (hex) and <code>\u{NNNN}</code> (unicode) atoms emit typed <code>{type, kind, digits}</code> objects. <code>digits</code> is the matched hex string; consumers parse to int via <code>usize::from_str_radix(digits, 16)</code>. Int-decoding via the rule’s <code>@transform</code> would require extending the transform machinery to support <code>from_str_radix</code>-style; saved as a separate codegen-feature slice.</td></tr>
 <tr><td>0.20.0</td><td>1.1.46</td><td><strong>Breaking but correct:</strong> atom subtree slice 16 (escape subtree continues: octal). <code>octal_escape</code> annotated per-branch <code>-&gt; {type:"escape", kind:"octal", digits:&lt;octal-string&gt;}</code>. New <code>octal_escape_short_payload</code> regex literal <code>/([0-7]{1,3})/</code> for the bare 1-3-digit form. <code>octal_digits</code> rewritten from <code>octal_digit+</code> chain to a regex literal <code>/([0-7]+)/</code>. Braced <code>\o{NNN...}</code> (atom) and bare <code>\NNN</code> (in classes via <code>class_range_escape_unit</code>) emit typed <code>{type, kind, digits}</code> objects. <code>digits</code> is the matched octal string; consumers parse with <code>usize::from_str_radix(digits, 8)</code>. Bare <code>\NNN</code> at atom-level remains parsed as <code>backreference</code> (numeric kind) under the existing PEG ordering — pre-existing, not changed by this slice; PEG can’t express PCRE2’s contextual backref-vs-octal disambiguation directly. 6/7 escape_unit branches now typed; only <code>property_escape</code> remains.</td></tr>
+<tr><td>0.36.0</td><td>1.1.62</td><td><strong>Breaking but correct:</strong> sub-rule typing slice 32 — define_condition / version_condition / recursion_condition typed (3 of 9 condition Or-alternatives). 4 annotations: <code>define_condition -&gt; {kind:"define"}</code> (disambiguates from name string); <code>version_condition -&gt; {kind:"version", operator, number}</code>; <code>recursion_condition</code> per-branch <code>-&gt; {kind:"recursion", group}</code> / <code>{kind:"recursion_named", name}</code>. The remaining 6 condition Or-alternatives (condition_callout_assertion, condition_assertion, name_ref, name, signed_digits, digits) are reused outside the condition context and were not wrapped to avoid changing their shape across all callers.</td></tr>
 <tr><td>0.35.0</td><td>1.1.61</td><td><strong>Breaking but correct:</strong> sub-rule typing slice 31 — <code>modifier_spec</code> typed. 2 per-branch annotations: <code>{reset:true, seq:$2}</code> for the <code>(?^...)</code> form; <code>{reset:false, seq:$1}</code> for the plain form. <code>(?i)</code> now emits <code>spec:{reset:false, seq:[["i"], []]}</code>; <code>(?^ix)</code> → <code>spec:{reset:true, seq:[["i", ["x", []]], []]}</code>. <code>seq</code> carries raw modifier_seq shape; per-rule typing of seq/group/item is a separate slice.</td></tr>
 <tr><td>0.34.0</td><td>1.1.60</td><td><strong>Breaking but correct:</strong> sub-rule typing slice 30 — <code>subroutine_target</code> typed. 4 per-branch annotations: <code>kind:"named"</code> / <code>"python_named"</code> / <code>"recursion"</code> / <code>"numeric"</code>. The numeric form uses field-access (<code>$1.value</code>, <code>$1.sign</code>) to inline signed_digits’ typed shape. <code>subroutine_call.target</code> now end-to-end typed. <code>(?&amp;name)</code> → <code>target:{kind:"named", name:"name"}</code>; <code>(?R)</code> → <code>target:{kind:"recursion"}</code>; <code>(?+1)</code> → <code>target:{kind:"numeric", sign:"+", value:1}</code>.</td></tr>
 <tr><td>0.33.0</td><td>1.1.59</td><td><strong>Breaking but correct:</strong> sub-rule typing slice 29 — class_range / quoted_class_literal / class_range_escape typed. <code>class_range -&gt; {type:"class_range", start:$1, end:$5}</code> (drops the rare <code>class_zero_width*</code> slots from the typed shape; consumers needing them fall back to raw). <code>quoted_class_literal -&gt; {type:"class_quoted_literal", body:$2}</code> (parallels <code>quoted_literal</code> slice 18). <code>class_range_escape -&gt; $2</code> (transparent passthrough; mirrors outer <code>escape -&gt; $2</code> from slice 14). Char_class body shapes now typed end-to-end inside <code>char_class.body</code>. First sub-rule typing slice — atom subtree stays 25/25 at outer level; this slice cleans up the most-visible inner shapes.</td></tr>
@@ -4582,6 +4587,37 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1162--contract-1164--slice-32-define_condition--version_condition--recursion_condition-typed"><a class="header" href="#1162--contract-1164--slice-32-define_condition--version_condition--recursion_condition-typed">1.1.62 / Contract 1.1.64 — Slice 32: define_condition / version_condition / recursion_condition typed</a></h3>
+<p><strong>What changed:</strong> 4 annotations across 3 condition Or-alternatives — <code>define_condition</code>, <code>version_condition</code>, and <code>recursion_condition</code> (2 branches).</p>
+<pre><code class="language-ebnf">define_condition  = "DEFINE"                                          -&gt; {kind: "define"}
+version_condition = "VERSION" version_operator version_number         -&gt; {kind: "version", operator: $2, number: $3}
+recursion_condition = "R" digits?                                     -&gt; {kind: "recursion", group: $2}
+                    | "R&amp;" name                                       -&gt; {kind: "recursion_named", name: $2}
+</code></pre>
+<p><strong>Before / after (visible inside <code>conditional.condition</code>):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 27)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?(DEFINE)foo)</code></td><td><code>condition:"DEFINE"</code> (string — ambiguous w/ name)</td><td><code>condition:{kind:"define"}</code></td></tr>
+<tr><td><code>(?(VERSION&gt;=10.0)foo)</code></td><td>3-element raw seq</td><td><code>condition:{kind:"version", operator:"&gt;=", number:[10, [".", 0]]}</code></td></tr>
+<tr><td><code>(?(R)bar)</code></td><td><code>condition:["R", []]</code></td><td><code>condition:{kind:"recursion", group:[]}</code></td></tr>
+<tr><td><code>(?(R3)baz)</code></td><td><code>condition:["R", 3]</code></td><td><code>condition:{kind:"recursion", group:3}</code></td></tr>
+<tr><td><code>(?(R&amp;name)abc)</code></td><td><code>condition:["R&amp;", "name"]</code></td><td><code>condition:{kind:"recursion_named", name:"name"}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>6 of 9 condition Or-alternatives now disambiguated.</strong> The remaining 6 (<code>condition_callout_assertion</code>, <code>condition_assertion</code>, <code>name_ref</code>, <code>name</code>, <code>signed_digits</code>, <code>digits</code>) are reused outside the condition context and weren’t wrapped to avoid changing their shape across all callers. Consumer dispatches by:</p>
+<ul>
+<li>Object with <code>kind</code>: typed condition.</li>
+<li>Object with <code>sign</code>/<code>value</code>: <code>signed_digits</code>.</li>
+<li>Number: <code>digits</code>.</li>
+<li>String: <code>name</code>/<code>name_ref</code>. (Now disambiguated from <code>(?(DEFINE)...)</code>.)</li>
+<li>Other: <code>condition_callout_assertion</code> / <code>condition_assertion</code> (raw, not yet typed).</li>
+</ul>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.62 / Contract 1.1.64 Highlights”.</p>
 <h3 id="1161--contract-1163--slice-31-modifier_spec-typed"><a class="header" href="#1161--contract-1163--slice-31-modifier_spec-typed">1.1.61 / Contract 1.1.63 — Slice 31: modifier_spec typed</a></h3>
 <p><strong>What changed:</strong> <code>modifier_spec</code> per-branch typed <code>{reset:&lt;bool&gt;, seq:&lt;raw&gt;}</code>.</p>
 <pre><code class="language-ebnf">modifier_spec = "^" modifier_seq?    -&gt; {reset: true, seq: $2}

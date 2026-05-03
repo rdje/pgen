@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.62 / Contract 1.1.64 — Slice 32: define_condition / version_condition / recursion_condition typed
+
+**What changed:** 4 annotations across 3 condition Or-alternatives — `define_condition`, `version_condition`, and `recursion_condition` (2 branches).
+
+```ebnf
+define_condition  = "DEFINE"                                          -> {kind: "define"}
+version_condition = "VERSION" version_operator version_number         -> {kind: "version", operator: $2, number: $3}
+recursion_condition = "R" digits?                                     -> {kind: "recursion", group: $2}
+                    | "R&" name                                       -> {kind: "recursion_named", name: $2}
+```
+
+**Before / after (visible inside `conditional.condition`):**
+
+| Source | Before (slice 27) | After |
+|---|---|---|
+| `(?(DEFINE)foo)` | `condition:"DEFINE"` (string — ambiguous w/ name) | `condition:{kind:"define"}` |
+| `(?(VERSION>=10.0)foo)` | 3-element raw seq | `condition:{kind:"version", operator:">=", number:[10, [".", 0]]}` |
+| `(?(R)bar)` | `condition:["R", []]` | `condition:{kind:"recursion", group:[]}` |
+| `(?(R3)baz)` | `condition:["R", 3]` | `condition:{kind:"recursion", group:3}` |
+| `(?(R&name)abc)` | `condition:["R&", "name"]` | `condition:{kind:"recursion_named", name:"name"}` |
+
+**6 of 9 condition Or-alternatives now disambiguated.** The remaining 6 (`condition_callout_assertion`, `condition_assertion`, `name_ref`, `name`, `signed_digits`, `digits`) are reused outside the condition context and weren't wrapped to avoid changing their shape across all callers. Consumer dispatches by:
+- Object with `kind`: typed condition.
+- Object with `sign`/`value`: `signed_digits`.
+- Number: `digits`.
+- String: `name`/`name_ref`. (Now disambiguated from `(?(DEFINE)...)`.)
+- Other: `condition_callout_assertion` / `condition_assertion` (raw, not yet typed).
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.62 / Contract 1.1.64 Highlights".
+
 ### 1.1.61 / Contract 1.1.63 — Slice 31: modifier_spec typed
 
 **What changed:** `modifier_spec` per-branch typed `{reset:<bool>, seq:<raw>}`.

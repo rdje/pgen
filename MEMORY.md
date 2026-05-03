@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-31-sub-rule-typing-modifier-spec)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-32-sub-rule-typing-condition-define-version-recursion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 32 of N — define_condition / version_condition / recursion_condition typed (3 of 9 condition Or-alternatives now disambiguated).** Fourth sub-rule typing slice. 4 annotations: `define_condition -> {kind:"define"}`; `version_condition -> {kind:"version", operator, number}`; `recursion_condition` per-branch `-> {kind:"recursion", group}` / `{kind:"recursion_named", name}`. Empirical: `(?(DEFINE)foo)` → `{kind:"define"}`; `(?(R3)baz)` → `{kind:"recursion", group:3}`; `(?(R&name)abc)` → `{kind:"recursion_named", name:"name"}`. **Scoping decision (saved as design rationale):** the 6 reused-outside-condition Or-alternatives (condition_callout_assertion, condition_assertion, name_ref, name, signed_digits, digits) NOT wrapped — would break their shape across all callers. Slice 32 deliberately limits scope to condition-specific rules. **`(?(DEFINE)...)` now disambiguated** from `(?(<name>)...)` — both used to produce string conditions; now DEFINE wraps as `{kind:"define"}`. Contract bump: parser release `1.1.61` → `1.1.62`, contract `1.1.63` → `1.1.64`. Regex AST schema version stays `1`. 495/0 tests. 4 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.36.0), `json-carrier.md` (4 new entries).
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 31 of N — `modifier_spec` typed.** Third sub-rule typing slice. 2 per-branch annotations: `{reset:true, seq:$2}` for `(?^...)` form (resets all flags first); `{reset:false, seq:$1}` for plain form. Empirical: `(?i)` → `spec:{reset:false, seq:[["i"], []]}`; `(?^i)` → `spec:{reset:true, seq:[["i"], []]}`. **`reset` boolean distinguishes the reset-all-flags form** from plain toggle. `seq` carries raw modifier_seq shape; per-rule typing of seq/group/item (which would deliver `{set:[...], unset:[...]}`) is a separate slice. Contract bump: parser release `1.1.60` → `1.1.61`, contract `1.1.62` → `1.1.63`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.35.0), `json-carrier.md` (2 new entries).
 
 ### Earlier session note (kept for context):

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f543d447.js";
+            window.path_to_searchindex_js = "searchindex-32f85807.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -302,6 +302,10 @@
 <tr><td><code>subroutine_target</code> (branch 3, signed_digits)</td><td><code>-&gt; {kind:"numeric", value:$1.value, sign:$1.sign}</code></td><td>Inlines signed_digits’ typed <code>{sign, value}</code> shape via field-access (slice 13).</td></tr>
 <tr><td><code>modifier_spec</code> (branch 0, <code>(?^...)</code>)</td><td><code>-&gt; {reset:true, seq:$2}</code></td><td>Object. <code>reset:true</code> distinguishes the reset-all-flags form. <code>seq</code> is raw modifier_seq shape.</td></tr>
 <tr><td><code>modifier_spec</code> (branch 1, plain)</td><td><code>-&gt; {reset:false, seq:$1}</code></td><td>Object. <code>reset:false</code> for the plain form.</td></tr>
+<tr><td><code>define_condition</code></td><td><code>-&gt; {kind:"define"}</code></td><td>Object. Disambiguates <code>(?(DEFINE)...)</code> from a name-condition string <code>"DEFINE"</code>.</td></tr>
+<tr><td><code>version_condition</code></td><td><code>-&gt; {kind:"version", operator:$2, number:$3}</code></td><td>Object. <code>operator</code> is <code>"&gt;="</code>/<code>"="</code> literal; <code>number</code> is raw <code>version_number</code> shape (<code>digits ("." digits)?</code>).</td></tr>
+<tr><td><code>recursion_condition</code> (branch 0, <code>R</code>/<code>R&lt;digits&gt;</code>)</td><td><code>-&gt; {kind:"recursion", group:$2}</code></td><td>Object. <code>group</code> is <code>[]</code> (no number) or typed int (numbered ref).</td></tr>
+<tr><td><code>recursion_condition</code> (branch 1, <code>R&amp;name</code>)</td><td><code>-&gt; {kind:"recursion_named", name:$2}</code></td><td>Object. <code>name</code> is the named-recursion reference.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

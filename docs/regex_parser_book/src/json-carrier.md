@@ -121,6 +121,10 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `subroutine_target` (branch 3, signed_digits) | `-> {kind:"numeric", value:$1.value, sign:$1.sign}` | Inlines signed_digits' typed `{sign, value}` shape via field-access (slice 13). |
 | `modifier_spec` (branch 0, `(?^...)`) | `-> {reset:true, seq:$2}` | Object. `reset:true` distinguishes the reset-all-flags form. `seq` is raw modifier_seq shape. |
 | `modifier_spec` (branch 1, plain) | `-> {reset:false, seq:$1}` | Object. `reset:false` for the plain form. |
+| `define_condition` | `-> {kind:"define"}` | Object. Disambiguates `(?(DEFINE)...)` from a name-condition string `"DEFINE"`. |
+| `version_condition` | `-> {kind:"version", operator:$2, number:$3}` | Object. `operator` is `">="`/`"="` literal; `number` is raw `version_number` shape (`digits ("." digits)?`). |
+| `recursion_condition` (branch 0, `R`/`R<digits>`) | `-> {kind:"recursion", group:$2}` | Object. `group` is `[]` (no number) or typed int (numbered ref). |
+| `recursion_condition` (branch 1, `R&name`) | `-> {kind:"recursion_named", name:$2}` | Object. `name` is the named-recursion reference. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

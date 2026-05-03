@@ -301,6 +301,12 @@
         "normalized_text": "{min: 0, max: $3}"
       },
       {
+        "rule": "define_condition",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"define\"}"
+      },
+      {
         "rule": "directive_verb",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -577,6 +583,18 @@
         "normalized_text": "{type: \"piece\", atom: $1, quantifier: []}"
       },
       {
+        "rule": "recursion_condition",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"recursion\", group: $2}"
+      },
+      {
+        "rule": "recursion_condition",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"recursion_named\", name: $2}"
+      },
+      {
         "rule": "regex",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -683,6 +701,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"escape\", kind: \"unicode\", digits: $2}"
+      },
+      {
+        "rule": "version_condition",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"version\", operator: $2, number: $3}"
       }
     ]
   }

@@ -680,8 +680,16 @@ yes_branch        = conditional_branch
 no_branch         = conditional_branch
 conditional_branch = piece*                                                -> [$1**]
 condition         = define_condition | version_condition | condition_callout_assertion | condition_assertion | name_ref | recursion_condition | name | signed_digits | digits
-define_condition  = "DEFINE"
-version_condition = "VERSION" version_operator version_number
+# `define_condition` typed to disambiguate from a `name`/`name_ref`
+# string condition that happens to be `"DEFINE"` (rare, but
+# semantically distinct).
+define_condition  = "DEFINE"                                                  -> {kind: "define"}
+# `version_condition` typed `{kind:"version", operator, number}`.
+# `operator` is the matched ">=" or "=" string; `number` carries
+# the raw `version_number` shape (`digits ("." digits)?` —
+# major.minor pair). Consumer reads `condition.operator` and
+# `condition.number` directly when `condition.kind == "version"`.
+version_condition = "VERSION" version_operator version_number                 -> {kind: "version", operator: $2, number: $3}
 version_operator  = ">=" | "="
 version_number    = digits ("." digits)?
 condition_callout_assertion = condition_callout "(" condition_assertion
@@ -692,8 +700,12 @@ condition_assertion = "?=" pattern
                     | "?<!" pattern
                     | alpha_condition_assertion
 alpha_condition_assertion = "*" atomic_alpha_lookaround_name ":" pattern?
-recursion_condition = "R" digits?
-                    | "R&" name
+# `recursion_condition` per-branch typed `{kind:"recursion", ...}`.
+# `(?(R)...)` matches branch 0 with `group:[]` (un-matched optional).
+# `(?(R3)...)` matches branch 0 with `group:3` (typed int). `(?(R&name)...)`
+# matches branch 1 with `name:"name"` (clean string from slice 11).
+recursion_condition = "R" digits?                                             -> {kind: "recursion", group: $2}
+                    | "R&" name                                               -> {kind: "recursion_named", name: $2}
 
 # PCRE2 verbs and start-of-pattern directives
 directive_verb    = "(*" directive_body ")"                        -> {type: "atom", kind: "directive_verb", body: $2}
