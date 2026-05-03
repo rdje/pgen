@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-33-sub-rule-typing-callout-string-8-quote-forms)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-34-sub-rule-typing-directive-body)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 34 of N — directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite.** Sixth sub-rule typing slice. 2 annotations + 1 regex-literal rewrite. `directive_named -> {kind:"named", name, payload}`; `directive_mark_shorthand -> {kind:"mark_shorthand", payload}`. `directive_name` rewritten from chain to `/([A-Za-z][A-Za-z0-9_\-]*)/`. Empirical: `(*MARK:foo)` → `body:{kind:"named", name:"MARK", payload:[":", ["f","o","o"]]}`; `(*COMMIT)` → `body:{kind:"named", name:"COMMIT", payload:[]}`; `(*:bar)` → `body:{kind:"mark_shorthand", payload:["b","a","r"]}`. **`directive_verb.body` now end-to-end typed.** Continues the multi-char-chain → regex-literal pattern from slices 11/15/16/17/20/29. `payload` raw — separate slice. Contract bump: parser release `1.1.63` → `1.1.64`, contract `1.1.65` → `1.1.66`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green.
+
+### Earlier session note (kept for context):
 - **PGEN-RGX-0079 logged (queued behind return-annotations campaign; fix BEFORE 0078).** RGX filed report 2026-05-03 — invalid `\o{...}` with non-octal brace content (e.g. `\o{1239}` w/ the `9`, `\o{8}`, `\o{12abc}`, `\o{12 34}`, `\o{}`) silently misparses as `\o` simple_escape + `{NNN}` counted_quantifier instead of being rejected. Residual surface area of PGEN-RGX-0006 (closed 1.1.3); 0006's fix only handled valid-octal-digit content. PCRE2 rejects with "error 164: non-octal character in \o{}". **User-directed sequencing (2026-05-03):** continue regex.ebnf return-annotations campaign to full completion FIRST; THEN fix 0079 BEFORE 0078. Fix direction: commit/cut after `\o{` so parser must consume octal digits up to `}`; mirror `\x{...}` braced hex (worth auditing — `\x{12g}` should likewise be rejected). Likely needs a grammar-level commit/cut mechanism not currently in regex.ebnf — may require small EBNF feature extension. Logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` as `REGEX-0079`. No release/contract bump.
 
 ### Earlier session note (kept for context):

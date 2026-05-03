@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 34/N — directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite
+
+Sixth sub-rule typing slice. 2 annotations + 1 regex-literal rewrite.
+
+### What landed
+
+```ebnf
+directive_named          = directive_name directive_payload_suffix?  -> {kind: "named", name: $1, payload: $2}
+directive_mark_shorthand = ":" directive_payload_simple?             -> {kind: "mark_shorthand", payload: $2}
+directive_name           = /([A-Za-z][A-Za-z0-9_\-]*)/
+```
+
+### `directive_name` regex-literal rewrite
+
+`directive_name` was `directive_name_start directive_name_continue*` (multi-element chain). Rewrote as `/([A-Za-z][A-Za-z0-9_\-]*)/` regex literal — consistent with the multi-char-chain → regex-literal pattern established in slices 11 (name), 15 (hex_digits), 16 (octal_digits), 17 (prop_name), 20 (comment_text), 29 (none — class-typing). `name` now surfaces as a clean string Terminal in `directive_named.name`.
+
+### `payload` deferred
+
+`directive_payload_suffix = ":" directive_payload_simple? | "=" directive_payload_simple?` — 2-branch Or with separator + payload. `directive_payload_simple = directive_payload_char*`. Per-rule typing would deliver something like `{separator:":", value:"foo"}` or just a flat string. Future slice.
+
+### Empirical
+- `(*MARK:foo)` → `body:{kind:"named", name:"MARK", payload:[":", ["f","o","o"]]}`.
+- `(*COMMIT)` → `body:{kind:"named", name:"COMMIT", payload:[]}`.
+- `(*:bar)` → `body:{kind:"mark_shorthand", payload:["b","a","r"]}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 2 new manifest entries inserted between define_condition and directive_verb.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.63` → `1.1.64`. Contract `1.1.65` → `1.1.66`.
+- New "Release 1.1.64 / Contract 1.1.66 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.38.0), `json-carrier.md` (3 new entries).
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Sixth slice (after 29/30/31/32/33).
+- `directive_verb.body` now end-to-end typed.
+- Remaining sub-rule typing concerns: condition_callout_assertion / condition_assertion (still raw), modifier_seq/group/item full typing, directive_payload_suffix / directive_payload_simple, extended_class_content set-op grammar, returned_capture_group_list / returned_capture_subroutine, class_body Quantified-of-items flattening, version_number `{major, minor}`.
+
 ## 2026-05-03 - regex.ebnf slice 33/N — callout_string typed (8 quote-form variants)
 
 ### What landed

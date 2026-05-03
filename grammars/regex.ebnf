@@ -719,16 +719,26 @@ recursion_condition = "R" digits?                                             ->
 
 # PCRE2 verbs and start-of-pattern directives
 directive_verb    = "(*" directive_body ")"                        -> {type: "atom", kind: "directive_verb", body: $2}
+# `directive_body` per-branch: `directive_named` produces
+# `{kind:"named", name, payload}`; `directive_mark_shorthand` (the
+# `(*:foo)` shortcut) produces `{kind:"mark_shorthand", payload}`.
+# `payload` is raw (sub-rule typing of directive_payload_suffix /
+# directive_payload_simple is a separate concern).
 directive_body    = directive_named | directive_mark_shorthand
-directive_named   = directive_name directive_payload_suffix?
-directive_mark_shorthand = ":" directive_payload_simple?
+directive_named   = directive_name directive_payload_suffix?      -> {kind: "named", name: $1, payload: $2}
+directive_mark_shorthand = ":" directive_payload_simple?          -> {kind: "mark_shorthand", payload: $2}
 directive_payload_suffix = ":" directive_payload_simple? | "=" directive_payload_simple?
 # PCRE2 default verb-name payloads run until the verb-closing ")".
 # Per-verb argument requirements such as MARK requiring a non-empty name are
 # downstream validation concerns for the stable regex_default parser profile.
 directive_payload_simple = directive_payload_char*
 directive_payload_char = /([^)])/
-directive_name    = directive_name_start directive_name_continue*
+# `directive_name` rewritten from `directive_name_start
+# directive_name_continue*` chain (multi-element) to a regex literal
+# that emits a clean string Terminal of the matched verb name.
+# Char-set mirrors the previous chain: leading letter, then letters/
+# digits/underscore/hyphen.
+directive_name    = /([A-Za-z][A-Za-z0-9_\-]*)/
 directive_name_start = letter
 directive_name_continue = directive_name_start | digit | '_' | '-'
 directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '^' | '_' | '{' | '|' | '}' | '~'

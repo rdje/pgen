@@ -133,6 +133,9 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `callout_hash_string` | `-> {quote:"hash", payload:$2}` | Same shape; `quote:"hash"`. |
 | `callout_dollar_string` | `-> {quote:"dollar", payload:$2}` | Same shape; `quote:"dollar"`. |
 | `callout_brace_string` | `-> {quote:"brace", payload:$2}` | Same shape; `quote:"brace"`. Asymmetric delimiters (`{` opening, `}` closing) — the `"brace"` label captures both. |
+| `directive_named` | `-> {kind:"named", name:$1, payload:$2}` | Object. `name` is a clean string (after slice 34's regex-literal rewrite of `directive_name`); `payload` is raw `directive_payload_suffix?` shape. |
+| `directive_mark_shorthand` | `-> {kind:"mark_shorthand", payload:$2}` | Object. `payload` is raw `directive_payload_simple?` shape. |
+| `directive_name` | regex literal `/([A-Za-z][A-Za-z0-9_\-]*)/` | Terminal of the matched verb name (was `directive_name_start directive_name_continue*` chain). |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

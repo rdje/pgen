@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8ae7f5b5.js";
+            window.path_to_searchindex_js = "searchindex-d88b1195.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,28 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1164--contract-1166--slice-34-directive_body--directive_named--directive_mark_shorthand-typed--directive_name-regex-literal-rewrite"><a class="header" href="#1164--contract-1166--slice-34-directive_body--directive_named--directive_mark_shorthand-typed--directive_name-regex-literal-rewrite">1.1.64 / Contract 1.1.66 — Slice 34: directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite</a></h3>
+<p><strong>What changed:</strong> <code>directive_body</code>’s 2 sub-rules typed; <code>directive_name</code> rewritten as regex literal for clean string output.</p>
+<pre><code class="language-ebnf">directive_named          = directive_name directive_payload_suffix?  -&gt; {kind: "named", name: $1, payload: $2}
+directive_mark_shorthand = ":" directive_payload_simple?             -&gt; {kind: "mark_shorthand", payload: $2}
+directive_name           = /([A-Za-z][A-Za-z0-9_\-]*)/  # was directive_name_start directive_name_continue*
+</code></pre>
+<p><strong>Before / after (visible inside <code>directive_verb.body</code>):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 24)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(*MARK:foo)</code></td><td><code>body:[["M", ["A","R","K"]], [":", [...]]]</code> (raw chain)</td><td><code>body:{kind:"named", name:"MARK", payload:[":", ["f","o","o"]]}</code></td></tr>
+<tr><td><code>(*COMMIT)</code></td><td>similar raw chain</td><td><code>body:{kind:"named", name:"COMMIT", payload:[]}</code></td></tr>
+<tr><td><code>(*:bar)</code></td><td>similar raw chain</td><td><code>body:{kind:"mark_shorthand", payload:["b","a","r"]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>name</code> is now a clean string</strong> (slice 34’s regex-literal rewrite — same pattern as <code>name</code>/<code>hex_digits</code>/<code>octal_digits</code>/<code>prop_name</code>/<code>comment_text</code> in earlier slices).</p>
+<p><strong><code>payload</code> carries raw shape.</strong> Per-rule typing of <code>directive_payload_suffix</code> / <code>directive_payload_simple</code> is a separate concern.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.64 / Contract 1.1.66 Highlights”.</p>
 <h3 id="1163--contract-1165--slice-33-callout_string-typed-8-quote-form-variants"><a class="header" href="#1163--contract-1165--slice-33-callout_string-typed-8-quote-form-variants">1.1.63 / Contract 1.1.65 — Slice 33: callout_string typed (8 quote-form variants)</a></h3>
 <p><strong>What changed:</strong> All 8 callout-string quote variants now emit typed <code>{quote:&lt;text-label&gt;, payload:&lt;string&gt;}</code> objects.</p>
 <pre><code class="language-ebnf">callout_backtick_string  = '`' callout_backtick_payload '`'    -&gt; {quote: "backtick", payload: $2}

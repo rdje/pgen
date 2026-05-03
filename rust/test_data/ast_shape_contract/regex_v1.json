@@ -355,6 +355,18 @@
         "normalized_text": "{kind: \"define\"}"
       },
       {
+        "rule": "directive_mark_shorthand",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"mark_shorthand\", payload: $2}"
+      },
+      {
+        "rule": "directive_named",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"named\", name: $1, payload: $2}"
+      },
+      {
         "rule": "directive_verb",
         "branch_index": 0,
         "annotation_type": "return_object",

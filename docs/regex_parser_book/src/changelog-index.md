@@ -23,6 +23,30 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.64 / Contract 1.1.66 — Slice 34: directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite
+
+**What changed:** `directive_body`'s 2 sub-rules typed; `directive_name` rewritten as regex literal for clean string output.
+
+```ebnf
+directive_named          = directive_name directive_payload_suffix?  -> {kind: "named", name: $1, payload: $2}
+directive_mark_shorthand = ":" directive_payload_simple?             -> {kind: "mark_shorthand", payload: $2}
+directive_name           = /([A-Za-z][A-Za-z0-9_\-]*)/  # was directive_name_start directive_name_continue*
+```
+
+**Before / after (visible inside `directive_verb.body`):**
+
+| Source | Before (slice 24) | After |
+|---|---|---|
+| `(*MARK:foo)` | `body:[["M", ["A","R","K"]], [":", [...]]]` (raw chain) | `body:{kind:"named", name:"MARK", payload:[":", ["f","o","o"]]}` |
+| `(*COMMIT)` | similar raw chain | `body:{kind:"named", name:"COMMIT", payload:[]}` |
+| `(*:bar)` | similar raw chain | `body:{kind:"mark_shorthand", payload:["b","a","r"]}` |
+
+**`name` is now a clean string** (slice 34's regex-literal rewrite — same pattern as `name`/`hex_digits`/`octal_digits`/`prop_name`/`comment_text` in earlier slices).
+
+**`payload` carries raw shape.** Per-rule typing of `directive_payload_suffix` / `directive_payload_simple` is a separate concern.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.64 / Contract 1.1.66 Highlights".
+
 ### 1.1.63 / Contract 1.1.65 — Slice 33: callout_string typed (8 quote-form variants)
 
 **What changed:** All 8 callout-string quote variants now emit typed `{quote:<text-label>, payload:<string>}` objects.

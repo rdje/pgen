@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 34/N: directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite
+
+### What landed
+
+```ebnf
+directive_named          = directive_name directive_payload_suffix?  -> {kind: "named", name: $1, payload: $2}
+directive_mark_shorthand = ":" directive_payload_simple?             -> {kind: "mark_shorthand", payload: $2}
+directive_name           = /([A-Za-z][A-Za-z0-9_\-]*)/  # was directive_name_start directive_name_continue*
+```
+
+3 grammar changes (2 annotations + 1 regex-literal rewrite).
+
+### Empirical AST shape (visible inside `directive_verb.body`)
+
+| Source | After |
+|---|---|
+| `(*MARK:foo)` | `body:{kind:"named", name:"MARK", payload:[":", ["f","o","o"]]}` |
+| `(*COMMIT)` | `body:{kind:"named", name:"COMMIT", payload:[]}` |
+| `(*ACCEPT)` | `body:{kind:"named", name:"ACCEPT", payload:[]}` |
+| `(*FAIL)` | `body:{kind:"named", name:"FAIL", payload:[]}` |
+| `(*:bar)` | `body:{kind:"mark_shorthand", payload:["b","a","r"]}` |
+
+### `directive_name` regex-literal rewrite
+
+Continues the multi-char-chain → regex-literal pattern from slices 11/15/16/17/20/29 (name, hex_digits, octal_digits, prop_name, comment_text, etc.). `name` now a clean string ("MARK", "COMMIT", etc.) instead of `["M", ["A","R","K"]]` 2-element chain.
+
+### `payload` raw
+
+`directive_payload_suffix` and `directive_payload_simple` carry raw shapes. Per-rule typing (would unify to `{separator:":", value:"foo"}` or similar) is a separate concern.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 2 new manifest entries (directive_mark_shorthand and directive_named between define_condition and directive_verb).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 4 directive forms — all typed correctly.
+
+### Contract bump
+
+Parser release `1.1.63` → `1.1.64`. Contract `1.1.65` → `1.1.66`. New "Release 1.1.64 / Contract 1.1.66 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.64 / 1.1.66 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.38.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 3 new entries.
+
+### Sub-rule typing campaign progress
+Sixth slice. `directive_verb.body` now end-to-end typed.
+
 ## 2026-05-03 - PGEN-RGX-0079 logged (queued behind return-annotations campaign; fix BEFORE 0078)
 
 RGX filed PGEN-RGX-0079 — invalid `\o{...}` (with non-octal brace content) silently misparses as `\o` simple_escape + `{NNN}` counted_quantifier instead of being rejected.

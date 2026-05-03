@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.65`
+  - `1.1.66`
 - Parser release version:
-  - `1.1.63`
+  - `1.1.64`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,22 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.64 / Contract 1.1.66 Highlights — slice 34: directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — types the inner shape that shows up under `directive_verb.body`.
+- **Rules changed:**
+  - `directive_named -> {kind:"named", name:$1, payload:$2}`
+  - `directive_mark_shorthand -> {kind:"mark_shorthand", payload:$2}`
+  - `directive_name` rewritten from `directive_name_start directive_name_continue*` chain to `/([A-Za-z][A-Za-z0-9_\-]*)/` regex literal — emits clean string Terminal of the matched verb name.
+- **AST shape change (visible inside `directive_verb.body`):**
+  - `(*MARK:foo)` → `body:{kind:"named", name:"MARK", payload:[":", ["f","o","o"]]}`. Was `body:[["M", ["A","R","K"]], [":", [...]]]` (raw chain of name + payload).
+  - `(*COMMIT)` → `body:{kind:"named", name:"COMMIT", payload:[]}`.
+  - `(*:bar)` → `body:{kind:"mark_shorthand", payload:["b","a","r"]}`.
+- **`directive_name` regex-literal rewrite** continues the multi-char-chain → regex-literal pattern from slices 11/15/16/17/20/29 (name, hex_digits, octal_digits, prop_name, comment_text, etc.). `name` now a clean string ("MARK", "COMMIT", "ACCEPT", "FAIL", etc.) instead of a 2-element chain.
+- **`payload` carries raw `directive_payload_suffix` / `directive_payload_simple` shape.** Per-rule typing of the payload (would unify to `{separator:":", value:"foo"}` or similar) is a separate concern.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.63 / Contract 1.1.65 Highlights — slice 33: callout_string typed (8 quote-form variants)
 
