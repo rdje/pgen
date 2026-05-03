@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-37-sub-rule-typing-version-number-CLOSES-VERSION-CONDITION-END-TO-END)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-38-sub-rule-typing-returned-capture-subroutine-outer)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 38 of N — `returned_capture_subroutine` outer typed.** Tenth sub-rule typing slice. 1 annotation: `returned_capture_subroutine -> {subroutine:$1, captures:$2}`. Empirical: `(?&name(1))` → `target:{subroutine:{kind:"named"}, captures:["(", ...]}`. **Field-naming decision:** inner field is `subroutine` (not `target`) to avoid `target.target.kind` collision with the outer `subroutine_call.target`. **`captures` still raw** — annotation language can't currently flatten parens-grouped repetition `("," group)*`; flattening saved for follow-up slice. Contract bump: parser release `1.1.67` → `1.1.68`, contract `1.1.69` → `1.1.70`. Regex AST schema version stays `1`. 495/0 tests. 1 new manifest entry. `make regex_parser_book_gate` green.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 37 of N — `version_number` `{major, minor}` typed.** Ninth sub-rule typing slice. Split `version_number = digits ("." digits)?` into 2 explicit branches `digits "." digits | digits` for clean `{major:int, minor:int|null}` typed shape. Empirical: `(?(VERSION>=10.0)foo)` → `number:{major:10, minor:0}`; `(?(VERSION>=11)foo)` → `number:{major:11, minor:null}`. **`version_condition` end-to-end typed.** Annotation language doesn't support extracting from parens-grouped optional pairs via positional/field access; 2-branch split is the simplest typed shape. Contract bump: parser release `1.1.66` → `1.1.67`, contract `1.1.68` → `1.1.69`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green.
 
 ### Earlier session note (kept for context):

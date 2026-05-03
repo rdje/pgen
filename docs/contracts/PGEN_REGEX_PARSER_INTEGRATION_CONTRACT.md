@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.69`
+  - `1.1.70`
 - Parser release version:
-  - `1.1.67`
+  - `1.1.68`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,18 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.68 / Contract 1.1.70 Highlights — slice 38: returned_capture_subroutine outer typed
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — closes the with-captures variant of `subroutine_call.target` outer level.
+- **Rule changed:** `returned_capture_subroutine = subroutine_target returned_capture_group_list -> {subroutine:$1, captures:$2}`.
+- **AST shape change (visible inside `subroutine_call.target` for branch 0 / with-captures form):**
+  - Before: `(?&name(1))` → `target:[<typed_subroutine_target>, <raw_capture_list>]` (raw 2-element seq).
+  - After: `(?&name(1))` → `target:{subroutine:{kind:"named", name:"name"}, captures:["(", {sign:[], value:1}, [], ")"]}`.
+- **Inner field named `subroutine` (not `target`)** to avoid `target.target.kind` field path collision with the outer `subroutine_call.target`. Consumer reads `obj.target.subroutine.kind` for the typed form (named/python_named/recursion/numeric) and `obj.target.captures` for the capture list.
+- **`captures` still raw shape.** The list itself (`returned_capture_group_list`) is still the parens-grouped repetition `["(", first_group, [<comma-pair>...], ")"]`. Per-rule typing of the list (would deliver a flat array of typed captures) requires either annotation language extension to extract from parens-grouped pairs, or a grammar restructuring to a recursive pair form. Saved for a follow-up slice.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.67 / Contract 1.1.69 Highlights — slice 37: version_number `{major, minor}` typed (closes version_condition end-to-end)
 

@@ -23,6 +23,27 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.68 / Contract 1.1.70 — Slice 38: returned_capture_subroutine outer typed
+
+**What changed:** `returned_capture_subroutine` typed `{subroutine, captures}`.
+
+```ebnf
+returned_capture_subroutine = subroutine_target returned_capture_group_list
+                                -> {subroutine: $1, captures: $2}
+```
+
+**Before / after (visible inside `subroutine_call.target` for branch 0 / with-captures form):**
+
+| Source | Before (slice 30) | After |
+|---|---|---|
+| `(?&name(1))` | `target:[{kind:"named", name:"name"}, ["(", {sign:[], value:1}, [], ")"]]` (raw 2-element seq) | `target:{subroutine:{kind:"named", name:"name"}, captures:["(", {sign:[], value:1}, [], ")"]}` |
+
+**Inner field named `subroutine`** (not `target`) to avoid `target.target.kind` collision with the outer `subroutine_call.target`. Consumer reads `obj.target.subroutine.kind` for the typed form and `obj.target.captures` for the list.
+
+**`captures` still raw.** The parens-grouped repetition `("," returned_capture_group)*` produces a comma-interleaved nested shape that the annotation language can't currently flatten via positional/field access. Saved for a follow-up slice (would need either annotation language extension or grammar restructuring to a recursive pair form).
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.68 / Contract 1.1.70 Highlights".
+
 ### 1.1.67 / Contract 1.1.69 — Slice 37: version_number `{major, minor}` typed
 
 **What changed:** `version_number` split into 2 explicit branches with `{major, minor}` typed shape.

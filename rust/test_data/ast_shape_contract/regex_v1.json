@@ -715,6 +715,12 @@
         "normalized_text": "{type: \"regex\", pattern: $1}"
       },
       {
+        "rule": "returned_capture_subroutine",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{subroutine: $1, captures: $2}"
+      },
+      {
         "rule": "scan_substring_group",
         "branch_index": 0,
         "annotation_type": "return_object",

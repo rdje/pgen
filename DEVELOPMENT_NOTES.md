@@ -1,4 +1,72 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 38/N — returned_capture_subroutine outer typed
+
+Tenth sub-rule typing slice. 1 annotation.
+
+### What landed
+
+```ebnf
+returned_capture_subroutine = subroutine_target returned_capture_group_list
+                                -> {subroutine: $1, captures: $2}
+```
+
+### Field-naming decision: `subroutine` not `target`
+
+`subroutine_call`'s outer rule (slice 25) uses `target` as the field name. If `returned_capture_subroutine` also used `target` for its inner subroutine_target reference, the field path would be `obj.target.target.kind` — awkward and confusing.
+
+Renamed to `subroutine` so the path reads cleanly: `obj.target.subroutine.kind` for the with-captures form. Consumers normalizing across both subroutine_call branches can dispatch on shape:
+- Branch 1 (plain): `obj.target.kind` (subroutine_target directly).
+- Branch 0 (with captures): `obj.target.subroutine.kind`.
+
+### `captures` raw — annotation language limitation
+
+`returned_capture_group_list = "(" returned_capture_group ("," returned_capture_group)* ")"`. The parens-grouped repetition `("," returned_capture_group)*` can't currently be flattened via the annotation language — there's no positional indexing into the matched pairs.
+
+Workaround options (saved for follow-up slice):
+1. Grammar restructuring to recursive pair form: `returned_capture_group_tail = group "," tail | group` with `[$1, $3**]` annotation.
+2. Annotation-language extension: support `$3**.field_name` to extract one field from each iteration.
+
+Both work — option 1 is simpler (no parser-bootstrap changes), option 2 is more general. Picking either is a separate decision.
+
+For now, `captures` carries the raw `["(", first_group, [<comma-pair>...], ")"]` shape. Consumer:
+```rust
+let groups: Vec<&Value> = captures.as_array()?
+    .iter()
+    .skip(1)            // "("
+    .take(captures.len() - 2)  // strip ")"
+    .enumerate()
+    .filter(|(i, _)| i % 2 == 0)  // skip "," tokens
+    .map(|(_, v)| v)
+    .collect();
+```
+
+Or simpler: walk the structure recognizing `,` separators.
+
+### Empirical
+- `(?&name(1))` → `target:{subroutine:{kind:"named", name:"name"}, captures:[...]}`.
+- `(?P>foo(1,2))` → `target:{subroutine:{kind:"python_named", name:"foo"}, captures:[...]}`.
+- `(?R(1))` → `target:{subroutine:{kind:"recursion"}, captures:[...]}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 1 new manifest entry inserted between regex and scan_substring_group.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.67` → `1.1.68`. Contract `1.1.69` → `1.1.70`.
+- New "Release 1.1.68 / Contract 1.1.70 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.42.0), `json-carrier.md` (1 new entry).
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Tenth slice (after 29/30/31/32/33/34/35/36/37).
+- `subroutine_call.target` outer-level typed for both branches.
+- Remaining sub-rule typing concerns:
+  - `returned_capture_group_list` flattening (needs annotation language extension or grammar restructuring).
+  - `modifier_seq` / `modifier_group` / `modifier_item` full typing (would deliver `{set, unset}`).
+  - `extended_class_content` set-op grammar extension.
+  - `class_body` Quantified-of-items flattening.
+
 ## 2026-05-03 - regex.ebnf slice 37/N — version_number `{major, minor}` typed
 
 Ninth sub-rule typing slice. Closes `version_condition` end-to-end.

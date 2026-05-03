@@ -592,7 +592,15 @@ script_run_name      = "sr" | "script_run" | "asr" | "atomic_script_run"
 # separate concern.
 subroutine_call      = "(?" returned_capture_subroutine ")"    -> {type: "atom", kind: "subroutine_call", target: $2}
                     | "(?" subroutine_target ")"               -> {type: "atom", kind: "subroutine_call", target: $2}
-returned_capture_subroutine = subroutine_target returned_capture_group_list
+# `returned_capture_subroutine` typed `{subroutine, captures}` so
+# subroutine_call.target for branch 0 (with-captures form) carries
+# a clean shape. Inner field named `subroutine` (not `target`) to
+# avoid `target.target.kind` field path collision with the outer
+# `subroutine_call.target`. `subroutine` is the typed
+# subroutine_target (slice 30); `captures` carries the raw list
+# shape pending follow-up slice for the parens-grouped repetition
+# flattening.
+returned_capture_subroutine = subroutine_target returned_capture_group_list   -> {subroutine: $1, captures: $2}
 returned_capture_group_list = "(" returned_capture_group ("," returned_capture_group)* ")"
 returned_capture_group = signed_digits | name_ref
 # `subroutine_target` per-branch typed `{kind:<form>, ...}`.

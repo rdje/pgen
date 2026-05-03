@@ -148,6 +148,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `condition_callout_assertion` | `-> {kind:"callout_assertion", callout:$1, assertion:$3}` | Object. Wraps the typed callout + assertion sub-shapes. |
 | `version_number` (branch 0, `digits "." digits`) | `-> {major:$1, minor:$3}` | Object. Both fields are typed ints (digits @transform). |
 | `version_number` (branch 1, `digits`) | `-> {major:$1, minor:null}` | Object. `minor:null` for absent-minor case. |
+| `returned_capture_subroutine` | `-> {subroutine:$1, captures:$2}` | Object. `subroutine` is the typed `subroutine_target` (slice 30); `captures` is the raw `returned_capture_group_list` shape pending follow-up flattening. Inner field named `subroutine` (not `target`) to avoid `target.target.kind` collision with the outer `subroutine_call.target`. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

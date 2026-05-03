@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5a195998.js";
+            window.path_to_searchindex_js = "searchindex-975824df.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -329,6 +329,7 @@
 <tr><td><code>condition_callout_assertion</code></td><td><code>-&gt; {kind:"callout_assertion", callout:$1, assertion:$3}</code></td><td>Object. Wraps the typed callout + assertion sub-shapes.</td></tr>
 <tr><td><code>version_number</code> (branch 0, <code>digits "." digits</code>)</td><td><code>-&gt; {major:$1, minor:$3}</code></td><td>Object. Both fields are typed ints (digits @transform).</td></tr>
 <tr><td><code>version_number</code> (branch 1, <code>digits</code>)</td><td><code>-&gt; {major:$1, minor:null}</code></td><td>Object. <code>minor:null</code> for absent-minor case.</td></tr>
+<tr><td><code>returned_capture_subroutine</code></td><td><code>-&gt; {subroutine:$1, captures:$2}</code></td><td>Object. <code>subroutine</code> is the typed <code>subroutine_target</code> (slice 30); <code>captures</code> is the raw <code>returned_capture_group_list</code> shape pending follow-up flattening. Inner field named <code>subroutine</code> (not <code>target</code>) to avoid <code>target.target.kind</code> collision with the outer <code>subroutine_call.target</code>.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

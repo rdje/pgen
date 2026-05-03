@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5a195998.js";
+            window.path_to_searchindex_js = "searchindex-975824df.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,25 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1168--contract-1170--slice-38-returned_capture_subroutine-outer-typed"><a class="header" href="#1168--contract-1170--slice-38-returned_capture_subroutine-outer-typed">1.1.68 / Contract 1.1.70 — Slice 38: returned_capture_subroutine outer typed</a></h3>
+<p><strong>What changed:</strong> <code>returned_capture_subroutine</code> typed <code>{subroutine, captures}</code>.</p>
+<pre><code class="language-ebnf">returned_capture_subroutine = subroutine_target returned_capture_group_list
+                                -&gt; {subroutine: $1, captures: $2}
+</code></pre>
+<p><strong>Before / after (visible inside <code>subroutine_call.target</code> for branch 0 / with-captures form):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 30)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?&amp;name(1))</code></td><td><code>target:[{kind:"named", name:"name"}, ["(", {sign:[], value:1}, [], ")"]]</code> (raw 2-element seq)</td><td><code>target:{subroutine:{kind:"named", name:"name"}, captures:["(", {sign:[], value:1}, [], ")"]}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Inner field named <code>subroutine</code></strong> (not <code>target</code>) to avoid <code>target.target.kind</code> collision with the outer <code>subroutine_call.target</code>. Consumer reads <code>obj.target.subroutine.kind</code> for the typed form and <code>obj.target.captures</code> for the list.</p>
+<p><strong><code>captures</code> still raw.</strong> The parens-grouped repetition <code>("," returned_capture_group)*</code> produces a comma-interleaved nested shape that the annotation language can’t currently flatten via positional/field access. Saved for a follow-up slice (would need either annotation language extension or grammar restructuring to a recursive pair form).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.68 / Contract 1.1.70 Highlights”.</p>
 <h3 id="1167--contract-1169--slice-37-version_number-major-minor-typed"><a class="header" href="#1167--contract-1169--slice-37-version_number-major-minor-typed">1.1.67 / Contract 1.1.69 — Slice 37: version_number <code>{major, minor}</code> typed</a></h3>
 <p><strong>What changed:</strong> <code>version_number</code> split into 2 explicit branches with <code>{major, minor}</code> typed shape.</p>
 <pre><code class="language-ebnf">version_number = digits "." digits  -&gt; {major: $1, minor: $3}

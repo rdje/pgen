@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 38/N: returned_capture_subroutine outer typed
+
+### What landed
+
+```ebnf
+returned_capture_subroutine = subroutine_target returned_capture_group_list
+                                -> {subroutine: $1, captures: $2}
+```
+
+1 annotation. Closes the with-captures variant of `subroutine_call.target` outer level.
+
+### Empirical AST shape (visible inside `subroutine_call.target` for branch 0 / with-captures form)
+
+| Source | Before (slice 30) | After |
+|---|---|---|
+| `(?&name(1))` | `target:[<typed>, <raw_list>]` (raw 2-element seq) | `target:{subroutine:{kind:"named", name:"name"}, captures:["(", {sign:[], value:1}, [], ")"]}` |
+| `(?P>foo(1,2))` | similar | `target:{subroutine:{kind:"python_named", name:"foo"}, captures:[...]}` |
+| `(?R(1))` | similar | `target:{subroutine:{kind:"recursion"}, captures:[...]}` |
+
+### Inner field naming
+
+Used `subroutine` (not `target`) to avoid `target.target.kind` collision with the outer `subroutine_call.target`. Consumer reads `obj.target.subroutine.kind` for the typed form.
+
+### `captures` still raw
+
+The list itself (`returned_capture_group_list = "(" returned_capture_group ("," returned_capture_group)* ")"`) carries the parens-grouped repetition shape `["(", first_group, [<comma-pair>...], ")"]`. The annotation language doesn't currently support extracting from parens-grouped pairs via positional/field access; flattening would require either an annotation-language extension or a grammar restructuring to a recursive pair form. Saved for a follow-up slice.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 1 new manifest entry inserted between regex and scan_substring_group.
+- `make regex_parser_book_gate` green.
+
+### Contract bump
+
+Parser release `1.1.67` → `1.1.68`. Contract `1.1.69` → `1.1.70`. New "Release 1.1.68 / Contract 1.1.70 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.68 / 1.1.70 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.42.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 1 new entry.
+
+### Sub-rule typing campaign progress
+Tenth slice. `subroutine_call.target` outer-level typed for both branches.
+
 ## 2026-05-03 - regex.ebnf slice 37/N: version_number `{major, minor}` typed (closes version_condition end-to-end)
 
 ### What landed
