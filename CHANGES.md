@@ -1,4 +1,65 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 33/N: callout_string typed (8 quote-form variants, codegen workaround for `\"` limitation)
+
+### What landed
+
+```ebnf
+callout_backtick_string  = '`' callout_backtick_payload '`'    -> {quote: "backtick", payload: $2}
+callout_single_string    = "'" callout_single_payload "'"      -> {quote: "single",   payload: $2}
+callout_double_string    = '"' callout_double_payload '"'      -> {quote: "double",   payload: $2}
+callout_caret_string     = "^" callout_caret_payload "^"       -> {quote: "caret",    payload: $2}
+callout_percent_string   = "%" callout_percent_payload "%"     -> {quote: "percent",  payload: $2}
+callout_hash_string      = "#" callout_hash_payload "#"        -> {quote: "hash",     payload: $2}
+callout_dollar_string    = "$" callout_dollar_payload "$"      -> {quote: "dollar",   payload: $2}
+callout_brace_string     = "{" callout_brace_payload "}"       -> {quote: "brace",    payload: $2}
+```
+
+8 annotations.
+
+### Empirical AST shape (visible inside `callout.arg`)
+
+| Source | After |
+|---|---|
+| `` (?C`hello`) `` | `arg:{quote:"backtick", payload:"hello"}` |
+| `(?C'world')` | `arg:{quote:"single", payload:"world"}` |
+| `(?C"dq")` | `arg:{quote:"double", payload:"dq"}` |
+| `(?C^c^)` | `arg:{quote:"caret", payload:"c"}` |
+| `(?C%pct%)` | `arg:{quote:"percent", payload:"pct"}` |
+| `(?C#hash#)` | `arg:{quote:"hash", payload:"hash"}` |
+| `(?C$dol$)` | `arg:{quote:"dollar", payload:"dol"}` |
+| `(?C{brace})` | `arg:{quote:"brace", payload:"brace"}` |
+
+### Codegen workaround discovered: `quote` uses text label, not literal char
+
+Initial attempt used `quote: "<delimiter-char>"` (e.g. `quote: "\""`for the double-quote form). Discovered that PGEN's bootstrap annotation parser does NOT support `"\""` (escaped double-quote) inside annotation string literals — it silently emits a `/* WARNING: Return annotation '...' for rule 'X' failed to parse */` block in the generated code and falls back to the raw shape.
+
+Switched all 8 forms to text-label `quote` field for uniformity. Saved as `feedback_annotation_no_dquote_escape.md` workflow gotcha so future slices avoid the same trap.
+
+### Numeric callout `arg` unchanged
+
+`(?C42)` continues to surface `arg:42` (typed int via `digits` @transform from slice 1). Consumer dispatch on `callout.arg`:
+- Object with `quote`/`payload`: string callout (one of 8 quote forms).
+- Number: numeric callout.
+- `[]`: empty `(?C)` (un-matched optional).
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 8 new manifest entries inserted at alphabetical slots between `callout` and `capturing_group` (callout_backtick, callout_brace, callout_caret, callout_dollar, callout_double, callout_hash, callout_percent, callout_single — alphabetical by suffix).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 8 quote-form inputs — all typed correctly.
+
+### Contract bump
+
+Parser release `1.1.62` → `1.1.63`. Contract `1.1.64` → `1.1.65`. New "Release 1.1.63 / Contract 1.1.65 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.63 / 1.1.65 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.37.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 8 new entries.
+
+### Sub-rule typing campaign progress
+Fifth slice. `callout.arg` now end-to-end typed across all 9 forms (8 string forms + numeric).
+
 ## 2026-05-03 - regex.ebnf slice 32/N: define_condition / version_condition / recursion_condition typed (3 of 9 condition Or-alternatives now typed)
 
 ### What landed

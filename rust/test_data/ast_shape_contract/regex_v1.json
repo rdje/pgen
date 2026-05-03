@@ -199,6 +199,54 @@
         "normalized_text": "{type: \"atom\", kind: \"callout\", arg: $2}"
       },
       {
+        "rule": "callout_backtick_string",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{quote: \"backtick\", payload: $2}"
+      },
+      {
+        "rule": "callout_brace_string",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{quote: \"brace\", payload: $2}"
+      },
+      {
+        "rule": "callout_caret_string",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{quote: \"caret\", payload: $2}"
+      },
+      {
+        "rule": "callout_dollar_string",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{quote: \"dollar\", payload: $2}"
+      },
+      {
+        "rule": "callout_double_string",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{quote: \"double\", payload: $2}"
+      },
+      {
+        "rule": "callout_hash_string",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{quote: \"hash\", payload: $2}"
+      },
+      {
+        "rule": "callout_percent_string",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{quote: \"percent\", payload: $2}"
+      },
+      {
+        "rule": "callout_single_string",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{quote: \"single\", payload: $2}"
+      },
+      {
         "rule": "capturing_group",
         "branch_index": 0,
         "annotation_type": "return_object",

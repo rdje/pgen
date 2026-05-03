@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.64`
+  - `1.1.65`
 - Parser release version:
-  - `1.1.62`
+  - `1.1.63`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,28 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.63 / Contract 1.1.65 Highlights — slice 33: callout_string typed (8 quote-form variants)
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — types the 8 callout-string quote variants that surface inside `callout.arg`.
+- **Rules changed:**
+  - `callout_backtick_string -> {quote:"backtick", payload:$2}`
+  - `callout_single_string -> {quote:"single", payload:$2}`
+  - `callout_double_string -> {quote:"double", payload:$2}`
+  - `callout_caret_string -> {quote:"caret", payload:$2}`
+  - `callout_percent_string -> {quote:"percent", payload:$2}`
+  - `callout_hash_string -> {quote:"hash", payload:$2}`
+  - `callout_dollar_string -> {quote:"dollar", payload:$2}`
+  - `callout_brace_string -> {quote:"brace", payload:$2}`
+- **AST shape change (visible inside `callout.arg` for string-callout forms):**
+  - `(?C\`hello\`)` → `arg:{quote:"backtick", payload:"hello"}` (was `["\`", "hello", "\`"]`).
+  - `(?C'world')` → `arg:{quote:"single", payload:"world"}`.
+  - `(?C"dq")` → `arg:{quote:"double", payload:"dq"}`.
+  - `(?C{brace})` → `arg:{quote:"brace", payload:"brace"}`.
+- **`quote` is a text label, not the literal delimiter character.** Discovered during this slice that PGEN's bootstrap annotation parser does NOT support `"\""` (escaped double-quote) inside annotation string literals — it silently emits a "/* WARNING: Return annotation ... failed to parse */" block and falls back to the raw shape. Switched all 8 forms to text labels for uniformity. Saved as a workflow gotcha.
+- **Numeric callout `arg`:** `(?C42)` continues to surface `arg:42` (typed int via `digits` @transform — slice 1). Consumer dispatches: object → string callout; number → numeric callout; `[]` → empty `(?C)`.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.62 / Contract 1.1.64 Highlights — slice 32: define_condition / version_condition / recursion_condition typed (3 of 9 condition Or-alternatives now typed)
 

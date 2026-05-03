@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-32-sub-rule-typing-condition-define-version-recursion)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-33-sub-rule-typing-callout-string-8-quote-forms)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 33 of N — `callout_string` typed (8 quote-form variants).** Fifth sub-rule typing slice. 8 annotations producing `{quote:<text-label>, payload:<string>}` for all 8 callout-string variants. Empirical: `(?C\`hello\`)` → `arg:{quote:"backtick", payload:"hello"}`; `(?C"dq")` → `arg:{quote:"double", payload:"dq"}`; etc. **Codegen bug discovered & worked around:** initial `quote: "\""` for the double-quote form silently failed because PGEN's bootstrap annotation parser doesn't support `"\""` (escaped double-quote) inside annotation string literals. Switched all 8 forms to text labels for uniform `quote` discriminator. Saved as `feedback_annotation_no_dquote_escape.md` — future codegen-fix slice could add `\"` escape support; until then text labels are the canonical workaround. `callout.arg` now end-to-end typed across all 9 forms (8 string + numeric). Contract bump: parser release `1.1.62` → `1.1.63`, contract `1.1.64` → `1.1.65`. Regex AST schema version stays `1`. 495/0 tests. 8 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.37.0), `json-carrier.md` (8 new entries).
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 32 of N — define_condition / version_condition / recursion_condition typed (3 of 9 condition Or-alternatives now disambiguated).** Fourth sub-rule typing slice. 4 annotations: `define_condition -> {kind:"define"}`; `version_condition -> {kind:"version", operator, number}`; `recursion_condition` per-branch `-> {kind:"recursion", group}` / `{kind:"recursion_named", name}`. Empirical: `(?(DEFINE)foo)` → `{kind:"define"}`; `(?(R3)baz)` → `{kind:"recursion", group:3}`; `(?(R&name)abc)` → `{kind:"recursion_named", name:"name"}`. **Scoping decision (saved as design rationale):** the 6 reused-outside-condition Or-alternatives (condition_callout_assertion, condition_assertion, name_ref, name, signed_digits, digits) NOT wrapped — would break their shape across all callers. Slice 32 deliberately limits scope to condition-specific rules. **`(?(DEFINE)...)` now disambiguated** from `(?(<name>)...)` — both used to produce string conditions; now DEFINE wraps as `{kind:"define"}`. Contract bump: parser release `1.1.61` → `1.1.62`, contract `1.1.63` → `1.1.64`. Regex AST schema version stays `1`. 495/0 tests. 4 new manifest entries. `make regex_parser_book_gate` green. Live-book sync covers `changelog-index.md`, `schema-versioning.md` (0.36.0), `json-carrier.md` (4 new entries).
 
 ### Earlier session note (kept for context):

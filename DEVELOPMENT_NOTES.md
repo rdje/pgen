@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 33/N — callout_string typed (8 quote-form variants)
+
+### What landed
+
+8 annotations across the 8 callout-string quote variants. All produce `{quote:<text-label>, payload:<string>}`.
+
+### Codegen workaround discovered
+
+Initial annotation `callout_double_string -> {quote: "\"", payload: $2}` silently failed to parse — bootstrap annotation parser doesn't support `"\""` (escaped double-quote) inside string literals. Generated code emitted a `/* WARNING: Return annotation '...' for rule 'callout_double_string' failed to parse */` block, falling back to the raw 3-element shape.
+
+Switched to text-label `quote` field for ALL 8 forms (uniform). Saved as `feedback_annotation_no_dquote_escape.md` workflow gotcha. Future codegen-fix slice could add `\"` escape support to the bootstrap annotation parser; until then text labels are the canonical workaround.
+
+### Trade-off
+
+Pros of text-label `quote` field:
+- Uniform across all 8 forms.
+- Stable enum-like discriminator (consumer can `match` on `"backtick"`/`"single"`/etc.).
+- Avoids the `\"` codegen issue.
+
+Cons:
+- Consumer needs a lookup table to recover the actual delimiter character (rarely needed — payload extraction is the common case).
+- Less direct than `quote: "<char>"`.
+
+The pros outweigh the cons for typical use cases. Most consumers only care about (a) "is this a string callout?" and (b) "what's the payload?". The `quote` field is mainly for round-tripping; text labels round-trip just fine.
+
+### Empirical
+- `(?C\`hello\`)` → `arg:{quote:"backtick", payload:"hello"}`.
+- `(?C'world')` → `arg:{quote:"single", payload:"world"}`.
+- `(?C"dq")` → `arg:{quote:"double", payload:"dq"}`.
+- `(?C^c^)` → `arg:{quote:"caret", payload:"c"}`.
+- `(?C%pct%)` → `arg:{quote:"percent", payload:"pct"}`.
+- `(?C#hash#)` → `arg:{quote:"hash", payload:"hash"}`.
+- `(?C$dol$)` → `arg:{quote:"dollar", payload:"dol"}`.
+- `(?C{brace})` → `arg:{quote:"brace", payload:"brace"}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 8 new manifest entries inserted at alphabetical slots between `callout` and `capturing_group`.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.62` → `1.1.63`. Contract `1.1.64` → `1.1.65`.
+- New "Release 1.1.63 / Contract 1.1.65 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.37.0), `json-carrier.md` (8 new entries). No examples chapter changes.
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Fifth slice (after 29/30/31/32).
+- `callout.arg` now end-to-end typed across all 9 forms (8 string forms + numeric).
+- Remaining sub-rule typing concerns: condition_callout_assertion / condition_assertion (still raw inside conditional.condition), modifier_seq/group/item full typing, directive_body / directive_named / directive_mark_shorthand, extended_class_content set-op grammar, returned_capture_group_list / returned_capture_subroutine, class_body Quantified-of-items flattening, version_number `{major, minor}` typing.
+
 ## 2026-05-03 - regex.ebnf slice 32/N — define_condition / version_condition / recursion_condition typed
 
 ### What landed

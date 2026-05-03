@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.63 / Contract 1.1.65 — Slice 33: callout_string typed (8 quote-form variants)
+
+**What changed:** All 8 callout-string quote variants now emit typed `{quote:<text-label>, payload:<string>}` objects.
+
+```ebnf
+callout_backtick_string  = '`' callout_backtick_payload '`'    -> {quote: "backtick", payload: $2}
+callout_single_string    = "'" callout_single_payload "'"      -> {quote: "single",   payload: $2}
+callout_double_string    = '"' callout_double_payload '"'      -> {quote: "double",   payload: $2}
+callout_caret_string     = "^" callout_caret_payload "^"       -> {quote: "caret",    payload: $2}
+callout_percent_string   = "%" callout_percent_payload "%"     -> {quote: "percent",  payload: $2}
+callout_hash_string      = "#" callout_hash_payload "#"        -> {quote: "hash",     payload: $2}
+callout_dollar_string    = "$" callout_dollar_payload "$"      -> {quote: "dollar",   payload: $2}
+callout_brace_string     = "{" callout_brace_payload "}"       -> {quote: "brace",    payload: $2}
+```
+
+**Before / after (visible inside `callout.arg`):**
+
+| Source | Before (slice 24) | After |
+|---|---|---|
+| `` (?C`hello`) `` | `arg:["` `", "hello", "` `"]` | `arg:{quote:"backtick", payload:"hello"}` |
+| `(?C'world')` | `arg:["'", "world", "'"]` | `arg:{quote:"single", payload:"world"}` |
+| `(?C"dq")` | `arg:["\"", "dq", "\""]` | `arg:{quote:"double", payload:"dq"}` |
+| `(?C{brace})` | `arg:["{", "brace", "}"]` | `arg:{quote:"brace", payload:"brace"}` |
+
+**`quote` is a text label, not the literal character.** PGEN's bootstrap annotation parser doesn't support `"\""` (escaped double-quote) inside string literals — switched all 8 forms to text labels for uniformity. Consumer reads `arg.quote` as an enum-like discriminator: `"backtick"`/`"single"`/`"double"`/`"caret"`/`"percent"`/`"hash"`/`"dollar"`/`"brace"`.
+
+**Numeric callout** (`(?C42)`) continues to surface `arg:42` (typed int from slice 1's digits @transform). Consumer dispatches: object → string callout; number → numeric callout; `[]` → empty `(?C)`.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.63 / Contract 1.1.65 Highlights".
+
 ### 1.1.62 / Contract 1.1.64 — Slice 32: define_condition / version_condition / recursion_condition typed
 
 **What changed:** 4 annotations across 3 condition Or-alternatives — `define_condition`, `version_condition`, and `recursion_condition` (2 branches).

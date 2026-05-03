@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-32f85807.js";
+            window.path_to_searchindex_js = "searchindex-8ae7f5b5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -306,6 +306,14 @@
 <tr><td><code>version_condition</code></td><td><code>-&gt; {kind:"version", operator:$2, number:$3}</code></td><td>Object. <code>operator</code> is <code>"&gt;="</code>/<code>"="</code> literal; <code>number</code> is raw <code>version_number</code> shape (<code>digits ("." digits)?</code>).</td></tr>
 <tr><td><code>recursion_condition</code> (branch 0, <code>R</code>/<code>R&lt;digits&gt;</code>)</td><td><code>-&gt; {kind:"recursion", group:$2}</code></td><td>Object. <code>group</code> is <code>[]</code> (no number) or typed int (numbered ref).</td></tr>
 <tr><td><code>recursion_condition</code> (branch 1, <code>R&amp;name</code>)</td><td><code>-&gt; {kind:"recursion_named", name:$2}</code></td><td>Object. <code>name</code> is the named-recursion reference.</td></tr>
+<tr><td><code>callout_backtick_string</code></td><td><code>-&gt; {quote:"backtick", payload:$2}</code></td><td>Object. <code>quote</code> is text-label discriminator; <code>payload</code> is inner string.</td></tr>
+<tr><td><code>callout_single_string</code></td><td><code>-&gt; {quote:"single", payload:$2}</code></td><td>Same shape; <code>quote:"single"</code>.</td></tr>
+<tr><td><code>callout_double_string</code></td><td><code>-&gt; {quote:"double", payload:$2}</code></td><td>Same shape; <code>quote:"double"</code>. Text-label used because bootstrap annotation parser rejects <code>"\""</code> escape.</td></tr>
+<tr><td><code>callout_caret_string</code></td><td><code>-&gt; {quote:"caret", payload:$2}</code></td><td>Same shape; <code>quote:"caret"</code>.</td></tr>
+<tr><td><code>callout_percent_string</code></td><td><code>-&gt; {quote:"percent", payload:$2}</code></td><td>Same shape; <code>quote:"percent"</code>.</td></tr>
+<tr><td><code>callout_hash_string</code></td><td><code>-&gt; {quote:"hash", payload:$2}</code></td><td>Same shape; <code>quote:"hash"</code>.</td></tr>
+<tr><td><code>callout_dollar_string</code></td><td><code>-&gt; {quote:"dollar", payload:$2}</code></td><td>Same shape; <code>quote:"dollar"</code>.</td></tr>
+<tr><td><code>callout_brace_string</code></td><td><code>-&gt; {quote:"brace", payload:$2}</code></td><td>Same shape; <code>quote:"brace"</code>. Asymmetric delimiters (<code>{</code> opening, <code>}</code> closing) — the <code>"brace"</code> label captures both.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

@@ -125,6 +125,14 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `version_condition` | `-> {kind:"version", operator:$2, number:$3}` | Object. `operator` is `">="`/`"="` literal; `number` is raw `version_number` shape (`digits ("." digits)?`). |
 | `recursion_condition` (branch 0, `R`/`R<digits>`) | `-> {kind:"recursion", group:$2}` | Object. `group` is `[]` (no number) or typed int (numbered ref). |
 | `recursion_condition` (branch 1, `R&name`) | `-> {kind:"recursion_named", name:$2}` | Object. `name` is the named-recursion reference. |
+| `callout_backtick_string` | `-> {quote:"backtick", payload:$2}` | Object. `quote` is text-label discriminator; `payload` is inner string. |
+| `callout_single_string` | `-> {quote:"single", payload:$2}` | Same shape; `quote:"single"`. |
+| `callout_double_string` | `-> {quote:"double", payload:$2}` | Same shape; `quote:"double"`. Text-label used because bootstrap annotation parser rejects `"\""` escape. |
+| `callout_caret_string` | `-> {quote:"caret", payload:$2}` | Same shape; `quote:"caret"`. |
+| `callout_percent_string` | `-> {quote:"percent", payload:$2}` | Same shape; `quote:"percent"`. |
+| `callout_hash_string` | `-> {quote:"hash", payload:$2}` | Same shape; `quote:"hash"`. |
+| `callout_dollar_string` | `-> {quote:"dollar", payload:$2}` | Same shape; `quote:"dollar"`. |
+| `callout_brace_string` | `-> {quote:"brace", payload:$2}` | Same shape; `quote:"brace"`. Asymmetric delimiters (`{` opening, `}` closing) — the `"brace"` label captures both. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

@@ -632,14 +632,24 @@ callout_string             = callout_backtick_string
                            | callout_hash_string
                            | callout_dollar_string
                            | callout_brace_string
-callout_backtick_string    = '`' callout_backtick_payload '`'
-callout_single_string      = "'" callout_single_payload "'"
-callout_double_string      = '"' callout_double_payload '"'
-callout_caret_string       = "^" callout_caret_payload "^"
-callout_percent_string     = "%" callout_percent_payload "%"
-callout_hash_string        = "#" callout_hash_payload "#"
-callout_dollar_string      = "$" callout_dollar_payload "$"
-callout_brace_string       = "{" callout_brace_payload "}"
+# Each callout-string variant typed `{quote:<text-label>, payload}`.
+# `quote` carries a text label naming the delimiter form
+# (`"backtick"`/`"single"`/`"double"`/`"caret"`/`"percent"`/`"hash"`
+# /`"dollar"`/`"brace"`). Text labels are used instead of the literal
+# delimiter character because the bootstrap annotation parser
+# currently rejects `"\""` (escaped double-quote) inside annotation
+# string literals; using uniform text labels avoids the asymmetry
+# and gives consumers a stable enum-like discriminator. `payload` is
+# the inner string. Brace form's closing delimiter is `}`
+# (asymmetric); the `"brace"` label captures both ends.
+callout_backtick_string    = '`' callout_backtick_payload '`'        -> {quote: "backtick", payload: $2}
+callout_single_string      = "'" callout_single_payload "'"          -> {quote: "single", payload: $2}
+callout_double_string      = '"' callout_double_payload '"'          -> {quote: "double", payload: $2}
+callout_caret_string       = "^" callout_caret_payload "^"           -> {quote: "caret", payload: $2}
+callout_percent_string     = "%" callout_percent_payload "%"         -> {quote: "percent", payload: $2}
+callout_hash_string        = "#" callout_hash_payload "#"            -> {quote: "hash", payload: $2}
+callout_dollar_string      = "$" callout_dollar_payload "$"          -> {quote: "dollar", payload: $2}
+callout_brace_string       = "{" callout_brace_payload "}"           -> {quote: "brace", payload: $2}
 callout_backtick_payload   = /([^`]|``)*/
 callout_single_payload     = /([^']|'')*/
 callout_double_payload     = /([^"]|"")*/
