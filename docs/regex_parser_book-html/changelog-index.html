@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d88b1195.js";
+            window.path_to_searchindex_js = "searchindex-1fd5df40.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,27 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1165--contract-1167--slice-35-directive_payload_suffix-typed--directive_payload_simple-regex-literal-rewrite"><a class="header" href="#1165--contract-1167--slice-35-directive_payload_suffix-typed--directive_payload_simple-regex-literal-rewrite">1.1.65 / Contract 1.1.67 — Slice 35: directive_payload_suffix typed + directive_payload_simple regex-literal rewrite</a></h3>
+<p><strong>What changed:</strong> <code>directive_payload_suffix</code> per-branch typed; <code>directive_payload_simple</code> rewritten as regex literal.</p>
+<pre><code class="language-ebnf">directive_payload_suffix = ":" directive_payload_simple?  -&gt; {separator: ":", value: $2}
+                         | "=" directive_payload_simple?  -&gt; {separator: "=", value: $2}
+directive_payload_simple = /([^)]*)/  # was directive_payload_char* chain
+</code></pre>
+<p><strong>Before / after (visible inside <code>directive_verb.body.payload</code>):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Before (slice 34)</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(*MARK:foo)</code></td><td><code>payload:[":", ["f","o","o"]]</code></td><td><code>payload:{separator:":", value:"foo"}</code></td></tr>
+<tr><td><code>(*COMMIT)</code></td><td><code>payload:[]</code> (un-matched)</td><td><code>payload:[]</code> (unchanged — optional slot)</td></tr>
+<tr><td><code>(*:short)</code> (mark_shorthand)</td><td><code>payload:["s","h","o","r","t"]</code></td><td><code>payload:"short"</code> (clean string)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>directive_verb.body</code> now end-to-end typed</strong> across all 3 sub-rule levels (body / named|shorthand / payload).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.65 / Contract 1.1.67 Highlights”.</p>
 <h3 id="1164--contract-1166--slice-34-directive_body--directive_named--directive_mark_shorthand-typed--directive_name-regex-literal-rewrite"><a class="header" href="#1164--contract-1166--slice-34-directive_body--directive_named--directive_mark_shorthand-typed--directive_name-regex-literal-rewrite">1.1.64 / Contract 1.1.66 — Slice 34: directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite</a></h3>
 <p><strong>What changed:</strong> <code>directive_body</code>’s 2 sub-rules typed; <code>directive_name</code> rewritten as regex literal for clean string output.</p>
 <pre><code class="language-ebnf">directive_named          = directive_name directive_payload_suffix?  -&gt; {kind: "named", name: $1, payload: $2}

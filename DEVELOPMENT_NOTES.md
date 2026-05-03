@@ -1,4 +1,63 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 35/N — directive_payload_suffix typed + directive_payload_simple regex-literal rewrite
+
+Seventh sub-rule typing slice. Closes `directive_verb.body.payload` end-to-end.
+
+### What landed
+
+```ebnf
+directive_payload_suffix = ":" directive_payload_simple?  -> {separator: ":", value: $2}
+                         | "=" directive_payload_simple?  -> {separator: "=", value: $2}
+directive_payload_simple = /([^)]*)/  # rewritten from directive_payload_char* chain
+```
+
+2 annotations + 1 regex-literal rewrite.
+
+### Why these together
+
+`directive_payload_suffix` is the named-form's payload (`(*MARK:foo)`'s `:foo` part). `directive_payload_simple` is its inner — also the mark-shorthand's only payload. Typing the suffix without rewriting simple would leave `value` as a multi-element char chain. Pairing them gives clean `payload:{separator:":", value:"foo"}` for named and `payload:"short"` for shorthand.
+
+### Empirical
+- `(*MARK:foo)` → `payload:{separator:":", value:"foo"}`.
+- `(*COMMIT)` → `payload:[]` (un-matched optional `directive_payload_suffix?` — consumer maps to null).
+- `(*:short)` → `payload:"short"` (mark_shorthand uses directive_payload_simple directly, now a clean string).
+
+### `directive_verb.body` end-to-end typed (3 levels)
+
+Composing slices 24 + 34 + 35:
+- Slice 24: `directive_verb -> {type:"atom", kind:"directive_verb", body:$2}`.
+- Slice 34: `directive_named -> {kind:"named", name, payload}` / `directive_mark_shorthand -> {kind:"mark_shorthand", payload}` + `directive_name` regex-literal rewrite.
+- Slice 35: `directive_payload_suffix -> {separator, value}` + `directive_payload_simple` regex-literal rewrite.
+
+A complete `(*MARK:foo)` pattern now surfaces:
+```json
+{"type":"atom", "kind":"directive_verb",
+  "body":{"kind":"named", "name":"MARK",
+    "payload":{"separator":":", "value":"foo"}}}
+```
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 2 new manifest entries inserted between directive_named and directive_verb.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.64` → `1.1.65`. Contract `1.1.66` → `1.1.67`.
+- New "Release 1.1.65 / Contract 1.1.67 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.39.0), `json-carrier.md` (3 new entries).
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Seventh slice (after 29/30/31/32/33/34).
+- `directive_verb` end-to-end typed.
+- Remaining sub-rule typing concerns:
+  - `condition_callout_assertion` / `condition_assertion` (still raw — closes `condition` Or-of-9)
+  - `modifier_seq` / `modifier_group` / `modifier_item` full typing (would deliver `{set, unset}`)
+  - `extended_class_content` set-op grammar
+  - `returned_capture_group_list` / `returned_capture_subroutine`
+  - `class_body` Quantified-of-items flattening
+  - `version_number` `{major, minor}`
+
 ## 2026-05-03 - regex.ebnf slice 34/N — directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite
 
 Sixth sub-rule typing slice. 2 annotations + 1 regex-literal rewrite.

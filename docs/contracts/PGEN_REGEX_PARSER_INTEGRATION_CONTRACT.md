@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.66`
+  - `1.1.67`
 - Parser release version:
-  - `1.1.64`
+  - `1.1.65`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,22 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.65 / Contract 1.1.67 Highlights — slice 35: directive_payload_suffix typed + directive_payload_simple regex-literal rewrite (closes directive_verb.body.payload end-to-end)
+
+- **Internal-driven shape work** (no downstream report). Sub-rule typing slice — closes the `payload` field inside `directive_verb.body`.
+- **Rules changed:**
+  - `directive_payload_suffix` per-branch typed `{separator, value}`:
+    - `":" directive_payload_simple? -> {separator: ":", value: $2}`
+    - `"=" directive_payload_simple? -> {separator: "=", value: $2}`
+  - `directive_payload_simple` rewritten from `directive_payload_char*` chain to `/([^)]*)/` regex literal — emits clean string Terminal of the payload body. Same pattern as `comment_text` from slice 20.
+- **AST shape change (visible inside `directive_verb.body.payload`):**
+  - `(*MARK:foo)` → `body:{kind:"named", name:"MARK", payload:{separator:":", value:"foo"}}`. Was `payload:[":", ["f","o","o"]]`.
+  - `(*COMMIT)` (no payload) → `payload:[]` (un-matched optional `directive_payload_suffix?` slot — consumer maps to null).
+  - `(*:short)` (mark_shorthand) → `body:{kind:"mark_shorthand", payload:"short"}` — `payload` is now a clean string (`directive_payload_simple` regex-literal rewrite directly applies).
+- **`directive_verb.body` now end-to-end typed.** All 3 sub-rule levels (body / named|shorthand / payload) produce typed shapes.
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.64 / Contract 1.1.66 Highlights — slice 34: directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite
 

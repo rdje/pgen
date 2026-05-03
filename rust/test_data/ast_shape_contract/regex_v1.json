@@ -367,6 +367,18 @@
         "normalized_text": "{kind: \"named\", name: $1, payload: $2}"
       },
       {
+        "rule": "directive_payload_suffix",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{separator: \":\", value: $2}"
+      },
+      {
+        "rule": "directive_payload_suffix",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{separator: \"=\", value: $2}"
+      },
+      {
         "rule": "directive_verb",
         "branch_index": 0,
         "annotation_type": "return_object",

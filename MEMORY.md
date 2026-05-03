@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-34-sub-rule-typing-directive-body)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-35-sub-rule-typing-directive-payload-CLOSES-DIRECTIVE-VERB-END-TO-END)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 35 of N — directive_payload_suffix typed + directive_payload_simple regex-literal rewrite (closes directive_verb.body.payload end-to-end).** Seventh sub-rule typing slice. 2 annotations + 1 regex-literal rewrite. `directive_payload_suffix -> {separator:":"|"=", value:$2}`. `directive_payload_simple` rewritten from `directive_payload_char*` chain to `/([^)]*)/` regex literal (mirrors comment_text slice 20). Empirical: `(*MARK:foo)` → `payload:{separator:":", value:"foo"}`; `(*COMMIT)` → `payload:[]`; `(*:short)` → `payload:"short"`. **`directive_verb.body` end-to-end typed across all 3 sub-rule levels** — composing slices 24+34+35 gives `(*MARK:foo)` as `{type:"atom", kind:"directive_verb", body:{kind:"named", name:"MARK", payload:{separator:":", value:"foo"}}}`. Contract bump: parser release `1.1.64` → `1.1.65`, contract `1.1.66` → `1.1.67`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 34 of N — directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite.** Sixth sub-rule typing slice. 2 annotations + 1 regex-literal rewrite. `directive_named -> {kind:"named", name, payload}`; `directive_mark_shorthand -> {kind:"mark_shorthand", payload}`. `directive_name` rewritten from chain to `/([A-Za-z][A-Za-z0-9_\-]*)/`. Empirical: `(*MARK:foo)` → `body:{kind:"named", name:"MARK", payload:[":", ["f","o","o"]]}`; `(*COMMIT)` → `body:{kind:"named", name:"COMMIT", payload:[]}`; `(*:bar)` → `body:{kind:"mark_shorthand", payload:["b","a","r"]}`. **`directive_verb.body` now end-to-end typed.** Continues the multi-char-chain → regex-literal pattern from slices 11/15/16/17/20/29. `payload` raw — separate slice. Contract bump: parser release `1.1.63` → `1.1.64`, contract `1.1.65` → `1.1.66`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green.
 
 ### Earlier session note (kept for context):

@@ -23,6 +23,28 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.65 / Contract 1.1.67 — Slice 35: directive_payload_suffix typed + directive_payload_simple regex-literal rewrite
+
+**What changed:** `directive_payload_suffix` per-branch typed; `directive_payload_simple` rewritten as regex literal.
+
+```ebnf
+directive_payload_suffix = ":" directive_payload_simple?  -> {separator: ":", value: $2}
+                         | "=" directive_payload_simple?  -> {separator: "=", value: $2}
+directive_payload_simple = /([^)]*)/  # was directive_payload_char* chain
+```
+
+**Before / after (visible inside `directive_verb.body.payload`):**
+
+| Source | Before (slice 34) | After |
+|---|---|---|
+| `(*MARK:foo)` | `payload:[":", ["f","o","o"]]` | `payload:{separator:":", value:"foo"}` |
+| `(*COMMIT)` | `payload:[]` (un-matched) | `payload:[]` (unchanged — optional slot) |
+| `(*:short)` (mark_shorthand) | `payload:["s","h","o","r","t"]` | `payload:"short"` (clean string) |
+
+**`directive_verb.body` now end-to-end typed** across all 3 sub-rule levels (body / named\|shorthand / payload).
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.65 / Contract 1.1.67 Highlights".
+
 ### 1.1.64 / Contract 1.1.66 — Slice 34: directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite
 
 **What changed:** `directive_body`'s 2 sub-rules typed; `directive_name` rewritten as regex literal for clean string output.

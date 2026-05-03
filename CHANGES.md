@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-05-03 - regex.ebnf slice 35/N: directive_payload_suffix typed + directive_payload_simple regex-literal rewrite (closes directive_verb.body.payload end-to-end)
+
+### What landed
+
+```ebnf
+directive_payload_suffix = ":" directive_payload_simple?  -> {separator: ":", value: $2}
+                         | "=" directive_payload_simple?  -> {separator: "=", value: $2}
+directive_payload_simple = /([^)]*)/  # was directive_payload_char* chain
+```
+
+2 annotations + 1 regex-literal rewrite.
+
+### Empirical AST shape (visible inside `directive_verb.body.payload`)
+
+| Source | After |
+|---|---|
+| `(*MARK:foo)` | `body:{kind:"named", name:"MARK", payload:{separator:":", value:"foo"}}` |
+| `(*COMMIT)` (no payload) | `body:{kind:"named", name:"COMMIT", payload:[]}` (un-matched optional slot) |
+| `(*:short)` (mark_shorthand) | `body:{kind:"mark_shorthand", payload:"short"}` (clean string) |
+
+### `directive_verb.body` now end-to-end typed
+
+All 3 sub-rule levels typed:
+1. **Slice 24:** `directive_verb -> {type:"atom", kind:"directive_verb", body:$2}`.
+2. **Slice 34:** `directive_named -> {kind:"named", name, payload}` / `directive_mark_shorthand -> {kind:"mark_shorthand", payload}`.
+3. **Slice 35:** `directive_payload_suffix -> {separator, value}` + `directive_payload_simple` clean string.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 495 / 0.
+- 2 new manifest entries (directive_payload_suffix ×2 between directive_named and directive_verb).
+- `make regex_parser_book_gate` green.
+- Empirical sweep over 5 directive forms — typed correctly (the 2 PCRE2-validator-rejected forms `(*MARK=bar)` and `(*MARK:)` are pre-existing host-validator behavior).
+
+### Contract bump
+
+Parser release `1.1.64` → `1.1.65`. Contract `1.1.66` → `1.1.67`. New "Release 1.1.65 / Contract 1.1.67 Highlights" section in the integration contract. Regex AST schema version stays `1`.
+
+### Live-docs sync (per the live-book policy)
+- `docs/regex_parser_book/src/changelog-index.md` — new 1.1.65 / 1.1.67 entry.
+- `docs/regex_parser_book/src/schema-versioning.md` — 0.39.0 row.
+- `docs/regex_parser_book/src/json-carrier.md` — 3 new entries.
+
+### Sub-rule typing campaign progress
+Seventh slice. `directive_verb` end-to-end typed across all 3 sub-rule levels (verb / body / payload).
+
 ## 2026-05-03 - regex.ebnf slice 34/N: directive_body / directive_named / directive_mark_shorthand typed + directive_name regex-literal rewrite
 
 ### What landed

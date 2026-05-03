@@ -136,6 +136,9 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `directive_named` | `-> {kind:"named", name:$1, payload:$2}` | Object. `name` is a clean string (after slice 34's regex-literal rewrite of `directive_name`); `payload` is raw `directive_payload_suffix?` shape. |
 | `directive_mark_shorthand` | `-> {kind:"mark_shorthand", payload:$2}` | Object. `payload` is raw `directive_payload_simple?` shape. |
 | `directive_name` | regex literal `/([A-Za-z][A-Za-z0-9_\-]*)/` | Terminal of the matched verb name (was `directive_name_start directive_name_continue*` chain). |
+| `directive_payload_suffix` (branch 0, `:`) | `-> {separator:":", value:$2}` | Object. `value` is `directive_payload_simple` (clean string after slice 35 regex-literal rewrite); `[]` when un-matched. |
+| `directive_payload_suffix` (branch 1, `=`) | `-> {separator:"=", value:$2}` | Same shape, `separator:"="`. |
+| `directive_payload_simple` | regex literal `/([^)]*)/` | Terminal of the payload body (any char except `)` — matches the verb-closing). Was `directive_payload_char*` chain. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d88b1195.js";
+            window.path_to_searchindex_js = "searchindex-1fd5df40.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -317,6 +317,9 @@
 <tr><td><code>directive_named</code></td><td><code>-&gt; {kind:"named", name:$1, payload:$2}</code></td><td>Object. <code>name</code> is a clean string (after slice 34’s regex-literal rewrite of <code>directive_name</code>); <code>payload</code> is raw <code>directive_payload_suffix?</code> shape.</td></tr>
 <tr><td><code>directive_mark_shorthand</code></td><td><code>-&gt; {kind:"mark_shorthand", payload:$2}</code></td><td>Object. <code>payload</code> is raw <code>directive_payload_simple?</code> shape.</td></tr>
 <tr><td><code>directive_name</code></td><td>regex literal <code>/([A-Za-z][A-Za-z0-9_\-]*)/</code></td><td>Terminal of the matched verb name (was <code>directive_name_start directive_name_continue*</code> chain).</td></tr>
+<tr><td><code>directive_payload_suffix</code> (branch 0, <code>:</code>)</td><td><code>-&gt; {separator:":", value:$2}</code></td><td>Object. <code>value</code> is <code>directive_payload_simple</code> (clean string after slice 35 regex-literal rewrite); <code>[]</code> when un-matched.</td></tr>
+<tr><td><code>directive_payload_suffix</code> (branch 1, <code>=</code>)</td><td><code>-&gt; {separator:"=", value:$2}</code></td><td>Same shape, <code>separator:"="</code>.</td></tr>
+<tr><td><code>directive_payload_simple</code></td><td>regex literal <code>/([^)]*)/</code></td><td>Terminal of the payload body (any char except <code>)</code> — matches the verb-closing). Was <code>directive_payload_char*</code> chain.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

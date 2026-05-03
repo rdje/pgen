@@ -727,11 +727,19 @@ directive_verb    = "(*" directive_body ")"                        -> {type: "at
 directive_body    = directive_named | directive_mark_shorthand
 directive_named   = directive_name directive_payload_suffix?      -> {kind: "named", name: $1, payload: $2}
 directive_mark_shorthand = ":" directive_payload_simple?          -> {kind: "mark_shorthand", payload: $2}
-directive_payload_suffix = ":" directive_payload_simple? | "=" directive_payload_simple?
+# `directive_payload_suffix` per-branch typed `{separator, value}`.
+# `:` and `=` are the two PCRE2-supported separators. `value` is the
+# raw `directive_payload_simple?` shape — empty string when un-matched.
+directive_payload_suffix = ":" directive_payload_simple?              -> {separator: ":", value: $2}
+                         | "=" directive_payload_simple?              -> {separator: "=", value: $2}
 # PCRE2 default verb-name payloads run until the verb-closing ")".
 # Per-verb argument requirements such as MARK requiring a non-empty name are
 # downstream validation concerns for the stable regex_default parser profile.
-directive_payload_simple = directive_payload_char*
+# `directive_payload_simple` rewritten from `directive_payload_char*` chain
+# to a regex literal `/([^)]*)/` — emits clean string Terminal of the payload
+# body (matches anything except the verb-closing `)`). Same pattern as
+# `comment_text` from slice 20.
+directive_payload_simple = /([^)]*)/
 directive_payload_char = /([^)])/
 # `directive_name` rewritten from `directive_name_start
 # directive_name_continue*` chain (multi-element) to a regex literal
