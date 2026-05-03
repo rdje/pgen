@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-05-03 - PGEN-RGX-0080 logged (queued behind return-annotations campaign; fix order: 0080 → 0079 → 0078)
+
+RGX filed PGEN-RGX-0080 — counted quantifier `{m,n}` rejects whitespace next to the comma. PCRE2 default mode accepts whitespace anywhere inside `{...}` (per `pcre2pattern(3) §"Repetition"`). When PGEN can't fit the inner-whitespace shape, it backtracks to literal pieces (10 separate atoms for `a{ 1 , 2 }` instead of one quantified atom).
+
+Same misparse class as PGEN-RGX-0006 (closed in 1.1.3) and PGEN-RGX-0079 (logged 2026-05-03 earlier today).
+
+**Reproducer matrix:**
+- `a{1,2}` ✓ — works
+- `a{ 1,2 }` ✓ — outer ws works
+- `a{ 1 , 2 }` ✗ — fails (10 literal pieces)
+- `a{1 ,2}` ✗ — fails (7 literal pieces)
+- `a{1, 2}` ✗ — fails (7 literal pieces)
+
+Surfaces in PCRE2 conformance test suite as testinput1:6679.
+
+**User-directed sequencing (2026-05-03):**
+1. Continue the regex.ebnf return-annotations campaign (slices 7-38+ targeting task #40) to FULL completion.
+2. THEN fix the 3 queued RGX bugs in this order: **0080 → 0079 → 0078**.
+
+Fix direction (per the report): `counted_quantifier` rule's whitespace handling is partially-instrumented (works at outer boundaries only). Make it treat whitespace as a skippable separator at every position between the outer `{` and `}`. Should also audit other quantifier shapes for similar handling.
+
+Logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` as `REGEX-0080`. No parser release / contract bump.
+
 ## 2026-05-03 - regex.ebnf slice 38/N: returned_capture_subroutine outer typed
 
 ### What landed

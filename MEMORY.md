@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **PGEN-RGX-0080 logged (queued behind return-annotations campaign; fix order updated to 0080 → 0079 → 0078).** RGX filed report 2026-05-03 — counted quantifier `{m,n}` rejects whitespace next to the comma (`a{ 1 , 2 }` parses as 10 literal pieces instead of 1 quantified piece). PCRE2 default mode accepts whitespace anywhere inside `{...}`. Same misparse class as PGEN-RGX-0006 (closed) and PGEN-RGX-0079. Fix direction: `counted_quantifier` rule's whitespace handling is partially-instrumented (outer boundaries only); make it skippable at every position between `{` and `}`. **User-directed sequencing (2026-05-03):** continue regex.ebnf return-annotations campaign to FULL completion FIRST; THEN fix in order 0080 → 0079 → 0078. Logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` as `REGEX-0080`. No release/contract bump.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 38 of N — `returned_capture_subroutine` outer typed.** Tenth sub-rule typing slice. 1 annotation: `returned_capture_subroutine -> {subroutine:$1, captures:$2}`. Empirical: `(?&name(1))` → `target:{subroutine:{kind:"named"}, captures:["(", ...]}`. **Field-naming decision:** inner field is `subroutine` (not `target`) to avoid `target.target.kind` collision with the outer `subroutine_call.target`. **`captures` still raw** — annotation language can't currently flatten parens-grouped repetition `("," group)*`; flattening saved for follow-up slice. Contract bump: parser release `1.1.67` → `1.1.68`, contract `1.1.69` → `1.1.70`. Regex AST schema version stays `1`. 495/0 tests. 1 new manifest entry. `make regex_parser_book_gate` green.
 
 ### Earlier session note (kept for context):
