@@ -1,4 +1,79 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-03 - regex.ebnf slice 36/N — condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes condition Or-of-9)
+
+Eighth sub-rule typing slice. 7 annotations across 4 condition-context rules.
+
+### What landed
+
+```ebnf
+condition_assertion         = "?=" pattern   -> {kind:"lookahead",  positive:true,  body:$2}
+                            | "?!" pattern   -> {kind:"lookahead",  positive:false, body:$2}
+                            | "?<=" pattern  -> {kind:"lookbehind", positive:true,  body:$2}
+                            | "?<!" pattern  -> {kind:"lookbehind", positive:false, body:$2}
+                            | alpha_condition_assertion
+alpha_condition_assertion   = "*" atomic_alpha_lookaround_name ":" pattern?
+                                -> {kind:"alpha_lookaround", name:$2, body:$4}
+condition_callout           = "?C" callout_arg? ")"
+                                -> {kind:"callout", arg:$2}
+condition_callout_assertion = condition_callout "(" condition_assertion
+                                -> {kind:"callout_assertion", callout:$1, assertion:$3}
+```
+
+### Intentional collision with slice 23 atom-level lookaround
+
+Slice 23 typed atom-level lookarounds as `{type:"atom", kind:"lookahead", positive, body}` (etc.). Slice 36 types the equivalent CONDITION-CONTEXT forms with the same `kind:"lookahead"` value but WITHOUT the `type:"atom"` wrapper.
+
+The distinguishing field is `type:"atom"`. Consumers dispatching across both contexts:
+- `value.type == "atom"` and `value.kind == "lookahead"` → atom-level lookaround.
+- `parent.kind == "conditional"` and `parent.condition.kind == "lookahead"` → condition-assertion lookahead.
+
+Same pattern for lookbehind, alpha_lookaround. Consumers with shape-aware dispatch get uniform `kind` values across both contexts.
+
+### `condition` Or-of-9 status after slice 36
+
+- **Typed (7 of 9):**
+  - `define_condition` (slice 32) → `{kind:"define"}`.
+  - `version_condition` (slice 32) → `{kind:"version", operator, number}`.
+  - `recursion_condition` (slice 32, ×2 branches) → `{kind:"recursion", group}` / `{kind:"recursion_named", name}`.
+  - `condition_callout_assertion` (slice 36) → `{kind:"callout_assertion", callout, assertion}`.
+  - `condition_assertion` (slice 36, ×4 branches + alpha passthrough) → `{kind:"lookahead"|"lookbehind"|"alpha_lookaround", ...}`.
+  - `alpha_condition_assertion` (slice 36) → `{kind:"alpha_lookaround", name, body}` (via passthrough).
+- **Untyped (2 of 9, intentional):**
+  - `name_ref` → bare clean string (slice 11). Reused inside backreference and elsewhere — wrapping would change shape across all callers.
+  - `name` → bare clean string (slice 11). Same reason.
+- **Pre-typed (already had typed shape from earlier slices):**
+  - `signed_digits` → `{sign, value}` (slice 13).
+  - `digits` → typed int (slice 1).
+
+Consumer dispatch on `condition`:
+- Object with `kind`: typed condition.
+- Object with `sign`/`value`: signed_digits.
+- Number: digits.
+- String: name_ref/name (now distinguished from `(?(DEFINE)...)` since DEFINE wraps as `{kind:"define"}`).
+
+### Empirical
+- `(?(?=foo)yes)` → `condition:{kind:"lookahead", positive:true, body:<pattern>}`.
+- `(?(?!bar)yes)` → `condition:{kind:"lookahead", positive:false, body:<pattern>}`.
+- `(?(?<=baz)yes)` → `condition:{kind:"lookbehind", positive:true, body:<pattern>}`.
+- `(?(?<!qux)yes)` → `condition:{kind:"lookbehind", positive:false, body:<pattern>}`.
+- `(?(*pla:foo)yes)` → `condition:{kind:"alpha_lookaround", name:"pla", body:<pattern>}`.
+
+### Verification
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run` 495 / 0.
+- 7 new manifest entries inserted at alphabetical slots.
+- `make regex_parser_book_gate` green.
+
+### Bumps
+- Parser release `1.1.65` → `1.1.66`. Contract `1.1.67` → `1.1.68`.
+- New "Release 1.1.66 / Contract 1.1.68 Highlights" section in the integration contract.
+- Live-book sync: `changelog-index.md`, `schema-versioning.md` (0.40.0), `json-carrier.md` (7 new entries).
+- Regex AST schema version stays `1`.
+
+### Sub-rule typing campaign progress
+- Eighth slice (after 29/30/31/32/33/34/35).
+- `conditional.condition` now typed for 7 of 9 forms — closes `conditional` end-to-end.
+- Remaining sub-rule typing concerns: `modifier_seq` / `modifier_group` / `modifier_item` full typing (would deliver `{set, unset}`); `extended_class_content` set-op grammar extension; `returned_capture_group_list` / `returned_capture_subroutine`; `class_body` Quantified-of-items flattening; `version_number` `{major, minor}`.
+
 ## 2026-05-03 - regex.ebnf slice 35/N — directive_payload_suffix typed + directive_payload_simple regex-literal rewrite
 
 Seventh sub-rule typing slice. Closes `directive_verb.body.payload` end-to-end.

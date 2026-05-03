@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-35-sub-rule-typing-directive-payload-CLOSES-DIRECTIVE-VERB-END-TO-END)
+Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-36-sub-rule-typing-condition-assertion-CLOSES-CONDITION-OR-OF-9)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **regex.ebnf slice 36 of N — condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes condition Or-of-9 fully).** Eighth sub-rule typing slice. 7 annotations across 4 condition-context rules. condition_assertion 4 branches `{kind:"lookahead"|"lookbehind", positive, body}` + alpha-passthrough. alpha_condition_assertion `{kind:"alpha_lookaround", name, body}`. condition_callout `{kind:"callout", arg}`. condition_callout_assertion `{kind:"callout_assertion", callout, assertion}`. Empirical: `(?(?=foo)yes)` → `condition:{kind:"lookahead", positive:true}`; `(?(*pla:foo)yes)` → `condition:{kind:"alpha_lookaround", name:"pla"}`. **Intentional `kind` collision with slice 23 atom-level lookaround** — distinguishing field is `type:"atom"` (atom-level only). **`condition` Or-of-9 status: 7 of 9 typed**; 2 untyped intentionally (name_ref, name — reused outside condition); 2 pre-typed (signed_digits, digits). **`conditional` end-to-end typed.** Contract bump: parser release `1.1.65` → `1.1.66`, contract `1.1.67` → `1.1.68`. Regex AST schema version stays `1`. 495/0 tests. 7 new manifest entries. `make regex_parser_book_gate` green.
+
+### Earlier session note (kept for context):
 - **regex.ebnf slice 35 of N — directive_payload_suffix typed + directive_payload_simple regex-literal rewrite (closes directive_verb.body.payload end-to-end).** Seventh sub-rule typing slice. 2 annotations + 1 regex-literal rewrite. `directive_payload_suffix -> {separator:":"|"=", value:$2}`. `directive_payload_simple` rewritten from `directive_payload_char*` chain to `/([^)]*)/` regex literal (mirrors comment_text slice 20). Empirical: `(*MARK:foo)` → `payload:{separator:":", value:"foo"}`; `(*COMMIT)` → `payload:[]`; `(*:short)` → `payload:"short"`. **`directive_verb.body` end-to-end typed across all 3 sub-rule levels** — composing slices 24+34+35 gives `(*MARK:foo)` as `{type:"atom", kind:"directive_verb", body:{kind:"named", name:"MARK", payload:{separator:":", value:"foo"}}}`. Contract bump: parser release `1.1.64` → `1.1.65`, contract `1.1.66` → `1.1.67`. Regex AST schema version stays `1`. 495/0 tests. 2 new manifest entries. `make regex_parser_book_gate` green.
 
 ### Earlier session note (kept for context):

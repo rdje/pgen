@@ -702,14 +702,31 @@ define_condition  = "DEFINE"                                                  ->
 version_condition = "VERSION" version_operator version_number                 -> {kind: "version", operator: $2, number: $3}
 version_operator  = ">=" | "="
 version_number    = digits ("." digits)?
-condition_callout_assertion = condition_callout "(" condition_assertion
-condition_callout = "?C" callout_arg? ")"
-condition_assertion = "?=" pattern
-                    | "?!" pattern
-                    | "?<=" pattern
-                    | "?<!" pattern
+# `condition_callout_assertion` typed `{kind:"callout_assertion", callout, assertion}`.
+# `callout` and `assertion` carry the typed sub-shapes from
+# `condition_callout` and `condition_assertion`.
+condition_callout_assertion = condition_callout "(" condition_assertion   -> {kind: "callout_assertion", callout: $1, assertion: $3}
+# `condition_callout` is the inside-condition variant of the
+# atom-level `callout` (without the leading `(?` since the
+# surrounding `(?(...)` already consumed it). Same `{kind, arg}`
+# shape — `arg` is the typed callout_arg (digits → typed int, or
+# typed callout_string from slice 33, or `[]` un-matched).
+condition_callout = "?C" callout_arg? ")"                                 -> {kind: "callout", arg: $2}
+# `condition_assertion` per-branch typed `{kind, positive, body}` /
+# alpha-form passthrough. Same kind values as atom-level
+# lookaround (slice 23) — consumers distinguish the two contexts
+# by surrounding `type` field (atom-level has `type:"atom"`,
+# condition-context doesn't).
+condition_assertion = "?=" pattern                                        -> {kind: "lookahead", positive: true, body: $2}
+                    | "?!" pattern                                        -> {kind: "lookahead", positive: false, body: $2}
+                    | "?<=" pattern                                       -> {kind: "lookbehind", positive: true, body: $2}
+                    | "?<!" pattern                                       -> {kind: "lookbehind", positive: false, body: $2}
                     | alpha_condition_assertion
-alpha_condition_assertion = "*" atomic_alpha_lookaround_name ":" pattern?
+# `alpha_condition_assertion` typed `{kind:"alpha_lookaround", name, body}`,
+# paralleling slice 23's atom-level `alpha_lookaround`. `name`
+# carries the matched atomic_alpha_lookaround_name string
+# (`"pla"`/`"positive_lookahead"`/etc.).
+alpha_condition_assertion = "*" atomic_alpha_lookaround_name ":" pattern? -> {kind: "alpha_lookaround", name: $2, body: $4}
 # `recursion_condition` per-branch typed `{kind:"recursion", ...}`.
 # `(?(R)...)` matches branch 0 with `group:[]` (un-matched optional).
 # `(?(R3)...)` matches branch 0 with `group:3` (typed int). `(?(R&name)...)`

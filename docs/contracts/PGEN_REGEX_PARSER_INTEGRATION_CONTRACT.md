@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.67`
+  - `1.1.68`
 - Parser release version:
-  - `1.1.65`
+  - `1.1.66`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,33 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.66 / Contract 1.1.68 Highlights — slice 36: condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes the condition Or-of-9 fully)
+
+- **Internal-driven shape work** (no downstream report). Closes the remaining 4 of the 9 condition Or-alternatives that surface inside `conditional.condition`. Combined with slice 32's 3 (define_condition / version_condition / recursion_condition), 7 of the 9 are now typed. The 2 remaining (`name_ref` and `name`) are reused outside condition context and stay as bare strings.
+- **Rules changed:**
+  - `condition_assertion` per-branch typed (4 branches + 1 passthrough):
+    - `"?=" pattern -> {kind:"lookahead", positive:true, body:$2}`
+    - `"?!" pattern -> {kind:"lookahead", positive:false, body:$2}`
+    - `"?<=" pattern -> {kind:"lookbehind", positive:true, body:$2}`
+    - `"?<!" pattern -> {kind:"lookbehind", positive:false, body:$2}`
+    - `alpha_condition_assertion` (passthrough via implicit `$1`)
+  - `alpha_condition_assertion = "*" atomic_alpha_lookaround_name ":" pattern? -> {kind:"alpha_lookaround", name:$2, body:$4}`. Parallels slice 23's atom-level `alpha_lookaround` typing.
+  - `condition_callout = "?C" callout_arg? ")" -> {kind:"callout", arg:$2}`. Inside-condition variant of the atom-level `callout` (without the leading `(?` since the surrounding `(?(...)` already consumed it). Same `{kind, arg}` shape; `arg` is the typed `callout_arg` (digits → typed int, or typed callout_string from slice 33, or `[]` un-matched).
+  - `condition_callout_assertion = condition_callout "(" condition_assertion -> {kind:"callout_assertion", callout:$1, assertion:$3}`. Wraps the 2 sub-shapes.
+- **AST shape change (visible inside `conditional.condition`):**
+  - `(?(?=foo)yes)` → `condition:{kind:"lookahead", positive:true, body:<pattern>}` (was 3-element raw seq).
+  - `(?(?!bar)yes)` → `condition:{kind:"lookahead", positive:false, body:<pattern>}`.
+  - `(?(?<=baz)yes)` → `condition:{kind:"lookbehind", positive:true, body:<pattern>}`.
+  - `(?(?<!qux)yes)` → `condition:{kind:"lookbehind", positive:false, body:<pattern>}`.
+  - `(?(*pla:foo)yes)` → `condition:{kind:"alpha_lookaround", name:"pla", body:<pattern>}`.
+  - `(?((?C42)(?=foo))yes)` → `condition:{kind:"callout_assertion", callout:{kind:"callout", arg:42}, assertion:{kind:"lookahead", positive:true, body:<pattern>}}`.
+- **`kind` value collisions with slice 23's atom-level lookaround typing are intentional.** Both produce `{kind:"lookahead", positive, body}` — the distinguishing field is `type:"atom"` (atom-level only). Inside `conditional.condition`, there's no `type` field. Consumer dispatches first on `condition.kind`, then on contextual surroundings.
+- **`condition` Or-of-9 status after slice 36:**
+  - Typed: `define_condition` (slice 32), `version_condition` (slice 32), `recursion_condition` (slice 32, ×2), `condition_callout_assertion` (slice 36), `condition_assertion` (slice 36, ×4 branches + passthrough), `alpha_condition_assertion` (slice 36).
+  - Untyped (reused outside condition context): `name_ref` (clean string), `name` (clean string), `signed_digits` (`{sign, value}`), `digits` (typed int).
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
 
 ## Release 1.1.65 / Contract 1.1.67 Highlights — slice 35: directive_payload_suffix typed + directive_payload_simple regex-literal rewrite (closes directive_verb.body.payload end-to-end)
 

@@ -139,6 +139,13 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `directive_payload_suffix` (branch 0, `:`) | `-> {separator:":", value:$2}` | Object. `value` is `directive_payload_simple` (clean string after slice 35 regex-literal rewrite); `[]` when un-matched. |
 | `directive_payload_suffix` (branch 1, `=`) | `-> {separator:"=", value:$2}` | Same shape, `separator:"="`. |
 | `directive_payload_simple` | regex literal `/([^)]*)/` | Terminal of the payload body (any char except `)` — matches the verb-closing). Was `directive_payload_char*` chain. |
+| `condition_assertion` (branch 0, `?=`) | `-> {kind:"lookahead", positive:true, body:$2}` | Object. Surfaces inside `conditional.condition`. |
+| `condition_assertion` (branch 1, `?!`) | `-> {kind:"lookahead", positive:false, body:$2}` | Same kind, `positive:false`. |
+| `condition_assertion` (branch 2, `?<=`) | `-> {kind:"lookbehind", positive:true, body:$2}` | Object. |
+| `condition_assertion` (branch 3, `?<!`) | `-> {kind:"lookbehind", positive:false, body:$2}` | Object. |
+| `alpha_condition_assertion` | `-> {kind:"alpha_lookaround", name:$2, body:$4}` | Object. Parallels slice 23's atom-level `alpha_lookaround`. |
+| `condition_callout` | `-> {kind:"callout", arg:$2}` | Object. Inside-condition variant of atom-level callout (without `(?` prefix); same `{kind, arg}` shape. |
+| `condition_callout_assertion` | `-> {kind:"callout_assertion", callout:$1, assertion:$3}` | Object. Wraps the typed callout + assertion sub-shapes. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 

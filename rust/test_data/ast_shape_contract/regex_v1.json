@@ -79,6 +79,12 @@
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
+        "rule": "alpha_condition_assertion",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"alpha_lookaround\", name: $2, body: $4}"
+      },
+      {
         "rule": "alpha_lookaround",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -299,6 +305,42 @@
         "branch_index": 0,
         "annotation_type": "return_array",
         "normalized_text": "[$1**]"
+      },
+      {
+        "rule": "condition_assertion",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"lookahead\", positive: true, body: $2}"
+      },
+      {
+        "rule": "condition_assertion",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"lookahead\", positive: false, body: $2}"
+      },
+      {
+        "rule": "condition_assertion",
+        "branch_index": 2,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"lookbehind\", positive: true, body: $2}"
+      },
+      {
+        "rule": "condition_assertion",
+        "branch_index": 3,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"lookbehind\", positive: false, body: $2}"
+      },
+      {
+        "rule": "condition_callout",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"callout\", arg: $2}"
+      },
+      {
+        "rule": "condition_callout_assertion",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"callout_assertion\", callout: $1, assertion: $3}"
       },
       {
         "rule": "conditional",

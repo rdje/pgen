@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1fd5df40.js";
+            window.path_to_searchindex_js = "searchindex-ef285a34.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -320,6 +320,13 @@
 <tr><td><code>directive_payload_suffix</code> (branch 0, <code>:</code>)</td><td><code>-&gt; {separator:":", value:$2}</code></td><td>Object. <code>value</code> is <code>directive_payload_simple</code> (clean string after slice 35 regex-literal rewrite); <code>[]</code> when un-matched.</td></tr>
 <tr><td><code>directive_payload_suffix</code> (branch 1, <code>=</code>)</td><td><code>-&gt; {separator:"=", value:$2}</code></td><td>Same shape, <code>separator:"="</code>.</td></tr>
 <tr><td><code>directive_payload_simple</code></td><td>regex literal <code>/([^)]*)/</code></td><td>Terminal of the payload body (any char except <code>)</code> — matches the verb-closing). Was <code>directive_payload_char*</code> chain.</td></tr>
+<tr><td><code>condition_assertion</code> (branch 0, <code>?=</code>)</td><td><code>-&gt; {kind:"lookahead", positive:true, body:$2}</code></td><td>Object. Surfaces inside <code>conditional.condition</code>.</td></tr>
+<tr><td><code>condition_assertion</code> (branch 1, <code>?!</code>)</td><td><code>-&gt; {kind:"lookahead", positive:false, body:$2}</code></td><td>Same kind, <code>positive:false</code>.</td></tr>
+<tr><td><code>condition_assertion</code> (branch 2, <code>?&lt;=</code>)</td><td><code>-&gt; {kind:"lookbehind", positive:true, body:$2}</code></td><td>Object.</td></tr>
+<tr><td><code>condition_assertion</code> (branch 3, <code>?&lt;!</code>)</td><td><code>-&gt; {kind:"lookbehind", positive:false, body:$2}</code></td><td>Object.</td></tr>
+<tr><td><code>alpha_condition_assertion</code></td><td><code>-&gt; {kind:"alpha_lookaround", name:$2, body:$4}</code></td><td>Object. Parallels slice 23’s atom-level <code>alpha_lookaround</code>.</td></tr>
+<tr><td><code>condition_callout</code></td><td><code>-&gt; {kind:"callout", arg:$2}</code></td><td>Object. Inside-condition variant of atom-level callout (without <code>(?</code> prefix); same <code>{kind, arg}</code> shape.</td></tr>
+<tr><td><code>condition_callout_assertion</code></td><td><code>-&gt; {kind:"callout_assertion", callout:$1, assertion:$3}</code></td><td>Object. Wraps the typed callout + assertion sub-shapes.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>

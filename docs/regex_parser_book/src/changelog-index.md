@@ -23,6 +23,42 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.66 / Contract 1.1.68 — Slice 36: condition_assertion / alpha_condition_assertion / condition_callout_assertion / condition_callout typed (closes condition Or-of-9 fully)
+
+**What changed:** Closes the remaining 4 of the 9 condition Or-alternatives (combined with slice 32's 3, 7 of 9 are now typed; the 2 remaining — `name_ref` and `name` — stay as bare strings since they're reused outside condition).
+
+```ebnf
+condition_assertion         = "?=" pattern   -> {kind: "lookahead",  positive: true,  body: $2}
+                            | "?!" pattern   -> {kind: "lookahead",  positive: false, body: $2}
+                            | "?<=" pattern  -> {kind: "lookbehind", positive: true,  body: $2}
+                            | "?<!" pattern  -> {kind: "lookbehind", positive: false, body: $2}
+                            | alpha_condition_assertion
+alpha_condition_assertion   = "*" atomic_alpha_lookaround_name ":" pattern?
+                                -> {kind: "alpha_lookaround", name: $2, body: $4}
+condition_callout           = "?C" callout_arg? ")"
+                                -> {kind: "callout", arg: $2}
+condition_callout_assertion = condition_callout "(" condition_assertion
+                                -> {kind: "callout_assertion", callout: $1, assertion: $3}
+```
+
+**Before / after (visible inside `conditional.condition`):**
+
+| Source | After |
+|---|---|
+| `(?(?=foo)yes)` | `condition:{kind:"lookahead", positive:true, body:<pattern>}` |
+| `(?(?!bar)yes)` | `condition:{kind:"lookahead", positive:false, body:<pattern>}` |
+| `(?(?<=baz)yes)` | `condition:{kind:"lookbehind", positive:true, body:<pattern>}` |
+| `(?(?<!qux)yes)` | `condition:{kind:"lookbehind", positive:false, body:<pattern>}` |
+| `(?(*pla:foo)yes)` | `condition:{kind:"alpha_lookaround", name:"pla", body:<pattern>}` |
+
+**`kind` value collisions with slice 23's atom-level lookaround typing are intentional.** Both produce `{kind:"lookahead", positive, body}` — the atom-level form has an additional `type:"atom"` field; condition-context doesn't. Consumer dispatches first on `condition.kind`, then on contextual surroundings.
+
+**`condition` Or-of-9 typing status after slice 36:**
+- **Typed (7):** define_condition, version_condition, recursion_condition (×2 branches), condition_callout_assertion, condition_assertion (×4 branches + alpha passthrough), alpha_condition_assertion.
+- **Untyped (2, intentionally — reused outside condition context):** name_ref, name (both surface as bare strings); plus signed_digits (`{sign, value}` from slice 13) and digits (typed int from slice 1) which are fine as their existing typed shapes.
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.66 / Contract 1.1.68 Highlights".
+
 ### 1.1.65 / Contract 1.1.67 — Slice 35: directive_payload_suffix typed + directive_payload_simple regex-literal rewrite
 
 **What changed:** `directive_payload_suffix` per-branch typed; `directive_payload_simple` rewritten as regex literal.
