@@ -1,4 +1,94 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-7 batch: module_keyword + lifetime + module_ansi_header + module_nonansi_header typed (4 layers of dispatch end-to-end)
+
+### What landed
+
+4-rule batch slice typing the module-header sub-tree. **Four layers of typed dispatch are now end-to-end** for module declarations: source_text_item.kind → description.kind → module_declaration_sv_<profile>.kind → module_<form>_header.keyword.kind.
+
+```ebnf
+module_keyword := kw_module_fbd34a2b      -> {kind: "module"}
+                | kw_macromodule_df04b866 -> {kind: "macromodule"}
+
+lifetime := kw_static_a381562a    -> {kind: "static"}
+          | kw_automatic_ebe88724 -> {kind: "automatic"}
+
+module_ansi_header := attribute_instance* module_keyword (lifetime)? module_identifier package_import_declaration* (parameter_port_list)? (list_of_port_declarations)? semi
+                   -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+
+module_nonansi_header := attribute_instance* module_keyword (lifetime)? module_identifier package_import_declaration* (parameter_port_list)? list_of_ports semi
+                      -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+```
+
+### Empirical pre/post on `module m; endmodule\n` (sv_2017 profile)
+
+```text
+# Pre — header was raw envelope:
+"body": {"kind": "ansi", "header": [<8-element raw>], "timeunits": [], "items": [], "end_label": []}
+
+# Post — header is itself a typed object with named fields and sub-typed keyword:
+"body": {
+  "kind": "ansi",
+  "header": {
+    "attributes": [],
+    "keyword": {"kind": "module"},
+    "lifetime": [],
+    "name": [<module_identifier raw envelope>],
+    "imports": [],
+    "parameters": [],
+    "ports": []
+  },
+  "timeunits": [],
+  "items": [],
+  "end_label": []
+}
+```
+
+### ANSI / non-ANSI uniformity
+
+Both `module_ansi_header` and `module_nonansi_header` expose the same field names. Consumer code walking either form can use the same dispatch — only the underlying source rule for `ports:` differs (`(list_of_port_declarations)?` vs `list_of_ports`), invisible in the typed shape. This means a tool walking module declarations can handle both ANSI and non-ANSI uniformly.
+
+### Annotation inventory
+
+37 entries (was 31). +6 in this batch: 2 (module_keyword) + 2 (lifetime) + 1 (module_ansi_header) + 1 (module_nonansi_header).
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_04_slice_7`. Calibration history block prepended. `current_content_kind` stays `"json_object"`.
+
+### Contract bump
+
+- Parser release: `1.0.6` → `1.0.7`.
+- Contract version: `1.0.6` → `1.0.7`.
+- Schema version stays `1` (additive across all four slices).
+- New "Release 1.0.7 / Contract 1.0.7 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry for SV-Slice-7 batch.
+- `schema-versioning.md`: new row `0.8.0 / 1.0.7`.
+- `json-carrier.md`: 4 new rows (`module_keyword`, `lifetime`, `module_ansi_header`, `module_nonansi_header`).
+- `rules-top-level.md`: status line updated.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- Annotation inventory: 37 entries.
+- Empirical AST shape: `header.keyword.kind = "module"` for the minimal_module sample.
+
+### Annotation-language idiom note
+
+**Tiny-Or-typed-as-kind-tag** (`X := A -> {kind: "a"} | B -> {kind: "b"}`) is the regex-campaign pattern for keyword-distinguishing rules. Used here on `module_keyword` and `lifetime`. Once a keyword rule is typed this way, every parent rule that references it inherits the typed sub-shape automatically.
+
+### Next slice candidates
+
+- Type `module_identifier` / `declaration_identifier` (the un-typed `name:` field).
+- Type `class_declaration_sv_2017` / `class_declaration_sv_2023` per-branch (mirror of module_declaration pattern).
+- Type `interface_declaration_sv_2017` / `interface_declaration_sv_2023` per-branch.
+- Type `package_declaration` (substantial sequence).
+- Type `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch.
+
 ## 2026-05-04 - SV-Slice-6 batch: attribute_instance + module_declaration_sv_2017/2023 typed (3 layers of dispatch end-to-end)
 
 ### What landed

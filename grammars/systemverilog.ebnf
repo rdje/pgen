@@ -1383,7 +1383,8 @@ library_identifier := identifier
 
 library_text := library_description*
 
-lifetime := kw_static_a381562a | kw_automatic_ebe88724
+lifetime := kw_static_a381562a    -> {kind: "static"}
+          | kw_automatic_ebe88724 -> {kind: "automatic"}
 
 limit_value := constant_mintypmax_expression
 
@@ -1552,6 +1553,7 @@ modport_tf_ports_declaration := import_export modport_tf_port ( comma modport_tf
 
 @sample: "module m(input logic a);"
 module_ansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
+                   -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 @profiles: ["sv_2017"]
 module_common_item_sv_2017 := module_or_generate_item_declaration | interface_instantiation | program_instantiation | assertion_item | bind_directive | continuous_assign | net_alias | initial_construct | final_construct | always_construct | loop_generate_construct | conditional_generate_construct | elaboration_system_task
@@ -1593,10 +1595,12 @@ module_instantiation := module_identifier ( parameter_value_assignment )? hierar
 
 module_item := port_declaration semi | non_port_module_item
 
-module_keyword := kw_module_fbd34a2b | kw_macromodule_df04b866
+module_keyword := kw_module_fbd34a2b      -> {kind: "module"}
+                | kw_macromodule_df04b866 -> {kind: "macromodule"}
 
 @sample: "module m(a,b);"
 module_nonansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
+                      -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 module_or_generate_item := attribute_instance* parameter_override | attribute_instance* gate_instantiation | attribute_instance* udp_instantiation | attribute_instance* module_instantiation | attribute_instance* module_common_item
 

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.6`
+  - `1.0.7`
 - Parser release version:
-  - `1.0.6`
+  - `1.0.7`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,135 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.7 / Contract 1.0.7 Highlights — SV-Slice-7 batch: module_keyword + lifetime + module_ansi_header + module_nonansi_header typed (4 layers of dispatch end-to-end)
+
+Typing the `header:` field that the SV-Slice-6 batch left as raw envelope. Four sub-rules typed in one pass; **four layers of typed dispatch are now end-to-end** for module declarations.
+
+### (a) `module_keyword` per-branch (2 kind labels)
+
+```ebnf
+module_keyword := kw_module_fbd34a2b      -> {kind: "module"}
+                | kw_macromodule_df04b866 -> {kind: "macromodule"}
+```
+
+Drops the keyword token (it's redundant with `kind`); emits a typed object that consumers can dispatch on.
+
+### (b) `lifetime` per-branch (2 kind labels)
+
+```ebnf
+lifetime := kw_static_a381562a    -> {kind: "static"}
+          | kw_automatic_ebe88724 -> {kind: "automatic"}
+```
+
+Same pattern as module_keyword. When a `(lifetime)?` slot is matched, consumers see `{kind: "static"}` / `{kind: "automatic"}`. When un-matched, they see `[]` (existing convention).
+
+### (c) `module_ansi_header` typed sequence
+
+```ebnf
+module_ansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
+                   -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+```
+
+7 named fields. Drops the trailing `semi`. The `keyword:` field is itself typed (per slice 7a), and `lifetime:` is itself typed when matched (per slice 7b). `name:` carries the raw `module_identifier` envelope (still un-typed; per-rule typing of identifiers is follow-up). `attributes`/`imports`/`parameters`/`ports` are quantified or optional; consumers handle empty as `[]` and matched as the inner shape.
+
+### (d) `module_nonansi_header` typed sequence
+
+```ebnf
+module_nonansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
+                      -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+```
+
+Same field names as `module_ansi_header`. Consumers walking either get the same JSON shape — only the `ports:` source rule differs (`list_of_ports` vs `(list_of_port_declarations)?`). For consumer code, walking the typed shape is uniform across ANSI / non-ANSI forms.
+
+### Empirical pre/post on `module m; endmodule\n` (sv_2017 profile)
+
+```text
+# Pre-SV-Slice-7 — header was raw envelope:
+"body": {
+  "kind": "ansi",
+  "header": [<module_ansi_header raw 8-element envelope>],
+  "timeunits": [],
+  "items": [],
+  "end_label": []
+}
+
+# Post-SV-Slice-7 — header is itself a typed object with named fields:
+"body": {
+  "kind": "ansi",
+  "header": {
+    "attributes": [],
+    "keyword": {"kind": "module"},
+    "lifetime": [],
+    "name": [<module_identifier raw envelope>],
+    "imports": [],
+    "parameters": [],
+    "ports": []
+  },
+  "timeunits": [],
+  "items": [],
+  "end_label": []
+}
+```
+
+### Four layers of typed dispatch end-to-end
+
+```rust
+// Walking a module declaration end-to-end:
+for item in obj["source_text"].as_array().unwrap() {
+    if item["kind"] == "description" {
+        let desc = &item["body"];
+        if desc["kind"] == "module_declaration" {
+            let module = &desc["body"];   // module_declaration_sv_<profile> shape
+            match module["kind"].as_str().unwrap() {
+                "ansi" | "nonansi" => {
+                    let hdr = &module["header"];   // module_<form>_header shape
+                    let module_kind = hdr["keyword"]["kind"].as_str().unwrap();   // "module" | "macromodule"
+                    let lifetime = match &hdr["lifetime"] {
+                        v if v.is_array() && v.as_array().unwrap().is_empty() => None,
+                        v => Some(v["kind"].as_str().unwrap()),  // "static" | "automatic"
+                    };
+                    let attrs = hdr["attributes"].as_array().unwrap();
+                    let imports = hdr["imports"].as_array().unwrap();
+                    // ... process module ...
+                }
+                "wildcard" => { /* similar — wildcard exposes more fields directly */ }
+                "extern_nonansi" | "extern_ansi" => {
+                    let hdr = &module["header"];   // same module_<form>_header shape
+                    // ... process extern declaration ...
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+}
+```
+
+### Annotation inventory
+
+37 entries (was 31). +6 in this batch: 2 (module_keyword) + 2 (lifetime) + 1 (module_ansi_header) + 1 (module_nonansi_header).
+
+### Same accept set, same diagnostic codes.
+
+### Schema-version stays `1` (additive).
+
+### mdBook
+
+`changelog-index.md`, `schema-versioning.md`, `json-carrier.md`, `rules-top-level.md` updated. `make systemverilog_parser_book_gate` green.
+
+### Public API surface unchanged.
+
+### Annotation-language idiom notes
+
+- **Tiny-Or-typed-as-kind-tag** (`X := A -> {kind: "a"} | B -> {kind: "b"}`) is the regex-campaign pattern for keyword-distinguishing rules. Used here on `module_keyword` and `lifetime`. Once a keyword rule is typed this way, every parent rule that references it inherits the typed sub-shape automatically.
+
+### Next slice candidates
+
+- Type `module_identifier` / `declaration_identifier` (currently the un-typed `name:` field on module_<form>_header).
+- Type `class_declaration_sv_2017` / `class_declaration_sv_2023` per-branch (mirror of module_declaration pattern).
+- Type `interface_declaration_sv_2017` / `interface_declaration_sv_2023` per-branch.
+- Type `package_declaration` (substantial sequence with attribute_instance* prefix).
+- Type `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch.
 
 ## Release 1.0.6 / Contract 1.0.6 Highlights — SV-Slice-6 batch: attribute_instance + module_declaration_sv_2017/2023 typed (3 layers of dispatch end-to-end)
 

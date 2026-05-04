@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-62112879.js";
+            window.path_to_searchindex_js = "searchindex-236e83f9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -201,6 +201,10 @@
 <tr><td><code>attribute_instance</code></td><td><code>-&gt; {first: $2, rest: $3}</code></td><td>Typed object <code>{first: &lt;attr_spec shape&gt;, rest: &lt;( comma attr_spec )* iteration&gt;}</code>. Drops the <code>attr_open</code> (<code>(*</code>) and <code>attr_close</code> (<code>*)</code>) delimiters. The <code>first</code> field carries the leading attr_spec; <code>rest</code> carries the trailing reps as a Quantified iteration where each entry is <code>[comma, attr_spec]</code>. Mixed-array spread <code>[$2, $3**]</code> is currently blocked by an annotation-language limitation; the cleaner flat-array form is deferred until that’s resolved.</td></tr>
 <tr><td><code>module_declaration_sv_2017</code> (5 branches)</td><td>per-branch typed shapes, see contract section “Release 1.0.6 / Contract 1.0.6 Highlights” for the full annotation source</td><td>Typed object with <code>kind</code> discriminator: <code>"ansi"</code> / <code>"nonansi"</code> / <code>"wildcard"</code> / <code>"extern_nonansi"</code> / <code>"extern_ansi"</code>. Single-form branches expose <code>header / timeunits / items / end_label</code>. The wildcard branch additionally exposes <code>attributes / keyword / lifetime / name</code>. Extern branches expose only <code>header</code>.</td></tr>
 <tr><td><code>module_declaration_sv_2023</code> (5 branches)</td><td>per-branch typed shapes (same kind set as sv_2017)</td><td>Identical kind discriminator and field names as sv_2017. Wildcard branch’s positional indices shift due to <code>dot star</code> (2 tokens) vs <code>dot_star</code> (1 token); user-visible AST is identical to sv_2017.</td></tr>
+<tr><td><code>module_keyword</code> (2 branches)</td><td><code>-&gt; {kind: "module"}</code> / <code>-&gt; {kind: "macromodule"}</code></td><td>Typed object with <code>kind</code> discriminator. Drops the keyword token (redundant with <code>kind</code>). When referenced by parent rules (e.g. module_ansi_header.keyword), the typed shape propagates automatically.</td></tr>
+<tr><td><code>lifetime</code> (2 branches)</td><td><code>-&gt; {kind: "static"}</code> / <code>-&gt; {kind: "automatic"}</code></td><td>Typed object. When <code>(lifetime)?</code> is matched, consumers see <code>{kind: "static"}</code> / <code>{kind: "automatic"}</code>. When un-matched, <code>[]</code> (existing convention).</td></tr>
+<tr><td><code>module_ansi_header</code></td><td><code>-&gt; {attributes, keyword, lifetime, name, imports, parameters, ports}</code></td><td>7 named fields. <code>keyword:</code> is itself typed (per <code>module_keyword</code>); <code>lifetime:</code> is itself typed when matched (per <code>lifetime</code>); <code>attributes</code>/<code>imports</code>/<code>parameters</code>/<code>ports</code> are quantified or optional (consumer handles <code>[]</code> for empty). <code>name:</code> carries raw <code>module_identifier</code> envelope.</td></tr>
+<tr><td><code>module_nonansi_header</code></td><td><code>-&gt; {attributes, keyword, lifetime, name, imports, parameters, ports}</code></td><td>Same field names as module_ansi_header. Only <code>ports:</code> source rule differs (<code>list_of_ports</code> vs <code>(list_of_port_declarations)?</code>); the typed shape is identical for consumers.</td></tr>
 </tbody>
 </table>
 </div>
