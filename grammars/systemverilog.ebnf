@@ -552,9 +552,11 @@ class_constructor_prototype := class_constructor_prototype_sv_2017 | class_const
 
 @profiles: ["sv_2017"]
 class_declaration_sv_2017 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( lifetime )? declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 base_class_type ( lparen list_of_arguments rparen )? )? ( kw_implements_e133e2cb interface_class_type ( comma interface_class_type )* )? semi class_item* kw_endclass_b43ac277 ( colon class_identifier )?
+                          -> {virtual: $1, lifetime: $3, name: $4, parameters: $5, extends: $6, implements: $7, items: $9, end_label: $11}
 
 @profiles: ["sv_2023"]
 class_declaration_sv_2023 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( final_specifier )? declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 base_class_type ( lparen ( list_of_arguments | kw_default_7505d64a )? rparen )? )? ( kw_implements_e133e2cb interface_class_type ( comma interface_class_type )* )? semi class_item* kw_endclass_b43ac277 ( colon class_identifier )?
+                          -> {virtual: $1, final_specifier: $3, name: $4, parameters: $5, extends: $6, implements: $7, items: $9, end_label: $11}
 
 class_declaration := class_declaration_sv_2017 | class_declaration_sv_2023
 
@@ -1814,6 +1816,7 @@ output_terminal := net_lvalue
 
 @emit_fact: { kind: package_name, name: $package_identifier }
 package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
+                    -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9}
 
 package_export_declaration := kw_export_51713409 star scope_resolution star semi | kw_export_51713409 package_import_item ( comma package_import_item )* semi
 
@@ -1994,10 +1997,28 @@ production_item := production_item_sv_2017
 program_ansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
 
 @profiles: ["sv_2017"]
-program_declaration_sv_2017 := @sample: "program p(a); endprogram" program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "program p; endprogram" program_ansi_header ( timeunits_declaration )? non_port_program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "program p(.*); endprogram" attribute_instance* kw_program_81d9aeea program_identifier lparen dot_star rparen semi ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "extern program p(a);" kw_extern_bf1ee311 program_nonansi_header | @sample: "extern program p;" kw_extern_bf1ee311 program_ansi_header
+program_declaration_sv_2017 := @sample: "program p(a); endprogram" program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )?
+                                 -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                             | @sample: "program p; endprogram" program_ansi_header ( timeunits_declaration )? non_port_program_item* kw_endprogram_6b609b1f ( colon program_identifier )?
+                                 -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                             | @sample: "program p(.*); endprogram" attribute_instance* kw_program_81d9aeea program_identifier lparen dot_star rparen semi ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )?
+                                 -> {kind: "wildcard", attributes: $1, name: $3, timeunits: $8, items: $9, end_label: $11}
+                             | @sample: "extern program p(a);" kw_extern_bf1ee311 program_nonansi_header
+                                 -> {kind: "extern_nonansi", header: $2}
+                             | @sample: "extern program p;" kw_extern_bf1ee311 program_ansi_header
+                                 -> {kind: "extern_ansi", header: $2}
 
 @profiles: ["sv_2023"]
-program_declaration_sv_2023 := @sample: "program p(a); endprogram" program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "program p; endprogram" program_ansi_header ( timeunits_declaration )? non_port_program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "program p(.*); endprogram" attribute_instance* kw_program_81d9aeea program_identifier lparen dot star rparen semi ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )? | @sample: "extern program p(a);" kw_extern_bf1ee311 program_nonansi_header | @sample: "extern program p;" kw_extern_bf1ee311 program_ansi_header
+program_declaration_sv_2023 := @sample: "program p(a); endprogram" program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )?
+                                 -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                             | @sample: "program p; endprogram" program_ansi_header ( timeunits_declaration )? non_port_program_item* kw_endprogram_6b609b1f ( colon program_identifier )?
+                                 -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                             | @sample: "program p(.*); endprogram" attribute_instance* kw_program_81d9aeea program_identifier lparen dot star rparen semi ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )?
+                                 -> {kind: "wildcard", attributes: $1, name: $3, timeunits: $9, items: $10, end_label: $12}
+                             | @sample: "extern program p(a);" kw_extern_bf1ee311 program_nonansi_header
+                                 -> {kind: "extern_nonansi", header: $2}
+                             | @sample: "extern program p;" kw_extern_bf1ee311 program_ansi_header
+                                 -> {kind: "extern_ansi", header: $2}
 
 program_declaration := @sample: "program p; endprogram" program_declaration_sv_2017 | @sample: "program p; endprogram" program_declaration_sv_2023
 

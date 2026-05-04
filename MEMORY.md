@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-04 (+0200, task: SV-Slice-9-batch-interface-declarations-typed)
+Last updated: 2026-05-05 (+0200, task: SV-Slice-10-batch-class-package-program-typed)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-10 batch landed: class + package + program declarations typed.** 5 rules: class_declaration_sv_2017 (single sequence with `lifetime:`), class_declaration_sv_2023 (single sequence with `final_specifier:` per LRM-2023 semantics), package_declaration (single sequence), program_declaration_sv_2017 (5 per-branch kinds: nonansi/ansi/wildcard/extern_nonansi/extern_ansi — NOTE program lists nonansi BEFORE ansi, different order from module/interface but kind labels still discriminate uniformly), program_declaration_sv_2023 (mirror with positional shift in wildcard for `dot star` vs `dot_star`). Verified empirically on `program p; endprogram\n`: source_text[0].body.body.kind = "ansi". Module/interface tests still pass (no regression). **OPEN FOLLOW-UP**: `package p; endpackage\n` parse rejected at position 0 despite annotation registering correctly per inventory — appears pre-existing (module/interface/program tests all pass with same regenerated parser); investigation pending. Class top-level parse failure is expected (class_declaration not directly in source_text_item; reached via package_item or other subsidiary contexts). Annotation count: 65 (was 53, +12). Profile-specific class field naming: sv_2017 has `lifetime:`, sv_2023 has `final_specifier:` — mutually exclusive; consumer dispatches on whichever is present. Contract bumped 1.0.9 → 1.0.10. Schema stays 1. mdBook synced (changelog-index, schema-versioning row 0.11.0, json-carrier 5 new rows, rules-top-level status). SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 12/30.** Continuing per "until none remaining" directive. Next: udp_declaration_sv_* (deferred — has `udp_port_declaration udp_port_declaration*` mini-mixed-array needing `{first, rest}` workaround), program_ansi_header / program_nonansi_header sibling typing, package parse-failure investigation.
+
+### Earlier session note (kept for context):
 - **SV-Slice-9 batch landed: interface declarations typed (mirror of module pattern).** 4 rules: interface_ansi_header (6 fields, no keyword), interface_nonansi_header (same 6 fields), interface_declaration_sv_2017 (5 per-branch kinds: ansi/nonansi/wildcard/extern_nonansi/extern_ansi), interface_declaration_sv_2023 (positional shift in wildcard). Verified on `interface bus; endinterface\n`: header.name = "bus" (clean string inherited from slice 8 identifier typing). Annotation count: 53 (was 41, +12). Same accept set. Contract bumped 1.0.8 → 1.0.9. Schema stays 1. mdBook synced. SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 11/30.** Continuing per "until none remaining" directive. Next: class_declaration_sv_*, package_declaration, udp_declaration_sv_*, program_declaration_sv_*. Pattern is now well-established — 4 layers of typed dispatch + clean identifier strings; each new top-level construct is a quick mirror of the module/interface pattern.
 
 ### Earlier session note (kept for context):

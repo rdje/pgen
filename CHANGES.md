@@ -1,4 +1,87 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-10 batch: class + package + program declarations typed
+
+### What landed
+
+5 rules typed across 3 sibling top-level declaration families:
+
+```ebnf
+class_declaration_sv_2017 := (kw_virtual)? kw_class (lifetime)? declared_class_identifier (parameter_port_list)? (kw_extends ...)? (kw_implements ...)? semi class_item* kw_endclass (colon class_identifier)?
+                          -> {virtual: $1, lifetime: $3, name: $4, parameters: $5, extends: $6, implements: $7, items: $9, end_label: $11}
+
+class_declaration_sv_2023 := (kw_virtual)? kw_class (final_specifier)? ... (LRM-2023 final_specifier instead of lifetime)
+                          -> {virtual: $1, final_specifier: $3, name: $4, parameters: $5, extends: $6, implements: $7, items: $9, end_label: $11}
+
+package_declaration := attribute_instance* kw_package (lifetime)? package_identifier semi (timeunits_declaration)? (attribute_instance* package_item)* kw_endpackage (colon package_identifier)?
+                    -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9}
+
+program_declaration_sv_2017 := /* 5 branches: nonansi/ansi/wildcard/extern_nonansi/extern_ansi (mirror of module/interface) */
+program_declaration_sv_2023 := /* same 5 branches, positional shift in wildcard for `dot star` vs `dot_star` */
+```
+
+### Empirical verification matrix
+
+| Input | Outcome | Notes |
+|---|---|---|
+| `module m; endmodule\n` | ✓ unchanged | module pattern preserved |
+| `interface bus; endinterface\n` | ✓ unchanged | interface pattern preserved |
+| `program p; endprogram\n` | ✓ NEW | description.body.kind = "program_declaration", body.kind = "ansi" |
+| `package p; endpackage\n` | ✗ parse rejected at position 0 | annotation registered; runtime parse failure appears pre-existing |
+| `class C; endclass\n` | ✗ expected | class_declaration not directly in source_text_item; reached via package_item |
+
+### Profile-specific class field naming
+
+The class rule's `lifetime` slot in SV-2017 became `final_specifier` in SV-2023 (LRM-2023 semantic change). Annotations reflect this — sv_2017 emits `lifetime:`, sv_2023 emits `final_specifier:`. Mutually exclusive across profiles; consumer code dispatches on whichever field is present.
+
+### Annotation inventory
+
+65 entries (was 53). +12 in this batch.
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_05_slice_10`. Calibration history block prepended with batch entry.
+
+### Contract bump
+
+- Parser release: `1.0.9` → `1.0.10`.
+- Contract version: `1.0.9` → `1.0.10`.
+- Schema version stays `1`.
+- New "Release 1.0.10 / Contract 1.0.10 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry with consumer dispatch + open-follow-up note.
+- `schema-versioning.md`: new row `0.11.0 / 1.0.10`.
+- `json-carrier.md`: 5 new rows (class_sv_2017, class_sv_2023, package_declaration, program_sv_2017, program_sv_2023).
+- `rules-top-level.md`: status line.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- Annotation inventory: 65 entries.
+- Module/interface/program empirical AST shapes: unchanged for module + interface; new typed shape for program.
+
+### Open follow-up — package top-level parse failure
+
+`package mypkg; endpackage\n` fails to parse at position 0. This appears pre-existing — module / interface / program tests pass with the same regenerated parser. Possible causes:
+- Pre-existing PEG ordering issue in `description`'s 8-branch Or
+- Interaction with `@emit_fact:` rule-level metadata annotation immediately preceding `package_declaration`
+- A different rule-context constraint not visible from inspection
+
+The annotation IS registered correctly per the inventory — the runtime parse path is the issue. Tracked in MEMORY.md as a separate investigation item; doesn't block other slice work.
+
+### Annotation-language idiom note
+
+**Single-sequence rule typing without kind discriminator** is appropriate for rules with only one form (class, package). Consumers reach them via parent's discriminator (`description.kind == "class_declaration"` etc.).
+
+### Next slice candidates
+
+- `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch (deferred — has `udp_port_declaration udp_port_declaration*` mini-mixed-array pattern needing `{first, rest}` workaround).
+- `program_ansi_header` / `program_nonansi_header` (sibling to `module_<form>_header`).
+- Investigation: package top-level parse failure.
+
 ## 2026-05-04 - SV-Slice-9 batch: interface declarations typed (mirror of module pattern)
 
 ### What landed

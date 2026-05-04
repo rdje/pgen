@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-728136f9.js";
+            window.path_to_searchindex_js = "searchindex-40f2fa3d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,20 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1010--contract-1010--sv-slice-10-batch-class--package--program-declarations-typed"><a class="header" href="#1010--contract-1010--sv-slice-10-batch-class--package--program-declarations-typed">1.0.10 / Contract 1.0.10 — SV-Slice-10 batch: class + package + program declarations typed</a></h3>
+<p><strong>What changed:</strong> 5 rules typed: <code>class_declaration_sv_2017</code> and <code>class_declaration_sv_2023</code> (single-sequence shapes; sv_2017 has <code>lifetime:</code>, sv_2023 has <code>final_specifier:</code> per LRM-2023 semantics), <code>package_declaration</code> (single sequence with attribute_instance* prefix), <code>program_declaration_sv_2017</code> and <code>program_declaration_sv_2023</code> (5 per-branch kinds each, mirroring module/interface).</p>
+<p><strong>Verified empirically on <code>program p; endprogram\n</code>:</strong></p>
+<pre><code class="language-text">source_text[0]: {kind: "description", body: {
+    kind: "program_declaration",
+    body: {kind: "ansi", header: {...}, timeunits: [], items: [], end_label: []}
+}}
+</code></pre>
+<p><strong>Module/interface/program tests still pass</strong> with the same regenerated parser — annotations didn’t introduce regressions.</p>
+<p><strong>Open follow-up:</strong> <code>package p; endpackage\n</code> parse rejected at position 0 despite <code>package_declaration</code> being in <code>description</code>’s Or set. Annotation registered correctly per the inventory; runtime parse failure appears pre-existing. Module/interface/program parsing unaffected. Tracking separately.</p>
+<p><strong>Class top-level parse:</strong> <code>class C; endclass\n</code> is also rejected — but this is expected, since class_declaration isn’t directly in source_text_item’s reachable set; class declarations are reached through <code>package_item</code> or other subsidiary contexts.</p>
+<p><strong>Annotation inventory:</strong> 65 entries (was 53). +12 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.10 / Contract 1.0.10 Highlights”.</p>
 <h3 id="109--contract-109--sv-slice-9-batch-interface-declarations-typed-full-mirror-of-module-pattern"><a class="header" href="#109--contract-109--sv-slice-9-batch-interface-declarations-typed-full-mirror-of-module-pattern">1.0.9 / Contract 1.0.9 — SV-Slice-9 batch: interface declarations typed (full mirror of module pattern)</a></h3>
 <p><strong>What changed:</strong> 4 rules typed: <code>interface_ansi_header</code>, <code>interface_nonansi_header</code>, <code>interface_declaration_sv_2017</code> (5 per-branch kinds), <code>interface_declaration_sv_2023</code> (same 5 kinds with positional shift). Interface declarations now have the same typed surface as module declarations. 4-layer typed dispatch end-to-end + clean identifier strings.</p>
 <p><strong>Empirical for <code>interface bus; endinterface\n</code>:</strong></p>

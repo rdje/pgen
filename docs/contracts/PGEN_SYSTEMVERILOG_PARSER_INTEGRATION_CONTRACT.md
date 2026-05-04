@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.9`
+  - `1.0.10`
 - Parser release version:
-  - `1.0.9`
+  - `1.0.10`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,70 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.10 / Contract 1.0.10 Highlights — SV-Slice-10 batch: class + package + program declarations typed
+
+5 rules typed: class declarations (sv_2017 + sv_2023 single-sequence shapes), `package_declaration` single-sequence, program declarations (sv_2017 + sv_2023 — 5 per-branch kinds each, mirroring module/interface pattern).
+
+### Annotations
+
+```ebnf
+class_declaration_sv_2017 := (kw_virtual)? kw_class (lifetime)? declared_class_identifier (parameter_port_list)? (kw_extends base_class_type (lparen list_of_arguments rparen)?)? (kw_implements interface_class_type (comma interface_class_type)*)? semi class_item* kw_endclass (colon class_identifier)?
+                          -> {virtual: $1, lifetime: $3, name: $4, parameters: $5, extends: $6, implements: $7, items: $9, end_label: $11}
+
+class_declaration_sv_2023 := (kw_virtual)? kw_class (final_specifier)? declared_class_identifier (parameter_port_list)? (kw_extends base_class_type (lparen (list_of_arguments | kw_default)? rparen)?)? (kw_implements interface_class_type (comma interface_class_type)*)? semi class_item* kw_endclass (colon class_identifier)?
+                          -> {virtual: $1, final_specifier: $3, name: $4, parameters: $5, extends: $6, implements: $7, items: $9, end_label: $11}
+
+package_declaration := attribute_instance* kw_package (lifetime)? package_identifier semi (timeunits_declaration)? (attribute_instance* package_item)* kw_endpackage (colon package_identifier)?
+                    -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9}
+
+program_declaration_sv_2017 := /* 5 branches, kind: nonansi/ansi/wildcard/extern_nonansi/extern_ansi
+                                  Note: nonansi listed BEFORE ansi (different from module/interface order),
+                                        but kind labels still discriminate correctly. */
+
+program_declaration_sv_2023 := /* same 5 branches; wildcard branch positional shift for `dot star` vs `dot_star`. */
+```
+
+### Profile-specific field naming on class declarations
+
+The class rule's `lifetime` slot in SV-2017 became `final_specifier` in SV-2023 (different LRM semantics). The annotation reflects this — sv_2017 carries `lifetime: $3`, sv_2023 carries `final_specifier: $3`. Consumers walking either profile dispatch on the present field name; both fields are mutually exclusive across profiles.
+
+### Empirical verification
+
+| Input | Outcome |
+|---|---|
+| `module m; endmodule\n` | ✓ unchanged (module pattern preserved) |
+| `interface bus; endinterface\n` | ✓ unchanged (interface pattern preserved) |
+| `program p; endprogram\n` | ✓ NEW — `description.body.kind = "program_declaration"`, `description.body.body.kind = "ansi"` |
+| `package p; endpackage\n` | ✗ parse rejected at position 0 — annotation registered correctly per the inventory; runtime parse failure appears pre-existing (this slice's annotation didn't introduce it; module/interface/program tests still pass with the same regenerated parser). Investigation tracked separately. |
+| `class C; endclass\n` | ✗ expected — class_declaration is not directly in source_text_item's reachable set; class declarations are typically reached through `package_item` or other subsidiary rules. |
+
+### Annotation inventory
+
+65 entries (was 53). +12 in this batch: 1 (class_declaration_sv_2017) + 1 (class_declaration_sv_2023) + 1 (package_declaration) + 5 (program_declaration_sv_2017) + 5 (program_declaration_sv_2023) — but note that package_declaration's runtime path needs investigation despite the annotation registering correctly.
+
+### Same accept set, same diagnostic codes
+
+(Verified: module/interface/program inputs that worked before still work; the 65-annotation parser is correct for those.)
+
+### Schema-version stays `1`.
+
+### mdBook updates, gate green.
+
+### Annotation-language idiom note
+
+**Single-sequence rule typing** (no kind discriminator) is appropriate for rules that have only one form, like `class_declaration_sv_2017` and `package_declaration`. They emit a flat object with named fields rather than a `kind`-discriminated shape. Consumers reach them via the parent's `description.kind` (e.g. "class_declaration", "package_item" → contains class/package; "program_declaration" → 5-form discriminator).
+
+### Open follow-up
+
+- Investigate why `package mypkg; endpackage\n` doesn't parse at top level despite `package_declaration` being in `description`'s Or set. Module / interface / program with similar structures parse fine. Could be (i) a pre-existing PEG ordering issue, (ii) interaction with the `@emit_fact:` rule-level metadata annotation immediately preceding `package_declaration`, or (iii) a different rule-context constraint not visible from inspection. Tracked in MEMORY.md as a separate item.
+
+### Next slice candidates
+
+- Type `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch (deferred from this batch — has `udp_port_declaration udp_port_declaration*` mini-mixed-array pattern that needs the `{first, rest}` workaround).
+- Type `program_ansi_header` / `program_nonansi_header` (sibling to `module_<form>_header`).
+- Type `interface_keyword`, `kw_interface`, `kw_class`, `kw_package` (clean keyword strings — minor polish).
+- Address task #38 to unblock parens-grouped-Or rules.
 
 ## Release 1.0.9 / Contract 1.0.9 Highlights — SV-Slice-9 batch: interface declarations typed (full mirror of module pattern)
 

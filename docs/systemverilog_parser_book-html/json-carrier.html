@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-728136f9.js";
+            window.path_to_searchindex_js = "searchindex-40f2fa3d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -213,6 +213,11 @@
 <tr><td><code>interface_nonansi_header</code></td><td><code>-&gt; {attributes, lifetime, name, imports, parameters, ports}</code></td><td>Same field names as interface_ansi_header. Only <code>ports:</code> source rule differs.</td></tr>
 <tr><td><code>interface_declaration_sv_2017</code> (5 branches)</td><td>per-branch typed shapes (full source in contract Highlights)</td><td>Typed object with <code>kind</code> discriminator: <code>"ansi"</code> / <code>"nonansi"</code> / <code>"wildcard"</code> / <code>"extern_nonansi"</code> / <code>"extern_ansi"</code>. Same kind labels and field structure as module_declaration_sv_2017. Wildcard branch positions: $1 attributes, $3 name, $8 timeunits, $9 items, $11 end_label.</td></tr>
 <tr><td><code>interface_declaration_sv_2023</code> (5 branches)</td><td>per-branch typed shapes (same kind set as sv_2017)</td><td>Identical to sv_2017 except wildcard branch positions shift due to <code>dot star</code> (2 tokens) vs <code>dot_star</code> (1 token): $9 timeunits, $10 items, $12 end_label.</td></tr>
+<tr><td><code>class_declaration_sv_2017</code></td><td><code>-&gt; {virtual, lifetime, name, parameters, extends, implements, items, end_label}</code></td><td>Single-sequence typed object. <code>virtual</code> carries the <code>(kw_virtual)?</code> slot (typed kw object when matched, <code>[]</code> when un-matched). <code>name</code> is a clean string (inherited from SV-Slice-8). <code>extends</code> and <code>implements</code> carry the optional inheritance / interface-implementation clauses.</td></tr>
+<tr><td><code>class_declaration_sv_2023</code></td><td><code>-&gt; {virtual, final_specifier, name, parameters, extends, implements, items, end_label}</code></td><td>Same shape as sv_2017 but uses <code>final_specifier:</code> instead of <code>lifetime:</code> (LRM-2023 semantic change). Mutually-exclusive across profiles — consumers walking either profile dispatch on whichever field is present.</td></tr>
+<tr><td><code>package_declaration</code></td><td><code>-&gt; {attributes, lifetime, name, timeunits, items, end_label}</code></td><td>Single-sequence typed object. <code>name</code> is a clean package_identifier string. ⚠️ Open follow-up: bare-package input <code>package p; endpackage\n</code> parse rejected at top-level despite annotation registering correctly — investigation pending.</td></tr>
+<tr><td><code>program_declaration_sv_2017</code> (5 branches)</td><td>per-branch typed shapes (mirror of module/interface 5-form pattern)</td><td>Kind labels: <code>"nonansi"</code> / <code>"ansi"</code> / <code>"wildcard"</code> / <code>"extern_nonansi"</code> / <code>"extern_ansi"</code>. Note: program rule lists nonansi BEFORE ansi (different from module/interface order) — but kind labels still discriminate uniformly across constructs. Wildcard branch positions: $1 attributes, $3 name, $8 timeunits, $9 items, $11 end_label.</td></tr>
+<tr><td><code>program_declaration_sv_2023</code> (5 branches)</td><td>per-branch typed shapes (same kind set as sv_2017)</td><td>Wildcard branch positions shift to $9 timeunits, $10 items, $12 end_label (due to <code>dot star</code> vs <code>dot_star</code>).</td></tr>
 </tbody>
 </table>
 </div>
