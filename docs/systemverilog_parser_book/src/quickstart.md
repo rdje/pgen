@@ -2,6 +2,8 @@
 
 A minimal "compile this, walk that" recipe for embedding the PGEN SystemVerilog parser. Read [Build Recipe](build-recipe.md) and [Public API Surface](public-api.md) for the long-form versions of each step.
 
+> See also: [`parseability_probe` CLI Reference](../../reference/PARSEABILITY_PROBE.md) — canonical reference for the verification tool used in CI / bug-repro flows.
+
 ## 1. Cold-clone build
 
 ```bash

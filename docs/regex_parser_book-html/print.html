@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-995b2f6d.js";
+            window.path_to_searchindex_js = "searchindex-be852df8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -227,6 +227,9 @@
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
+<blockquote>
+<p>See also: <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a> — canonical reference for the verification tool used in the steps below. Skim it once for the full flag set; the per-step examples on this page are the minimal recipe.</p>
+</blockquote>
 <p>If you’ve cloned PGEN (or pulled it as a submodule under your own project, e.g. RGX’s <code>subs/pgen</code>) and need a working regex parser <strong>right now</strong>, the entire build is one command:</p>
 <pre><code class="language-bash">make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap
 </code></pre>
@@ -4595,7 +4598,7 @@ fn ast_snapshot_for_canonical_inputs() {
 <h2 id="piece-1"><a class="header" href="#piece-1">Piece</a></h2>
 <p>A grammar rule and a regex concept. A <code>piece</code> is one regex unit: an atom optionally followed by a quantifier, OR (under PGEN-RGX-0074’s new branch) a quoted-run member. Pieces are the elements of a <code>concatenation</code>.</p>
 <h2 id="probe"><a class="header" href="#probe">Probe</a></h2>
-<p>The <code>parseability_probe</code> binary. A debugging/dumping tool that exposes the parser surface from the command line. The book and contract use probes to capture canonical AST shapes.</p>
+<p>The <code>parseability_probe</code> binary — a CLI wrapper around <code>pgen::embedding_api</code>. Exposes 4 sub-commands: <code>--supports</code>, <code>--parse</code>, <code>--parse-dump-ast</code>, <code>--parse-dump-ast-pretty</code>. The book and contract use it to capture canonical AST shapes. See the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a> for the full flag set, exit codes, output formats, and registered grammars.</p>
 <h2 id="quantifier-1"><a class="header" href="#quantifier-1">Quantifier</a></h2>
 <p><code>*</code>, <code>+</code>, <code>?</code>, <code>{n}</code>, <code>{n,}</code>, <code>{,m}</code>, <code>{n,m}</code> plus suffix <code>?</code> (lazy) or <code>+</code> (possessive). Parsed by the <code>quantifier</code> rule.</p>
 <h2 id="quantified"><a class="header" href="#quantified">Quantified</a></h2>

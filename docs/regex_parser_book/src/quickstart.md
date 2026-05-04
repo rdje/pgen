@@ -1,5 +1,7 @@
 # Quickstart for Downstream Consumers
 
+> See also: [`parseability_probe` CLI Reference](../../reference/PARSEABILITY_PROBE.md) — canonical reference for the verification tool used in the steps below. Skim it once for the full flag set; the per-step examples on this page are the minimal recipe.
+
 If you've cloned PGEN (or pulled it as a submodule under your own project, e.g. RGX's `subs/pgen`) and need a working regex parser **right now**, the entire build is one command:
 
 ```bash

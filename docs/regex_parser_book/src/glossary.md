@@ -108,7 +108,7 @@ A grammar rule and a regex concept. A `piece` is one regex unit: an atom optiona
 
 ## Probe
 
-The `parseability_probe` binary. A debugging/dumping tool that exposes the parser surface from the command line. The book and contract use probes to capture canonical AST shapes.
+The `parseability_probe` binary — a CLI wrapper around `pgen::embedding_api`. Exposes 4 sub-commands: `--supports`, `--parse`, `--parse-dump-ast`, `--parse-dump-ast-pretty`. The book and contract use it to capture canonical AST shapes. See the [`parseability_probe` CLI Reference](../../reference/PARSEABILITY_PROBE.md) for the full flag set, exit codes, output formats, and registered grammars.
 
 ## Quantifier
 

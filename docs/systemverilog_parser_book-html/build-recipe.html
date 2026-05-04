@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dc8d6cf2.js";
+            window.path_to_searchindex_js = "searchindex-32268294.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -231,7 +231,10 @@ cargo build --release --features generated_parsers,sv_2017
     --parse systemverilog /path/to/input.sv \
     --profile sv_2017
 </code></pre>
-<p>If the parseability probe reports <code>parse_outcome.status = "success"</code>, the integration is good.</p>
+<p>If the probe reports <code>parse_full passed for grammar 'systemverilog' on '/path/to/input.sv'</code>, the integration is good.</p>
+<blockquote>
+<p>See the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a> for the full flag set (<code>--parse-dump-ast</code>, <code>--parse-dump-ast-pretty</code>, <code>--max-bytes</code>, <code>--trace</code>, <code>--trace-log-file</code>, etc.) and the supported grammar / profile matrix.</p>
+</blockquote>
 <h2 id="build--availability-requirements"><a class="header" href="#build--availability-requirements">Build / availability requirements</a></h2>
 <p>Per the integration contract:</p>
 <ul>

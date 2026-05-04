@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dc8d6cf2.js";
+            window.path_to_searchindex_js = "searchindex-32268294.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -208,6 +208,9 @@
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
 <p>A minimal “compile this, walk that” recipe for embedding the PGEN SystemVerilog parser. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>
+<blockquote>
+<p>See also: <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a> — canonical reference for the verification tool used in CI / bug-repro flows.</p>
+</blockquote>
 <h2 id="1-cold-clone-build"><a class="header" href="#1-cold-clone-build">1. Cold-clone build</a></h2>
 <pre><code class="language-bash">git clone https://github.com/richarddje/pgen.git
 cd pgen
@@ -323,7 +326,10 @@ cargo build --release --features generated_parsers,sv_2017
     --parse systemverilog /path/to/input.sv \
     --profile sv_2017
 </code></pre>
-<p>If the parseability probe reports <code>parse_outcome.status = "success"</code>, the integration is good.</p>
+<p>If the probe reports <code>parse_full passed for grammar 'systemverilog' on '/path/to/input.sv'</code>, the integration is good.</p>
+<blockquote>
+<p>See the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a> for the full flag set (<code>--parse-dump-ast</code>, <code>--parse-dump-ast-pretty</code>, <code>--max-bytes</code>, <code>--trace</code>, <code>--trace-log-file</code>, etc.) and the supported grammar / profile matrix.</p>
+</blockquote>
 <h2 id="build--availability-requirements"><a class="header" href="#build--availability-requirements">Build / availability requirements</a></h2>
 <p>Per the integration contract:</p>
 <ul>
@@ -942,6 +948,8 @@ match outcome.status {
 <p>The systematic effort to add return annotations (<code>-&gt; ...</code>) to grammar rules in <code>grammars/systemverilog.ebnf</code>. Each slice annotates one rule (or a small family) and bumps the schema version. The regex parser campaign (42+ slices) is the model for the SV campaign.</p>
 <h2 id="parsecontent"><a class="header" href="#parsecontent">ParseContent</a></h2>
 <p>The internal AST-pipeline representation used by PGEN’s parser hooks and codegen. Variants include <code>Terminal</code>, <code>Sequence</code>, <code>Quantified</code>, <code>Or</code>, <code>Alternative</code>, <code>Json</code>. See <a href="#parsecontent-variants">Parse Content Variants</a>.</p>
+<h2 id="parseability_probe"><a class="header" href="#parseability_probe">parseability_probe</a></h2>
+<p>The CLI wrapper around <code>pgen::embedding_api</code> used for terminal-side verification, AST inspection, and bug-report reproducers. 4 sub-commands: <code>--supports</code>, <code>--parse</code>, <code>--parse-dump-ast</code>, <code>--parse-dump-ast-pretty</code>. See the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a> for the full flag set, exit codes, output formats, and registered grammars.</p>
 <h2 id="profile"><a class="header" href="#profile">Profile</a></h2>
 <p>A named configuration of the grammar that selects which top-level entry rule to start parsing from. SV profiles: <code>sv_2017</code>, <code>sv_2023</code>.</p>
 <h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>

@@ -14,6 +14,9 @@ The systematic effort to add return annotations (`-> ...`) to grammar rules in `
 ## ParseContent
 The internal AST-pipeline representation used by PGEN's parser hooks and codegen. Variants include `Terminal`, `Sequence`, `Quantified`, `Or`, `Alternative`, `Json`. See [Parse Content Variants](parse-content-variants.md).
 
+## parseability_probe
+The CLI wrapper around `pgen::embedding_api` used for terminal-side verification, AST inspection, and bug-report reproducers. 4 sub-commands: `--supports`, `--parse`, `--parse-dump-ast`, `--parse-dump-ast-pretty`. See the [`parseability_probe` CLI Reference](../../reference/PARSEABILITY_PROBE.md) for the full flag set, exit codes, output formats, and registered grammars.
+
 ## Profile
 A named configuration of the grammar that selects which top-level entry rule to start parsing from. SV profiles: `sv_2017`, `sv_2023`.
 

@@ -71,7 +71,9 @@ cargo run --release --features generated_parsers,sv_2017 \
     --profile sv_2017
 ```
 
-If the parseability probe reports `parse_outcome.status = "success"`, the integration is good.
+If the probe reports `parse_full passed for grammar 'systemverilog' on '/path/to/input.sv'`, the integration is good.
+
+> See the [`parseability_probe` CLI Reference](../../reference/PARSEABILITY_PROBE.md) for the full flag set (`--parse-dump-ast`, `--parse-dump-ast-pretty`, `--max-bytes`, `--trace`, `--trace-log-file`, etc.) and the supported grammar / profile matrix.
 
 ## Build / availability requirements
 
