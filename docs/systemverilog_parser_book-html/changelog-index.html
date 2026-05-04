@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-40f2fa3d.js";
+            window.path_to_searchindex_js = "searchindex-8bd0bd34.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,12 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1011--contract-1011--sv-slice-11-batch-program-header-sub-tree-typed-sibling-of-moduleinterface-headers"><a class="header" href="#1011--contract-1011--sv-slice-11-batch-program-header-sub-tree-typed-sibling-of-moduleinterface-headers">1.0.11 / Contract 1.0.11 — SV-Slice-11 batch: program-header sub-tree typed (sibling of module/interface headers)</a></h3>
+<p><strong>What changed:</strong> 2 rules typed: <code>program_ansi_header</code>, <code>program_nonansi_header</code>. Both expose the same 6-field shape: <code>attributes</code>, <code>lifetime</code>, <code>name</code>, <code>imports</code>, <code>parameters</code>, <code>ports</code>. Same field names as module / interface header pairs (program is sans <code>keyword:</code> since it only has one keyword).</p>
+<p><strong>Verified on <code>program p; endprogram\n</code>:</strong> <code>header.name = "p"</code> (clean string from SV-Slice-8), all 6 fields present.</p>
+<p><strong>Annotation inventory:</strong> 67 entries (was 65). +2 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.11 / Contract 1.0.11 Highlights”.</p>
 <h3 id="1010--contract-1010--sv-slice-10-batch-class--package--program-declarations-typed"><a class="header" href="#1010--contract-1010--sv-slice-10-batch-class--package--program-declarations-typed">1.0.10 / Contract 1.0.10 — SV-Slice-10 batch: class + package + program declarations typed</a></h3>
 <p><strong>What changed:</strong> 5 rules typed: <code>class_declaration_sv_2017</code> and <code>class_declaration_sv_2023</code> (single-sequence shapes; sv_2017 has <code>lifetime:</code>, sv_2023 has <code>final_specifier:</code> per LRM-2023 semantics), <code>package_declaration</code> (single sequence with attribute_instance* prefix), <code>program_declaration_sv_2017</code> and <code>program_declaration_sv_2023</code> (5 per-branch kinds each, mirroring module/interface).</p>
 <p><strong>Verified empirically on <code>program p; endprogram\n</code>:</strong></p>

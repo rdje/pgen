@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-05 (+0200, task: SV-Slice-10-batch-class-package-program-typed)
+Last updated: 2026-05-05 (+0200, task: SV-Slice-11-batch-program-header-sub-tree-typed)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-11 batch landed: program-header sub-tree typed (sibling of module/interface headers).** 2 rules: program_ansi_header, program_nonansi_header. Same 6 field names as module/interface header pairs (attributes, lifetime, name, imports, parameters, ports — sans keyword since program only has one keyword). Verified on `program p; endprogram\n`: header.name = "p", all 6 fields present. **Sibling-rule symmetry achieved**: module/interface/program ANSI/non-ANSI header pairs all expose the same field set, so consumer code can write a single generic header walker. Annotation count: 67 (was 65, +2). Same accept set. Contract bumped 1.0.10 → 1.0.11. Schema stays 1. mdBook synced (changelog-index, schema-versioning row 0.12.0, json-carrier 2 new rows, rules-top-level status). SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 13/30.** Continuing per "until none remaining" directive. Next: udp_declaration_sv_*, udp_ansi/nonansi_declaration.
+
+### Earlier session note (kept for context):
 - **SV-Slice-10 batch landed: class + package + program declarations typed.** 5 rules: class_declaration_sv_2017 (single sequence with `lifetime:`), class_declaration_sv_2023 (single sequence with `final_specifier:` per LRM-2023 semantics), package_declaration (single sequence), program_declaration_sv_2017 (5 per-branch kinds: nonansi/ansi/wildcard/extern_nonansi/extern_ansi — NOTE program lists nonansi BEFORE ansi, different order from module/interface but kind labels still discriminate uniformly), program_declaration_sv_2023 (mirror with positional shift in wildcard for `dot star` vs `dot_star`). Verified empirically on `program p; endprogram\n`: source_text[0].body.body.kind = "ansi". Module/interface tests still pass (no regression). **OPEN FOLLOW-UP**: `package p; endpackage\n` parse rejected at position 0 despite annotation registering correctly per inventory — appears pre-existing (module/interface/program tests all pass with same regenerated parser); investigation pending. Class top-level parse failure is expected (class_declaration not directly in source_text_item; reached via package_item or other subsidiary contexts). Annotation count: 65 (was 53, +12). Profile-specific class field naming: sv_2017 has `lifetime:`, sv_2023 has `final_specifier:` — mutually exclusive; consumer dispatches on whichever is present. Contract bumped 1.0.9 → 1.0.10. Schema stays 1. mdBook synced (changelog-index, schema-versioning row 0.11.0, json-carrier 5 new rows, rules-top-level status). SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 12/30.** Continuing per "until none remaining" directive. Next: udp_declaration_sv_* (deferred — has `udp_port_declaration udp_port_declaration*` mini-mixed-array needing `{first, rest}` workaround), program_ansi_header / program_nonansi_header sibling typing, package parse-failure investigation.
 
 ### Earlier session note (kept for context):

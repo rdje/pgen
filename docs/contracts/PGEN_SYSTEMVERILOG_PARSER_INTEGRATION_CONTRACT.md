@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.10`
+  - `1.0.11`
 - Parser release version:
-  - `1.0.10`
+  - `1.0.11`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,61 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.11 / Contract 1.0.11 Highlights — SV-Slice-11 batch: program-header sub-tree typed (mirror of module/interface header pattern)
+
+2 rules typed: `program_ansi_header`, `program_nonansi_header`. Both use the same field-name set as `module_ansi_header` / `interface_ansi_header` (sans `keyword:` since program only has one keyword).
+
+### Annotations
+
+```ebnf
+program_ansi_header := attribute_instance* kw_program_81d9aeea (lifetime)? program_identifier package_import_declaration* (parameter_port_list)? (list_of_port_declarations)? semi
+                    -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+
+program_nonansi_header := attribute_instance* kw_program_81d9aeea (lifetime)? program_identifier package_import_declaration* (parameter_port_list)? list_of_ports semi
+                       -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+```
+
+### Empirical verification on `program p; endprogram\n`
+
+```text
+description.body.body (program_declaration_sv_2017 ANSI form):
+  kind: "ansi"
+  header:
+    attributes: []
+    lifetime: []
+    name: "p"          # clean string (inherited from SV-Slice-8)
+    imports: []
+    parameters: []
+    ports: []
+  timeunits: []
+  items: []
+  end_label: []
+```
+
+### Sibling-rule symmetry
+
+The 3 top-level construct families that have ANSI/non-ANSI header pairs (module / interface / program) all expose the same 6-7 field shape (`attributes`, `keyword?`, `lifetime`, `name`, `imports`, `parameters`, `ports`). Consumers can write a single header walker that handles all three families.
+
+### Annotation inventory
+
+67 entries (was 65). +2 in this batch.
+
+### Same accept set, same diagnostic codes.
+
+### Schema-version stays `1`.
+
+### mdBook updated, gate green.
+
+### Annotation-language idiom note
+
+**Sibling-rule pattern reuse**: when a family of rules shares structure (here, ansi/nonansi header pairs across module/interface/program), reusing the same field-name set across them is intentional and lets consumers write generic walkers. Module headers have an extra `keyword:` field for module/macromodule disambiguation; interface and program don't (single keyword each).
+
+### Next slice candidates
+
+- `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch.
+- `udp_ansi_declaration` / `udp_nonansi_declaration` per-branch (UDP has its own ANSI/non-ANSI distinction).
+- Investigation: package top-level parse failure.
 
 ## Release 1.0.10 / Contract 1.0.10 Highlights — SV-Slice-10 batch: class + package + program declarations typed
 

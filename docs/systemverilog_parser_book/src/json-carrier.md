@@ -34,6 +34,8 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `package_declaration` | `-> {attributes, lifetime, name, timeunits, items, end_label}` | Single-sequence typed object. `name` is a clean package_identifier string. ⚠️ Open follow-up: bare-package input `package p; endpackage\n` parse rejected at top-level despite annotation registering correctly — investigation pending. |
 | `program_declaration_sv_2017` (5 branches) | per-branch typed shapes (mirror of module/interface 5-form pattern) | Kind labels: `"nonansi"` / `"ansi"` / `"wildcard"` / `"extern_nonansi"` / `"extern_ansi"`. Note: program rule lists nonansi BEFORE ansi (different from module/interface order) — but kind labels still discriminate uniformly across constructs. Wildcard branch positions: $1 attributes, $3 name, $8 timeunits, $9 items, $11 end_label. |
 | `program_declaration_sv_2023` (5 branches) | per-branch typed shapes (same kind set as sv_2017) | Wildcard branch positions shift to $9 timeunits, $10 items, $12 end_label (due to `dot star` vs `dot_star`). |
+| `program_ansi_header` | `-> {attributes, lifetime, name, imports, parameters, ports}` | Same 6 named fields as `interface_ansi_header`. `name:` is a clean program_identifier string. |
+| `program_nonansi_header` | `-> {attributes, lifetime, name, imports, parameters, ports}` | Same field names as program_ansi_header. Only `ports:` source rule differs (`list_of_ports` vs `(list_of_port_declarations)?`). |
 
 ## Sub-rules with implicit defaults
 

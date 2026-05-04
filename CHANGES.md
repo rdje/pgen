@@ -1,4 +1,59 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-11 batch: program-header sub-tree typed (sibling of module/interface headers)
+
+### What landed
+
+2 rules typed:
+
+```ebnf
+program_ansi_header := attribute_instance* kw_program (lifetime)? program_identifier package_import_declaration* (parameter_port_list)? (list_of_port_declarations)? semi
+                    -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+
+program_nonansi_header := attribute_instance* kw_program (lifetime)? program_identifier package_import_declaration* (parameter_port_list)? list_of_ports semi
+                       -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+```
+
+Same 6 field-names as `module_ansi_header` / `interface_ansi_header` (sans `keyword:` since program has only one keyword).
+
+### Empirical verification on `program p; endprogram\n`
+
+```text
+description.body.body (program_declaration_sv_2017 ANSI):
+  kind: "ansi"
+  header:
+    attributes: []
+    lifetime: []
+    name: "p"           # clean string from SV-Slice-8
+    imports: []
+    parameters: []
+    ports: []
+  timeunits: []
+  items: []
+  end_label: []
+```
+
+### Sibling-rule symmetry achieved
+
+The 3 top-level construct families with ANSI/non-ANSI header pairs (module / interface / program) all expose the same field-name set. Consumer code can write a single header walker handling all three families.
+
+### Annotation inventory
+
+67 entries (was 65). +2 in this batch.
+
+### Manifest, contract bump (1.0.10 → 1.0.11), mdBook, gate
+
+All synced per live-doc workflow. SV book gate green.
+
+### Verified
+
+- 497 / 0 regex tests pass.
+- Empirical: header fields all present, name is clean string.
+
+### Next slice candidates
+
+- `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch.
+- `udp_ansi_declaration` / `udp_nonansi_declaration`.
+
 ## 2026-05-05 - SV-Slice-10 batch: class + package + program declarations typed
 
 ### What landed

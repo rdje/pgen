@@ -1995,6 +1995,7 @@ production_item := production_item_sv_2017
 
 @sample: "program p(input logic a);"
 program_ansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
+                    -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 @profiles: ["sv_2017"]
 program_declaration_sv_2017 := @sample: "program p(a); endprogram" program_nonansi_header ( timeunits_declaration )? program_item* kw_endprogram_6b609b1f ( colon program_identifier )?
@@ -2038,6 +2039,7 @@ program_item := port_declaration semi | non_port_program_item
 
 @sample: "program p(a,b);"
 program_nonansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
+                       -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 property_actual_arg := property_expr | sequence_actual_arg
 
