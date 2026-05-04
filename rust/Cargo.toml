@@ -46,6 +46,13 @@ path = "src/bin/regex_perf_probe_embedding_api.rs"
 required-features = ["generated_parsers"]
 
 [[bin]]
+# PGEN-RGX-0078 microbench: measures validate_regex_compile_contract cost
+# in isolation on the 8-pattern bench corpus to decide whether the
+# 11-pass validation pipeline is worth short-circuiting.
+name = "regex_validation_microbench"
+path = "src/bin/regex_validation_microbench.rs"
+
+[[bin]]
 name = "ebnf_dual_run_diff"
 path = "src/bin/ebnf_dual_run_diff.rs"
 required-features = ["ebnf_dual_run"]
