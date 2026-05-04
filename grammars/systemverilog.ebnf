@@ -372,6 +372,7 @@ attr_name := identifier
 attr_spec := attr_name ( assign constant_expression )?
 
 attribute_instance := attr_open attr_spec ( comma attr_spec )* attr_close
+                   -> {first: $2, rest: $3}
 
 bin_identifier := identifier
 
@@ -1561,10 +1562,28 @@ module_common_item_sv_2023 := module_or_generate_item_declaration | interface_in
 module_common_item := module_common_item_sv_2017 | module_common_item_sv_2023
 
 @profiles: ["sv_2017"]
-module_declaration_sv_2017 := @sample: "module m; endmodule" module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "module m(a); endmodule" module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot_star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
+module_declaration_sv_2017 := @sample: "module m; endmodule" module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
+                                -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                            | @sample: "module m(a); endmodule" module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
+                                -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                            | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot_star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
+                                -> {kind: "wildcard", attributes: $1, keyword: $2, lifetime: $3, name: $4, timeunits: $9, items: $10, end_label: $12}
+                            | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header
+                                -> {kind: "extern_nonansi", header: $2}
+                            | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
+                                -> {kind: "extern_ansi", header: $2}
 
 @profiles: ["sv_2023"]
-module_declaration_sv_2023 := @sample: "module m; endmodule" module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "module m(a); endmodule" module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )? | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
+module_declaration_sv_2023 := @sample: "module m; endmodule" module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
+                                -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                            | @sample: "module m(a); endmodule" module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
+                                -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                            | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
+                                -> {kind: "wildcard", attributes: $1, keyword: $2, lifetime: $3, name: $4, timeunits: $10, items: $11, end_label: $13}
+                            | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header
+                                -> {kind: "extern_nonansi", header: $2}
+                            | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
+                                -> {kind: "extern_ansi", header: $2}
 
 module_declaration := @sample: "module m; endmodule" module_declaration_sv_2017 | @sample: "module m; endmodule" module_declaration_sv_2023
 

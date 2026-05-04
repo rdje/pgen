@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d6d18bee.js";
+            window.path_to_searchindex_js = "searchindex-62112879.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -183,7 +183,7 @@
                         <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.</p>
 <blockquote>
-<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. SV-Slice-2 (parser release <code>1.0.2</code>) flattened <code>source_text</code> via <code>[$1**]</code>. SV-Slice-3 (parser release <code>1.0.3</code>) typed <code>source_text_item</code> per-branch. SV-Slice-4 (parser release <code>1.0.4</code>) typed <code>description</code> per-branch with <code>kind:</code> discriminator (and <code>attributes:</code> field on the two multi-element branches). SV-Slice-5 (parser release <code>1.0.5</code>) made <code>compiler_directive</code> transparent passthrough — emits the directive text as a clean JSON string. Per-rule typing of <code>module_declaration</code>, <code>interface_declaration</code>, etc. is a follow-up slice.</p>
+<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. SV-Slice-2 (parser release <code>1.0.2</code>) flattened <code>source_text</code> via <code>[$1**]</code>. SV-Slice-3 (parser release <code>1.0.3</code>) typed <code>source_text_item</code> per-branch. SV-Slice-4 (parser release <code>1.0.4</code>) typed <code>description</code> per-branch with <code>kind:</code> discriminator. SV-Slice-5 (parser release <code>1.0.5</code>) made <code>compiler_directive</code> transparent passthrough. SV-Slice-6 batch (parser release <code>1.0.6</code>) typed <code>attribute_instance</code> (<code>{first, rest}</code> shape) and <code>module_declaration_sv_2017</code> / <code>module_declaration_sv_2023</code> per-branch (5 kind labels: ansi/nonansi/wildcard/extern_nonansi/extern_ansi). <strong>Three layers of typed dispatch now end-to-end</strong> — source_text_item.kind → description.kind → module_declaration_sv_<profile>.kind. Per-rule typing of <code>module_ansi_header</code>, <code>module_nonansi_header</code>, <code>interface_declaration</code>, etc. is follow-up work.</profile></p>
 </blockquote>
 <h2 id="entry-points-by-profile"><a class="header" href="#entry-points-by-profile">Entry points by profile</a></h2>
 <div class="table-wrapper">

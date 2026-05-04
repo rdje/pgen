@@ -1,4 +1,113 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-6 batch: attribute_instance + module_declaration_sv_2017/2023 typed (3 layers of dispatch end-to-end)
+
+### What landed
+
+Multi-rule batch slice typing 3 rules in one pass. Three layers of typed dispatch are now end-to-end: `source_text_item.kind` → `description.kind` → `module_declaration_sv_<profile>.kind`.
+
+**(a) `attribute_instance`**:
+
+```ebnf
+attribute_instance := attr_open attr_spec ( comma attr_spec )* attr_close
+                   -> {first: $2, rest: $3}
+```
+
+Drops the `attr_open` / `attr_close` delimiters. Mixed-array spread `[$2, $3**]` is blocked by an annotation-language limitation, so the cleaner flat-array form is deferred. `{first, rest}` is the workaround.
+
+**(b) `module_declaration_sv_2017` per-branch typed (5 kind labels)**:
+
+```ebnf
+module_declaration_sv_2017 := @sample: "module m; endmodule" module_ansi_header (timeunits_declaration)? non_port_module_item* kw_endmodule_2eb38ec9 (colon module_identifier)?
+                                -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                            | @sample: "module m(a); endmodule" module_nonansi_header (timeunits_declaration)? module_item* kw_endmodule_2eb38ec9 (colon module_identifier)?
+                                -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                            | @sample: "module m(.*); endmodule" attribute_instance* module_keyword (lifetime)? module_identifier lparen dot_star rparen semi (timeunits_declaration)? module_item* kw_endmodule_2eb38ec9 (colon module_identifier)?
+                                -> {kind: "wildcard", attributes: $1, keyword: $2, lifetime: $3, name: $4, timeunits: $9, items: $10, end_label: $12}
+                            | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header
+                                -> {kind: "extern_nonansi", header: $2}
+                            | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
+                                -> {kind: "extern_ansi", header: $2}
+```
+
+5 kind labels: `"ansi"`, `"nonansi"`, `"wildcard"`, `"extern_nonansi"`, `"extern_ansi"`. Each carries the structured fields needed to walk the matched form. The wildcard branch (`(.*)`) preserves `attribute_instance*`, `module_keyword`, optional `lifetime`, and `module_identifier` as named fields. Extern branches expose only the matched header.
+
+**(c) `module_declaration_sv_2023` per-branch typed (mirror of sv_2017 with positional shift)**:
+
+Same kind labels and field names as sv_2017. Only the wildcard branch's positional indices differ — sv_2023 uses `dot star` (2 tokens) vs sv_2017's `dot_star` (1 token), shifting `timeunits` from `$9` → `$10`, `items` from `$10` → `$11`, `end_label` from `$12` → `$13`. **The profile-shift is invisible in the typed AST** — same kind discriminator and field names exposed to consumers.
+
+### Empirical pre/post on `module m; endmodule\n` (sv_2017 profile)
+
+```text
+# Pre — body field of description-kind source_text_item.body was a 5-element raw array:
+"source_text": [
+  {"kind": "description", "body": {"kind": "module_declaration", "body": [<5-element raw array>]}}
+]
+
+# Post — three layers of typed dispatch:
+"source_text": [
+  {
+    "kind": "description",
+    "body": {
+      "kind": "module_declaration",
+      "body": {
+        "kind": "ansi",
+        "header": [<module_ansi_header envelope>],
+        "timeunits": [],
+        "items": [],
+        "end_label": []
+      }
+    }
+  }
+]
+```
+
+### `comment_only_source_region` typing — DEFERRED, blocked by task #38
+
+This batch attempted to also type `comment_only_source_region := white_space* ( line_comment | block_comment ) ( white_space | line_comment | block_comment )*` with `-> {first: $2, rest: $3}`. Annotation didn't register: parser inventory count stayed unchanged after that change. **Blocked by task #38** (parens-grouped-Or trailing-annotation attribution bug). The rule's two `( a | b )` parens-grouped Or expressions cause the trailing `-> ...` annotation to attach to one of the inner Ors instead of the rule. Annotation reverted; sub-rule typing of comment_only_source_region is gated on task #38's resolution OR a grammar refactor that flattens the parens-grouped Ors into named helper rules (e.g. `cosr_first_comment := line_comment | block_comment` then `comment_only_source_region := white_space* cosr_first_comment cosr_rest_item* -> ...`).
+
+### Annotation inventory
+
+31 entries (was 20). +11 in this batch. Breakdown: 1 (attribute_instance) + 5 (module_declaration_sv_2017) + 5 (module_declaration_sv_2023).
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_04_slice_6`. Calibration history block prepended with the slice-6 batch entry. `current_content_kind` stays `"json_object"` (rule-under-test is `systemverilog_file`).
+
+### Contract bump
+
+- Parser release: `1.0.5` → `1.0.6`.
+- Contract version: `1.0.5` → `1.0.6`.
+- Schema version stays `1` (additive).
+- New "Release 1.0.6 / Contract 1.0.6 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry for SV-Slice-6 batch with consumer dispatch.
+- `schema-versioning.md`: new row `0.7.0 / 1.0.6`.
+- `json-carrier.md`: 4 new rows (`attribute_instance`, `module_declaration_sv_2017`, `module_declaration_sv_2023`, plus `compiler_directive` already present).
+- `rules-top-level.md`: status line updated; "three layers of typed dispatch" achievement noted.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- Annotation inventory: 31 entries.
+- Empirical AST shape: `source_text[0].body.body.kind = "ansi"` for the minimal_module sample.
+
+### Annotation-language idiom notes
+
+- **`{first: $N, rest: $M}` workaround for parens-grouped quantified repetition** is a clean fallback when `[$N, $M**]` mixed-array spread isn't available (per `feedback_annotation_no_mixed_spread.md`). Used here on attribute_instance.
+- **Multi-line per-branch annotation with `@sample:` metadata** preserved correctly through the codegen path. PGEN's EBNF parser treats `@sample: "..."` as branch metadata that doesn't shift positional indices for the `-> ...` annotation following the branch body.
+
+### Next slice candidates
+
+- Type `module_ansi_header` per-branch (currently the unwalked `header:` field on the ansi/extern_ansi forms).
+- Type `module_nonansi_header` per-branch.
+- Type `module_keyword` (2-form Or: `module` / `macromodule`).
+- Type `interface_declaration`, `package_declaration`, `class_declaration` per-branch (sibling rules to module_declaration).
+- Address task #38 to unblock comment_only_source_region + similar parens-grouped-Or rules.
+
 ## 2026-05-04 - SV-Slice-5: `compiler_directive` transparent passthrough (clean directive text)
 
 ### What landed

@@ -2,7 +2,7 @@
 
 This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.
 
-> **Status:** SV-Slice-1 (parser release `1.0.1`) typed `systemverilog_file` and `systemverilog_parseable_file`. SV-Slice-2 (parser release `1.0.2`) flattened `source_text` via `[$1**]`. SV-Slice-3 (parser release `1.0.3`) typed `source_text_item` per-branch. SV-Slice-4 (parser release `1.0.4`) typed `description` per-branch with `kind:` discriminator (and `attributes:` field on the two multi-element branches). SV-Slice-5 (parser release `1.0.5`) made `compiler_directive` transparent passthrough — emits the directive text as a clean JSON string. Per-rule typing of `module_declaration`, `interface_declaration`, etc. is a follow-up slice.
+> **Status:** SV-Slice-1 (parser release `1.0.1`) typed `systemverilog_file` and `systemverilog_parseable_file`. SV-Slice-2 (parser release `1.0.2`) flattened `source_text` via `[$1**]`. SV-Slice-3 (parser release `1.0.3`) typed `source_text_item` per-branch. SV-Slice-4 (parser release `1.0.4`) typed `description` per-branch with `kind:` discriminator. SV-Slice-5 (parser release `1.0.5`) made `compiler_directive` transparent passthrough. SV-Slice-6 batch (parser release `1.0.6`) typed `attribute_instance` (`{first, rest}` shape) and `module_declaration_sv_2017` / `module_declaration_sv_2023` per-branch (5 kind labels: ansi/nonansi/wildcard/extern_nonansi/extern_ansi). **Three layers of typed dispatch now end-to-end** — source_text_item.kind → description.kind → module_declaration_sv_<profile>.kind. Per-rule typing of `module_ansi_header`, `module_nonansi_header`, `interface_declaration`, etc. is follow-up work.
 
 ## Entry points by profile
 
