@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-236e83f9.js";
+            window.path_to_searchindex_js = "searchindex-a71f32c0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -205,6 +205,10 @@
 <tr><td><code>lifetime</code> (2 branches)</td><td><code>-&gt; {kind: "static"}</code> / <code>-&gt; {kind: "automatic"}</code></td><td>Typed object. When <code>(lifetime)?</code> is matched, consumers see <code>{kind: "static"}</code> / <code>{kind: "automatic"}</code>. When un-matched, <code>[]</code> (existing convention).</td></tr>
 <tr><td><code>module_ansi_header</code></td><td><code>-&gt; {attributes, keyword, lifetime, name, imports, parameters, ports}</code></td><td>7 named fields. <code>keyword:</code> is itself typed (per <code>module_keyword</code>); <code>lifetime:</code> is itself typed when matched (per <code>lifetime</code>); <code>attributes</code>/<code>imports</code>/<code>parameters</code>/<code>ports</code> are quantified or optional (consumer handles <code>[]</code> for empty). <code>name:</code> carries raw <code>module_identifier</code> envelope.</td></tr>
 <tr><td><code>module_nonansi_header</code></td><td><code>-&gt; {attributes, keyword, lifetime, name, imports, parameters, ports}</code></td><td>Same field names as module_ansi_header. Only <code>ports:</code> source rule differs (<code>list_of_ports</code> vs <code>(list_of_port_declarations)?</code>); the typed shape is identical for consumers.</td></tr>
+<tr><td><code>simple_identifier</code></td><td><code>-&gt; $2</code></td><td>Clean JSON string — the matched identifier name (e.g. <code>"m"</code>, <code>"foo"</code>, <code>"my_signal"</code>). Drops the leading <code>trivia</code> slot.</td></tr>
+<tr><td><code>escaped_identifier</code></td><td><code>-&gt; $2</code></td><td>Clean JSON string — the matched escaped identifier (e.g. <code>"\\foo"</code>). Drops the leading <code>trivia</code> slot.</td></tr>
+<tr><td><code>non_keyword_identifier</code></td><td><code>-&gt; $2</code></td><td>Clean JSON string — passes the inner <code>identifier</code> through after the negative lookahead’s empty <code>$1</code> slot. Identifier is itself typed (transparent Or of escaped/simple).</td></tr>
+<tr><td><code>simple_identifier_no_scope</code></td><td><code>-&gt; $2</code></td><td>Clean JSON string — variant of simple_identifier with a <code>(?!...)</code> negative lookahead in the regex (prevents trailing <code>::</code> consumption). Same trivia-drop as simple_identifier.</td></tr>
 </tbody>
 </table>
 </div>

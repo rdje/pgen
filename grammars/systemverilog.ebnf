@@ -245,18 +245,22 @@ expression := @probe_sample: "1" expression_base | inside_expression | condition
 identifier := escaped_identifier | simple_identifier
 
 non_keyword_identifier := !reserved_non_keyword_identifier identifier
+                       -> $2
 
 declaration_identifier := non_keyword_identifier
 
 callable_identifier := non_keyword_identifier
 
 simple_identifier := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
+                  -> $2
 
 @sample: "foo"
 simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*(?![ \t\r\n]*::)/
+                           -> $2
 
 @sample: "\\foo "
 escaped_identifier := trivia /\\[!-~]+/
+                   -> $2
 
 reserved_non_keyword_identifier := trivia /(?:parameter|localparam|type|context|pure|import|export|typedef|module|package|interface|program|class|checker|function|task|property|sequence|generate|modport|clocking|enum|struct|union|bit|logic|reg|byte|shortint|int|longint|integer|time|shortreal|real|realtime|string|chandle|event|signed|unsigned|void|endchecker|endclass|endfunction|endinterface|endmodule|endpackage|endprogram|endproperty|endsequence|endtask|begin|end|if|else|case|casez|casex|endcase|for|foreach|forever|repeat|while|do|wait|wait_order|disable|return|break|continue|fork|join|join_any|join_none|assert|assume|expect|randcase|randsequence)\b/
 

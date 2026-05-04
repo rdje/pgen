@@ -21,6 +21,10 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `lifetime` (2 branches) | `-> {kind: "static"}` / `-> {kind: "automatic"}` | Typed object. When `(lifetime)?` is matched, consumers see `{kind: "static"}` / `{kind: "automatic"}`. When un-matched, `[]` (existing convention). |
 | `module_ansi_header` | `-> {attributes, keyword, lifetime, name, imports, parameters, ports}` | 7 named fields. `keyword:` is itself typed (per `module_keyword`); `lifetime:` is itself typed when matched (per `lifetime`); `attributes`/`imports`/`parameters`/`ports` are quantified or optional (consumer handles `[]` for empty). `name:` carries raw `module_identifier` envelope. |
 | `module_nonansi_header` | `-> {attributes, keyword, lifetime, name, imports, parameters, ports}` | Same field names as module_ansi_header. Only `ports:` source rule differs (`list_of_ports` vs `(list_of_port_declarations)?`); the typed shape is identical for consumers. |
+| `simple_identifier` | `-> $2` | Clean JSON string — the matched identifier name (e.g. `"m"`, `"foo"`, `"my_signal"`). Drops the leading `trivia` slot. |
+| `escaped_identifier` | `-> $2` | Clean JSON string — the matched escaped identifier (e.g. `"\\foo"`). Drops the leading `trivia` slot. |
+| `non_keyword_identifier` | `-> $2` | Clean JSON string — passes the inner `identifier` through after the negative lookahead's empty `$1` slot. Identifier is itself typed (transparent Or of escaped/simple). |
+| `simple_identifier_no_scope` | `-> $2` | Clean JSON string — variant of simple_identifier with a `(?!...)` negative lookahead in the regex (prevents trailing `::` consumption). Same trivia-drop as simple_identifier. |
 
 ## Sub-rules with implicit defaults
 

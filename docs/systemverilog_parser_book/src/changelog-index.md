@@ -19,6 +19,35 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.8 / Contract 1.0.8 — SV-Slice-8 batch: identifier-leaf rules typed (clean strings propagate through every identifier field)
+
+**What changed:** 4 identifier-leaf rules typed with `-> $2` transparent passthrough. Highest-leverage slice yet — every rule that resolves to an identifier now surfaces a clean JSON string instead of the raw envelope chain.
+
+```ebnf
+simple_identifier          := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/                            -> $2
+escaped_identifier         := trivia /\\[!-~]+/                                            -> $2
+non_keyword_identifier     := !reserved_non_keyword_identifier identifier                  -> $2
+simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*(?![ \t\r\n]*::)/             -> $2
+```
+
+**Empirical pre/post for `module m; endmodule\n`:**
+
+```text
+# Pre — header.name was raw envelope chain:
+"header": {"keyword": {"kind": "module"}, "name": [[], [[], "m"]], ...}
+
+# Post — clean string:
+"header": {"keyword": {"kind": "module"}, "name": "m", ...}
+```
+
+**Propagation:** `simple_identifier` / `escaped_identifier` are leaves of `identifier` (transparent Or). `non_keyword_identifier` strips the negative lookahead. `declaration_identifier` / `module_identifier` / `class_identifier` / `package_identifier` / `interface_identifier` etc. are all transparent aliases — they automatically surface clean strings now. Every future-typed rule that exposes an identifier as a named field gets a clean string for free.
+
+**Annotation inventory:** 41 entries (was 37). +4 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.8 / Contract 1.0.8 Highlights".
+
 ### 1.0.7 / Contract 1.0.7 — SV-Slice-7 batch: `module_keyword` + `lifetime` + `module_ansi_header` + `module_nonansi_header` typed (4 layers of dispatch end-to-end)
 
 **What changed:** 4-rule batch slice typing the header sub-tree of module declarations. Four layers of typed dispatch are now end-to-end.

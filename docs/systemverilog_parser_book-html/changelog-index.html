@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-236e83f9.js";
+            window.path_to_searchindex_js = "searchindex-a71f32c0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,24 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="108--contract-108--sv-slice-8-batch-identifier-leaf-rules-typed-clean-strings-propagate-through-every-identifier-field"><a class="header" href="#108--contract-108--sv-slice-8-batch-identifier-leaf-rules-typed-clean-strings-propagate-through-every-identifier-field">1.0.8 / Contract 1.0.8 — SV-Slice-8 batch: identifier-leaf rules typed (clean strings propagate through every identifier field)</a></h3>
+<p><strong>What changed:</strong> 4 identifier-leaf rules typed with <code>-&gt; $2</code> transparent passthrough. Highest-leverage slice yet — every rule that resolves to an identifier now surfaces a clean JSON string instead of the raw envelope chain.</p>
+<pre><code class="language-ebnf">simple_identifier          := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/                            -&gt; $2
+escaped_identifier         := trivia /\\[!-~]+/                                            -&gt; $2
+non_keyword_identifier     := !reserved_non_keyword_identifier identifier                  -&gt; $2
+simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*(?![ \t\r\n]*::)/             -&gt; $2
+</code></pre>
+<p><strong>Empirical pre/post for <code>module m; endmodule\n</code>:</strong></p>
+<pre><code class="language-text"># Pre — header.name was raw envelope chain:
+"header": {"keyword": {"kind": "module"}, "name": [[], [[], "m"]], ...}
+
+# Post — clean string:
+"header": {"keyword": {"kind": "module"}, "name": "m", ...}
+</code></pre>
+<p><strong>Propagation:</strong> <code>simple_identifier</code> / <code>escaped_identifier</code> are leaves of <code>identifier</code> (transparent Or). <code>non_keyword_identifier</code> strips the negative lookahead. <code>declaration_identifier</code> / <code>module_identifier</code> / <code>class_identifier</code> / <code>package_identifier</code> / <code>interface_identifier</code> etc. are all transparent aliases — they automatically surface clean strings now. Every future-typed rule that exposes an identifier as a named field gets a clean string for free.</p>
+<p><strong>Annotation inventory:</strong> 41 entries (was 37). +4 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.8 / Contract 1.0.8 Highlights”.</p>
 <h3 id="107--contract-107--sv-slice-7-batch-module_keyword--lifetime--module_ansi_header--module_nonansi_header-typed-4-layers-of-dispatch-end-to-end"><a class="header" href="#107--contract-107--sv-slice-7-batch-module_keyword--lifetime--module_ansi_header--module_nonansi_header-typed-4-layers-of-dispatch-end-to-end">1.0.7 / Contract 1.0.7 — SV-Slice-7 batch: <code>module_keyword</code> + <code>lifetime</code> + <code>module_ansi_header</code> + <code>module_nonansi_header</code> typed (4 layers of dispatch end-to-end)</a></h3>
 <p><strong>What changed:</strong> 4-rule batch slice typing the header sub-tree of module declarations. Four layers of typed dispatch are now end-to-end.</p>
 <pre><code class="language-ebnf">module_keyword         := kw_module      -&gt; {kind: "module"}

@@ -1,4 +1,97 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-8 batch: identifier-leaf rules typed (clean strings propagate through every identifier field)
+
+### What landed
+
+4 identifier-leaf rules typed with `-> $2` transparent passthrough. **Highest-leverage slice yet** — every rule that resolves to an identifier now surfaces a clean JSON string instead of the raw envelope chain.
+
+```ebnf
+simple_identifier          := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/                            -> $2
+escaped_identifier         := trivia /\\[!-~]+/                                            -> $2
+non_keyword_identifier     := !reserved_non_keyword_identifier identifier                  -> $2
+simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*(?![ \t\r\n]*::)/             -> $2
+```
+
+### Empirical pre/post on `module m; endmodule\n`
+
+```text
+# Pre — header.name was raw envelope chain:
+"header": {"keyword": {"kind": "module"}, "name": [[], [[], "m"]], ...}
+
+# After SV-Slice-8a (just simple_identifier + escaped_identifier typed):
+"header": {"keyword": {"kind": "module"}, "name": [[], "m"], ...}    ← still wrapped
+
+# Post-SV-Slice-8 (full batch — all 4 leaf rules typed):
+"header": {"keyword": {"kind": "module"}, "name": "m", ...}    ← clean string!
+```
+
+### Propagation chain
+
+```text
+simple_identifier (typed: -> $2)
+  ↓ matches → "m"
+identifier := escaped_identifier | simple_identifier
+  ↓ transparent Or → "m"
+non_keyword_identifier := !reserved_non_keyword_identifier identifier (typed: -> $2)
+  ↓ drops lookahead, surfaces identifier → "m"
+declaration_identifier := non_keyword_identifier
+  ↓ transparent alias → "m"
+module_identifier, class_identifier, package_identifier, interface_identifier, ...
+  ↓ transparent aliases → "m"
+```
+
+Every typed parent rule that exposes an identifier-typed field now surfaces it as a clean JSON string. For `module_ansi_header.name`, `module_nonansi_header.name`, `description.body.body.wildcard.name` (the `(.*)` form's name field), and any future typed rule referencing `*_identifier`, the field is a clean string.
+
+### Why this slice is the highest-leverage so far
+
+Typing 4 leaf rules causes EVERY identifier in EVERY future-typed rule to land as a clean string with zero additional annotation work. Future slices typing `interface_declaration.name`, `class_declaration.name`, `package_declaration.name`, `signal_identifier`, `port_identifier`, `parameter_identifier`, etc. — all get clean strings automatically. **Dependency-graph-leveraged annotation work**: type the dependency once, every dependent benefits.
+
+### Annotation inventory
+
+41 entries (was 37). +4 in this batch.
+
+### Notes on the lookahead positional slot
+
+PGEN's annotation language treats negative lookaheads (`!X`) as occupying positional slots even though they don't consume tokens. So in `non_keyword_identifier := !reserved_non_keyword_identifier identifier`, `$1` is the (empty) lookahead slot and `$2` is the matched `identifier`. Same convention as the regex parser used for `simple_escape = !"o{" !"x{" !"p{" !"P{" any_char -> {... char: $5}` (4 lookaheads → `$5` for the consumer).
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_04_slice_8`. Calibration history block prepended.
+
+### Contract bump
+
+- Parser release: `1.0.7` → `1.0.8`.
+- Contract version: `1.0.7` → `1.0.8`.
+- Schema version stays `1` (additive).
+- New "Release 1.0.8 / Contract 1.0.8 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry.
+- `schema-versioning.md`: new row `0.9.0 / 1.0.8`.
+- `json-carrier.md`: 4 new rows.
+- `rules-top-level.md`: status line.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- Annotation inventory: 41 entries.
+- Empirical AST shape: `header.name = "m"` (clean string) for the minimal_module sample.
+
+### Annotation-language idiom note
+
+**Leaf-rule trivia-stripping with `-> $N`** is the canonical pattern for surfacing clean text from `trivia /regex/` rules. Applied here to 4 identifier-leaf rules; same idiom used in regex parser (`hex_digits`, `prop_name`, etc.) and earlier in this campaign on `compiler_directive`.
+
+### Next slice candidates
+
+- Type `class_declaration_sv_2017` per-branch (mirror of module_declaration's pattern; clean name strings inherited automatically).
+- Type `interface_declaration_sv_2017` / `interface_declaration_sv_2023` per-branch.
+- Type `package_declaration` (substantial — single sequence with attribute_instance* prefix; identifier name is now clean).
+- Type `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch.
+- Type `program_declaration_sv_2017` / `program_declaration_sv_2023`.
+
 ## 2026-05-04 - SV-Slice-7 batch: module_keyword + lifetime + module_ansi_header + module_nonansi_header typed (4 layers of dispatch end-to-end)
 
 ### What landed

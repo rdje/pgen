@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-04 (+0200, task: SV-Slice-7-batch-module_keyword-lifetime-module_<form>_header-typed)
+Last updated: 2026-05-04 (+0200, task: SV-Slice-8-batch-identifier-leaf-rules-typed)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-8 batch landed: identifier-leaf rules typed — clean strings propagate through every identifier field. HIGHEST-LEVERAGE SLICE YET.** 4 identifier-leaf rules typed with `-> $2` transparent passthrough: `simple_identifier`, `escaped_identifier`, `non_keyword_identifier`, `simple_identifier_no_scope`. **Dependency-graph-leveraged annotation work**: type 4 leaves once, every typed parent rule that references an `*_identifier` (module/class/package/interface/etc.) now surfaces clean JSON strings automatically. For `module m; endmodule\n`: header.name was `[[], [[], "m"]]` → now `"m"` (clean string). Notes on lookahead positional slot: PGEN's annotation language treats `!X` negative lookaheads as occupying positional slots even though they don't consume — so `non_keyword_identifier := !reserved_non_keyword_identifier identifier -> $2` correctly drops the empty lookahead slot. Annotation count: 41 (was 37, +4). Same accept set. Contract bumped 1.0.7 → 1.0.8. Schema stays 1. mdBook synced. SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 10/30.** Continuing per "until none remaining" directive. Next: type interface_declaration / class_declaration / package_declaration / udp_declaration per-branch — all of which inherit clean identifier strings for free now.
+
+### Earlier session note (kept for context):
 - **SV-Slice-7 batch landed: 4 multi-rule typing pass — module-header sub-tree.** (a) `module_keyword` per-branch typed (`{kind: "module"}` / `{kind: "macromodule"}`). (b) `lifetime` per-branch typed (`{kind: "static"}` / `{kind: "automatic"}`). (c) `module_ansi_header` typed `{attributes, keyword, lifetime, name, imports, parameters, ports}` (7 named fields, drops trailing semi). (d) `module_nonansi_header` same field names (only ports source rule differs). **Four layers of typed dispatch now end-to-end**: source_text_item.kind → description.kind → module_declaration_sv_<profile>.kind → module_<form>_header.keyword.kind. For `module m; endmodule\n`: `header.keyword = {kind: "module"}`, `header.lifetime = []`, etc. ANSI/non-ANSI uniformity — consumer walks either form with same dispatch. Annotation count: 37 (was 31, +6). Same accept set. Contract bumped 1.0.6 → 1.0.7. Schema stays 1. mdBook synced. SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 9/30.** Continuing per user "until none remaining" directive. Next batch: type `module_identifier`/`declaration_identifier`, `interface_declaration`, `package_declaration`, `class_declaration` per-branch.
 
 ### Earlier session note (kept for context):
