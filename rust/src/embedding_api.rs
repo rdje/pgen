@@ -1595,12 +1595,58 @@ fn generated_regex_worker() -> &'static GeneratedRegexWorker {
     })
 }
 
+// Conservative depth threshold: any input whose `(`/`[` nesting stays at or
+// below this can safely run on the caller's stack (typical macOS main thread
+// 8MB, even on the 2MB cargo test runner thread the 16-deep recursive descent
+// + AST Drop is well under 1MB in debug build). Above this we fall back to
+// the cached worker thread for the 64MB safety margin. The 8-pattern bench
+// corpus has max depth 4 so it always takes the inline fast path; the
+// integration contract's stress samples (`nested_capturing_groups_50`,
+// `deep_nested_backreference_80`) exceed it and use the worker.
+#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+const GENERATED_REGEX_INLINE_DEPTH_THRESHOLD: usize = 16;
+
+#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+fn estimate_max_grouping_nesting(input: &str) -> usize {
+    let mut depth = 0usize;
+    let mut max_depth = 0usize;
+    let mut bytes = input.bytes();
+    while let Some(b) = bytes.next() {
+        match b {
+            b'\\' => {
+                // Skip escaped byte (next byte is not a grouping marker).
+                let _ = bytes.next();
+            }
+            b'(' | b'[' => {
+                depth += 1;
+                if depth > max_depth {
+                    max_depth = depth;
+                }
+            }
+            b')' | b']' => {
+                depth = depth.saturating_sub(1);
+            }
+            _ => {}
+        }
+    }
+    max_depth
+}
+
 #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
 fn run_generated_regex_on_dedicated_stack<T, F>(input: &str, f: F) -> Result<T, ParseDiagnostic>
 where
     T: Send + 'static,
     F: FnOnce(String) -> Result<T, ParseDiagnostic> + Send + 'static,
 {
+    // Fast path: shallow inputs run inline on the caller's stack with zero
+    // cross-thread dispatch overhead. The vast majority of real-world regex
+    // patterns are shallow (the PGEN-RGX-0073 8-pattern bench corpus has max
+    // depth 4); only the integration contract's deeply nested stress samples
+    // exceed the threshold and need the worker thread's 64MB safety margin.
+    if estimate_max_grouping_nesting(input) <= GENERATED_REGEX_INLINE_DEPTH_THRESHOLD {
+        return f(input.to_string());
+    }
+
     let owned_input = input.to_string();
     let (result_tx, result_rx) =
         std::sync::mpsc::sync_channel::<std::thread::Result<Result<T, ParseDiagnostic>>>(1);
