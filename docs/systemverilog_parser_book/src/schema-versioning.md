@@ -1,0 +1,51 @@
+# Schema Versioning
+
+This chapter explains how the SystemVerilog parser's AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape.
+
+## Two versioning axes
+
+The systemverilog parser carries **two** version numbers:
+
+1. **Parser release version** — e.g. `1.0.0`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
+2. **Schema version** — e.g. `1`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
+
+A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two version numbers move independently.
+
+The contract document `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` is the authoritative source for both numbers per release.
+
+## What "shape change" means
+
+Any of these triggers a schema version bump:
+
+- A new return annotation lands on a previously-unannotated rule.
+- An existing return annotation is restructured.
+- A grammar rule changes shape in a way that's user-visible (new branch added, branch removed, sub-rule renamed in a way that affects shape).
+- The default fall-through behavior of unannotated rules changes.
+
+These do NOT trigger a schema bump:
+
+- Pure performance optimizations that produce the same AST.
+- Internal codegen reorganization that doesn't reach the output.
+- Parser-side bug fixes that produce the same shape consumers were already relying on.
+
+The slice campaign for SV will produce many small schema bumps as rules are annotated one-by-one. Each slice gets its own contract-version row.
+
+## Byte-equivalence guarantee
+
+For any input the parser accepts, the AST dump is **byte-deterministic** for a given parser-release version: object keys in canonical order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value.
+
+This determinism is a **hard guarantee** of the schema. Any non-determinism is a bug — please report via `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
+
+## Schema version timeline
+
+| Schema version | First parser release | Notable changes |
+|---|---|---|
+| 0.1.0 | 1.0.0 | **Foundation baseline.** Initial mdbook + integration contract Highlights structure landed. Grammar (`grammars/systemverilog.ebnf`) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (`systemverilog_v1.json`) carries one stub sample (`minimal_module`) calibrated against the placeholder `current_content_kind: "sequence"`. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest. |
+
+(The numbers above match the contract document at the time this book was written. The contract is authoritative for the current state — consult it for the live version.)
+
+## Future major version
+
+A schema 1.0.0 milestone will land when the SV annotation campaign completes — that is, when every rule in `grammars/systemverilog.ebnf` carries either a return annotation or a deliberate decision to remain raw envelope. At that point all shape definitions move to Tier 2 (locked) and no further default fall-through changes are expected.
+
+The campaign is in early phase; reaching schema 1.0.0 is on the order of months of slice work.

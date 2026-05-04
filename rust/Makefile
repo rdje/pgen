@@ -235,6 +235,7 @@ help:
 	@echo "  ci_workflow_local_gate - Run tracked GitHub workflow gate commands from a tracked-only local export"
 	@echo "  mdbook_docs_gate - Build the live mdBook documentation surface"
 	@echo "  regex_parser_book_gate - Build the standalone regex parser mdBook (RGX integration reference)"
+	@echo "  systemverilog_parser_book_gate - Build the standalone SystemVerilog parser mdBook (Nexsim integration reference)"
 	@echo "  clippy_on_rust_change - Run cargo clippy flow automatically when Rust/generated Rust files changed"
 	@echo "  sota_exit_gate - Run release-grade aggregate gate (fixed-point, annotation, differential, performance, embedding, EBNF readiness report)"
 	@echo "  sota_release_policy - Show active SOTA release policy file"
@@ -656,6 +657,12 @@ regex_parser_book_gate:
 	@echo "📖 Running regex parser book gate..."
 	cd $(RUST_DIR) && ./scripts/regex_parser_book_gate.sh
 	@echo "✅ regex parser book gate passed."
+
+.PHONY: systemverilog_parser_book_gate
+systemverilog_parser_book_gate:
+	@echo "📖 Running systemverilog parser book gate..."
+	cd $(RUST_DIR) && ./scripts/systemverilog_parser_book_gate.sh
+	@echo "✅ systemverilog parser book gate passed."
 
 .PHONY: clippy_on_rust_change
 clippy_on_rust_change:

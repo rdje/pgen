@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-05-04 - SV parser foundation: integration contract Highlights structure + mdBook scaffold
+
+### What landed
+
+User redirected focus 100% to the SystemVerilog parser. Foundation phase landed: the SV parser now has the same release-tracked deliverables structure the regex parser carries.
+
+**Integration contract upgraded** (`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`):
+
+- Bumped from a 61-line "stable surface" pointer to a release-tracked Highlights structure mirroring `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`.
+- New "Contract Identity" section: parser release `1.0.0`, contract `1.0.0`, embedding API baseline `1.2.0`, schema version `1`.
+- New "Current Trust Statement" describing the Nexsim-facing scope.
+- New "Companion Documentation" pointer to the SV mdBook.
+- New "Release 1.0.0 / Contract 1.0.0 Highlights — initial baseline" section establishing the campaign starting point.
+- Existing Source Of Truth / Stable Surface / Build Reqs / Validation Gates / Scope sections preserved + extended (LRM corpus pointers, parseability_probe verification command, sv_stimuli_quality_gate / sv_syntax_closure_gate gates, new `make systemverilog_parser_book_gate` target).
+
+**SV mdBook scaffolded** at `docs/systemverilog_parser_book/` with these chapters:
+
+- `welcome.md` — first-page orientation for downstream consumers (Nexsim et al.).
+- `quickstart.md` — minimal "compile this, walk that" recipe.
+- `build-recipe.md` — full recipe for the gate-only generated parser, vendoring, downstream Cargo wiring.
+- `public-api.md` — stable entry points (`parse_systemverilog_2017`, `parse_grammar_profile_named`, etc.).
+- `ast-envelope.md` — the AST dump JSON envelope structure, typed vs recursive-envelope shapes.
+- `parse-content-variants.md` — internal `ParseContent` enum to public JSON shape mapping.
+- `json-carrier.md` — flat reference table of annotated rules (currently empty; grows per slice).
+- `walking-the-ast.md` — recommended dual-shape walker pattern for downstream consumers.
+- `rules-top-level.md` — entry rule documentation; first per-rule chapter (others land per slice).
+- `examples-minimal-module.md` — worked example for `module m; endmodule`.
+- `schema-versioning.md` — versioning policy + timeline (currently row 0.1.0 / 1.0.0 baseline).
+- `glossary.md` — terms used throughout the book.
+- `changelog-index.md` — release index with the foundation baseline entry.
+
+**Build + gate**: `rust/scripts/systemverilog_parser_book_gate.sh` clones the regex book gate's pattern. `make systemverilog_parser_book_gate` target added to `rust/Makefile`. Gate green ✅. HTML output committed at `docs/systemverilog_parser_book-html/`.
+
+### Why now
+
+User directive 2026-05-04: *"You created a regex mdbook, similar mdbook shall be create for every generated PGEN parsers (systemverilog, vhdl, rtl_*, ...). The mdbooks for each parser should be part of the required deliverables for each parser. For each parsers there should be handoff documents too. Also the return annotations campaign you applied to regex, should be applied systematically to each and every generated parsers. Now let's focus 100% on the systemverilog parser."*
+
+This commit lifts the prior SV-parser pause (memory `feedback_sv_parser_pause.md` updated) and lays the foundation deliverables that subsequent annotation slices will fill out.
+
+### Phase 1 (this commit): Foundation — DONE
+### Phase 2 (next sessions): First annotation slices — pending user direction on cadence
+
+The first annotation slice will:
+- Calibrate the existing manifest stub by running `sv_stimuli_quality_gate` and observing the actual `current_content_kind` for `minimal_module`.
+- Annotate one top-level rule (`systemverilog_file`, `description`, or similar — to be selected based on calibration findings).
+- Bump parser-release / contract version.
+- Update the manifest, contract Highlights, schema-versioning row, changelog index, and a regression-lock test.
+
+### Phase 3+ (months): Sustained campaign
+
+Work down through the 3489-line `grammars/systemverilog.ebnf` systematically, then mirror for VHDL and RTL parsers per the user directive.
+
+### Verified
+- `make systemverilog_parser_book_gate`: pass ✅.
+- HTML output produced + tracked.
+- Integration contract reflows from the regex contract structure cleanly.
+
 ## 2026-05-04 - Optim #14 (PGEN-RGX-0078): cached 64MB-stack worker thread eliminates per-call thread spawn
 
 ### What landed

@@ -1,0 +1,1048 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>PGEN SystemVerilog Parser — Integration Reference</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-4a62b682.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-34905c9b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">PGEN SystemVerilog Parser — Integration Reference</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/richarddje/pgen" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="welcome--pgen-systemverilog-parser-integration-reference"><a class="header" href="#welcome--pgen-systemverilog-parser-integration-reference">Welcome — PGEN SystemVerilog Parser Integration Reference</a></h1>
+<p>This book is the <strong>canonical AST reference</strong> for downstream consumers of PGEN’s <code>systemverilog</code> parser family. The intended primary audience is Nexsim and any other tool embedding the PGEN-generated SystemVerilog parser through the <code>pgen::embedding_api</code> host surface.</p>
+<h2 id="what-this-book-covers"><a class="header" href="#what-this-book-covers">What this book covers</a></h2>
+<ul>
+<li><strong>How to build the generated parser and wire it into your project.</strong> See <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a>.</li>
+<li><strong>What the AST envelope looks like.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a>, <a href="#parsecontent-variants">ParseContent Variants</a>, and <a href="#walking-the-ast">Walking the AST</a>.</li>
+<li><strong>The shape every grammar rule produces in the AST dump.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. As the return-annotation campaign progresses, this section grows to cover every rule that has a stable typed shape.</li>
+<li><strong>Worked examples by SystemVerilog feature</strong> — what does the AST look like for a minimal module? An interface? A class? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.</li>
+<li><strong>Schema versioning policy.</strong> See <a href="#schema-versioning">Schema Versioning</a>. The schema is currently at version <code>1</code>.</li>
+<li><strong>A release-by-release index of what changed and why.</strong> See <a href="#changelog-index">Changelog Index</a>.</li>
+</ul>
+<h2 id="what-this-book-is-not"><a class="header" href="#what-this-book-is-not">What this book is NOT</a></h2>
+<ul>
+<li>It is <strong>not</strong> a substitute for the integration contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code>. The contract is the authoritative source of truth; this book documents what the contract describes. <strong>Where the book and the contract disagree, the contract wins.</strong> Please report any disagreement as a documentation bug.</li>
+<li>It is <strong>not</strong> the IEEE 1800 LRM. The LRM is the authoritative SystemVerilog language reference; this book documents PGEN’s parser-side AST shape for the LRM-conformant inputs the parser accepts.</li>
+<li>It is <strong>not</strong> a tutorial on SystemVerilog. It assumes you are already an embedded user of the language and need to walk PGEN’s AST output programmatically.</li>
+</ul>
+<h2 id="how-to-use-this-book"><a class="header" href="#how-to-use-this-book">How to use this book</a></h2>
+<ol>
+<li><strong>First-time integrators</strong>: read <a href="#quickstart-for-downstream-consumers">Quickstart</a>, then <a href="#build-recipe">Build Recipe</a>, then <a href="#public-api-surface">Public API Surface</a>.</li>
+<li><strong>Walking the AST</strong>: read <a href="#ast-envelope-structure">AST Envelope Structure</a>, then look up the per-rule chapters for the rules you consume.</li>
+<li><strong>Pinning to a known shape</strong>: read <a href="#schema-versioning">Schema Versioning</a> for the policy and <a href="#changelog-index">Changelog Index</a> for the per-release shape changes.</li>
+<li><strong>Reporting issues</strong>: follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code> for the bug-report protocol; accepted released-parser bugs land in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> under the <code>SV-NNNN</code> ID family.</li>
+</ol>
+<h2 id="status"><a class="header" href="#status">Status</a></h2>
+<p>The PGEN SystemVerilog parser is <strong>closure-grade for the current Nexsim-facing scope</strong> when consumed through the stable <code>pgen::embedding_api</code> host surface. See <code>LIVE_ACHIEVEMENT_STATUS.md</code> for the live closure status and <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
+<p>The systemverilog return-annotation campaign is <strong>in early phase</strong>. Most rules currently fall through to the recursive default envelope shape; subsequent slices will type rules one-by-one, mirroring the regex-parser campaign that produced typed shapes for 42+ rules. Each slice gets its own changelog entry here.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
+<p>A minimal “compile this, walk that” recipe for embedding the PGEN SystemVerilog parser. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>
+<h2 id="1-cold-clone-build"><a class="header" href="#1-cold-clone-build">1. Cold-clone build</a></h2>
+<pre><code class="language-bash">git clone https://github.com/richarddje/pgen.git
+cd pgen
+make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate
+</code></pre>
+<p>The gate produces the generated parser at <code>rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs</code> and runs it against the stimuli corpus to verify behavior.</p>
+<h2 id="2-wire-the-generated-parser-into-your-downstream-cargo-build"><a class="header" href="#2-wire-the-generated-parser-into-your-downstream-cargo-build">2. Wire the generated parser into your downstream Cargo build</a></h2>
+<pre><code class="language-bash"># In your downstream project, before invoking cargo:
+export PGEN_SYSTEMVERILOG_PARSER_PATH=/absolute/path/to/pgen/rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs
+
+cargo build --release --features generated_parsers,sv_2017
+</code></pre>
+<p><code>rust/build.rs</code> discovers the parser via that environment variable. Both relative-to-<code>rust/</code> and absolute paths work; absolute paths are the safest.</p>
+<h2 id="3-parse-and-walk"><a class="header" href="#3-parse-and-walk">3. Parse and walk</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{parse_grammar_profile_named, ParseStatus};
+
+let outcome = parse_grammar_profile_named(
+    "systemverilog",
+    "sv_2017",
+    "module m; endmodule\n",
+);
+
+match outcome.status {
+    ParseStatus::Success =&gt; {
+        // Outcome's `diagnostic` is None on success.
+        // For the AST dump, call `parse_grammar_profile_ast_dump_named`
+        // (see Public API Surface).
+    }
+    ParseStatus::Failure =&gt; {
+        eprintln!("parse failed: {:?}", outcome.diagnostic);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>For typed AST output, use <code>parse_grammar_profile_ast_dump_named</code> instead. The AST dump is the JSON shape this book documents per-rule.</p>
+<h2 id="4-write-the-ast-walker"><a class="header" href="#4-write-the-ast-walker">4. Write the AST walker</a></h2>
+<p>See <a href="#walking-the-ast">Walking the AST</a> for the recommended walker pattern. The short version:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use serde_json::Value as JsonValue;
+
+fn walk(node: &amp;JsonValue) {
+    match node {
+        JsonValue::Object(obj) =&gt; {
+            // Typed-shape node; dispatch on `type` / `kind` fields.
+            // See per-rule chapters for the field set per rule.
+        }
+        JsonValue::Array(items) =&gt; {
+            // Sequence / un-typed shape; walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        JsonValue::String(_) =&gt; {
+            // Terminal text — no children.
+        }
+        _ =&gt; {}
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="5-track-the-contract-version"><a class="header" href="#5-track-the-contract-version">5. Track the contract version</a></h2>
+<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. When you bump to a new PGEN version, scan the <a href="#changelog-index">Changelog Index</a> for shape-change rows that affect the rules you consume.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="build-recipe"><a class="header" href="#build-recipe">Build Recipe</a></h1>
+<p>The PGEN SystemVerilog parser is <strong>not in the default <code>cargo test --features generated_parsers</code> build</strong>. It is produced on-demand by the <code>sv_stimuli_quality_gate</code> make target (and similar gates) into <code>rust/target/&lt;gate&gt;/work/systemverilog_parser.rs</code> and discarded after the gate run.</p>
+<p>This is intentional — the generated SV parser is a large file (~MB scale) and regenerating it on every <code>cargo build</code> would be costly. Downstream consumers receive the parser via one of three mechanisms:</p>
+<ol>
+<li><strong>Run the gate locally</strong>, copy the generated file to a stable location, and point <code>PGEN_SYSTEMVERILOG_PARSER_PATH</code> at it (this is the recommended path for downstream development).</li>
+<li><strong>Vendor the generated file</strong> under your downstream project’s source tree and check it into your VCS, tracked against the parser-release version recorded in the contract.</li>
+<li><strong>Run the gate in CI</strong> as part of your downstream build pipeline.</li>
+</ol>
+<h2 id="cold-clone-build"><a class="header" href="#cold-clone-build">Cold-clone build</a></h2>
+<p>From a fresh clone of <code>github.com/richarddje/pgen</code>:</p>
+<pre><code class="language-bash">git clone https://github.com/richarddje/pgen.git
+cd pgen
+make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate
+</code></pre>
+<p>The gate:</p>
+<ol>
+<li>Reads <code>grammars/systemverilog.ebnf</code> (and the per-profile wrappers).</li>
+<li>Generates the parser via PGEN’s codegen.</li>
+<li>Writes the parser to <code>rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs</code>.</li>
+<li>Compiles it.</li>
+<li>Runs the SV stimuli corpus against it.</li>
+<li>Validates AST shape contract (<code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code>).</li>
+</ol>
+<h2 id="pinning-the-generated-parser"><a class="header" href="#pinning-the-generated-parser">Pinning the generated parser</a></h2>
+<p>Once <code>sv_stimuli_quality_gate</code> succeeds, the parser at <code>rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs</code> is the version that matches the current source tree’s grammar + codegen. To pin it:</p>
+<pre><code class="language-bash">cp rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs \
+   /your/vendoring/location/systemverilog_parser.rs
+sha256sum /your/vendoring/location/systemverilog_parser.rs
+</code></pre>
+<p>Record the SHA256 in your downstream project’s manifest. When you bump the PGEN version, re-run the gate and verify the SHA changed only because of expected grammar/codegen changes (cross-reference <a href="#changelog-index">Changelog Index</a> for the parser-release version).</p>
+<h2 id="wiring-into-a-downstream-cargo-build"><a class="header" href="#wiring-into-a-downstream-cargo-build">Wiring into a downstream Cargo build</a></h2>
+<p>PGEN’s <code>rust/build.rs</code> discovers the generated parser via <code>PGEN_SYSTEMVERILOG_PARSER_PATH</code>. Set it before invoking cargo:</p>
+<pre><code class="language-bash">export PGEN_SYSTEMVERILOG_PARSER_PATH=/absolute/path/to/systemverilog_parser.rs
+cargo build --release --features generated_parsers,sv_2017
+</code></pre>
+<p>The path is resolved relative to <code>rust/</code> if not absolute. <strong>Use absolute paths to avoid surprises.</strong> The build.rs will complain at compile time if the path doesn’t exist or doesn’t point at a valid generated parser file.</p>
+<h2 id="cargo-features"><a class="header" href="#cargo-features">Cargo features</a></h2>
+<p>The PGEN crate exposes these features relevant to SV consumers:</p>
+<ul>
+<li><code>generated_parsers</code> — required to enable any generated parser backend.</li>
+<li><code>sv_2017</code> — enable the IEEE 1800-2017 profile.</li>
+<li><code>sv_2023</code> — enable the IEEE 1800-2023 profile.</li>
+</ul>
+<p>Both profiles share the same <code>grammars/systemverilog.ebnf</code> source; the profile distinguishes which top-level entry rule the parser starts at.</p>
+<h2 id="verifying-the-build"><a class="header" href="#verifying-the-build">Verifying the build</a></h2>
+<p>After cargo finishes, verify the parser is wired in:</p>
+<pre><code class="language-bash">cargo run --release --features generated_parsers,sv_2017 \
+    --bin parseability_probe -- \
+    --parse systemverilog /path/to/input.sv \
+    --profile sv_2017
+</code></pre>
+<p>If the parseability probe reports <code>parse_outcome.status = "success"</code>, the integration is good.</p>
+<h2 id="build--availability-requirements"><a class="header" href="#build--availability-requirements">Build / availability requirements</a></h2>
+<p>Per the integration contract:</p>
+<ul>
+<li>Downstream consumers should treat the generated backend as <strong>required</strong> for real host integration.</li>
+<li>Startup should inspect <code>parser_embedding_api_contract().supports_systemverilog_generated_backend</code> to verify the backend is available.</li>
+<li>Build-time generated-parser discovery is mediated by <code>rust/build.rs</code>, not by direct use of internal parser modules.</li>
+</ul>
+<p>See <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> § “Build / Availability Requirements” for the full list.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="public-api-surface"><a class="header" href="#public-api-surface">Public API Surface</a></h1>
+<p>The stable downstream contract is the <code>pgen::embedding_api</code> host surface, <strong>not</strong> internal generated-parser types. This chapter enumerates the entry points downstream consumers should call.</p>
+<p>All entry points return <code>Outcome</code> types (<code>NamedGrammarParseOutcome</code>, <code>GrammarAstDumpOutcome</code>, etc.) that carry an <code>api_version</code>, <code>grammar</code>, <code>profile</code>, <code>status</code>, and <code>diagnostic</code>/<code>ast_dump</code> payload. The <code>Outcome</code> types are stable and source-compatible across patch / minor releases.</p>
+<h2 id="convenience-entry-points"><a class="header" href="#convenience-entry-points">Convenience entry points</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Parse-only (no AST dump):
+pub fn parse_systemverilog_2017(input: &amp;str) -&gt; NamedGrammarParseOutcome;
+pub fn parse_systemverilog_2023(input: &amp;str) -&gt; NamedGrammarParseOutcome;
+
+// Parse + AST dump (the version this book documents per-rule):
+pub fn parse_systemverilog_2017_ast_dump(
+    input: &amp;str,
+    options: &amp;AstDumpOptions,
+) -&gt; NamedGrammarAstDumpOutcome;
+pub fn parse_systemverilog_2023_ast_dump(
+    input: &amp;str,
+    options: &amp;AstDumpOptions,
+) -&gt; NamedGrammarAstDumpOutcome;
+<span class="boring">}</span></code></pre>
+<h2 id="generic-entry-points"><a class="header" href="#generic-entry-points">Generic entry points</a></h2>
+<p>For tools that select the grammar family at runtime:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parse_grammar_profile(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &amp;str,
+) -&gt; GrammarParseOutcome;
+
+pub fn parse_grammar_profile_result(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &amp;str,
+) -&gt; Result&lt;(), ParseDiagnostic&gt;;
+
+pub fn parse_grammar_profile_ast_dump(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &amp;str,
+    options: &amp;AstDumpOptions,
+) -&gt; GrammarAstDumpOutcome;
+<span class="boring">}</span></code></pre>
+<h2 id="string-name-overloads"><a class="header" href="#string-name-overloads">String-name overloads</a></h2>
+<p>For embedders that select grammar / profile by string name (e.g. plugin systems, cross-language bindings):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parse_grammar_profile_named(
+    grammar: &amp;str,        // "systemverilog"
+    profile: &amp;str,        // "sv_2017" | "sv_2023"
+    input: &amp;str,
+) -&gt; NamedGrammarParseOutcome;
+
+pub fn parse_grammar_profile_named_with_limits(
+    grammar: &amp;str,
+    profile: &amp;str,
+    input: &amp;str,
+    limits: &amp;ParseLimits,
+) -&gt; NamedGrammarParseOutcome;
+<span class="boring">}</span></code></pre>
+<h2 id="astdumpoptions"><a class="header" href="#astdumpoptions">AstDumpOptions</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct AstDumpOptions {
+    pub pretty: bool,                 // pretty-print the JSON
+    pub max_ast_bytes: Option&lt;usize&gt;, // truncation cap (bytes); None = no cap
+}
+<span class="boring">}</span></code></pre>
+<h2 id="parselimits"><a class="header" href="#parselimits">ParseLimits</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ParseLimits {
+    pub max_input_bytes: Option&lt;usize&gt;,  // input-size cap; None = no cap
+    // (other fields may be added in minor releases)
+}
+
+impl Default for ParseLimits {
+    fn default() -&gt; Self;
+}
+<span class="boring">}</span></code></pre>
+<h2 id="outcome-types"><a class="header" href="#outcome-types">Outcome types</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct NamedGrammarParseOutcome {
+    pub api_version: String,
+    pub grammar: String,
+    pub profile: String,
+    pub status: ParseStatus,
+    pub diagnostic: Option&lt;ParseDiagnostic&gt;,
+}
+
+pub struct NamedGrammarAstDumpOutcome {
+    pub api_version: String,
+    pub grammar: GrammarFamily,
+    pub profile: GrammarProfile,
+    pub status: ParseStatus,
+    pub diagnostic: Option&lt;ParseDiagnostic&gt;,
+    pub ast_dump: Option&lt;AstDumpPayload&gt;,
+}
+
+pub enum ParseStatus { Success, Failure }
+
+pub struct ParseDiagnostic {
+    pub code: String,        // e.g. "E_PARSE_FAILURE"
+    pub message: String,
+    // (other fields)
+}
+<span class="boring">}</span></code></pre>
+<h2 id="stable-diagnostics"><a class="header" href="#stable-diagnostics">Stable diagnostics</a></h2>
+<p>These diagnostic codes are stable across patch / minor releases:</p>
+<ul>
+<li><code>E_BACKEND_UNAVAILABLE</code> — the generated parser backend is not present in this build.</li>
+<li><code>E_PARSE_FAILURE</code> — the input failed to parse.</li>
+<li><code>E_INPUT_TOO_LARGE</code> — the input exceeds the configured <code>max_input_bytes</code> limit.</li>
+<li><code>E_INVALID_LIMITS</code> — the supplied <code>ParseLimits</code> are not valid.</li>
+<li><code>E_INVALID_ARGUMENT</code> — the supplied grammar / profile / input is not valid.</li>
+<li><code>E_UNSUPPORTED_PROFILE</code> — the supplied profile is not supported by the selected grammar family.</li>
+</ul>
+<h2 id="backend-availability-check"><a class="header" href="#backend-availability-check">Backend availability check</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parser_embedding_api_contract() -&gt; ParserEmbeddingApiContract;
+
+pub struct ParserEmbeddingApiContract {
+    pub supports_systemverilog_generated_backend: bool,
+    // (other fields)
+}
+<span class="boring">}</span></code></pre>
+<p>Embedders should check this at startup and refuse to operate (or fall back gracefully) if the SV backend is unavailable.</p>
+<h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
+<p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
+<p>The PGEN SystemVerilog parser produces a JSON AST through <code>parse_grammar_profile_ast_dump_named</code>. This chapter documents the top-level structure of that JSON.</p>
+<h2 id="the-envelope"><a class="header" href="#the-envelope">The envelope</a></h2>
+<p>The <code>ast_dump</code> field of <code>NamedGrammarAstDumpOutcome</code> carries an <code>AstDumpPayload</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct AstDumpPayload {
+    pub pgen_dump_contract_version: u32,  // currently 1
+    pub schema_version: u32,              // 1 — see Schema Versioning
+    pub grammar: String,                  // "systemverilog"
+    pub profile: String,                  // "sv_2017" | "sv_2023"
+    pub root: JsonValue,                  // the actual AST tree
+    pub truncated: bool,                  // true if max_ast_bytes was hit
+}
+<span class="boring">}</span></code></pre>
+<p>The <code>root</code> field is the SystemVerilog AST as a <code>serde_json::Value</code>. It is what this book’s per-rule chapters describe.</p>
+<h2 id="two-carrier-kinds-typed-and-recursive-envelope"><a class="header" href="#two-carrier-kinds-typed-and-recursive-envelope">Two carrier kinds: typed and recursive-envelope</a></h2>
+<p>Per-rule, the AST dump produces JSON in one of two shapes:</p>
+<h3 id="typed-shape-rules-with-return-annotations"><a class="header" href="#typed-shape-rules-with-return-annotations">Typed shape (rules with return annotations)</a></h3>
+<p>When a grammar rule carries a <code>-&gt; {...}</code> return annotation, the rule produces a typed JSON object:</p>
+<pre><code class="language-json">{
+  "type": "&lt;rule-family&gt;",
+  "kind": "&lt;specific-shape&gt;",
+  "...": "..."
+}
+</code></pre>
+<p>Examples (from the regex parser, for shape illustration; SV typed shapes will land per-slice):</p>
+<pre><code class="language-json">{"type": "atom", "kind": "literal", "value": "a"}
+{"type": "anchor", "kind": "start_of_line"}
+{"type": "escape", "kind": "shorthand", "char": "d"}
+</code></pre>
+<p>The annotation campaign (see <a href="#changelog-index">Changelog Index</a>) lands these typed shapes one rule at a time.</p>
+<h3 id="recursive-envelope-shape-rules-without-annotations"><a class="header" href="#recursive-envelope-shape-rules-without-annotations">Recursive envelope shape (rules without annotations)</a></h3>
+<p>When a grammar rule has no return annotation, the rule produces a JSON value derived from its grammar shape:</p>
+<ul>
+<li>A <strong>terminal literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>regex literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>rule reference</strong> produces whatever shape that rule produces.</li>
+<li>A <strong>sequence</strong> produces a JSON array of the per-element shapes.</li>
+<li>An <strong>alternation</strong> produces the matched branch’s shape directly.</li>
+<li>A <strong>quantified rule</strong> (e.g. <code>expr*</code>, <code>expr+</code>) produces a JSON array of the per-iteration shapes.</li>
+<li>An <strong>optional rule</strong> (<code>expr?</code>) produces either the matched shape (if matched) or <code>[]</code> (if un-matched).</li>
+</ul>
+<p>For a 3-element sequence rule like <code>a b c</code>, the envelope shape is <code>[&lt;a-shape&gt;, &lt;b-shape&gt;, &lt;c-shape&gt;]</code>.</p>
+<h2 id="mixing-typed-and-envelope-shapes"><a class="header" href="#mixing-typed-and-envelope-shapes">Mixing typed and envelope shapes</a></h2>
+<p>Until the annotation campaign covers every rule, the AST tree carries a mix of typed objects and recursive arrays. Consumers need to handle both:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn walk(node: &amp;serde_json::Value) {
+    match node {
+        serde_json::Value::Object(obj) =&gt; {
+            // Typed shape — dispatch on `type` / `kind`.
+            // See per-rule chapters.
+        }
+        serde_json::Value::Array(items) =&gt; {
+            // Recursive-envelope shape — walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        serde_json::Value::String(text) =&gt; {
+            // Terminal text — no children.
+        }
+        _ =&gt; {
+            // Bool / Number / Null — produced by typed annotations using
+            // `BooleanLiteral` / `NumberLiteral` / `NullLiteral`.
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>See <a href="#walking-the-ast">Walking the AST</a> for the full walker pattern.</p>
+<h2 id="determinism"><a class="header" href="#determinism">Determinism</a></h2>
+<p>The AST dump is <strong>deterministic</strong> for a given input + parser-release version:</p>
+<ul>
+<li>Object keys are emitted in canonical (alphabetical) order.</li>
+<li>Number formatting is canonical (no trailing zeros for integers, etc.).</li>
+<li>Whitespace is configurable via <code>AstDumpOptions.pretty</code> (compact vs pretty-printed) but the underlying JSON value is the same.</li>
+</ul>
+<p>Any non-determinism in the dump is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="truncation"><a class="header" href="#truncation">Truncation</a></h2>
+<p>If <code>AstDumpOptions.max_ast_bytes</code> is set and the encoded JSON exceeds it, the dump is truncated and <code>truncated: true</code> is set on the payload. The truncated payload is still valid JSON (the truncation happens at a node boundary). Consumers should check the <code>truncated</code> flag and either bail or note the truncation.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="parsecontent-variants"><a class="header" href="#parsecontent-variants">ParseContent Variants</a></h1>
+<p>This chapter documents the <code>ParseContent</code> variants that the generated parser produces internally, and how each maps to the public AST-dump JSON shape consumers receive.</p>
+<blockquote>
+<p><strong>Note:</strong> <code>ParseContent</code> is the internal AST-pipeline representation used by PGEN’s parser hooks and codegen. Downstream consumers do not call <code>ParseContent</code> directly — they call <code>parse_grammar_profile_ast_dump_named</code> and walk the resulting JSON. This chapter is included as reference for tooling that introspects PGEN’s behaviour or for downstream maintainers debugging shape issues.</p>
+</blockquote>
+<h2 id="the-variants"><a class="header" href="#the-variants">The variants</a></h2>
+<p>PGEN’s <code>ast_pipeline::ParseContent</code> enum has these variants:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum ParseContent {
+    Terminal(String),                      // matched literal text
+    Sequence(Vec&lt;UnifiedReturnAST&gt;),       // ordered children (e.g. from `a b c`)
+    Quantified(Vec&lt;UnifiedReturnAST&gt;),     // iterations of `expr*` / `expr+`
+    Or(Box&lt;UnifiedReturnAST&gt;),             // matched branch of an alternation
+    Alternative(Box&lt;UnifiedReturnAST&gt;),    // boxed inner shape (per-branch wrap)
+    Json(serde_json::Value),               // typed JSON value (from annotations)
+    // (other variants for internal codegen use)
+}
+<span class="boring">}</span></code></pre>
+<h2 id="how-each-variant-lands-in-the-ast-dump-json"><a class="header" href="#how-each-variant-lands-in-the-ast-dump-json">How each variant lands in the AST dump JSON</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>ParseContent</code> variant</th><th>JSON shape consumers see</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Terminal(text)</code></td><td><code>"&lt;text&gt;"</code> (string)</td></tr>
+<tr><td><code>Sequence(children)</code></td><td><code>[&lt;child0_json&gt;, &lt;child1_json&gt;, ...]</code></td></tr>
+<tr><td><code>Quantified(iters)</code></td><td><code>[&lt;iter0_json&gt;, &lt;iter1_json&gt;, ...]</code></td></tr>
+<tr><td><code>Or(inner)</code></td><td><code>&lt;inner_json&gt;</code> (transparent)</td></tr>
+<tr><td><code>Alternative(inner)</code></td><td><code>&lt;inner_json&gt;</code> (transparent)</td></tr>
+<tr><td><code>Json(value)</code></td><td><code>&lt;value&gt;</code> directly (typed object/string/number/bool/null)</td></tr>
+</tbody>
+</table>
+</div>
+<p>So at the JSON layer, consumers see either:</p>
+<ul>
+<li>A <strong>JSON string</strong> (from <code>Terminal</code>), or</li>
+<li>A <strong>JSON array</strong> (from <code>Sequence</code> / <code>Quantified</code>), or</li>
+<li>A <strong>JSON object / number / bool / null</strong> (from typed <code>Json</code> annotations).</li>
+</ul>
+<p><code>Or</code> and <code>Alternative</code> are transparent — they pass their inner shape through.</p>
+<h2 id="when-youll-see-each-shape"><a class="header" href="#when-youll-see-each-shape">When you’ll see each shape</a></h2>
+<p>In a fully-annotated grammar (the goal of the campaign), most rules produce typed <code>Json(object)</code> shapes and consumers walk a tree of typed objects with occasional arrays for ordered children.</p>
+<p>In a partially-annotated grammar (the current state of the SV parser), un-annotated rules produce recursive <code>Sequence</code> / <code>Quantified</code> arrays — JSON arrays of strings and other arrays, walked by structural recursion. Annotated rules produce typed objects in the middle of those arrays.</p>
+<p>The annotation-system is designed so you can walk either shape with the same dispatch:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match node {
+    JsonValue::Object(obj) =&gt; { /* typed shape */ }
+    JsonValue::Array(items) =&gt; { /* recursive-envelope shape */ }
+    JsonValue::String(text) =&gt; { /* terminal */ }
+    JsonValue::Bool(_) | JsonValue::Number(_) | JsonValue::Null =&gt; {
+        /* annotation-produced scalar */
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>See <a href="#walking-the-ast">Walking the AST</a> for the recommended walker pattern.</p>
+<h2 id="why-two-shapes-coexist"><a class="header" href="#why-two-shapes-coexist">Why two shapes coexist</a></h2>
+<p>The annotation campaign types rules incrementally. Each slice annotates one rule (or a small family of related rules) and bumps the schema version. At any point in time the grammar has a mix of annotated rules (typed shape) and un-annotated rules (envelope shape). The downstream AST is the natural composition of both.</p>
+<p>The schema version 1.0.0 milestone (see <a href="#schema-versioning">Schema Versioning</a>) lands when every rule is either annotated or has a deliberate “stay un-annotated” decision — at which point the AST shape is fully locked.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
+<p>This chapter is a flat reference table of every <code>systemverilog.ebnf</code> rule that carries a <code>-&gt; ...</code> return annotation, and the JSON shape that annotation produces.</p>
+<blockquote>
+<p><strong>Note:</strong> The systemverilog return-annotation campaign is <strong>in early phase</strong>. Most rules are currently un-annotated and produce the recursive-envelope shape described in <a href="#ast-envelope-structure">AST Envelope Structure</a>. This table grows as the campaign progresses.</p>
+</blockquote>
+<h2 id="currently-annotated-rules"><a class="header" href="#currently-annotated-rules">Currently annotated rules</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Annotation</th><th>JSON shape produced</th></tr>
+</thead>
+<tbody>
+<tr><td><em>(none yet)</em></td><td><em>(none yet)</em></td><td><em>(none yet)</em></td></tr>
+</tbody>
+</table>
+</div>
+<p>The first slice of the campaign will land in a follow-up commit and add its row here.</p>
+<h2 id="sub-rules-with-implicit-defaults"><a class="header" href="#sub-rules-with-implicit-defaults">Sub-rules with implicit defaults</a></h2>
+<p>Rules that have no explicit annotation default to their grammar-shape envelope (see <a href="#parsecontent-variants">Parse Content Variants</a>). The default is documented at the rule level in <code>grammars/systemverilog.ebnf</code> comments where the default is non-obvious.</p>
+<h2 id="unannotated-on-purpose-rules"><a class="header" href="#unannotated-on-purpose-rules">Unannotated-on-purpose rules</a></h2>
+<p>Some rules will remain un-annotated by design — typically utility / helper rules whose envelope shape is the most useful representation, or rules whose typed shape would be redundant with their parent rule’s shape.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Reason</th></tr>
+</thead>
+<tbody>
+<tr><td><em>(none yet)</em></td><td><em>(none yet)</em></td></tr>
+</tbody>
+</table>
+</div>
+<p>Each row added here will cite the slice that decided the rule should remain un-annotated.</p>
+<h2 id="how-to-read-the-annotation-column"><a class="header" href="#how-to-read-the-annotation-column">How to read the annotation column</a></h2>
+<p>The annotation column shows the EBNF <code>-&gt; ...</code> clause from <code>grammars/systemverilog.ebnf</code>. The reference grammar for the annotation language is:</p>
+<ul>
+<li><code>$N</code> — positional reference to the Nth body element (1-indexed).</li>
+<li><code>$N.field</code> — member access on a typed sub-rule shape.</li>
+<li><code>{field: value, ...}</code> — typed object literal.</li>
+<li><code>[v1, v2, ...]</code> — array literal.</li>
+<li><code>[$N**]</code> — flatten-spread an array-shaped reference.</li>
+<li><code>true</code> / <code>false</code> / <code>null</code> — boolean / null scalars.</li>
+<li><code>@transform</code> — typed numeric value via <code>str::parse::&lt;TYPE&gt;</code>-style transform.</li>
+<li><code>"text"</code> — string literal.</li>
+</ul>
+<p>See <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code> for the full annotation-language grammar.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the SystemVerilog AST dump JSON.</p>
+<h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
+<p>Because the annotation campaign types rules incrementally, the AST tree carries a mix of typed objects and recursive-envelope arrays. The walker dispatches on JSON value kind:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use serde_json::Value as JsonValue;
+
+fn walk(node: &amp;JsonValue) {
+    match node {
+        JsonValue::Object(obj) =&gt; {
+            // Typed-shape node — dispatch on `type` / `kind` fields.
+            let ty = obj.get("type").and_then(|v| v.as_str()).unwrap_or("");
+            match ty {
+                "module"      =&gt; walk_module(obj),
+                "interface"   =&gt; walk_interface(obj),
+                "class"       =&gt; walk_class(obj),
+                // ... (other typed shapes; see per-rule chapters)
+                _ =&gt; {
+                    // Unknown typed shape — fall through to generic
+                    // child walk. This keeps the walker robust to new
+                    // typed shapes added in subsequent slices.
+                    for (_key, value) in obj.iter() {
+                        walk(value);
+                    }
+                }
+            }
+        }
+        JsonValue::Array(items) =&gt; {
+            // Recursive-envelope shape — walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        JsonValue::String(text) =&gt; {
+            // Terminal text — no children. Use as identifier / literal
+            // value if your traversal needs it.
+        }
+        JsonValue::Bool(_) | JsonValue::Number(_) | JsonValue::Null =&gt; {
+            // Annotation-produced scalars (booleans for negation flags,
+            // numbers for typed integer transforms, null for absent
+            // optional fields). No children.
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-the-unknown-typed-shape-fallback-matters"><a class="header" href="#why-the-unknown-typed-shape-fallback-matters">Why the unknown-typed-shape fallback matters</a></h2>
+<p>The walker pattern above includes a fallthrough that walks the children of any typed object the walker doesn’t know about:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>_ =&gt; {
+    for (_key, value) in obj.iter() {
+        walk(value);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>This is <strong>important</strong> because the annotation campaign adds new typed shapes over time. A walker that hard-fails on unknown <code>type</code> values will break on every parser-release that adds a new typed rule. A walker that walks children of unknown typed shapes degrades gracefully — it won’t extract structured info for shapes it doesn’t understand, but it’ll still find descendants.</p>
+<p>Recommendation: only hard-fail on unknown shapes when you’re explicitly pinning to a specific <code>schema_version</code> and your test corpus covers every <code>type</code> value in that schema.</p>
+<h2 id="identifier-extraction"><a class="header" href="#identifier-extraction">Identifier extraction</a></h2>
+<p>For SystemVerilog identifiers (module names, signal names, etc.), look for the rule that produces the identifier and walk to its terminal text:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_identifier(node: &amp;JsonValue) -&gt; Option&lt;&amp;str&gt; {
+    // Once `simple_identifier` carries a typed annotation, this
+    // becomes obj.get("name").as_str() directly. Until then, walk
+    // to the matched terminal text.
+    match node {
+        JsonValue::String(text) =&gt; Some(text.as_str()),
+        JsonValue::Array(items) if items.len() == 1 =&gt; {
+            extract_identifier(&amp;items[0])
+        }
+        _ =&gt; None,
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The per-rule chapters (e.g. <a href="#top-level-rules">Top-Level Rules</a>) document the path for each rule that produces an identifier in its envelope.</p>
+<h2 id="avoiding-deep-recursion"><a class="header" href="#avoiding-deep-recursion">Avoiding deep recursion</a></h2>
+<p>SystemVerilog can produce very deep AST trees — a real-world module with N hierarchical instances + class hierarchies + always blocks easily reaches 200-500 levels of nesting. Stack-recursive walkers can blow the default Rust thread stack on large inputs.</p>
+<p>Recommendations:</p>
+<ol>
+<li><strong>Use an explicit stack-based walker</strong> (push children, pop work items in a loop) instead of recursive function calls. The walker becomes iterative; stack depth is irrelevant.</li>
+<li><strong>Or use the stacker crate</strong> to grow the thread stack as needed. PGEN itself uses this approach internally for the parser; consumers can do the same for AST traversal.</li>
+<li><strong>For pure AST drop</strong> (releasing all the JSON values once parsing is done), use a non-recursive drop — <code>serde_json::Value</code>’s default <code>Drop</code> is recursive and can blow the stack on deeply-nested values. PGEN’s test path uses <code>run_with_regex_worker_stack</code> (a 64MB-stack worker) to avoid this; downstream consumers should consider similar patterns.</li>
+</ol>
+<h2 id="schema-version-aware-walking"><a class="header" href="#schema-version-aware-walking">Schema-version-aware walking</a></h2>
+<p>If your tool needs to support multiple PGEN versions:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let schema = ast_dump_payload.schema_version;
+match schema {
+    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+    // (future) 2 =&gt; walk_schema_v2(...),
+    other =&gt; {
+        eprintln!("unsupported schema version: {}", other);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>See <a href="#schema-versioning">Schema Versioning</a> for what triggers a schema bump and what stays stable within a single schema version.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
+<p>This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.</p>
+<blockquote>
+<p><strong>Status:</strong> Most top-level rules are currently un-annotated and produce the recursive-envelope shape. The first slice of the campaign will land here. Until then, this chapter documents the envelope shape for orientation.</p>
+</blockquote>
+<h2 id="entry-points-by-profile"><a class="header" href="#entry-points-by-profile">Entry points by profile</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Profile</th><th>Entry rule</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>sv_2017</code></td><td><code>systemverilog_file</code> (per LRM Annex A.1.1)</td><td>IEEE 1800-2017 source file.</td></tr>
+<tr><td><code>sv_2023</code></td><td><code>systemverilog_file</code> (per LRM Annex A.1.1, with 2023 deltas)</td><td>IEEE 1800-2023 source file. Same entry rule symbol; the 2023 grammar differs in interior rules where the LRM was extended.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Both profiles share <code>grammars/systemverilog.ebnf</code> as the single source. The profile selection determines which top-level dispatcher rule is used at parse time.</p>
+<h2 id="systemverilog_file-un-annotated"><a class="header" href="#systemverilog_file-un-annotated"><code>systemverilog_file</code> (un-annotated)</a></h2>
+<p>Per the LRM and <code>grammars/systemverilog.ebnf</code>, the top-level production is something like:</p>
+<pre><code class="language-ebnf">systemverilog_file = (timeunits_declaration?  description*)
+</code></pre>
+<p>Because there is no <code>-&gt; ...</code> annotation, the rule produces the recursive-envelope shape. For an input like <code>"module m; endmodule\n"</code>, the <code>root</code> field of <code>AstDumpPayload</code> is a JSON array reflecting the matched grammar shape:</p>
+<pre><code class="language-text">[&lt;timeunits_declaration_or_empty&gt;, &lt;description_iterations&gt;]
+</code></pre>
+<p>The exact JSON shape until the first annotation slice lands depends on the un-annotated emitter behavior; see <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code> for the calibration sample (<code>current_content_kind</code> field).</p>
+<h2 id="description-un-annotated"><a class="header" href="#description-un-annotated"><code>description</code> (un-annotated)</a></h2>
+<p><code>description</code> is the per-construct top-level alternative — module / interface / class / package / etc. Per LRM A.1.2:</p>
+<pre><code class="language-ebnf">description = module_declaration
+            | udp_declaration
+            | interface_declaration
+            | program_declaration
+            | package_declaration
+            | (attribute_instance* package_item)
+            | (attribute_instance* bind_directive)
+            | config_declaration
+</code></pre>
+<p>Un-annotated <code>description</code> produces the matched-branch shape directly (no extra wrapping). When a slice annotates the per-branch dispatch, this rule will likely become:</p>
+<pre><code class="language-ebnf">description -&gt; {type: "description", kind: "&lt;branch&gt;", body: $1}
+</code></pre>
+<p>(or similar) — actual annotation lands per-slice with the corresponding manifest update.</p>
+<h2 id="after-the-first-slice"><a class="header" href="#after-the-first-slice">After the first slice</a></h2>
+<p>Once the first annotation slice lands, this chapter will document:</p>
+<ul>
+<li>The <code>-&gt; ...</code> annotation that landed on each top-level rule.</li>
+<li>A worked example (input → JSON tree) for <code>module m; endmodule\n</code>.</li>
+<li>The cumulative manifest entries.</li>
+</ul>
+<p>For now, consult the <a href="#walking-the-ast">Walking the AST</a> walker pattern and use the recursive-envelope walk path for top-level rules.</p>
+<h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
+<p>Each annotation slice gets a row in <a href="#schema-versioning">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code>. A row in the <a href="#changelog-index">Changelog Index</a> ties the two together with a one-paragraph summary.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="worked-example-minimal-module"><a class="header" href="#worked-example-minimal-module">Worked Example: Minimal Module</a></h1>
+<p>A “what does the AST actually look like” walkthrough for the simplest possible SystemVerilog input.</p>
+<h2 id="input"><a class="header" href="#input">Input</a></h2>
+<pre><code class="language-systemverilog">module m; endmodule
+</code></pre>
+<p>(Note the trailing newline — the parser typically requires it for EOF handling on the final construct.)</p>
+<h2 id="pre-annotation-recursive-envelope"><a class="header" href="#pre-annotation-recursive-envelope">Pre-annotation (recursive envelope)</a></h2>
+<p>Until the annotation campaign types <code>systemverilog_file</code> and its descendants, the AST dump for the minimal module is the recursive-envelope shape — a JSON tree of arrays and strings reflecting the grammar’s sequence / quantified / alternation structure.</p>
+<p>The exact shape is recorded in <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code> once the parser has been run for first calibration:</p>
+<pre><code class="language-json">{
+  "version": 1,
+  "grammar": "systemverilog",
+  "samples": [
+    {
+      "name": "minimal_module",
+      "input": "module m; endmodule\n",
+      "rule_under_test": "systemverilog_file",
+      "current_content_kind": "&lt;calibrated_after_first_run&gt;",
+      "expected_json_object_keys_present": [],
+      ...
+    }
+  ]
+}
+</code></pre>
+<p>The <code>current_content_kind</code> field is the regression-lock key — once calibrated, any drift in the AST dump shape will fail the <code>cargo test</code> AST-shape contract test, surfacing the change to the slice that introduced it.</p>
+<h2 id="post-annotation-typed-shape--landing-per-slice"><a class="header" href="#post-annotation-typed-shape--landing-per-slice">Post-annotation (typed shape — landing per slice)</a></h2>
+<p>Once the first annotation slice lands and types <code>systemverilog_file</code>, this section will show:</p>
+<pre><code class="language-json">// Hypothetical post-slice shape — actual annotation lands per-slice:
+{
+  "type": "systemverilog_file",
+  "items": [
+    {
+      "type": "description",
+      "kind": "module_declaration",
+      "name": "m",
+      "ports": [],
+      "items": []
+    }
+  ]
+}
+</code></pre>
+<p>(The actual shape lands when the slice is implemented and verified; this example is a placeholder showing the expected pattern.)</p>
+<h2 id="walker-code-for-this-input"><a class="header" href="#walker-code-for-this-input">Walker code for this input</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{
+    parse_grammar_profile_ast_dump_named, AstDumpOptions, ParseStatus,
+};
+
+let outcome = parse_grammar_profile_ast_dump_named(
+    "systemverilog",
+    "sv_2017",
+    "module m; endmodule\n",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+
+match outcome.status {
+    ParseStatus::Success =&gt; {
+        let ast_dump = outcome.ast_dump.expect("Success outcome carries AST dump");
+        println!("schema version: {}", ast_dump.schema_version);
+        println!("AST root: {}", serde_json::to_string_pretty(&amp;ast_dump.root).unwrap());
+    }
+    ParseStatus::Failure =&gt; {
+        eprintln!("parse failed: {:?}", outcome.diagnostic);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-this-example-is-the-canonical-first-test"><a class="header" href="#why-this-example-is-the-canonical-first-test">Why this example is the canonical first-test</a></h2>
+<p>The minimal module is the canonical first-test for SV parser integration because:</p>
+<ul>
+<li><strong>It exercises <code>systemverilog_file → description → module_declaration</code></strong> — three layers of the top-level dispatch.</li>
+<li><strong>It has no statements, ports, or parameters</strong> — so the AST tree is shallow enough to reason about by hand.</li>
+<li><strong>It is in the integration contract manifest</strong> as <code>minimal_module</code> — drift here surfaces immediately.</li>
+</ul>
+<p>If your downstream integration cannot parse this input successfully, the integration is broken upstream of any SV-specific concern. Start here when triaging.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="schema-versioning"><a class="header" href="#schema-versioning">Schema Versioning</a></h1>
+<p>This chapter explains how the SystemVerilog parser’s AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape.</p>
+<h2 id="two-versioning-axes"><a class="header" href="#two-versioning-axes">Two versioning axes</a></h2>
+<p>The systemverilog parser carries <strong>two</strong> version numbers:</p>
+<ol>
+<li><strong>Parser release version</strong> — e.g. <code>1.0.0</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
+<li><strong>Schema version</strong> — e.g. <code>1</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
+</ol>
+<p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two version numbers move independently.</p>
+<p>The contract document <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for both numbers per release.</p>
+<h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
+<p>Any of these triggers a schema version bump:</p>
+<ul>
+<li>A new return annotation lands on a previously-unannotated rule.</li>
+<li>An existing return annotation is restructured.</li>
+<li>A grammar rule changes shape in a way that’s user-visible (new branch added, branch removed, sub-rule renamed in a way that affects shape).</li>
+<li>The default fall-through behavior of unannotated rules changes.</li>
+</ul>
+<p>These do NOT trigger a schema bump:</p>
+<ul>
+<li>Pure performance optimizations that produce the same AST.</li>
+<li>Internal codegen reorganization that doesn’t reach the output.</li>
+<li>Parser-side bug fixes that produce the same shape consumers were already relying on.</li>
+</ul>
+<p>The slice campaign for SV will produce many small schema bumps as rules are annotated one-by-one. Each slice gets its own contract-version row.</p>
+<h2 id="byte-equivalence-guarantee"><a class="header" href="#byte-equivalence-guarantee">Byte-equivalence guarantee</a></h2>
+<p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value.</p>
+<p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="schema-version-timeline"><a class="header" href="#schema-version-timeline">Schema version timeline</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Schema version</th><th>First parser release</th><th>Notable changes</th></tr>
+</thead>
+<tbody>
+<tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+</tbody>
+</table>
+</div>
+<p>(The numbers above match the contract document at the time this book was written. The contract is authoritative for the current state — consult it for the live version.)</p>
+<h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
+<p>A schema 1.0.0 milestone will land when the SV annotation campaign completes — that is, when every rule in <code>grammars/systemverilog.ebnf</code> carries either a return annotation or a deliberate decision to remain raw envelope. At that point all shape definitions move to Tier 2 (locked) and no further default fall-through changes are expected.</p>
+<p>The campaign is in early phase; reaching schema 1.0.0 is on the order of months of slice work.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+<p>Terms used throughout this book.</p>
+<h2 id="ast-envelope"><a class="header" href="#ast-envelope">AST envelope</a></h2>
+<p>The JSON tree that <code>parse_grammar_profile_ast_dump_named</code> returns. See <a href="#ast-envelope-structure">AST Envelope Structure</a>.</p>
+<h2 id="ast-shape-contract-manifest"><a class="header" href="#ast-shape-contract-manifest">AST shape contract manifest</a></h2>
+<p>The file <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code>. Records per-rule expected JSON shape for each entry in the test corpus. Drift in the AST dump fails a <code>cargo test</code> regression-lock test, surfacing the change.</p>
+<h2 id="annotation-campaign"><a class="header" href="#annotation-campaign">Annotation campaign</a></h2>
+<p>The systematic effort to add return annotations (<code>-&gt; ...</code>) to grammar rules in <code>grammars/systemverilog.ebnf</code>. Each slice annotates one rule (or a small family) and bumps the schema version. The regex parser campaign (42+ slices) is the model for the SV campaign.</p>
+<h2 id="parsecontent"><a class="header" href="#parsecontent">ParseContent</a></h2>
+<p>The internal AST-pipeline representation used by PGEN’s parser hooks and codegen. Variants include <code>Terminal</code>, <code>Sequence</code>, <code>Quantified</code>, <code>Or</code>, <code>Alternative</code>, <code>Json</code>. See <a href="#parsecontent-variants">Parse Content Variants</a>.</p>
+<h2 id="profile"><a class="header" href="#profile">Profile</a></h2>
+<p>A named configuration of the grammar that selects which top-level entry rule to start parsing from. SV profiles: <code>sv_2017</code>, <code>sv_2023</code>.</p>
+<h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>
+<p>The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences and iterations), strings (for terminals), and matched-branch passthroughs (for alternations). See <a href="#ast-envelope-structure">AST Envelope Structure</a>.</p>
+<h2 id="return-annotation"><a class="header" href="#return-annotation">Return annotation</a></h2>
+<p>A <code>-&gt; ...</code> clause appended to a grammar rule definition that overrides the default envelope shape with a typed JSON value. Example: <code>simple_identifier -&gt; {type: "identifier", name: $1}</code>. See <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
+<h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
+<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to. Currently <code>1</code>. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<h2 id="slice"><a class="header" href="#slice">Slice</a></h2>
+<p>The unit of work in the annotation campaign. One slice = one rule (or a small family of related rules) annotated, the manifest updated, the contract bumped, the book amended, and a regression-lock test landed.</p>
+<h2 id="stable-surface"><a class="header" href="#stable-surface">Stable surface</a></h2>
+<p>The set of public entry points downstream consumers can rely on across patch / minor releases. Defined in <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> § “Stable Integration Surface”.</p>
+<h2 id="stress-sample"><a class="header" href="#stress-sample">Stress sample</a></h2>
+<p>A test input designed to exercise edge cases of the grammar — e.g. deeply nested structures, large modules, full LRM Annex-A coverage. Lives in <code>rust/test_data/grammar_quality/systemverilog_*</code> corpora.</p>
+<h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
+<p>The JSON shape produced by an annotated rule. Always a JSON object with at least a <code>type</code> field and usually a <code>kind</code> discriminator. Consumers walking typed shapes dispatch on <code>obj["type"]</code> / <code>obj["kind"]</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="changelog-index"><a class="header" href="#changelog-index">Changelog Index</a></h1>
+<p>This chapter is an index — pointers into other docs that carry the full changelog detail. Use it to find what changed in a given release.</p>
+<h2 id="where-the-canonical-changelogs-live"><a class="header" href="#where-the-canonical-changelogs-live">Where the canonical changelogs live</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Granularity</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></td><td>Per-release shape change</td><td>The authoritative contract. Each release’s section lists the AST shape changes consumers care about.</td></tr>
+<tr><td><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code></td><td>Per-bug</td><td>When a bug is fixed in a release, the ledger entry records the input/output shape change.</td></tr>
+<tr><td><code>CHANGES.md</code> (root)</td><td>Per-release</td><td>Human-readable summary of all changes.</td></tr>
+<tr><td>Git tags + commit log</td><td>Commit-by-commit</td><td>The most granular source.</td></tr>
+</tbody>
+</table>
+</div>
+<p>When investigating “what changed and why,” start with the contract document, drop down to the ledger for specific bugs, fall back to git for diffs.</p>
+<h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
+<p>This book is <strong>live</strong> and tracks current main HEAD. Versioning summary:</p>
+<ul>
+<li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
+</ul>
+<h3 id="100--contract-100--foundation-baseline-mdbook--contract-highlights-structure"><a class="header" href="#100--contract-100--foundation-baseline-mdbook--contract-highlights-structure">1.0.0 / Contract 1.0.0 — Foundation baseline (mdbook + contract Highlights structure)</a></h3>
+<p><strong>What changed:</strong> Initial systemverilog mdBook scaffolded at <code>docs/systemverilog_parser_book/</code>. The integration contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> was upgraded from a thin “stable surface” pointer to the same release-tracked Highlights structure used by the regex parser contract.</p>
+<p><strong>Mdbook chapters landed:</strong> welcome, quickstart, build-recipe, public-api, ast-envelope, parse-content-variants, json-carrier, walking-the-ast, rules-top-level, examples-minimal-module, schema-versioning, glossary, changelog-index. Per-rule and per-feature example chapters land as the annotation campaign progresses.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.0 / Contract 1.0.0 Highlights”.</p>
+<p><strong>Build status:</strong> Generated SV parser is <strong>NOT in default <code>cargo test</code> build</strong> — produced on-demand by <code>sv_stimuli_quality_gate</code>. See <a href="#build-recipe">Build Recipe</a>.</p>
+<p><strong>Annotation campaign:</strong> Not yet started. <code>grammars/systemverilog.ebnf</code> is un-annotated except for one commented-out trial annotation at line 200. First slice will land in a follow-up commit.</p>
+<p><strong>Schema baseline:</strong> <code>1</code> (corresponds to <code>version: 1</code> in <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code>).</p>
+<p><strong>Public API surface:</strong> Unchanged. See <a href="#public-api-surface">Public API Surface</a>.</p>
+<p><strong>Bug ledger:</strong> No SV-NNNN entries blocking the baseline.</p>
+<h2 id="how-to-track-per-slice-changes"><a class="header" href="#how-to-track-per-slice-changes">How to track per-slice changes</a></h2>
+<p>Each annotation slice gets:</p>
+<ol>
+<li>A grammar change in <code>grammars/systemverilog.ebnf</code> (the <code>-&gt; ...</code> annotation).</li>
+<li>A manifest update in <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code>.</li>
+<li>A parser-release / contract-version bump in <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code>.</li>
+<li>A row in <a href="#schema-versioning">Schema Versioning</a> tagging the new schema version.</li>
+<li>An entry in this changelog index summarising the slice.</li>
+<li>A regression-lock test in <code>rust/src/embedding_api.rs</code> (or related test module) pinning the typed shape.</li>
+</ol>
+<p>Per-slice commits should bundle all six (the live-book policy). See <code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code> for an example of a mature contract with 50+ Highlights sections to mirror.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
