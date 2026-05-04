@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a71f32c0.js";
+            window.path_to_searchindex_js = "searchindex-728136f9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,22 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="109--contract-109--sv-slice-9-batch-interface-declarations-typed-full-mirror-of-module-pattern"><a class="header" href="#109--contract-109--sv-slice-9-batch-interface-declarations-typed-full-mirror-of-module-pattern">1.0.9 / Contract 1.0.9 — SV-Slice-9 batch: interface declarations typed (full mirror of module pattern)</a></h3>
+<p><strong>What changed:</strong> 4 rules typed: <code>interface_ansi_header</code>, <code>interface_nonansi_header</code>, <code>interface_declaration_sv_2017</code> (5 per-branch kinds), <code>interface_declaration_sv_2023</code> (same 5 kinds with positional shift). Interface declarations now have the same typed surface as module declarations. 4-layer typed dispatch end-to-end + clean identifier strings.</p>
+<p><strong>Empirical for <code>interface bus; endinterface\n</code>:</strong></p>
+<pre><code class="language-text">source_text[0]: {kind: "description", body: {
+    kind: "interface_declaration",
+    body: {
+        kind: "ansi",
+        header: {name: "bus", attributes: [], lifetime: [], imports: [], parameters: [], ports: []},
+        timeunits: [], items: [], end_label: []
+    }
+}}
+</code></pre>
+<p><strong>Difference from module pattern:</strong> No <code>keyword:</code> field on interface_<form>_header (only one <code>interface</code> keyword exists). Otherwise field names mirror <code>module_&lt;form&gt;_header</code>.</form></p>
+<p><strong>Annotation inventory:</strong> 53 entries (was 41). +12 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.9 / Contract 1.0.9 Highlights”.</p>
 <h3 id="108--contract-108--sv-slice-8-batch-identifier-leaf-rules-typed-clean-strings-propagate-through-every-identifier-field"><a class="header" href="#108--contract-108--sv-slice-8-batch-identifier-leaf-rules-typed-clean-strings-propagate-through-every-identifier-field">1.0.8 / Contract 1.0.8 — SV-Slice-8 batch: identifier-leaf rules typed (clean strings propagate through every identifier field)</a></h3>
 <p><strong>What changed:</strong> 4 identifier-leaf rules typed with <code>-&gt; $2</code> transparent passthrough. Highest-leverage slice yet — every rule that resolves to an identifier now surfaces a clean JSON string instead of the raw envelope chain.</p>
 <pre><code class="language-ebnf">simple_identifier          := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/                            -&gt; $2

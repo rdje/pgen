@@ -1295,6 +1295,7 @@ integer_type := integer_vector_type | integer_atom_type
 integer_vector_type := kw_bit_026e996a | kw_logic_2c684987 | kw_reg_e06b9586
 
 interface_ansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )? interface_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
+                      -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 interface_class_declaration := kw_interface_5ea2d81a kw_class_8d767bf5 declared_interface_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 interface_class_type ( comma interface_class_type )* )? semi interface_class_item* kw_endclass_b43ac277 ( colon class_identifier )?
 
@@ -1310,10 +1311,28 @@ scoped_interface_class_type_identifier := non_typedef_package_scope class_identi
 interface_class_type := ( scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier ) ( parameter_value_assignment )?
 
 @profiles: ["sv_2017"]
-interface_declaration_sv_2017 := interface_ansi_header ( timeunits_declaration )? non_port_interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | interface_nonansi_header ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | attribute_instance* kw_interface_5ea2d81a interface_identifier lparen dot_star rparen semi ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | kw_extern_bf1ee311 interface_nonansi_header | kw_extern_bf1ee311 interface_ansi_header
+interface_declaration_sv_2017 := interface_ansi_header ( timeunits_declaration )? non_port_interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )?
+                                  -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                              | interface_nonansi_header ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )?
+                                  -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                              | attribute_instance* kw_interface_5ea2d81a interface_identifier lparen dot_star rparen semi ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )?
+                                  -> {kind: "wildcard", attributes: $1, name: $3, timeunits: $8, items: $9, end_label: $11}
+                              | kw_extern_bf1ee311 interface_nonansi_header
+                                  -> {kind: "extern_nonansi", header: $2}
+                              | kw_extern_bf1ee311 interface_ansi_header
+                                  -> {kind: "extern_ansi", header: $2}
 
 @profiles: ["sv_2023"]
-interface_declaration_sv_2023 := interface_ansi_header ( timeunits_declaration )? non_port_interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | interface_nonansi_header ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | attribute_instance* kw_interface_5ea2d81a interface_identifier lparen dot star rparen semi ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | kw_extern_bf1ee311 interface_nonansi_header | kw_extern_bf1ee311 interface_ansi_header
+interface_declaration_sv_2023 := interface_ansi_header ( timeunits_declaration )? non_port_interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )?
+                                  -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                              | interface_nonansi_header ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )?
+                                  -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                              | attribute_instance* kw_interface_5ea2d81a interface_identifier lparen dot star rparen semi ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )?
+                                  -> {kind: "wildcard", attributes: $1, name: $3, timeunits: $9, items: $10, end_label: $12}
+                              | kw_extern_bf1ee311 interface_nonansi_header
+                                  -> {kind: "extern_nonansi", header: $2}
+                              | kw_extern_bf1ee311 interface_ansi_header
+                                  -> {kind: "extern_ansi", header: $2}
 
 interface_declaration := interface_declaration_sv_2017 | interface_declaration_sv_2023
 
@@ -1329,6 +1348,7 @@ interface_instantiation := interface_identifier ( parameter_value_assignment )? 
 interface_item := port_declaration semi | non_port_interface_item
 
 interface_nonansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )? interface_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
+                         -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 interface_or_generate_item := attribute_instance* module_common_item | attribute_instance* extern_tf_declaration
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a71f32c0.js";
+            window.path_to_searchindex_js = "searchindex-728136f9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -209,6 +209,10 @@
 <tr><td><code>escaped_identifier</code></td><td><code>-&gt; $2</code></td><td>Clean JSON string — the matched escaped identifier (e.g. <code>"\\foo"</code>). Drops the leading <code>trivia</code> slot.</td></tr>
 <tr><td><code>non_keyword_identifier</code></td><td><code>-&gt; $2</code></td><td>Clean JSON string — passes the inner <code>identifier</code> through after the negative lookahead’s empty <code>$1</code> slot. Identifier is itself typed (transparent Or of escaped/simple).</td></tr>
 <tr><td><code>simple_identifier_no_scope</code></td><td><code>-&gt; $2</code></td><td>Clean JSON string — variant of simple_identifier with a <code>(?!...)</code> negative lookahead in the regex (prevents trailing <code>::</code> consumption). Same trivia-drop as simple_identifier.</td></tr>
+<tr><td><code>interface_ansi_header</code></td><td><code>-&gt; {attributes, lifetime, name, imports, parameters, ports}</code></td><td>6 named fields (no keyword field — interface only has one keyword). Same field names as module_ansi_header otherwise. <code>name:</code> is a clean identifier string (inherited from SV-Slice-8).</td></tr>
+<tr><td><code>interface_nonansi_header</code></td><td><code>-&gt; {attributes, lifetime, name, imports, parameters, ports}</code></td><td>Same field names as interface_ansi_header. Only <code>ports:</code> source rule differs.</td></tr>
+<tr><td><code>interface_declaration_sv_2017</code> (5 branches)</td><td>per-branch typed shapes (full source in contract Highlights)</td><td>Typed object with <code>kind</code> discriminator: <code>"ansi"</code> / <code>"nonansi"</code> / <code>"wildcard"</code> / <code>"extern_nonansi"</code> / <code>"extern_ansi"</code>. Same kind labels and field structure as module_declaration_sv_2017. Wildcard branch positions: $1 attributes, $3 name, $8 timeunits, $9 items, $11 end_label.</td></tr>
+<tr><td><code>interface_declaration_sv_2023</code> (5 branches)</td><td>per-branch typed shapes (same kind set as sv_2017)</td><td>Identical to sv_2017 except wildcard branch positions shift due to <code>dot star</code> (2 tokens) vs <code>dot_star</code> (1 token): $9 timeunits, $10 items, $12 end_label.</td></tr>
 </tbody>
 </table>
 </div>

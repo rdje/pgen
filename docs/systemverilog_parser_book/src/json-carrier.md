@@ -25,6 +25,10 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `escaped_identifier` | `-> $2` | Clean JSON string — the matched escaped identifier (e.g. `"\\foo"`). Drops the leading `trivia` slot. |
 | `non_keyword_identifier` | `-> $2` | Clean JSON string — passes the inner `identifier` through after the negative lookahead's empty `$1` slot. Identifier is itself typed (transparent Or of escaped/simple). |
 | `simple_identifier_no_scope` | `-> $2` | Clean JSON string — variant of simple_identifier with a `(?!...)` negative lookahead in the regex (prevents trailing `::` consumption). Same trivia-drop as simple_identifier. |
+| `interface_ansi_header` | `-> {attributes, lifetime, name, imports, parameters, ports}` | 6 named fields (no keyword field — interface only has one keyword). Same field names as module_ansi_header otherwise. `name:` is a clean identifier string (inherited from SV-Slice-8). |
+| `interface_nonansi_header` | `-> {attributes, lifetime, name, imports, parameters, ports}` | Same field names as interface_ansi_header. Only `ports:` source rule differs. |
+| `interface_declaration_sv_2017` (5 branches) | per-branch typed shapes (full source in contract Highlights) | Typed object with `kind` discriminator: `"ansi"` / `"nonansi"` / `"wildcard"` / `"extern_nonansi"` / `"extern_ansi"`. Same kind labels and field structure as module_declaration_sv_2017. Wildcard branch positions: $1 attributes, $3 name, $8 timeunits, $9 items, $11 end_label. |
+| `interface_declaration_sv_2023` (5 branches) | per-branch typed shapes (same kind set as sv_2017) | Identical to sv_2017 except wildcard branch positions shift due to `dot star` (2 tokens) vs `dot_star` (1 token): $9 timeunits, $10 items, $12 end_label. |
 
 ## Sub-rules with implicit defaults
 

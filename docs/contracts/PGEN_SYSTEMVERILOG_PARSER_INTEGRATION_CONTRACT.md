@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.8`
+  - `1.0.9`
 - Parser release version:
-  - `1.0.8`
+  - `1.0.9`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,81 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.9 / Contract 1.0.9 Highlights — SV-Slice-9 batch: interface declarations typed (full mirror of module pattern)
+
+Interface declarations now have the same typed surface as module declarations. 4-layer typed dispatch end-to-end: `source_text_item.kind` → `description.kind` → `interface_declaration_sv_<profile>.kind` → `interface_<form>_header.name` (clean string).
+
+### Annotations
+
+```ebnf
+interface_ansi_header := attribute_instance* kw_interface_5ea2d81a (lifetime)? interface_identifier package_import_declaration* (parameter_port_list)? (list_of_port_declarations)? semi
+                      -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+
+interface_nonansi_header := attribute_instance* kw_interface_5ea2d81a (lifetime)? interface_identifier package_import_declaration* (parameter_port_list)? list_of_ports semi
+                         -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
+
+interface_declaration_sv_2017 := interface_ansi_header (timeunits_declaration)? non_port_interface_item* kw_endinterface_ebd6ca35 (colon interface_identifier)?
+                                  -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                              | interface_nonansi_header (timeunits_declaration)? interface_item* kw_endinterface_ebd6ca35 (colon interface_identifier)?
+                                  -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
+                              | attribute_instance* kw_interface_5ea2d81a interface_identifier lparen dot_star rparen semi (timeunits_declaration)? interface_item* kw_endinterface_ebd6ca35 (colon interface_identifier)?
+                                  -> {kind: "wildcard", attributes: $1, name: $3, timeunits: $8, items: $9, end_label: $11}
+                              | kw_extern_bf1ee311 interface_nonansi_header
+                                  -> {kind: "extern_nonansi", header: $2}
+                              | kw_extern_bf1ee311 interface_ansi_header
+                                  -> {kind: "extern_ansi", header: $2}
+
+interface_declaration_sv_2023 := /* same 5 branches; wildcard branch's positional indices shift to $9/$10/$12 because dot star (2 tokens) vs dot_star (1 token) */
+```
+
+### Differences from module pattern
+
+- **No `keyword:` field on interface_<form>_header** — interface only has one keyword (`interface`), unlike module which has both `module` and `macromodule`. The kind discriminator at the parent level (description.kind == "interface_declaration") fully identifies the construct; an inner keyword field would be redundant. (Module headers expose `keyword: {kind: "module"|"macromodule"}` for that distinction.)
+- **Same field names otherwise** — `attributes`, `lifetime`, `name`, `imports`, `parameters`, `ports` for headers; `kind`, `header`, `timeunits`, `items`, `end_label` (and `attributes`, `name` on wildcard) for declaration-level. Consumer dispatch code can mostly share between modules and interfaces.
+
+### Empirical verification on `interface bus; endinterface\n`
+
+```text
+source_text[0]:
+  kind: "description"
+  body:
+    kind: "interface_declaration"
+    body:
+      kind: "ansi"
+      header:
+        name: "bus"            # clean string (inherited from SV-Slice-8)
+        attributes: []
+        lifetime: []
+        imports: []
+        parameters: []
+        ports: []
+      timeunits: []
+      items: []
+      end_label: []
+```
+
+### Annotation inventory
+
+53 entries (was 41). +12 in this batch.
+
+### Same accept set, same diagnostic codes.
+
+### Schema-version stays `1`.
+
+### mdBook updated, gate green.
+
+### Annotation-language idiom note
+
+This slice demonstrates **structural reuse of the module typing pattern** for a sibling rule family. Same kind labels (ansi/nonansi/wildcard/extern_nonansi/extern_ansi), same field names where they apply. Consumer code sharing between module and interface walkers: trivial.
+
+### Next slice candidates
+
+- Type `class_declaration_sv_2017` / `class_declaration_sv_2023` per-branch.
+- Type `package_declaration` (single sequence, attribute_instance* prefix).
+- Type `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch.
+- Type `program_declaration_sv_2017` / `program_declaration_sv_2023` per-branch.
+- Type `kw_interface_5ea2d81a` / `kw_class_8d767bf5` / etc. (clean keyword strings) — minor but adds polish if needed for downstream tools.
 
 ## Release 1.0.8 / Contract 1.0.8 Highlights — SV-Slice-8 batch: identifier-leaf rules typed (clean strings propagate through every identifier-typed field)
 

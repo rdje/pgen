@@ -1,4 +1,65 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-9 batch: interface declarations typed (mirror of module pattern)
+
+### What landed
+
+4 rules typed: `interface_ansi_header`, `interface_nonansi_header`, `interface_declaration_sv_2017` (5 per-branch kinds), `interface_declaration_sv_2023` (5 per-branch kinds, positional shift for `dot star` vs `dot_star`). Interface declarations now have the same typed surface as module declarations.
+
+### Empirical for `interface bus; endinterface\n`
+
+```text
+source_text[0]: {kind: "description", body: {
+    kind: "interface_declaration",
+    body: {
+        kind: "ansi",
+        header: {name: "bus", attributes: [], lifetime: [], imports: [], parameters: [], ports: []},
+        timeunits: [], items: [], end_label: []
+    }
+}}
+```
+
+`header.name = "bus"` — clean string (inherited from SV-Slice-8 identifier typing).
+
+### Difference from module pattern
+
+No `keyword:` field on interface_<form>_header — interface only has one keyword (`interface`); kind discriminator at parent level (description.kind == "interface_declaration") fully identifies the construct. Module headers expose `keyword: {kind: "module"|"macromodule"}` for that distinction. Otherwise field names mirror module pattern exactly: `attributes`, `lifetime`, `name`, `imports`, `parameters`, `ports` for headers; `kind`, `header`, `timeunits`, `items`, `end_label` (and `attributes`, `name` on wildcard) for declaration-level.
+
+### Annotation inventory
+
+53 entries (was 41). +12 in this batch.
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_04_slice_9`.
+
+### Contract bump
+
+- Parser release: `1.0.8` → `1.0.9`.
+- Contract version: `1.0.8` → `1.0.9`.
+- Schema version stays `1`.
+- New "Release 1.0.9 / Contract 1.0.9 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`, `schema-versioning.md` (row `0.10.0 / 1.0.9`), `json-carrier.md` (4 new rows), `rules-top-level.md`. Gate green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0.
+- Annotation inventory: 53 entries.
+- Empirical AST shape: `header.name = "bus"` for `interface bus; endinterface\n`.
+
+### Annotation-language idiom note
+
+**Structural reuse of typing pattern across sibling rule families.** Module declaration → interface declaration: same kind labels (ansi/nonansi/wildcard/extern_nonansi/extern_ansi), same field names where applicable, same per-branch positional indices. Consumer code sharing between module and interface walkers: trivial.
+
+### Next slice candidates
+
+- `class_declaration_sv_2017` / `class_declaration_sv_2023` per-branch.
+- `package_declaration` (single sequence with attribute_instance* prefix).
+- `udp_declaration_sv_2017` / `udp_declaration_sv_2023` per-branch.
+- `program_declaration_sv_2017` / `program_declaration_sv_2023` per-branch.
+
 ## 2026-05-04 - SV-Slice-8 batch: identifier-leaf rules typed (clean strings propagate through every identifier field)
 
 ### What landed

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-04 (+0200, task: SV-Slice-8-batch-identifier-leaf-rules-typed)
+Last updated: 2026-05-04 (+0200, task: SV-Slice-9-batch-interface-declarations-typed)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-9 batch landed: interface declarations typed (mirror of module pattern).** 4 rules: interface_ansi_header (6 fields, no keyword), interface_nonansi_header (same 6 fields), interface_declaration_sv_2017 (5 per-branch kinds: ansi/nonansi/wildcard/extern_nonansi/extern_ansi), interface_declaration_sv_2023 (positional shift in wildcard). Verified on `interface bus; endinterface\n`: header.name = "bus" (clean string inherited from slice 8 identifier typing). Annotation count: 53 (was 41, +12). Same accept set. Contract bumped 1.0.8 → 1.0.9. Schema stays 1. mdBook synced. SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 11/30.** Continuing per "until none remaining" directive. Next: class_declaration_sv_*, package_declaration, udp_declaration_sv_*, program_declaration_sv_*. Pattern is now well-established — 4 layers of typed dispatch + clean identifier strings; each new top-level construct is a quick mirror of the module/interface pattern.
+
+### Earlier session note (kept for context):
 - **SV-Slice-8 batch landed: identifier-leaf rules typed — clean strings propagate through every identifier field. HIGHEST-LEVERAGE SLICE YET.** 4 identifier-leaf rules typed with `-> $2` transparent passthrough: `simple_identifier`, `escaped_identifier`, `non_keyword_identifier`, `simple_identifier_no_scope`. **Dependency-graph-leveraged annotation work**: type 4 leaves once, every typed parent rule that references an `*_identifier` (module/class/package/interface/etc.) now surfaces clean JSON strings automatically. For `module m; endmodule\n`: header.name was `[[], [[], "m"]]` → now `"m"` (clean string). Notes on lookahead positional slot: PGEN's annotation language treats `!X` negative lookaheads as occupying positional slots even though they don't consume — so `non_keyword_identifier := !reserved_non_keyword_identifier identifier -> $2` correctly drops the empty lookahead slot. Annotation count: 41 (was 37, +4). Same accept set. Contract bumped 1.0.7 → 1.0.8. Schema stays 1. mdBook synced. SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 10/30.** Continuing per "until none remaining" directive. Next: type interface_declaration / class_declaration / package_declaration / udp_declaration per-branch — all of which inherit clean identifier strings for free now.
 
 ### Earlier session note (kept for context):
