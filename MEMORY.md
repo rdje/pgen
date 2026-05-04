@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-03 (+0200, task: regex-ebnf-slice-40-sub-rule-typing-modifier-item-CLOSES-INLINE-MODIFIERS-END-TO-END)
+Last updated: 2026-05-04 (+0200, task: PGEN-RGX-0079-fix-invalid-braced-escapes-rejected)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **PGEN-RGX-0079 fix landed: invalid braced escapes reject instead of silently misparsing.** Second of 3 queued RGX bugs (per user-directed sequencing 0080 → 0079 → 0078). Fix: added negative-lookahead guards `!"o{" !"x{" !"p{" !"P{"` to `simple_escape` rule before `any_char` so the fallback can no longer absorb the prefix of a malformed braced escape. Empirical sweep: 7 invalid braced patterns (`\o{1239}`, `\o{8}`, `\o{}`, `\o{12abc}`, `\o{12 34}`, `\x{12g}`, `\p{!}`) all REJECT (previously silently misparsed); 12 valid escapes (`\o{777}`, `\o{0}`, `\o{12}`, `\xFF`, `\x{1F}`, `\pL`, `\p{Lu}`, `\P{Nd}`, `\d`, `\w`, `\s`, `\.`) all still ACCEPT. Bare `\o`/`\x`/`\p`/`\P` (no following `{`) still match as simple_escape. PCRE2 conformance testinput2:3979 stops being a false-negative. Annotation index shift: `char:$1` → `char:$5` due to added 4 lookahead slots. Regression-lock test `regex_parser_pgen_rgx_0079_invalid_braced_escapes_rejected_not_misparsed` in rust/src/embedding_api.rs. **Bug ledger:** REGEX-0079 → Released. Contract bump: parser release `1.1.72` → `1.1.73`, contract `1.1.74` → `1.1.75`. Regex AST schema version stays `1`. **497/0 tests** (one new regression test). `make regex_parser_book_gate` green. Next: PGEN-RGX-0078 (perf/PCRE2-relative-ratio).
+
+### Earlier session note (kept for context):
 - **PGEN-RGX-0080 fix landed: counted_quantifier accepts inner whitespace.** First of 3 queued RGX bugs (per user-directed sequencing 0080 → 0079 → 0078). Fix: `counted_quantifier_body` rule rewritten to allow `ws?` at every position between digits/comma/digits (was only after digits). All 5 reproducer-matrix patterns now produce identical `quantifier:{min:1, max:2}`: `a{1,2}`, `a{ 1,2 }`, `a{ 1 , 2 }`, `a{1 ,2}`, `a{1, 2}`. PCRE2 conformance testinput1:6679 stops being a false-negative. Annotation index shift: branch 0 `max:$3` → `max:$5` due to added ws? slots. Regression-lock test `regex_parser_pgen_rgx_0080_counted_quantifier_accepts_inner_whitespace` in rust/src/embedding_api.rs. **Bug ledger:** REGEX-0080 → Released. Contract bump: parser release `1.1.71` → `1.1.72`, contract `1.1.73` → `1.1.74`. Regex AST schema version stays `1`. **496/0 tests** (one new regression test). `make regex_parser_book_gate` green. Next: PGEN-RGX-0079 (bare `\o{N...}` non-octal-digit silent misparse).
 
 ### Earlier session note (kept for context):

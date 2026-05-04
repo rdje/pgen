@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f096851c.js";
+            window.path_to_searchindex_js = "searchindex-9d9a8d84.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -231,7 +231,7 @@
 <tr><td><code>braced_subroutine_ref</code></td><td><code>-&gt; $3</code></td><td>Whatever <code>signed_digits_or_name</code> produced</td></tr>
 <tr><td><code>signed_digits</code></td><td><code>-&gt; {sign: $1, value: $2}</code></td><td>Object `{sign:&lt;“+”</td></tr>
 <tr><td><code>escape</code></td><td><code>-&gt; $2</code></td><td>Whatever <code>escape_unit</code> produced (typed object for annotated branches; raw shape for hex/unicode/octal/property pending)</td></tr>
-<tr><td><code>simple_escape</code></td><td><code>-&gt; {type:"escape", kind:"shorthand", char:$1}</code></td><td>Object <code>{type:"escape", kind:"shorthand", char:&lt;char&gt;}</code></td></tr>
+<tr><td><code>simple_escape</code></td><td><code>-&gt; {type:"escape", kind:"shorthand", char:$5}</code></td><td>Object <code>{type:"escape", kind:"shorthand", char:&lt;char&gt;}</code>. Rule has negative-lookahead prefix <code>!"o{" !"x{" !"p{" !"P{"</code> (PGEN-RGX-0079 fix) blocking the brace-form fallback; <code>char:$5</code> because <code>any_char</code> is at position 5 after the 4 lookahead slots.</td></tr>
 <tr><td><code>single_byte_escape</code></td><td><code>-&gt; {type:"escape", kind:"single_byte"}</code></td><td>Object <code>{type:"escape", kind:"single_byte"}</code></td></tr>
 <tr><td><code>control_escape</code></td><td><code>-&gt; {type:"escape", kind:"control", char:$2}</code></td><td>Object <code>{type:"escape", kind:"control", char:&lt;char&gt;}</code></td></tr>
 <tr><td><code>hex_escape</code> (branch 0, short <code>\xNN</code>)</td><td><code>-&gt; {type:"escape", kind:"hex", digits:$2}</code></td><td>Object <code>{type:"escape", kind:"hex", digits:&lt;hex-string&gt;}</code></td></tr>

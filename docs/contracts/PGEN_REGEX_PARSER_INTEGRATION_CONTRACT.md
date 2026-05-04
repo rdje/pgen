@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.74`
+  - `1.1.75`
 - Parser release version:
-  - `1.1.72`
+  - `1.1.73`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,28 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.73 / Contract 1.1.75 Highlights — PGEN-RGX-0079 fix: invalid braced escapes rejected (no silent misparse)
+
+- **Downstream-driven fix** for PGEN-RGX-0079. Invalid braced escapes (`\o{1239}`, `\o{8}`, `\o{}`, `\o{12abc}`, `\o{12 34}`) are now REJECTED at parse time instead of silently misparsing as `simple_escape("o")` + `counted_quantifier{1239,1239}` (or literal pieces). Same misparse class as PGEN-RGX-0006 (closed in 1.1.3); 0079 is the residual surface area where the 0006 fix only handled valid-octal-digit content.
+- **Audit-recommended `\x{12g}` and `\p{!}` cases also fixed** in the same slice (the bug report flagged these as part of the same audit).
+- **Pre-fix:** PEG dispatch tried `octal_escape "o{" octal_digits ...` which failed on non-octal content, then fell through to `simple_escape` matching just `\o`. The remaining `{1239}` then parsed as `counted_quantifier{1239,1239}`. Result: parse SUCCEEDED with an `o` repeated 1239 times — structurally wrong AST, not a rejection. PCRE2 rejects with "error 164: non-octal character in \o{}".
+- **Fix:** Added negative-lookahead guards to `simple_escape` to block the brace-form fallback:
+  ```ebnf
+  simple_escape = !"o{" !"x{" !"p{" !"P{" any_char
+                    -> {type: "escape", kind: "shorthand", char: $5}
+  ```
+- **Same accept set for valid escapes.** Bare `\o`/`\x`/`\p`/`\P` (no following `{`) still match as `simple_escape` since the lookaheads require BOTH chars to match. Only the `\X{...}` brace-form fallback is blocked.
+- **`\u{...}` already rejected by host-side validator** (slice 15 note) — no `!"u{"` lookahead needed.
+- **Annotation index shift:** `simple_escape` annotation `char:$1` → `char:$5` due to 4 added negative-lookahead slots before `any_char`.
+- **Reproducer matrix verified:**
+  - REJECT: `\o{1239}`, `\o{8}`, `\o{}`, `\o{12abc}`, `\o{12 34}` (all 5 from the bug report)
+  - REJECT (audit): `\x{12g}`, `\p{!}`
+  - ACCEPT (sanity): `\o{777}`, `\o{0}`, `\o{12}`, `\xFF`, `\x{1F}`, `\pL`, `\p{Lu}`, `\P{Nd}`, `\d`, `\w`, `\s`, `\.`
+- **Regression test:** `regex_parser_pgen_rgx_0079_invalid_braced_escapes_rejected_not_misparsed` in `rust/src/embedding_api.rs` pins both the reject-set (7 patterns) and accept-set (12 patterns).
+- Public API surface unchanged.
+- Regex AST schema version stays `1`.
+- **Bug ledger update:** `REGEX-0079` status moves from "Acknowledged" to "Released" (released in `1.1.73`).
 
 ## Release 1.1.72 / Contract 1.1.74 Highlights — PGEN-RGX-0080 fix: counted_quantifier accepts inner whitespace (PCRE2-conformance)
 

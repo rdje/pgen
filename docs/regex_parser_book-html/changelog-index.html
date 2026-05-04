@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f096851c.js";
+            window.path_to_searchindex_js = "searchindex-9d9a8d84.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,25 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1173--contract-1175--pgen-rgx-0079-fix-invalid-braced-escapes-rejected-no-silent-misparse"><a class="header" href="#1173--contract-1175--pgen-rgx-0079-fix-invalid-braced-escapes-rejected-no-silent-misparse">1.1.73 / Contract 1.1.75 — PGEN-RGX-0079 fix: invalid braced escapes rejected (no silent misparse)</a></h3>
+<p><strong>What changed:</strong> Negative-lookahead guards added to <code>simple_escape</code> to block the <code>\X{...}</code> brace-form fallback for invalid braced escapes.</p>
+<pre><code class="language-ebnf">simple_escape = !"o{" !"x{" !"p{" !"P{" any_char
+                  -&gt; {type: "escape", kind: "shorthand", char: $5}
+</code></pre>
+<p><strong>Bug class:</strong> “parses but returns the wrong AST/dump” — same as PGEN-RGX-0006 / -0080. Pre-fix, invalid braced escapes (<code>\o{1239}</code>, <code>\o{8}</code>, <code>\o{}</code>, <code>\o{12abc}</code>, <code>\o{12 34}</code>) silently misparsed as <code>simple_escape("o")</code> + <code>counted_quantifier{1239,1239}</code> (or literal pieces). PCRE2 rejects with “error 164: non-octal character in \o{}”.</p>
+<p><strong>Audit-recommended <code>\x{12g}</code> and <code>\p{!}</code> cases also fixed</strong> in the same slice (the bug report flagged these as part of the same audit).</p>
+<p><strong>Reproducer matrix verified:</strong></p>
+<ul>
+<li>REJECT: <code>\o{1239}</code>, <code>\o{8}</code>, <code>\o{}</code>, <code>\o{12abc}</code>, <code>\o{12 34}</code> (5 patterns from bug report)</li>
+<li>REJECT (audit): <code>\x{12g}</code>, <code>\p{!}</code></li>
+<li>ACCEPT (sanity): <code>\o{777}</code>, <code>\o{0}</code>, <code>\o{12}</code>, <code>\xFF</code>, <code>\x{1F}</code>, <code>\pL</code>, <code>\p{Lu}</code>, <code>\P{Nd}</code>, <code>\d</code>, <code>\w</code>, <code>\s</code>, <code>\.</code></li>
+</ul>
+<p><strong>Bare forms unchanged.</strong> <code>\o</code> (no <code>{</code>), <code>\x</code>, <code>\p</code>, <code>\P</code> still match as <code>simple_escape</code> since the lookaheads require BOTH chars to match <code>o{</code>/<code>x{</code>/<code>p{</code>/<code>P{</code>.</p>
+<p><strong><code>\u{...}</code> already rejected</strong> by the host-side compile validator (slice 15 note) — no <code>!"u{"</code> lookahead needed.</p>
+<p><strong>Annotation index shift:</strong> <code>char:$1</code> → <code>char:$5</code> due to 4 added negative-lookahead slots before <code>any_char</code>.</p>
+<p><strong>PCRE2 conformance:</strong> testinput2:3979 (<code>/^A\o{1239}B/</code>) stops being a false-positive.</p>
+<p><strong>Bug ledger:</strong> <a href="../../contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.html"><code>REGEX-0079</code></a> status moves from “Acknowledged” to “Released”.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.73 / Contract 1.1.75 Highlights”.</p>
 <h3 id="1172--contract-1174--pgen-rgx-0080-fix-counted_quantifier-accepts-inner-whitespace"><a class="header" href="#1172--contract-1174--pgen-rgx-0080-fix-counted_quantifier-accepts-inner-whitespace">1.1.72 / Contract 1.1.74 — PGEN-RGX-0080 fix: counted_quantifier accepts inner whitespace</a></h3>
 <p><strong>What changed:</strong> <code>counted_quantifier_body</code> rule now allows <code>ws?</code> at every position between <code>{</code> and <code>}</code>, matching PCRE2 default-mode behavior.</p>
 <pre><code class="language-ebnf">counted_quantifier_body = digits ws? "," ws? digits ws?  -&gt; {min: $1, max: $5}

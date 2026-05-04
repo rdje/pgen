@@ -23,6 +23,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.73 / Contract 1.1.75 — PGEN-RGX-0079 fix: invalid braced escapes rejected (no silent misparse)
+
+**What changed:** Negative-lookahead guards added to `simple_escape` to block the `\X{...}` brace-form fallback for invalid braced escapes.
+
+```ebnf
+simple_escape = !"o{" !"x{" !"p{" !"P{" any_char
+                  -> {type: "escape", kind: "shorthand", char: $5}
+```
+
+**Bug class:** "parses but returns the wrong AST/dump" — same as PGEN-RGX-0006 / -0080. Pre-fix, invalid braced escapes (`\o{1239}`, `\o{8}`, `\o{}`, `\o{12abc}`, `\o{12 34}`) silently misparsed as `simple_escape("o")` + `counted_quantifier{1239,1239}` (or literal pieces). PCRE2 rejects with "error 164: non-octal character in \o{}".
+
+**Audit-recommended `\x{12g}` and `\p{!}` cases also fixed** in the same slice (the bug report flagged these as part of the same audit).
+
+**Reproducer matrix verified:**
+- REJECT: `\o{1239}`, `\o{8}`, `\o{}`, `\o{12abc}`, `\o{12 34}` (5 patterns from bug report)
+- REJECT (audit): `\x{12g}`, `\p{!}`
+- ACCEPT (sanity): `\o{777}`, `\o{0}`, `\o{12}`, `\xFF`, `\x{1F}`, `\pL`, `\p{Lu}`, `\P{Nd}`, `\d`, `\w`, `\s`, `\.`
+
+**Bare forms unchanged.** `\o` (no `{`), `\x`, `\p`, `\P` still match as `simple_escape` since the lookaheads require BOTH chars to match `o{`/`x{`/`p{`/`P{`.
+
+**`\u{...}` already rejected** by the host-side compile validator (slice 15 note) — no `!"u{"` lookahead needed.
+
+**Annotation index shift:** `char:$1` → `char:$5` due to 4 added negative-lookahead slots before `any_char`.
+
+**PCRE2 conformance:** testinput2:3979 (`/^A\o{1239}B/`) stops being a false-positive.
+
+**Bug ledger:** [`REGEX-0079`](../../contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md) status moves from "Acknowledged" to "Released".
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.73 / Contract 1.1.75 Highlights".
+
 ### 1.1.72 / Contract 1.1.74 — PGEN-RGX-0080 fix: counted_quantifier accepts inner whitespace
 
 **What changed:** `counted_quantifier_body` rule now allows `ws?` at every position between `{` and `}`, matching PCRE2 default-mode behavior.

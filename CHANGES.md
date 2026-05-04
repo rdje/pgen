@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-05-04 - PGEN-RGX-0079 fix: invalid braced escapes rejected, not silently misparsed
+
+### What landed
+
+```ebnf
+simple_escape = !"o{" !"x{" !"p{" !"P{" any_char
+                  -> {type: "escape", kind: "shorthand", char: $5}
+```
+
+Negative-lookahead guards `!"o{" !"x{" !"p{" !"P{"` added to the `simple_escape` fallback branch in `escape_unit`. Previously, an invalid braced escape like `\o{1239}` would fall through octal_escape's stricter content rule, then the `\o` prefix would be re-absorbed by `simple_escape` (matching just the `o`), and `{1239}` would dangle as separate atoms. Now the lookahead blocks the fallback so the invalid braced form rejects as a whole — matching PCRE2's "PCRE2_ERROR_NON_OCTAL_DIGIT_IN_BRACE" behavior.
+
+### Reproducer matrix — 7 invalid braced escapes now reject; 12 valid escapes still accept
+
+| pattern | before | after |
+|---|---|---|
+| `\o{1239}` | silent misparse (`o` + `{1239}` literals) | reject |
+| `\o{8}` | silent misparse | reject |
+| `\o{}` | silent misparse | reject |
+| `\o{12abc}` | silent misparse | reject |
+| `\o{12 34}` | silent misparse | reject |
+| `\x{12g}` | silent misparse | reject |
+| `\p{!}` | silent misparse | reject |
+| `\o{777}` | accept | accept |
+| `\xFF`, `\x{1F}`, `\pL`, `\p{Lu}`, `\P{Nd}`, `\d`, `\w`, `\s`, `\.`, `\o`, `\x`, `\p`, `\P` (bare) | accept | accept |
+
+PCRE2 conformance test suite testinput2:3979 (`/\o{1239}/`) stops being a false-negative.
+
+### Annotation index shift
+
+`char:$1` → `char:$5` because the 4 new lookahead slots precede `any_char`. Manifest entry updated.
+
+### Regression test
+
+Added `regex_parser_pgen_rgx_0079_invalid_braced_escapes_rejected_not_misparsed` in `rust/src/embedding_api.rs` pinning the 7-pattern reject set + 12-pattern accept-set sanity check.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (one new regression test added).
+- Contract bumped to 1.1.73/1.1.75 with full Highlights section.
+- Bug ledger entry REGEX-0079 → "Released" with full root-cause/verification/fix-provenance/notes columns.
+- `make regex_parser_book_gate` green.
+- Live-book sync: `changelog-index.md` (top entry), `schema-versioning.md` (row 0.47.0), `json-carrier.md` (`simple_escape` annotation entry updated), `examples-escapes.md` (shorthand-escape section updated with negative-lookahead explanation).
+
+Next per user-directed sequencing: PGEN-RGX-0078 (perf/PCRE2-relative-ratio).
+
 ## 2026-05-03 - PGEN-RGX-0080 fix: counted_quantifier accepts inner whitespace (PCRE2-conformance)
 
 ### What landed

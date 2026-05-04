@@ -7,8 +7,11 @@ Concrete probe outputs for PCRE2 escape sequences. As of slice 17 (post-1.1.47),
 These all flow through `simple_escape` (the catch-all branch of `escape_unit`):
 
 ```ebnf
-simple_escape  = any_char -> {type: "escape", kind: "shorthand", char: $1}
+simple_escape  = !"o{" !"x{" !"p{" !"P{" any_char
+                  -> {type: "escape", kind: "shorthand", char: $5}
 ```
+
+The `!"o{"` / `!"x{"` / `!"p{"` / `!"P{"` negative-lookahead guards (PGEN-RGX-0079 fix) prevent `simple_escape` from absorbing the prefix of an invalid braced escape (e.g. `\o{1239}` with a non-octal digit, `\x{12g}`, `\p{!}`). Without the guards `\o{1239}` would have parsed as `simple_escape` consuming only the `o` and the rest as separate atoms — a silent misparse. Now invalid braced forms reject as a whole.
 
 For `\d`:
 

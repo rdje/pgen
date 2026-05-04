@@ -432,7 +432,21 @@ single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 # that this is the catch-all branch for any escape that isn't
 # specifically modelled by hex/unicode/octal/property/control/
 # single_byte branches.
-simple_escape  = any_char -> {type: "escape", kind: "shorthand", char: $1}
+#
+# PGEN-RGX-0079 fix: negative-lookahead guards block the `\X{...}`
+# fallback cases. Pre-fix, invalid braced-content escapes
+# (`\o{1239}`, `\x{12g}`, `\p{!}`) fell through to `simple_escape`
+# matching just `\X` (consumed `o`/`x`/`p`/`P`), then the rest
+# (`{NNN}`/`{ABC}`) parsed as counted_quantifier or literal pieces.
+# Result: parse SUCCEEDED but was structurally wrong (PCRE2
+# rejects). The negative lookaheads `!"o{"`/`!"x{"`/`!"p{"`/`!"P{"`
+# prevent simple_escape from matching when the next 2 chars start
+# a brace-form escape — forcing the parse to fail (correct PCRE2
+# behavior). Bare `\o`/`\x`/`\p`/`\P` (no following `{`) still
+# match as simple_escape since the lookahead requires both chars.
+# `\u{...}` is already rejected by the host-side compile validator
+# (slice 15 note); no negative lookahead needed for `u`.
+simple_escape  = !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", kind: "shorthand", char: $5}
 
 @type: "hexadecimal_escape"
 @description: "Hex escape sequences \xFF or \x{FFFF}"

@@ -3215,6 +3215,67 @@ mod tests {
         }
     }
 
+    /// PGEN-RGX-0079 regression — invalid braced escapes (`\o{1239}` etc.)
+    /// must be REJECTED at parse time, not silently misparsed as
+    /// `simple_escape("o")` + `counted_quantifier{1239,1239}` (which is
+    /// what happened pre-fix and is what the bug report calls out as
+    /// the "parses but returns the wrong AST" class).
+    ///
+    /// The fix adds negative-lookahead guards to `simple_escape` blocking
+    /// `\o{`, `\x{`, `\p{`, `\P{` from falling through to the catch-all
+    /// shorthand match. (`\u{...}` is already rejected by the host-side
+    /// compile validator.)
+    ///
+    /// Pinning all 5 reproducer-matrix patterns from the bug report,
+    /// plus the audit-recommended `\x{12g}` and `\p{!}` cases.
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0079_invalid_braced_escapes_rejected_not_misparsed() {
+        let must_reject = [
+            "\\o{1239}",  // non-octal digit `9`
+            "\\o{8}",     // smallest reproducer; `8` not octal
+            "\\o{}",      // empty braces
+            "\\o{12abc}", // letters mixed in
+            "\\o{12 34}", // whitespace inside
+            "\\x{12g}",   // audit-recommended: hex form should also reject
+            "\\p{!}",     // audit-recommended: property form should reject
+        ];
+
+        for input in must_reject {
+            let outcome =
+                parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                outcome.status,
+                ParseStatus::Failure,
+                "input {:?} expected to be REJECTED — PGEN-RGX-0079 regressed?\n\
+                 outcome: {:#?}",
+                input,
+                outcome
+            );
+        }
+
+        // Sanity check: valid forms must still PASS.
+        let must_accept = [
+            "\\o{777}", "\\o{0}", "\\o{12}", "\\xFF", "\\x{1F}",
+            "\\pL", "\\p{Lu}", "\\P{Nd}",
+            "\\d", "\\w", "\\s", "\\.",
+        ];
+
+        for input in must_accept {
+            let outcome =
+                parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                outcome.status,
+                ParseStatus::Success,
+                "input {:?} expected to PARSE successfully — PGEN-RGX-0079 fix \
+                 caused a false-negative regression on a valid escape?\n\
+                 outcome: {:#?}",
+                input,
+                outcome
+            );
+        }
+    }
+
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     fn run_with_regex_worker_stack<F: FnOnce() + Send + 'static>(f: F) {
         std::thread::Builder::new()

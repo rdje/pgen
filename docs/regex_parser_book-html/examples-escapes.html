@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f096851c.js";
+            window.path_to_searchindex_js = "searchindex-9d9a8d84.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -184,8 +184,10 @@
 <p>Concrete probe outputs for PCRE2 escape sequences. As of slice 17 (post-1.1.47), the <code>escape</code> rule is a transparent wrapper (<code>-&gt; $2</code>) and <strong>all 7</strong> <code>escape_unit</code> sub-rules emit typed <code>{type:"escape", kind:&lt;form&gt;, ...}</code> objects directly: simple, single_byte, control (slice 14), hex, unicode (slice 15), octal (slice 16), property (slice 17). The escape subtree is now fully typed.</p>
 <h2 id="shorthand-escapes--d-w-s---etc"><a class="header" href="#shorthand-escapes--d-w-s---etc">Shorthand escapes — <code>\d</code>, <code>\w</code>, <code>\s</code>, <code>\.</code>, <code>\\</code>, etc.</a></h2>
 <p>These all flow through <code>simple_escape</code> (the catch-all branch of <code>escape_unit</code>):</p>
-<pre><code class="language-ebnf">simple_escape  = any_char -&gt; {type: "escape", kind: "shorthand", char: $1}
+<pre><code class="language-ebnf">simple_escape  = !"o{" !"x{" !"p{" !"P{" any_char
+                  -&gt; {type: "escape", kind: "shorthand", char: $5}
 </code></pre>
+<p>The <code>!"o{"</code> / <code>!"x{"</code> / <code>!"p{"</code> / <code>!"P{"</code> negative-lookahead guards (PGEN-RGX-0079 fix) prevent <code>simple_escape</code> from absorbing the prefix of an invalid braced escape (e.g. <code>\o{1239}</code> with a non-octal digit, <code>\x{12g}</code>, <code>\p{!}</code>). Without the guards <code>\o{1239}</code> would have parsed as <code>simple_escape</code> consuming only the <code>o</code> and the rest as separate atoms — a silent misparse. Now invalid braced forms reject as a whole.</p>
 <p>For <code>\d</code>:</p>
 <pre><code class="language-json">{
   "atom": {"type": "escape", "kind": "shorthand", "char": "d"},
