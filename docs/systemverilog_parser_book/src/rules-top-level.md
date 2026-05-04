@@ -2,7 +2,7 @@
 
 This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.
 
-> **Status:** SV-Slice-1 (parser release `1.0.1`) typed `systemverilog_file` and `systemverilog_parseable_file`. The rest of the top-level rules are un-annotated and produce the recursive-envelope shape; subsequent slices will type them.
+> **Status:** SV-Slice-1 (parser release `1.0.1`) typed `systemverilog_file` and `systemverilog_parseable_file`. SV-Slice-2 (parser release `1.0.2`) flattened `source_text` via `[$1**]`. The rest of the top-level rules are un-annotated and produce the recursive-envelope shape; subsequent slices will type them.
 
 ## Entry points by profile
 
@@ -31,7 +31,28 @@ The annotation produces a typed JSON object at the root of every `sv_2017` / `sv
 }
 ```
 
-The `source_text` field carries the raw envelope of the `source_text` rule until that rule is annotated in a subsequent slice. Consumers walking the SV AST should dispatch on `obj["type"] == "systemverilog_file"` at the root level.
+The `source_text` field is a flat array of `source_text_item` shapes (since SV-Slice-2 — see [`source_text` (flat array since SV-Slice-2)](#source_text-flat-array-since-sv-slice-2) below). Consumers walking the SV AST should dispatch on `obj["type"] == "systemverilog_file"` at the root level.
+
+## `source_text` (flat array since SV-Slice-2)
+
+Per `grammars/systemverilog.ebnf` line 2273:
+
+```ebnf
+source_text := source_text_item*
+            -> [$1**]
+```
+
+The `[$1**]` flatten-spread idiom produces a clean flat array of `source_text_item` shapes. Pre-SV-Slice-2 this was the raw Quantified envelope of the iteration; consumers walking `obj["source_text"]` had to descend through a Quantified wrap. Post-fix the array is consumer-ready — iterate directly:
+
+```rust
+for item in obj["source_text"].as_array().unwrap() {
+    walk_source_text_item(item);
+}
+```
+
+For `module m; endmodule\n`, `source_text` has length 1 (the single `module_declaration` source-text item). For a multi-construct file (multiple modules + interfaces + packages), it carries one item per top-level construct in source order.
+
+The inner `source_text_item` shapes are still **raw envelope** (Or of `description | local_parameter_declaration semi | parameter_declaration semi | package_import_declaration | bind_directive | ...`). Per-branch typing of source_text_item is a follow-up slice (will assign each branch a `kind:` discriminator).
 
 See `rust/test_data/ast_shape_contract/systemverilog_v1.json` for the calibrated regression-lock sample.
 

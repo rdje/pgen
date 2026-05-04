@@ -8,8 +8,9 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 
 | Rule | Annotation | JSON shape produced |
 |---|---|---|
-| `systemverilog_file` | `-> {type: "systemverilog_file", source_text: $2}` | `{"type": "systemverilog_file", "source_text": <source_text-shape>}` — root JSON object for any `sv_2017` / `sv_2023` parse. `source_text` field carries the raw envelope shape of the `source_text` rule until that rule is annotated in a subsequent slice. |
+| `systemverilog_file` | `-> {type: "systemverilog_file", source_text: $2}` | `{"type": "systemverilog_file", "source_text": <source_text-shape>}` — root JSON object for any `sv_2017` / `sv_2023` parse. `source_text` field is a flat array of `source_text_item` shapes (since SV-Slice-2). |
 | `systemverilog_parseable_file` | `-> {type: "systemverilog_parseable_file", items: $2}` | `{"type": "systemverilog_parseable_file", "items": <parseable_source_item*-shape>}` — alternative entry rule for the parseable-source profile. `items` field carries the array of parseable source items in their raw envelope shape. |
+| `source_text` | `-> [$1**]` | `[<source_text_item shape>, ...]` — flat array of source-text items via flatten-spread. Pre-SV-Slice-2 this was the raw Quantified envelope of `source_text_item*`. The inner `source_text_item` shapes are still raw envelope (Or of `description \| local_parameter_declaration semi \| parameter_declaration semi \| package_import_declaration \| ...`); per-branch typing is a follow-up slice. |
 
 ## Sub-rules with implicit defaults
 

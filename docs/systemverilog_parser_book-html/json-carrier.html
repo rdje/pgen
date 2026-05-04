@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-32268294.js";
+            window.path_to_searchindex_js = "searchindex-b5f5f379.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -192,8 +192,9 @@
 <tr><th>Rule</th><th>Annotation</th><th>JSON shape produced</th></tr>
 </thead>
 <tbody>
-<tr><td><code>systemverilog_file</code></td><td><code>-&gt; {type: "systemverilog_file", source_text: $2}</code></td><td><code>{"type": "systemverilog_file", "source_text": &lt;source_text-shape&gt;}</code> — root JSON object for any <code>sv_2017</code> / <code>sv_2023</code> parse. <code>source_text</code> field carries the raw envelope shape of the <code>source_text</code> rule until that rule is annotated in a subsequent slice.</td></tr>
+<tr><td><code>systemverilog_file</code></td><td><code>-&gt; {type: "systemverilog_file", source_text: $2}</code></td><td><code>{"type": "systemverilog_file", "source_text": &lt;source_text-shape&gt;}</code> — root JSON object for any <code>sv_2017</code> / <code>sv_2023</code> parse. <code>source_text</code> field is a flat array of <code>source_text_item</code> shapes (since SV-Slice-2).</td></tr>
 <tr><td><code>systemverilog_parseable_file</code></td><td><code>-&gt; {type: "systemverilog_parseable_file", items: $2}</code></td><td><code>{"type": "systemverilog_parseable_file", "items": &lt;parseable_source_item*-shape&gt;}</code> — alternative entry rule for the parseable-source profile. <code>items</code> field carries the array of parseable source items in their raw envelope shape.</td></tr>
+<tr><td><code>source_text</code></td><td><code>-&gt; [$1**]</code></td><td><code>[&lt;source_text_item shape&gt;, ...]</code> — flat array of source-text items via flatten-spread. Pre-SV-Slice-2 this was the raw Quantified envelope of <code>source_text_item*</code>. The inner <code>source_text_item</code> shapes are still raw envelope (Or of <code>description | local_parameter_declaration semi | parameter_declaration semi | package_import_declaration | ...</code>); per-branch typing is a follow-up slice.</td></tr>
 </tbody>
 </table>
 </div>

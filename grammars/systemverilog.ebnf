@@ -2271,6 +2271,7 @@ slice_size := simple_type | constant_expression
 solve_before_list := constraint_primary ( comma constraint_primary )*
 
 source_text := source_text_item*
+            -> [$1**]
 
 specify_block := kw_specify_ade6a05c specify_item* kw_endspecify_4e5c5021
 

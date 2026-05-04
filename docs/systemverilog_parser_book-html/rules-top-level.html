@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-32268294.js";
+            window.path_to_searchindex_js = "searchindex-b5f5f379.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -183,7 +183,7 @@
                         <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.</p>
 <blockquote>
-<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. The rest of the top-level rules are un-annotated and produce the recursive-envelope shape; subsequent slices will type them.</p>
+<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. SV-Slice-2 (parser release <code>1.0.2</code>) flattened <code>source_text</code> via <code>[$1**]</code>. The rest of the top-level rules are un-annotated and produce the recursive-envelope shape; subsequent slices will type them.</p>
 </blockquote>
 <h2 id="entry-points-by-profile"><a class="header" href="#entry-points-by-profile">Entry points by profile</a></h2>
 <div class="table-wrapper">
@@ -209,7 +209,21 @@
   "source_text": [/* source_text envelope */]
 }
 </code></pre>
-<p>The <code>source_text</code> field carries the raw envelope of the <code>source_text</code> rule until that rule is annotated in a subsequent slice. Consumers walking the SV AST should dispatch on <code>obj["type"] == "systemverilog_file"</code> at the root level.</p>
+<p>The <code>source_text</code> field is a flat array of <code>source_text_item</code> shapes (since SV-Slice-2 — see <a href="#source_text-flat-array-since-sv-slice-2"><code>source_text</code> (flat array since SV-Slice-2)</a> below). Consumers walking the SV AST should dispatch on <code>obj["type"] == "systemverilog_file"</code> at the root level.</p>
+<h2 id="source_text-flat-array-since-sv-slice-2"><a class="header" href="#source_text-flat-array-since-sv-slice-2"><code>source_text</code> (flat array since SV-Slice-2)</a></h2>
+<p>Per <code>grammars/systemverilog.ebnf</code> line 2273:</p>
+<pre><code class="language-ebnf">source_text := source_text_item*
+            -&gt; [$1**]
+</code></pre>
+<p>The <code>[$1**]</code> flatten-spread idiom produces a clean flat array of <code>source_text_item</code> shapes. Pre-SV-Slice-2 this was the raw Quantified envelope of the iteration; consumers walking <code>obj["source_text"]</code> had to descend through a Quantified wrap. Post-fix the array is consumer-ready — iterate directly:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>for item in obj["source_text"].as_array().unwrap() {
+    walk_source_text_item(item);
+}
+<span class="boring">}</span></code></pre>
+<p>For <code>module m; endmodule\n</code>, <code>source_text</code> has length 1 (the single <code>module_declaration</code> source-text item). For a multi-construct file (multiple modules + interfaces + packages), it carries one item per top-level construct in source order.</p>
+<p>The inner <code>source_text_item</code> shapes are still <strong>raw envelope</strong> (Or of <code>description | local_parameter_declaration semi | parameter_declaration semi | package_import_declaration | bind_directive | ...</code>). Per-branch typing of source_text_item is a follow-up slice (will assign each branch a <code>kind:</code> discriminator).</p>
 <p>See <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code> for the calibrated regression-lock sample.</p>
 <h2 id="description-un-annotated"><a class="header" href="#description-un-annotated"><code>description</code> (un-annotated)</a></h2>
 <p><code>description</code> is the per-construct top-level alternative — module / interface / class / package / etc. Per LRM A.1.2:</p>

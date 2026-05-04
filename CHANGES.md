@@ -1,4 +1,69 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-2: `source_text` flatten-spread (`[$1**]`)
+
+### What landed
+
+Annotated `source_text := source_text_item*` with the canonical flatten-spread `-> [$1**]` (regex.ebnf's slice-1 idiom). The `source_text` field of every typed `systemverilog_file` JSON object is now a flat array of `source_text_item` shapes instead of the raw Quantified envelope wrapping the iteration.
+
+```ebnf
+# Before:
+source_text := source_text_item*
+
+# After:
+source_text := source_text_item*
+            -> [$1**]
+```
+
+### Empirical pre/post on `module m; endmodule\n`
+
+```text
+# Pre — source_text was nested Quantified envelope:
+{"type": "systemverilog_file", "source_text": [<Quantified iteration wrap>]}
+
+# Post — flat array (length 1 for minimal_module):
+{"type": "systemverilog_file", "source_text": [<source_text_item shape>]}
+```
+
+Consumer code that previously had to descend through a Quantified wrap to reach items can now iterate `obj["source_text"]` directly.
+
+### Annotation inventory
+
+3 entries (was 2). New: `source_text`. Existing: `systemverilog_file`, `systemverilog_parseable_file`.
+
+### Manifest
+
+`current_content_kind` stays `"json_object"` (rule-under-test is `systemverilog_file`, whose top-level keys/values are unchanged). `drift_status` updated to `calibrated_2026_05_04_slice_2` to record the new calibration. Calibration history block prepended with the slice-2 entry.
+
+### Contract bump
+
+- Parser release: `1.0.1` → `1.0.2`.
+- Contract version: `1.0.1` → `1.0.2`.
+- Schema version stays `1` (additive — flat-array shape is a clean-up of the raw envelope).
+- New "Release 1.0.2 / Contract 1.0.2 Highlights" section in `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry for SV-Slice-2.
+- `schema-versioning.md`: new row `0.3.0 / 1.0.2`.
+- `json-carrier.md`: new `source_text` row + `systemverilog_file.source_text` field description updated.
+- `rules-top-level.md`: new `## source_text` section with the flatten-spread example + consumer iteration recipe.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- Annotation inventory: 3 entries.
+- Empirical AST shape: source_text is a flat array of length 1 for `module m; endmodule\n`.
+
+### Annotation-language idiom note
+
+`[$1**]` is the canonical regex-campaign idiom for flattening an array-shaped sub-rule reference into the enclosing array literal. Same idiom used for `regex.ebnf`'s `concatenation = piece+ -> [$1**]` (slice 1 of the regex campaign). Verified to work for SV grammar's first array-shaped rule.
+
+### Next slice candidate
+
+`source_text_item` per-branch typing — assign each Or branch a `kind:` discriminator (`kind: "description"`, `kind: "local_parameter_declaration"`, etc.) so consumers can dispatch on `item["kind"]` instead of structural recursion.
+
 ## 2026-05-04 - SV-Slice-1: `systemverilog_file` typed (dangling annotation rescued)
 
 ### What landed

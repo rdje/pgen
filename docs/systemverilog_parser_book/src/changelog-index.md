@@ -19,6 +19,34 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.2 / Contract 1.0.2 — SV-Slice-2: `source_text` flatten-spread
+
+**What changed:** `grammars/systemverilog.ebnf` line 2273's `source_text := source_text_item*` rule annotated `-> [$1**]`. The `source_text` field of `systemverilog_file` is now a flat array of `source_text_item` shapes (was a Quantified envelope).
+
+**Empirical pre/post for `module m; endmodule\n`:**
+
+```text
+# Pre — source_text was nested Quantified envelope:
+{
+  "type": "systemverilog_file",
+  "source_text": [<Quantified iteration wrap>]
+}
+
+# Post — source_text is a flat array (length 1 for minimal_module):
+{
+  "type": "systemverilog_file",
+  "source_text": [<source_text_item shape>]
+}
+```
+
+**Annotation inventory:** 3 entries (was 2). New: `source_text`.
+
+**Annotation idiom:** `[$1**]` is the canonical flatten-spread form (same as regex.ebnf's `concatenation = piece+ -> [$1**]`). Verified to work for the SV grammar's first array-shaped rule.
+
+**Schema version:** stays at `1` (additive — flat-array shape is a clean-up of the raw envelope).
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.2 / Contract 1.0.2 Highlights".
+
 ### 1.0.1 / Contract 1.0.1 — SV-Slice-1: `systemverilog_file` typed (dangling annotation rescued)
 
 **What changed:** `grammars/systemverilog.ebnf` line 184's `systemverilog_file` rule now carries its return annotation on the same multi-line definition (was dangling between the `sv_multi_entry_root` helper rule and `systemverilog_parseable_file`). The annotation `-> {type: "systemverilog_file", source_text: $2}` now correctly latches onto `systemverilog_file`. Same slice removed the `//` prefix from `systemverilog_parseable_file`'s annotation (PGEN's EBNF dialect uses `#` for comments, not `//`, so the `//` prefix was misleading rather than effective).
