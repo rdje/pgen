@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b5f5f379.js";
+            window.path_to_searchindex_js = "searchindex-85889884.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,6 +216,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.4.0</td><td>1.0.3</td><td><strong>SV-Slice-3: <code>source_text_item</code> per-branch typed.</strong> 8 per-branch annotations on <code>source_text_item</code>. Every Or branch emits <code>{kind: "&lt;name&gt;", body: $1}</code> (or <code>{kind: "semi"}</code> for the bodyless <code>semi</code> branch). Consumer dispatch on <code>item["kind"]</code> instead of structural recursion. Trailing <code>semi</code> dropped in <code>local_parameter_declaration semi</code> / <code>parameter_declaration semi</code> branches. Annotation inventory: 11 entries (was 3).</td></tr>
 <tr><td>0.3.0</td><td>1.0.2</td><td><strong>SV-Slice-2: <code>source_text</code> flatten-spread.</strong> <code>source_text := source_text_item*</code> annotated <code>-&gt; [$1**]</code>. The <code>source_text</code> field of <code>systemverilog_file</code> is now a flat array of <code>source_text_item</code> shapes — pre-fix it carried the raw Quantified envelope wrapping the iteration. Same accept set, same <code>type</code>/<code>source_text</code> keys at root level. Annotation inventory: 3 entries (was 2).</td></tr>
 <tr><td>0.2.0</td><td>1.0.1</td><td><strong>SV-Slice-1: <code>systemverilog_file</code> typed.</strong> Dangling <code>-&gt; {type: "systemverilog_file", source_text: $2}</code> annotation at line 195 of <code>grammars/systemverilog.ebnf</code> was rescued by moving it onto its target rule <code>systemverilog_file := trivia source_text trivia</code> (line 184). Removed misleading <code>//</code> prefix from <code>systemverilog_parseable_file</code>’s annotation (PGEN’s EBNF dialect uses <code>#</code> for comments, not <code>//</code>). Both annotations now register via the documented path. AST root for <code>module m; endmodule\n</code> changed from recursive-envelope <code>Sequence</code> to typed <code>{type: "systemverilog_file", source_text: ...}</code> JSON object. First effective annotation on the systemverilog parser. Manifest <code>current_content_kind</code> calibrated to <code>"json_object"</code>.</td></tr>
 </tbody>

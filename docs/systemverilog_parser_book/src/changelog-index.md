@@ -19,6 +19,52 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.3 / Contract 1.0.3 — SV-Slice-3: `source_text_item` per-branch typed (`kind:` discriminator)
+
+**What changed:** 8 per-branch annotations on `source_text_item` (lines 210-217 of `grammars/systemverilog.ebnf`). Every Or branch now emits a typed object with a `kind:` discriminator: `"description"`, `"local_parameter_declaration"`, `"parameter_declaration"`, `"package_import_declaration"`, `"timeunits_declaration"`, `"compiler_directive"`, `"comment_only_source_region"`, `"semi"`.
+
+**Empirical pre/post for `module m; endmodule\n`:**
+
+```text
+# Pre — source_text[0] was the matched-branch shape directly:
+"source_text": [
+  [<description envelope>]
+]
+
+# Post — source_text[0] is a typed object with discriminator:
+"source_text": [
+  {"kind": "description", "body": [<description envelope>]}
+]
+```
+
+**Consumer dispatch pattern:**
+
+```rust
+for item in obj["source_text"].as_array().unwrap() {
+    match item["kind"].as_str().unwrap() {
+        "description" => walk_description(&item["body"]),
+        "local_parameter_declaration" => walk_local_param(&item["body"]),
+        "parameter_declaration" => walk_param(&item["body"]),
+        "package_import_declaration" => walk_package_import(&item["body"]),
+        "timeunits_declaration" => walk_timeunits(&item["body"]),
+        "compiler_directive" => walk_compiler_directive(&item["body"]),
+        "comment_only_source_region" => walk_comment_region(&item["body"]),
+        "semi" => { /* stray ; — nothing to walk */ }
+        other => panic!("unknown source_text_item kind: {}", other),
+    }
+}
+```
+
+**Annotation inventory:** 11 entries (was 3). 8 new per-branch entries on `source_text_item`.
+
+**Trailing `semi` dropped** in the `local_parameter_declaration semi` and `parameter_declaration semi` branches — annotations reference `$1` only.
+
+**`@branch_policy: priority_first` and `@priority` preserved** in the rule definition.
+
+**Schema version:** stays at `1` (additive discriminator).
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.3 / Contract 1.0.3 Highlights".
+
 ### 1.0.2 / Contract 1.0.2 — SV-Slice-2: `source_text` flatten-spread
 
 **What changed:** `grammars/systemverilog.ebnf` line 2273's `source_text := source_text_item*` rule annotated `-> [$1**]`. The `source_text` field of `systemverilog_file` is now a flat array of `source_text_item` shapes (was a Quantified envelope).

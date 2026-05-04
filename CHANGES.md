@@ -1,4 +1,114 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-3: `source_text_item` per-branch typed (`kind:` discriminator on 8 branches)
+
+### What landed
+
+8 per-branch annotations on `source_text_item` in `grammars/systemverilog.ebnf` (lines 210-217). Every Or branch now emits a typed object with a `kind:` discriminator that consumers can dispatch on instead of doing structural recursion to identify which top-level construct each item is.
+
+```ebnf
+# Before:
+@branch_policy: priority_first
+@priority: [24, 16, 16, 12, 10, 8, 6, 4]
+source_text_item := description
+                  | local_parameter_declaration semi
+                  | parameter_declaration semi
+                  | package_import_declaration
+                  | timeunits_declaration
+                  | compiler_directive
+                  | comment_only_source_region
+                  | semi
+
+# After:
+@branch_policy: priority_first
+@priority: [24, 16, 16, 12, 10, 8, 6, 4]
+source_text_item := description                       -> {kind: "description", body: $1}
+                  | local_parameter_declaration semi  -> {kind: "local_parameter_declaration", body: $1}
+                  | parameter_declaration semi        -> {kind: "parameter_declaration", body: $1}
+                  | package_import_declaration         -> {kind: "package_import_declaration", body: $1}
+                  | timeunits_declaration              -> {kind: "timeunits_declaration", body: $1}
+                  | compiler_directive                 -> {kind: "compiler_directive", body: $1}
+                  | comment_only_source_region         -> {kind: "comment_only_source_region", body: $1}
+                  | semi                               -> {kind: "semi"}
+```
+
+### Empirical pre/post on `module m; endmodule\n`
+
+```text
+# Pre — source_text[0] was the matched-branch shape directly:
+"source_text": [
+  [<description envelope>]
+]
+
+# Post — source_text[0] is a typed object with discriminator:
+"source_text": [
+  {"kind": "description", "body": [<description envelope>]}
+]
+```
+
+### Consumer dispatch pattern unlocked
+
+```rust
+for item in obj["source_text"].as_array().unwrap() {
+    match item["kind"].as_str().unwrap() {
+        "description"               => walk_description(&item["body"]),
+        "local_parameter_declaration" => walk_local_param(&item["body"]),
+        "parameter_declaration"     => walk_param(&item["body"]),
+        "package_import_declaration" => walk_package_import(&item["body"]),
+        "timeunits_declaration"     => walk_timeunits(&item["body"]),
+        "compiler_directive"        => walk_compiler_directive(&item["body"]),
+        "comment_only_source_region" => walk_comment_region(&item["body"]),
+        "semi"                      => { /* no body */ }
+        other => panic!("unknown source_text_item kind: {}", other),
+    }
+}
+```
+
+### Annotation inventory
+
+11 entries (was 3). 8 new per-branch entries on `source_text_item`. Existing: `source_text`, `systemverilog_file`, `systemverilog_parseable_file`.
+
+### Notes on the slice mechanics
+
+- **Trailing `semi` dropped** in branches 1 and 2 (`local_parameter_declaration semi`, `parameter_declaration semi`) — annotations reference `$1` only, not `$2`. The semicolon is a syntactic delimiter, not part of the typed shape.
+- **`semi` branch (8) carries no body** — it's just a stray `;`. Just emits `{kind: "semi"}` without a body field.
+- **`@branch_policy: priority_first` + `@priority: [...]` preserved** — branch-policy / priority metadata applies before annotation dispatch.
+- **Inner `description`, `local_parameter_declaration`, etc. shapes still raw envelope** — per-rule typing is a follow-up slice. The `kind:` discriminator gives consumers the dispatch hook; walkers still descend the raw envelope today.
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_04_slice_3`. Calibration history block prepended with the slice-3 entry. `current_content_kind` stays `"json_object"` (rule-under-test is `systemverilog_file`).
+
+### Contract bump
+
+- Parser release: `1.0.2` → `1.0.3`.
+- Contract version: `1.0.2` → `1.0.3`.
+- Schema version stays `1` (additive — discriminator on existing branches).
+- New "Release 1.0.3 / Contract 1.0.3 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry for SV-Slice-3 with consumer dispatch recipe.
+- `schema-versioning.md`: new row `0.4.0 / 1.0.3`.
+- `json-carrier.md`: new `source_text_item` row + updated `source_text` row to reflect the typed item shapes.
+- `rules-top-level.md`: status line updated to mention SV-Slice-3.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- Annotation inventory: 11 entries.
+- Empirical AST shape: source_text[0] is typed `{kind: "description", body: ...}` for the minimal_module sample.
+
+### Annotation-language idiom note
+
+Per-branch `{kind: "<name>", body: $1}` is the canonical regex-campaign idiom for Or-rule per-branch typing (used in regex slices 7, 8, 14-21, etc.). Verified to work for SV grammar with metadata blocks (`@branch_policy`, `@priority`) preserved.
+
+### Next slice candidates
+
+- SV-Slice-4: type the `description` rule's branches (module/interface/class/etc.) — the "deepest" hot top-level rule for Nexsim.
+- SV-Slice-4b: type `compiler_directive` as a clean string (currently raw envelope of `trivia /\`[^\r\n]*/`).
+
 ## 2026-05-04 - SV-Slice-2: `source_text` flatten-spread (`[$1**]`)
 
 ### What landed

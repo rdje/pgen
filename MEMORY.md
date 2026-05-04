@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-04 (+0200, task: SV-Slice-2-source_text-flatten-spread)
+Last updated: 2026-05-04 (+0200, task: SV-Slice-3-source_text_item-per-branch-typed-kind-discriminator)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-3 landed: `source_text_item` per-branch typed (`kind:` discriminator on 8 branches).** Annotated all 8 Or branches at lines 210-217 of `grammars/systemverilog.ebnf` with `{kind: "<branch_name>", body: $1}` (semi branch carries no body). 8 new annotations: description, local_parameter_declaration, parameter_declaration, package_import_declaration, timeunits_declaration, compiler_directive, comment_only_source_region, semi. Consumers now dispatch on `item["kind"]` instead of structural recursion. Trailing `semi` dropped in branches 1+2 ($1 only, not $2). `@branch_policy: priority_first` + `@priority: [...]` preserved. For `module m; endmodule\n`: source_text[0] = `{"kind": "description", "body": <module_decl envelope>}`. Annotation count: 11 (was 3). Same accept set. Contract bumped 1.0.2 → 1.0.3. Schema stays 1. mdBook synced. SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 5/30 (foundation 38755d3, Slice-1 cb6af02, parseability_probe ref ab56f08, Slice-2 d3c06c4, Slice-3 this).** Next slice candidates: type `description` rule's branches (module/interface/class — Nexsim's hot top-level rule), OR clean up `compiler_directive` to emit clean directive string.
+
+### Earlier session note (kept for context):
 - **SV-Slice-2 landed: `source_text` flatten-spread `[$1**]`.** Annotated `source_text := source_text_item* -> [$1**]` at line 2273 of `grammars/systemverilog.ebnf`. The `source_text` field of every typed `systemverilog_file` JSON is now a flat array of `source_text_item` shapes (was raw Quantified envelope). Annotation inventory: 3 (was 2). For `module m; endmodule\n`: source_text length is 1 (single source_text_item). Same accept set, same top-level keys. Contract bumped 1.0.1 → 1.0.2. Schema version stays 1 (additive). mdBook: changelog-index, schema-versioning row 0.3.0, json-carrier with new source_text row + updated systemverilog_file description, rules-top-level rewritten with flatten-spread example. SV book gate green ✅. 497/0 regex tests still pass. Idiom verified: `[$1**]` is the canonical regex-campaign flatten-spread (`concatenation = piece+ -> [$1**]`) and works for SV's first array-shaped rule. Next slice candidate: `source_text_item` per-branch typing — assign each Or branch a `kind:` discriminator. **Unpushed commits accumulating per 30-cap directive: foundation (38755d3), Slice-1 (cb6af02), parseability_probe ref (ab56f08), Slice-2 (this commit). Total: 4 commits. Cap: 30.**
 
 ### Earlier session note (kept for context):

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b5f5f379.js";
+            window.path_to_searchindex_js = "searchindex-85889884.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -629,7 +629,8 @@ pub struct ParserEmbeddingApiContract {
 <tbody>
 <tr><td><code>systemverilog_file</code></td><td><code>-&gt; {type: "systemverilog_file", source_text: $2}</code></td><td><code>{"type": "systemverilog_file", "source_text": &lt;source_text-shape&gt;}</code> — root JSON object for any <code>sv_2017</code> / <code>sv_2023</code> parse. <code>source_text</code> field is a flat array of <code>source_text_item</code> shapes (since SV-Slice-2).</td></tr>
 <tr><td><code>systemverilog_parseable_file</code></td><td><code>-&gt; {type: "systemverilog_parseable_file", items: $2}</code></td><td><code>{"type": "systemverilog_parseable_file", "items": &lt;parseable_source_item*-shape&gt;}</code> — alternative entry rule for the parseable-source profile. <code>items</code> field carries the array of parseable source items in their raw envelope shape.</td></tr>
-<tr><td><code>source_text</code></td><td><code>-&gt; [$1**]</code></td><td><code>[&lt;source_text_item shape&gt;, ...]</code> — flat array of source-text items via flatten-spread. Pre-SV-Slice-2 this was the raw Quantified envelope of <code>source_text_item*</code>. The inner <code>source_text_item</code> shapes are still raw envelope (Or of <code>description | local_parameter_declaration semi | parameter_declaration semi | package_import_declaration | ...</code>); per-branch typing is a follow-up slice.</td></tr>
+<tr><td><code>source_text</code></td><td><code>-&gt; [$1**]</code></td><td><code>[&lt;source_text_item-typed-shape&gt;, ...]</code> — flat array of typed source-text items via flatten-spread. Each item is a <code>{kind: "&lt;name&gt;", body: &lt;envelope&gt;}</code> typed object (per SV-Slice-3).</td></tr>
+<tr><td><code>source_text_item</code> (8 branches)</td><td>per-branch <code>{kind: "&lt;name&gt;", body: $1}</code> (or <code>{kind: "semi"}</code> for branch 7)</td><td>Typed object with <code>kind</code> discriminator: <code>"description"</code>, <code>"local_parameter_declaration"</code>, <code>"parameter_declaration"</code>, <code>"package_import_declaration"</code>, <code>"timeunits_declaration"</code>, <code>"compiler_directive"</code>, <code>"comment_only_source_region"</code>, <code>"semi"</code>. The <code>body</code> field carries the matched sub-rule’s raw envelope (per-rule typing of <code>description</code>, etc. is a follow-up slice). The <code>semi</code> branch carries no <code>body</code> since it’s just a stray <code>;</code>. Trailing <code>semi</code> dropped in branches 1 and 2 (annotation references <code>$1</code> only).</td></tr>
 </tbody>
 </table>
 </div>
@@ -764,7 +765,7 @@ match schema {
 <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.</p>
 <blockquote>
-<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. SV-Slice-2 (parser release <code>1.0.2</code>) flattened <code>source_text</code> via <code>[$1**]</code>. The rest of the top-level rules are un-annotated and produce the recursive-envelope shape; subsequent slices will type them.</p>
+<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. SV-Slice-2 (parser release <code>1.0.2</code>) flattened <code>source_text</code> via <code>[$1**]</code>. SV-Slice-3 (parser release <code>1.0.3</code>) typed <code>source_text_item</code> per-branch with <code>kind:</code> discriminator. Per-branch typing of <code>description</code>, <code>local_parameter_declaration</code>, etc. is a follow-up slice.</p>
 </blockquote>
 <h2 id="entry-points-by-profile"><a class="header" href="#entry-points-by-profile">Entry points by profile</a></h2>
 <div class="table-wrapper">
@@ -944,6 +945,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.4.0</td><td>1.0.3</td><td><strong>SV-Slice-3: <code>source_text_item</code> per-branch typed.</strong> 8 per-branch annotations on <code>source_text_item</code>. Every Or branch emits <code>{kind: "&lt;name&gt;", body: $1}</code> (or <code>{kind: "semi"}</code> for the bodyless <code>semi</code> branch). Consumer dispatch on <code>item["kind"]</code> instead of structural recursion. Trailing <code>semi</code> dropped in <code>local_parameter_declaration semi</code> / <code>parameter_declaration semi</code> branches. Annotation inventory: 11 entries (was 3).</td></tr>
 <tr><td>0.3.0</td><td>1.0.2</td><td><strong>SV-Slice-2: <code>source_text</code> flatten-spread.</strong> <code>source_text := source_text_item*</code> annotated <code>-&gt; [$1**]</code>. The <code>source_text</code> field of <code>systemverilog_file</code> is now a flat array of <code>source_text_item</code> shapes — pre-fix it carried the raw Quantified envelope wrapping the iteration. Same accept set, same <code>type</code>/<code>source_text</code> keys at root level. Annotation inventory: 3 entries (was 2).</td></tr>
 <tr><td>0.2.0</td><td>1.0.1</td><td><strong>SV-Slice-1: <code>systemverilog_file</code> typed.</strong> Dangling <code>-&gt; {type: "systemverilog_file", source_text: $2}</code> annotation at line 195 of <code>grammars/systemverilog.ebnf</code> was rescued by moving it onto its target rule <code>systemverilog_file := trivia source_text trivia</code> (line 184). Removed misleading <code>//</code> prefix from <code>systemverilog_parseable_file</code>’s annotation (PGEN’s EBNF dialect uses <code>#</code> for comments, not <code>//</code>). Both annotations now register via the documented path. AST root for <code>module m; endmodule\n</code> changed from recursive-envelope <code>Sequence</code> to typed <code>{type: "systemverilog_file", source_text: ...}</code> JSON object. First effective annotation on the systemverilog parser. Manifest <code>current_content_kind</code> calibrated to <code>"json_object"</code>.</td></tr>
 </tbody>
@@ -1005,6 +1007,41 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="103--contract-103--sv-slice-3-source_text_item-per-branch-typed-kind-discriminator"><a class="header" href="#103--contract-103--sv-slice-3-source_text_item-per-branch-typed-kind-discriminator">1.0.3 / Contract 1.0.3 — SV-Slice-3: <code>source_text_item</code> per-branch typed (<code>kind:</code> discriminator)</a></h3>
+<p><strong>What changed:</strong> 8 per-branch annotations on <code>source_text_item</code> (lines 210-217 of <code>grammars/systemverilog.ebnf</code>). Every Or branch now emits a typed object with a <code>kind:</code> discriminator: <code>"description"</code>, <code>"local_parameter_declaration"</code>, <code>"parameter_declaration"</code>, <code>"package_import_declaration"</code>, <code>"timeunits_declaration"</code>, <code>"compiler_directive"</code>, <code>"comment_only_source_region"</code>, <code>"semi"</code>.</p>
+<p><strong>Empirical pre/post for <code>module m; endmodule\n</code>:</strong></p>
+<pre><code class="language-text"># Pre — source_text[0] was the matched-branch shape directly:
+"source_text": [
+  [&lt;description envelope&gt;]
+]
+
+# Post — source_text[0] is a typed object with discriminator:
+"source_text": [
+  {"kind": "description", "body": [&lt;description envelope&gt;]}
+]
+</code></pre>
+<p><strong>Consumer dispatch pattern:</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>for item in obj["source_text"].as_array().unwrap() {
+    match item["kind"].as_str().unwrap() {
+        "description" =&gt; walk_description(&amp;item["body"]),
+        "local_parameter_declaration" =&gt; walk_local_param(&amp;item["body"]),
+        "parameter_declaration" =&gt; walk_param(&amp;item["body"]),
+        "package_import_declaration" =&gt; walk_package_import(&amp;item["body"]),
+        "timeunits_declaration" =&gt; walk_timeunits(&amp;item["body"]),
+        "compiler_directive" =&gt; walk_compiler_directive(&amp;item["body"]),
+        "comment_only_source_region" =&gt; walk_comment_region(&amp;item["body"]),
+        "semi" =&gt; { /* stray ; — nothing to walk */ }
+        other =&gt; panic!("unknown source_text_item kind: {}", other),
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Annotation inventory:</strong> 11 entries (was 3). 8 new per-branch entries on <code>source_text_item</code>.</p>
+<p><strong>Trailing <code>semi</code> dropped</strong> in the <code>local_parameter_declaration semi</code> and <code>parameter_declaration semi</code> branches — annotations reference <code>$1</code> only.</p>
+<p><strong><code>@branch_policy: priority_first</code> and <code>@priority</code> preserved</strong> in the rule definition.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code> (additive discriminator).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.3 / Contract 1.0.3 Highlights”.</p>
 <h3 id="102--contract-102--sv-slice-2-source_text-flatten-spread"><a class="header" href="#102--contract-102--sv-slice-2-source_text-flatten-spread">1.0.2 / Contract 1.0.2 — SV-Slice-2: <code>source_text</code> flatten-spread</a></h3>
 <p><strong>What changed:</strong> <code>grammars/systemverilog.ebnf</code> line 2273’s <code>source_text := source_text_item*</code> rule annotated <code>-&gt; [$1**]</code>. The <code>source_text</code> field of <code>systemverilog_file</code> is now a flat array of <code>source_text_item</code> shapes (was a Quantified envelope).</p>
 <p><strong>Empirical pre/post for <code>module m; endmodule\n</code>:</strong></p>

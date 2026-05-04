@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.2`
+  - `1.0.3`
 - Parser release version:
-  - `1.0.2`
+  - `1.0.3`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,50 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.3 / Contract 1.0.3 Highlights — SV-Slice-3: `source_text_item` per-branch typed (`kind:` discriminator on 8 branches)
+
+- **Annotation:** 8 per-branch annotations on `source_text_item` (lines 210-217 of `grammars/systemverilog.ebnf`):
+
+```ebnf
+source_text_item := description                       -> {kind: "description", body: $1}
+                  | local_parameter_declaration semi  -> {kind: "local_parameter_declaration", body: $1}
+                  | parameter_declaration semi        -> {kind: "parameter_declaration", body: $1}
+                  | package_import_declaration         -> {kind: "package_import_declaration", body: $1}
+                  | timeunits_declaration              -> {kind: "timeunits_declaration", body: $1}
+                  | compiler_directive                 -> {kind: "compiler_directive", body: $1}
+                  | comment_only_source_region         -> {kind: "comment_only_source_region", body: $1}
+                  | semi                               -> {kind: "semi"}
+```
+
+- **Effect:** every item in the `systemverilog_file.source_text` array now carries an explicit `kind:` discriminator. Consumers walking `obj["source_text"]` can dispatch on `item["kind"]` instead of structural recursion to identify which top-level construct each item is.
+- **`semi` branch carries no body** (it's just a stray `;` — no useful payload). The other 7 branches carry the matched sub-rule's raw envelope as `body`.
+- **`local_parameter_declaration semi` and `parameter_declaration semi` branches drop the trailing `semi`** (annotation references `$1` only, not `$2`). The semicolon is a syntactic delimiter, not part of the typed shape.
+- **Empirical pre/post on `module m; endmodule\n`:**
+
+```text
+# Pre-SV-Slice-3 — source_text[0] was the matched-branch shape directly:
+"source_text": [
+  [<description envelope — module_declaration shape>]
+]
+
+# Post-SV-Slice-3 — source_text[0] is a typed object with discriminator:
+"source_text": [
+  {
+    "kind": "description",
+    "body": [<description envelope — module_declaration shape>]
+  }
+]
+```
+
+- **Annotation inventory:** 11 entries (was 3). New: 8 per-branch entries on `source_text_item`. Existing: `source_text`, `systemverilog_file`, `systemverilog_parseable_file`.
+- **Same accept set, same diagnostic codes.** Only the `source_text_item` shape changed.
+- **`@branch_policy: priority_first` and `@priority: [24, 16, 16, 12, 10, 8, 6, 4]` preserved** — the branch-policy / priority metadata applies before annotation dispatch, no change needed.
+- **Inner `description`, `local_parameter_declaration`, etc. shapes still raw envelope** — per-rule typing of those rules is a follow-up slice. The `kind:` discriminator gives consumers the dispatch hook to route to per-branch walkers; the walkers themselves currently descend the raw envelope.
+- **Schema-version stays `1`** (additive — discriminator on existing branches, no new rules or accept-set change).
+- **mdBook**: `changelog-index.md`, `schema-versioning.md`, `json-carrier.md`, `rules-top-level.md` updated. `make systemverilog_parser_book_gate` green.
+- Public API surface unchanged.
+- Annotation-language idiom note: per-branch `{kind: "<name>", body: $1}` is the canonical regex-campaign idiom for Or-rule per-branch typing (used in regex slices 7, 8, 14-21, etc.). Verified to work for SV grammar with metadata blocks (`@branch_policy`, `@priority`) preserved.
 
 ## Release 1.0.2 / Contract 1.0.2 Highlights — SV-Slice-2: `source_text` typed via `[$1**]` flatten-spread
 
