@@ -1,4 +1,104 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-4: `description` per-branch typed (`kind:` discriminator + attributes preserved)
+
+### What landed
+
+8 per-branch annotations on `description` (line 957 of `grammars/systemverilog.ebnf`). Two layers of typed dispatch are now end-to-end: `source_text_item.kind` → `description.kind`.
+
+```ebnf
+description := module_declaration                 -> {kind: "module_declaration", body: $1}
+             | udp_declaration                    -> {kind: "udp_declaration", body: $1}
+             | interface_declaration              -> {kind: "interface_declaration", body: $1}
+             | program_declaration                -> {kind: "program_declaration", body: $1}
+             | package_declaration                -> {kind: "package_declaration", body: $1}
+             | attribute_instance* package_item   -> {kind: "package_item", attributes: $1, body: $2}
+             | attribute_instance* bind_directive -> {kind: "bind_directive", attributes: $1, body: $2}
+             | config_declaration                 -> {kind: "config_declaration", body: $1}
+```
+
+The two multi-element branches (`attribute_instance* package_item` / `attribute_instance* bind_directive`) preserve the leading `attribute_instance*` prefix as a separate `attributes:` field while keeping the inner construct as `body:`. Consumers can walk attributes and body independently.
+
+### Empirical pre/post on `module m; endmodule\n`
+
+```text
+# Pre — body field of the description-kind source_text_item was raw envelope:
+"source_text": [
+  {"kind": "description", "body": [<description Or-of-8 raw envelope>]}
+]
+
+# Post — body is itself a typed object with its own kind discriminator:
+"source_text": [
+  {
+    "kind": "description",
+    "body": {
+      "kind": "module_declaration",
+      "body": [<module_declaration envelope>]
+    }
+  }
+]
+```
+
+### Consumer dispatch unlocked at the description level
+
+```rust
+for item in obj["source_text"].as_array().unwrap() {
+    if item["kind"] == "description" {
+        let desc = &item["body"];
+        match desc["kind"].as_str().unwrap() {
+            "module_declaration"    => walk_module(&desc["body"]),
+            "udp_declaration"       => walk_udp(&desc["body"]),
+            "interface_declaration" => walk_interface(&desc["body"]),
+            "program_declaration"   => walk_program(&desc["body"]),
+            "package_declaration"   => walk_package(&desc["body"]),
+            "package_item"          => walk_package_item(&desc["attributes"], &desc["body"]),
+            "bind_directive"        => walk_bind_directive(&desc["attributes"], &desc["body"]),
+            "config_declaration"    => walk_config(&desc["body"]),
+            other => panic!("unknown description kind: {}", other),
+        }
+    }
+}
+```
+
+### Annotation inventory
+
+19 entries (was 11). 8 new per-branch entries on `description`.
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_04_slice_4`. Calibration history block prepended. `current_content_kind` stays `"json_object"`.
+
+### Contract bump
+
+- Parser release: `1.0.3` → `1.0.4`.
+- Contract version: `1.0.3` → `1.0.4`.
+- Schema version stays `1` (additive — discriminator on existing branches).
+- New "Release 1.0.4 / Contract 1.0.4 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry for SV-Slice-4 with consumer dispatch recipe.
+- `schema-versioning.md`: new row `0.5.0 / 1.0.4`.
+- `json-carrier.md`: new `description` row + `source_text_item` row updated to mention the now-typed body.
+- `rules-top-level.md`: status line updated.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- Annotation inventory: 19 entries.
+- Empirical AST shape: source_text[0].body is typed `{kind: "module_declaration", body: ...}` for the minimal_module sample.
+
+### Annotation-language idiom note
+
+Multi-element branch `{kind: "<name>", attributes: $1, body: $2}` is a clean preservation of leading-quantified-prefix semantics. The same idiom applies to any rule whose branch has `<quantified_prefix>* <main_body>` shape — common in SV grammar around attribute decorations. Verified to work with PGEN's annotation-language `$1`/`$2` positional refs over multi-element branches.
+
+### Next slice candidates
+
+- SV-Slice-5: type `module_declaration` (the most-walked SV construct — a 4-branch Or with body/header/identifier substructure).
+- SV-Slice-5b: type `compiler_directive` to emit a clean directive-text string.
+- SV-Slice-5c: type `attribute_instance` to emit clean attribute key/value pairs.
+
 ## 2026-05-04 - SV-Slice-3: `source_text_item` per-branch typed (`kind:` discriminator on 8 branches)
 
 ### What landed

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-85889884.js";
+            window.path_to_searchindex_js = "searchindex-ad8db269.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -183,7 +183,7 @@
                         <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.</p>
 <blockquote>
-<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. SV-Slice-2 (parser release <code>1.0.2</code>) flattened <code>source_text</code> via <code>[$1**]</code>. SV-Slice-3 (parser release <code>1.0.3</code>) typed <code>source_text_item</code> per-branch with <code>kind:</code> discriminator. Per-branch typing of <code>description</code>, <code>local_parameter_declaration</code>, etc. is a follow-up slice.</p>
+<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. SV-Slice-2 (parser release <code>1.0.2</code>) flattened <code>source_text</code> via <code>[$1**]</code>. SV-Slice-3 (parser release <code>1.0.3</code>) typed <code>source_text_item</code> per-branch. SV-Slice-4 (parser release <code>1.0.4</code>) typed <code>description</code> per-branch with <code>kind:</code> discriminator (and <code>attributes:</code> field on the two multi-element branches). Two layers of typed dispatch end-to-end: source_text_item.kind → description.kind. Per-rule typing of <code>module_declaration</code>, <code>interface_declaration</code>, etc. is a follow-up slice.</p>
 </blockquote>
 <h2 id="entry-points-by-profile"><a class="header" href="#entry-points-by-profile">Entry points by profile</a></h2>
 <div class="table-wrapper">

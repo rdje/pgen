@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.3`
+  - `1.0.4`
 - Parser release version:
-  - `1.0.3`
+  - `1.0.4`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,77 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.4 / Contract 1.0.4 Highlights — SV-Slice-4: `description` per-branch typed (`kind:` discriminator on 8 branches; attribute_instance* preserved)
+
+- **Annotation:** 8 per-branch annotations on `description` (line 957 of `grammars/systemverilog.ebnf`):
+
+```ebnf
+description := module_declaration                 -> {kind: "module_declaration", body: $1}
+             | udp_declaration                    -> {kind: "udp_declaration", body: $1}
+             | interface_declaration              -> {kind: "interface_declaration", body: $1}
+             | program_declaration                -> {kind: "program_declaration", body: $1}
+             | package_declaration                -> {kind: "package_declaration", body: $1}
+             | attribute_instance* package_item   -> {kind: "package_item", attributes: $1, body: $2}
+             | attribute_instance* bind_directive -> {kind: "bind_directive", attributes: $1, body: $2}
+             | config_declaration                 -> {kind: "config_declaration", body: $1}
+```
+
+- **Multi-element branches preserve attributes**: branches 6 and 7 (`attribute_instance* package_item` / `attribute_instance* bind_directive`) carry the `attribute_instance*` prefix as a separate `attributes:` field while keeping the inner construct as `body:`. Consumers can walk attributes and body independently. The other 6 branches are single-element and use the simpler `{kind, body}` shape.
+- **Effect:** items in `systemverilog_file.source_text` now carry **two layers of typed dispatch end-to-end**:
+  - Outer `source_text_item.kind` (from SV-Slice-3) — identifies which top-level slot the item came from.
+  - Inner `description.kind` (this slice) — when the outer kind is `"description"`, identifies which specific construct (module/interface/class/etc.).
+- **Empirical pre/post on `module m; endmodule\n`:**
+
+```text
+# Pre-SV-Slice-4 — source_text[0].body was the raw description envelope:
+"source_text": [
+  {
+    "kind": "description",
+    "body": [<description Or-of-8 raw envelope, with module_declaration matched in branch 0>]
+  }
+]
+
+# Post-SV-Slice-4 — source_text[0].body carries its own typed kind:
+"source_text": [
+  {
+    "kind": "description",
+    "body": {
+      "kind": "module_declaration",
+      "body": [<module_declaration envelope>]
+    }
+  }
+]
+```
+
+- **Consumer dispatch unlocked at the description level:**
+
+```rust
+for item in obj["source_text"].as_array().unwrap() {
+    if item["kind"] == "description" {
+        let desc = &item["body"];
+        match desc["kind"].as_str().unwrap() {
+            "module_declaration"    => walk_module(&desc["body"]),
+            "udp_declaration"       => walk_udp(&desc["body"]),
+            "interface_declaration" => walk_interface(&desc["body"]),
+            "program_declaration"   => walk_program(&desc["body"]),
+            "package_declaration"   => walk_package(&desc["body"]),
+            "package_item"          => walk_package_item(&desc["attributes"], &desc["body"]),
+            "bind_directive"        => walk_bind_directive(&desc["attributes"], &desc["body"]),
+            "config_declaration"    => walk_config(&desc["body"]),
+            other => panic!("unknown description kind: {}", other),
+        }
+    }
+}
+```
+
+- **Annotation inventory:** 19 entries (was 11). 8 new per-branch entries on `description`. Existing: source_text (1), source_text_item (8), systemverilog_file (1), systemverilog_parseable_file (1).
+- **Same accept set, same diagnostic codes.** Only the `description` shape changed.
+- **Inner `module_declaration`, `udp_declaration`, etc. shapes still raw envelope** — per-rule typing of those is a follow-up slice. The `description.kind` discriminator gives consumers the dispatch hook to route to per-construct walkers.
+- **Schema-version stays `1`** (additive — discriminator on existing branches).
+- **mdBook**: `changelog-index.md`, `schema-versioning.md`, `json-carrier.md`, `rules-top-level.md` updated. `make systemverilog_parser_book_gate` green.
+- Public API surface unchanged.
+- Annotation-language idiom note: multi-element branch `{kind: "<name>", attributes: $1, body: $2}` is a clean preservation of leading-quantified-prefix semantics — same idiom would apply to any rule whose branch has `<quantified_prefix>* <main_body>` shape (very common in SV grammar around attribute decorations).
 
 ## Release 1.0.3 / Contract 1.0.3 Highlights — SV-Slice-3: `source_text_item` per-branch typed (`kind:` discriminator on 8 branches)
 

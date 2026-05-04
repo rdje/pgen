@@ -2,7 +2,7 @@
 
 This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.
 
-> **Status:** SV-Slice-1 (parser release `1.0.1`) typed `systemverilog_file` and `systemverilog_parseable_file`. SV-Slice-2 (parser release `1.0.2`) flattened `source_text` via `[$1**]`. SV-Slice-3 (parser release `1.0.3`) typed `source_text_item` per-branch with `kind:` discriminator. Per-branch typing of `description`, `local_parameter_declaration`, etc. is a follow-up slice.
+> **Status:** SV-Slice-1 (parser release `1.0.1`) typed `systemverilog_file` and `systemverilog_parseable_file`. SV-Slice-2 (parser release `1.0.2`) flattened `source_text` via `[$1**]`. SV-Slice-3 (parser release `1.0.3`) typed `source_text_item` per-branch. SV-Slice-4 (parser release `1.0.4`) typed `description` per-branch with `kind:` discriminator (and `attributes:` field on the two multi-element branches). Two layers of typed dispatch end-to-end: source_text_item.kind → description.kind. Per-rule typing of `module_declaration`, `interface_declaration`, etc. is a follow-up slice.
 
 ## Entry points by profile
 

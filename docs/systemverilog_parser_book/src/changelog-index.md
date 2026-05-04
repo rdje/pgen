@@ -19,6 +19,72 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.4 / Contract 1.0.4 — SV-Slice-4: `description` per-branch typed (`kind:` discriminator on 8 branches; `attribute_instance*` preserved)
+
+**What changed:** 8 per-branch annotations on `description` (line 957 of `grammars/systemverilog.ebnf`). Every Or branch now emits a typed object with a `kind:` discriminator. The two multi-element branches (`attribute_instance* package_item` / `attribute_instance* bind_directive`) preserve the leading attribute_instance* prefix as a separate `attributes:` field while keeping the inner construct as `body:`.
+
+```ebnf
+description := module_declaration                 -> {kind: "module_declaration", body: $1}
+             | udp_declaration                    -> {kind: "udp_declaration", body: $1}
+             | interface_declaration              -> {kind: "interface_declaration", body: $1}
+             | program_declaration                -> {kind: "program_declaration", body: $1}
+             | package_declaration                -> {kind: "package_declaration", body: $1}
+             | attribute_instance* package_item   -> {kind: "package_item", attributes: $1, body: $2}
+             | attribute_instance* bind_directive -> {kind: "bind_directive", attributes: $1, body: $2}
+             | config_declaration                 -> {kind: "config_declaration", body: $1}
+```
+
+**Two layers of typed dispatch end-to-end** — `source_text_item.kind` (SV-Slice-3) routes to which top-level slot the item came from; `description.kind` (this slice) routes to which specific construct when the outer kind is `"description"`.
+
+**Empirical pre/post for `module m; endmodule\n`:**
+
+```text
+# Pre — body field of the description-kind source_text_item was raw envelope:
+"source_text": [
+  {"kind": "description", "body": [<description Or-of-8 raw envelope>]}
+]
+
+# Post — body is itself a typed object with its own kind discriminator:
+"source_text": [
+  {
+    "kind": "description",
+    "body": {
+      "kind": "module_declaration",
+      "body": [<module_declaration envelope>]
+    }
+  }
+]
+```
+
+**Consumer dispatch unlocked at the description level:**
+
+```rust
+for item in obj["source_text"].as_array().unwrap() {
+    if item["kind"] == "description" {
+        let desc = &item["body"];
+        match desc["kind"].as_str().unwrap() {
+            "module_declaration"    => walk_module(&desc["body"]),
+            "udp_declaration"       => walk_udp(&desc["body"]),
+            "interface_declaration" => walk_interface(&desc["body"]),
+            "program_declaration"   => walk_program(&desc["body"]),
+            "package_declaration"   => walk_package(&desc["body"]),
+            "package_item"          => walk_package_item(&desc["attributes"], &desc["body"]),
+            "bind_directive"        => walk_bind_directive(&desc["attributes"], &desc["body"]),
+            "config_declaration"    => walk_config(&desc["body"]),
+            other => panic!("unknown description kind: {}", other),
+        }
+    }
+}
+```
+
+**Annotation inventory:** 19 entries (was 11). 8 new per-branch entries on `description`.
+
+**Inner `module_declaration`, `udp_declaration`, etc. shapes still raw envelope** — per-rule typing of those is a follow-up slice.
+
+**Schema version:** stays at `1` (additive discriminator).
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.4 / Contract 1.0.4 Highlights".
+
 ### 1.0.3 / Contract 1.0.3 — SV-Slice-3: `source_text_item` per-branch typed (`kind:` discriminator)
 
 **What changed:** 8 per-branch annotations on `source_text_item` (lines 210-217 of `grammars/systemverilog.ebnf`). Every Or branch now emits a typed object with a `kind:` discriminator: `"description"`, `"local_parameter_declaration"`, `"parameter_declaration"`, `"package_import_declaration"`, `"timeunits_declaration"`, `"compiler_directive"`, `"comment_only_source_region"`, `"semi"`.

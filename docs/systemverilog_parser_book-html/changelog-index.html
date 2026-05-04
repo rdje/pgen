@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-85889884.js";
+            window.path_to_searchindex_js = "searchindex-ad8db269.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,59 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="104--contract-104--sv-slice-4-description-per-branch-typed-kind-discriminator-on-8-branches-attribute_instance-preserved"><a class="header" href="#104--contract-104--sv-slice-4-description-per-branch-typed-kind-discriminator-on-8-branches-attribute_instance-preserved">1.0.4 / Contract 1.0.4 — SV-Slice-4: <code>description</code> per-branch typed (<code>kind:</code> discriminator on 8 branches; <code>attribute_instance*</code> preserved)</a></h3>
+<p><strong>What changed:</strong> 8 per-branch annotations on <code>description</code> (line 957 of <code>grammars/systemverilog.ebnf</code>). Every Or branch now emits a typed object with a <code>kind:</code> discriminator. The two multi-element branches (<code>attribute_instance* package_item</code> / <code>attribute_instance* bind_directive</code>) preserve the leading attribute_instance* prefix as a separate <code>attributes:</code> field while keeping the inner construct as <code>body:</code>.</p>
+<pre><code class="language-ebnf">description := module_declaration                 -&gt; {kind: "module_declaration", body: $1}
+             | udp_declaration                    -&gt; {kind: "udp_declaration", body: $1}
+             | interface_declaration              -&gt; {kind: "interface_declaration", body: $1}
+             | program_declaration                -&gt; {kind: "program_declaration", body: $1}
+             | package_declaration                -&gt; {kind: "package_declaration", body: $1}
+             | attribute_instance* package_item   -&gt; {kind: "package_item", attributes: $1, body: $2}
+             | attribute_instance* bind_directive -&gt; {kind: "bind_directive", attributes: $1, body: $2}
+             | config_declaration                 -&gt; {kind: "config_declaration", body: $1}
+</code></pre>
+<p><strong>Two layers of typed dispatch end-to-end</strong> — <code>source_text_item.kind</code> (SV-Slice-3) routes to which top-level slot the item came from; <code>description.kind</code> (this slice) routes to which specific construct when the outer kind is <code>"description"</code>.</p>
+<p><strong>Empirical pre/post for <code>module m; endmodule\n</code>:</strong></p>
+<pre><code class="language-text"># Pre — body field of the description-kind source_text_item was raw envelope:
+"source_text": [
+  {"kind": "description", "body": [&lt;description Or-of-8 raw envelope&gt;]}
+]
+
+# Post — body is itself a typed object with its own kind discriminator:
+"source_text": [
+  {
+    "kind": "description",
+    "body": {
+      "kind": "module_declaration",
+      "body": [&lt;module_declaration envelope&gt;]
+    }
+  }
+]
+</code></pre>
+<p><strong>Consumer dispatch unlocked at the description level:</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>for item in obj["source_text"].as_array().unwrap() {
+    if item["kind"] == "description" {
+        let desc = &amp;item["body"];
+        match desc["kind"].as_str().unwrap() {
+            "module_declaration"    =&gt; walk_module(&amp;desc["body"]),
+            "udp_declaration"       =&gt; walk_udp(&amp;desc["body"]),
+            "interface_declaration" =&gt; walk_interface(&amp;desc["body"]),
+            "program_declaration"   =&gt; walk_program(&amp;desc["body"]),
+            "package_declaration"   =&gt; walk_package(&amp;desc["body"]),
+            "package_item"          =&gt; walk_package_item(&amp;desc["attributes"], &amp;desc["body"]),
+            "bind_directive"        =&gt; walk_bind_directive(&amp;desc["attributes"], &amp;desc["body"]),
+            "config_declaration"    =&gt; walk_config(&amp;desc["body"]),
+            other =&gt; panic!("unknown description kind: {}", other),
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Annotation inventory:</strong> 19 entries (was 11). 8 new per-branch entries on <code>description</code>.</p>
+<p><strong>Inner <code>module_declaration</code>, <code>udp_declaration</code>, etc. shapes still raw envelope</strong> — per-rule typing of those is a follow-up slice.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code> (additive discriminator).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.4 / Contract 1.0.4 Highlights”.</p>
 <h3 id="103--contract-103--sv-slice-3-source_text_item-per-branch-typed-kind-discriminator"><a class="header" href="#103--contract-103--sv-slice-3-source_text_item-per-branch-typed-kind-discriminator">1.0.3 / Contract 1.0.3 — SV-Slice-3: <code>source_text_item</code> per-branch typed (<code>kind:</code> discriminator)</a></h3>
 <p><strong>What changed:</strong> 8 per-branch annotations on <code>source_text_item</code> (lines 210-217 of <code>grammars/systemverilog.ebnf</code>). Every Or branch now emits a typed object with a <code>kind:</code> discriminator: <code>"description"</code>, <code>"local_parameter_declaration"</code>, <code>"parameter_declaration"</code>, <code>"package_import_declaration"</code>, <code>"timeunits_declaration"</code>, <code>"compiler_directive"</code>, <code>"comment_only_source_region"</code>, <code>"semi"</code>.</p>
 <p><strong>Empirical pre/post for <code>module m; endmodule\n</code>:</strong></p>
