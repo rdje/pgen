@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-04 (+0200, task: SV-Slice-4-description-per-branch-typed-attributes-preserved)
+Last updated: 2026-05-04 (+0200, task: SV-Slice-5-compiler_directive-transparent-passthrough)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-5 landed: `compiler_directive` transparent passthrough.** Annotated line 226 of `grammars/systemverilog.ebnf` with `-> $2` to drop the leading `trivia` slot and emit just the matched directive text as a clean JSON string. When `source_text_item.kind == "compiler_directive"`, the body is now a directly-usable string (e.g. `"`define FOO bar"`). Heterogeneous body shape per kind: string for compiler_directive, typed object for description, array for unannotated others. Same pattern as regex AST. Annotation count: 20 (was 19). Same accept set. Contract bumped 1.0.4 → 1.0.5. Schema stays 1. mdBook synced. SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 7/30** (foundation 38755d3, Slice-1 cb6af02, parseability_probe ref ab56f08, Slice-2 d3c06c4, Slice-3 8d76259, Slice-4 1ef9e59, Slice-5 this). Skipped `module_declaration` annotation — found that PGEN's codegen already passes single-rule-reference branches through transparently, so annotating it doesn't change the output. Next slice candidates: type attribute_instance (clean key/value pairs), comment_only_source_region (clean comment text), or module_declaration_sv_2017 per-branch (5 forms).
+
+### Earlier session note (kept for context):
 - **SV-Slice-4 landed: `description` per-branch typed (8 branches; attribute_instance* preserved on multi-element branches).** Annotated all 8 Or branches at line 957 of `grammars/systemverilog.ebnf`. Single-element branches (1-5, 8): `{kind: "<name>", body: $1}`. Multi-element branches 6-7 (`attribute_instance* package_item` / `attribute_instance* bind_directive`): `{kind: "<name>", attributes: $1, body: $2}` — preserves leading attribute_instance* iteration as a separate `attributes:` field. Two layers of typed dispatch now end-to-end: source_text_item.kind → description.kind. For `module m; endmodule\n`: source_text[0].body = `{"kind": "module_declaration", "body": <envelope>}`. Annotation count: 19 (was 11). Same accept set. Contract bumped 1.0.3 → 1.0.4. Schema stays 1. mdBook synced (changelog-index entry, schema-versioning row 0.5.0, json-carrier description row, rules-top-level status line). SV book gate green ✅. 497/0 regex tests still pass. Idiom verified: multi-element `{kind, attributes: $1, body: $2}` preserves leading-quantified-prefix semantics — common pattern in SV grammar. **Unpushed commits: 6/30** (foundation 38755d3, Slice-1 cb6af02, parseability_probe ref ab56f08, Slice-2 d3c06c4, Slice-3 8d76259, Slice-4 this). Next slice candidates: type `module_declaration` (Nexsim's hot construct), or `compiler_directive` (clean directive-text), or `attribute_instance` (clean key/value pairs).
 
 ### Earlier session note (kept for context):

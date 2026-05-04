@@ -1,4 +1,92 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-5: `compiler_directive` transparent passthrough (clean directive text)
+
+### What landed
+
+Annotated `compiler_directive` (line 226 of `grammars/systemverilog.ebnf`) with `-> $2` (transparent passthrough of the regex capture). Drops the leading `trivia` slot from the matched sequence and surfaces just the captured directive text as a clean JSON string.
+
+```ebnf
+# Before:
+compiler_directive := trivia /`[^\r\n]*/
+
+# After:
+compiler_directive := trivia /`[^\r\n]*/
+                   -> $2
+```
+
+When `source_text_item.kind == "compiler_directive"`, the `body` field is now a directly-usable string — consumers can call `body.as_str().unwrap()` and feed the result to a compiler-directive parser without further AST descent.
+
+### Empirical pre/post on `` `define FOO bar `` + `module m; endmodule\n`
+
+```text
+# Pre — body was raw envelope of `trivia regex_capture`:
+"source_text": [
+  {"kind": "compiler_directive", "body": [<trivia envelope>, "`define FOO bar"]}
+]
+
+# Post — body is the clean directive string:
+"source_text": [
+  {"kind": "compiler_directive", "body": "`define FOO bar"}
+]
+```
+
+### Heterogeneous body types per kind
+
+The SV AST now has heterogeneous body shapes by `source_text_item.kind`:
+
+| `source_text_item.kind` | `body` JSON type | Notes |
+|---|---|---|
+| `description` | object | typed sub-shape with its own `kind` discriminator (per SV-Slice-4) |
+| `compiler_directive` | string | clean directive text (this slice) |
+| `local_parameter_declaration` | array | raw envelope (per-rule typing pending) |
+| `parameter_declaration` | array | raw envelope (per-rule typing pending) |
+| `package_import_declaration` | array | raw envelope (per-rule typing pending) |
+| `timeunits_declaration` | array | raw envelope (per-rule typing pending) |
+| `comment_only_source_region` | array | raw envelope (per-rule typing pending) |
+| `semi` | (no body) | just `{kind: "semi"}` (per SV-Slice-3) |
+
+This is the same pattern the regex AST uses (e.g. `atom.kind == "literal"` → body is string vs `atom.kind == "char_class"` → body is a typed object). Consumers dispatch on `kind` first, then handle each body shape per its type.
+
+### Annotation inventory
+
+20 entries (was 19). New: `compiler_directive`.
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_04_slice_5`. Calibration history block prepended. The minimal_module sample is unaffected by this slice (no compiler directive in the input).
+
+### Contract bump
+
+- Parser release: `1.0.4` → `1.0.5`.
+- Contract version: `1.0.4` → `1.0.5`.
+- Schema version stays `1`.
+- New "Release 1.0.5 / Contract 1.0.5 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry for SV-Slice-5.
+- `schema-versioning.md`: new row `0.6.0 / 1.0.5`.
+- `json-carrier.md`: new `compiler_directive` row.
+- `rules-top-level.md`: status line updated.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- Annotation inventory: 20 entries.
+- Empirical AST shape: `body` is clean string `"`define FOO bar"` for the `with_directive.sv` sample.
+
+### Annotation-language idiom note
+
+Transparent passthrough `-> $N` (no object literal) is the cleanest form for "extract just the captured payload" — used here on a 2-element sequence to drop the trivia prefix and surface only the regex match. Same idiom as regex.ebnf's `escape = "\\\\" escape_unit -> $2` (drops the leading backslash and surfaces the typed escape unit).
+
+### Next slice candidates
+
+- SV-Slice-6: type `attribute_instance` to emit clean attribute key/value pairs (used by `description.attributes` field on package_item / bind_directive).
+- SV-Slice-6b: type `comment_only_source_region` to emit clean comment text.
+- SV-Slice-6c: type `module_declaration_sv_2017` per-branch (5 forms — ANSI/non-ANSI/wildcard/extern variants).
+
 ## 2026-05-04 - SV-Slice-4: `description` per-branch typed (`kind:` discriminator + attributes preserved)
 
 ### What landed

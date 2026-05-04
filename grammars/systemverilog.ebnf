@@ -224,6 +224,7 @@ source_text_item := description                       -> {kind: "description", b
 # Shared lexical foundation
 
 compiler_directive := trivia /`[^\r\n]*/
+                   -> $2
 
 comment_only_source_region := white_space* ( line_comment | block_comment ) ( white_space | line_comment | block_comment )*
 

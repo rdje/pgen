@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.4`
+  - `1.0.5`
 - Parser release version:
-  - `1.0.4`
+  - `1.0.5`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,57 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.5 / Contract 1.0.5 Highlights — SV-Slice-5: `compiler_directive` transparent passthrough (clean directive text)
+
+- **Annotation:** `compiler_directive := trivia /` `` `[^\r\n]*/`` `` -> $2` (line 226 of `grammars/systemverilog.ebnf`).
+- **Effect:** drops the leading `trivia` (whitespace) prefix from the matched sequence and emits just the captured directive text (the `` ` `` backtick + directive name + arguments) as a clean JSON string. When `source_text_item.kind == "compiler_directive"`, the `body` field is now a directly-usable string instead of a nested envelope.
+- **Empirical pre/post on `` `define FOO bar `` followed by `module m; endmodule\n`:**
+
+```text
+# Pre-SV-Slice-5 — body was the raw envelope of `trivia regex_capture`:
+"source_text": [
+  {
+    "kind": "compiler_directive",
+    "body": [<trivia envelope>, "`define FOO bar"]   // 2-element array
+  },
+  {"kind": "description", "body": {...}}
+]
+
+# Post-SV-Slice-5 — body is the clean directive string:
+"source_text": [
+  {
+    "kind": "compiler_directive",
+    "body": "`define FOO bar"   // clean string, ready to use
+  },
+  {"kind": "description", "body": {...}}
+]
+```
+
+- **Consumer dispatch is now trivially simple for compiler directives:**
+
+```rust
+for item in obj["source_text"].as_array().unwrap() {
+    match item["kind"].as_str().unwrap() {
+        "compiler_directive" => {
+            let directive_text = item["body"].as_str().unwrap();
+            // directive_text is e.g. "`define FOO bar" — ready to feed to a
+            // compiler-directive parser without further AST descent.
+            process_directive(directive_text);
+        }
+        "description" => walk_description(&item["body"]),  // typed object
+        // ... other kinds
+    }
+}
+```
+
+- **Annotation inventory:** 20 entries (was 19). New: `compiler_directive`. Existing: source_text (1), source_text_item (8), description (8), systemverilog_file (1), systemverilog_parseable_file (1).
+- **Same accept set, same diagnostic codes.** Only the `compiler_directive` shape changed.
+- **Schema-version stays `1`** (additive — clean string replaces a 2-element array; consumers walking with the dual-shape pattern handle both).
+- **Heterogeneous body types per `kind`** are now in the SV AST: when `source_text_item.kind == "description"`, body is a typed object; when `kind == "compiler_directive"`, body is a string. Consumers dispatch on `kind` first, then handle the body shape per its type. This is the same pattern the regex AST uses (e.g. `atom.kind == "literal"` → body is string vs `atom.kind == "char_class"` → body is a typed object).
+- **mdBook**: `changelog-index.md`, `schema-versioning.md`, `json-carrier.md`, `rules-top-level.md` updated. `make systemverilog_parser_book_gate` green.
+- Public API surface unchanged.
+- Annotation-language idiom note: transparent passthrough `-> $N` (no object literal) is the cleanest form for "extract just the captured payload" — used here on a 2-element sequence to drop the trivia prefix and surface only the regex match. Same idiom as regex.ebnf's `escape = "\\\\" escape_unit -> $2` (drops the leading backslash and surfaces the typed escape unit).
 
 ## Release 1.0.4 / Contract 1.0.4 Highlights — SV-Slice-4: `description` per-branch typed (`kind:` discriminator on 8 branches; attribute_instance* preserved)
 
