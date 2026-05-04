@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9d9a8d84.js";
+            window.path_to_searchindex_js = "searchindex-995b2f6d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -205,6 +205,242 @@
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1174--contract-1176--pgen-rgx-0078-verification--optim-14--15-embedding-api-dispatch-overhead-eliminated"><a class="header" href="#1174--contract-1176--pgen-rgx-0078-verification--optim-14--15-embedding-api-dispatch-overhead-eliminated">1.1.74 / Contract 1.1.76 — PGEN-RGX-0078 verification + Optim #14 / #15: embedding-API dispatch overhead eliminated</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: this section explains what changed, why your reported 360x figure no longer holds at HEAD, and what the closure picture looks like now. Read top-to-bottom — the methodology corrections matter for how you should interpret future ratio runs.</p>
+</blockquote>
+<h4 id="tldr-for-rgx"><a class="header" href="#tldr-for-rgx">TL;DR for RGX</a></h4>
+<ul>
+<li><strong>Your reported geomean PGEN/PCRE2-no-JIT compile ratio was ~360x at PGEN pin <code>056f6784</code> (release <code>1.1.40</code>, default macOS allocator).</strong> That number was correct for that pin and that methodology, but it does not survive at current HEAD (<code>1.1.74</code> / Contract <code>1.1.76</code>).</li>
+<li><strong>Two methodology issues</strong> in the report’s <code>pgen_iteration_flow/</code> cause the reported ratio to bias HIGH against PGEN (we explain both below).</li>
+<li><strong>Direct-parser-path geomean ratio at HEAD: ~70x.</strong> That’s a 5x compression from the 360x in your report, delivered by Optim #1–#13 + mimalloc that all landed between <code>1.1.40</code> and <code>1.1.73</code>.</li>
+<li><strong>Embedding-API-path geomean ratio at HEAD: ~80x</strong> after Optim #14 + #15 (this release). That’s a <strong>further 4x compression</strong> of the embedding-API path specifically — driven by eliminating per-call OS-thread-spawn dispatch overhead, not by any parser-side change.</li>
+<li><strong>Combined: ~360x → ~80x = ~4.5x compression.</strong> Still ~16x over the <code>&lt;5x</code> ROADMAP target you cited; that residual gap is structural (PGEN’s general-purpose EBNF-driven codegen vs PCRE2’s hand-tuned C) and would need either specialised regex codegen or sustained parser-internal hot-path work.</li>
+</ul>
+<h4 id="methodology-issue-1--the-reports-pcre2-numbers-are-batch-mean-not-p50"><a class="header" href="#methodology-issue-1--the-reports-pcre2-numbers-are-batch-mean-not-p50">Methodology issue #1 — the report’s PCRE2 numbers are batch-mean, not p50</a></h4>
+<p>The <code>pcre2_compile_baseline.c</code> and <code>pcre2_compile_jit_baseline.c</code> programs in <code>pgen-issues/artifacts/PGEN-RGX-0078/pgen_iteration_flow/</code> measure each pattern like this:</p>
+<pre><code class="language-c">// pcre2_compile_baseline.c:14-23 (RGX-supplied iteration flow)
+clock_gettime(CLOCK_MONOTONIC, &amp;t0);
+for (int i = 0; i &lt; BATCH; i++) {
+    pcre2_code *re = pcre2_compile(...);
+    if (re) pcre2_code_free(re);
+}
+clock_gettime(CLOCK_MONOTONIC, &amp;t1);
+long long ns = (t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
+long long avg = ns / BATCH;
+printf("%-22s %10lld ns/compile  (%d-compile batch took %lld ns)\n", name, avg, ...);
+</code></pre>
+<p>That’s <code>total_elapsed / 10000</code> — the <strong>arithmetic mean</strong> of 10000 compiles in a batch, not the median (p50). The report’s <code>measurements/ratio_table.md</code> column header <em>“PCRE2 no-JIT p50”</em> is mislabeled — the underlying number from <code>pcre2_compile_p50.txt</code> is a mean.</p>
+<p>PGEN’s side, by contrast, measures true p50 of 5000 individual <code>Instant::now()</code> samples. Mixing p50 / mean in a ratio is apples-to-oranges, and the bias goes consistently in one direction:</p>
+<ul>
+<li><strong>Batch-mean tends to be lower than per-call p50 for compile-like operations</strong> because the batch amortizes allocator hiccups, page faults, branch-predictor warmup, and TLB pressure across 10000 calls. Once the compile path is hot, every subsequent compile in the batch hits warm caches.</li>
+<li>A per-call p50 measured the same way PGEN’s side is measured (individual <code>clock_gettime</code> brackets per call) would land somewhere higher than the batch-mean number, and the ratio would correspondingly be lower.</li>
+</ul>
+<p>We have not re-measured PCRE2 compile per-call p50 on this host (would have required adding a <code>pcre2</code> Rust crate dep + libpcre2-8 install — out of scope for this slice). The ~70x / ~80x ratios reported below use RGX’s PCRE2 batch-mean numbers as published, and are therefore biased in PGEN’s <em>disfavor</em> compared to a true p50/p50 comparison. The “real” per-call ratios are likely 10–30% lower still.</p>
+<p><strong>Recommendation for RGX</strong>: when you next re-run the iteration flow, change <code>pcre2_compile_baseline.c</code> to time each <code>pcre2_compile()</code> call individually and take p50, not batch-mean. Or change the PGEN side to measure batch-mean. Either pick — but <strong>both sides must use the same statistic</strong> for the ratio to be meaningful.</p>
+<h4 id="methodology-issue-2--the-reports-pgen-baseline-is-13-perf-optims-behind-head"><a class="header" href="#methodology-issue-2--the-reports-pgen-baseline-is-13-perf-optims-behind-head">Methodology issue #2 — the report’s PGEN baseline is 13 perf optims behind HEAD</a></h4>
+<p><code>measurements/host_metadata.txt</code> records PGEN pin <code>056f67842955dd4271cbf6fc6158f9cb9c64002e</code> (release <code>1.1.29</code>, contract <code>1.1.31</code>, integration contract document <code>1.1.40 / 1.1.42</code>). That’s where the 92–377µs PGEN parse times you measured came from.</p>
+<p>Between that pin and current HEAD (<code>1.1.74</code>), thirteen perf optimisations have landed against PGEN-RGX-0073:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Optim</th><th>What it did</th><th>Where to look</th></tr>
+</thead>
+<tbody>
+<tr><td>#1–#7</td><td>Earlier perf wins</td><td><code>git log --grep "Optim #[1-7]"</code></td></tr>
+<tr><td>#6</td><td>rustc-hash (FxHash) for the parser memo HashMap</td><td>rustc-hash 2.1 dep added</td></tr>
+<tr><td>#8</td><td>Cached <code>logger.is_enabled()</code> inside <code>try_parse</code> closures</td><td>every rule call sees this</td></tr>
+<tr><td>#9</td><td>Borrow <code>Regex</code> in place; eliminate clone-per-match</td><td>regex matcher hot path</td></tr>
+<tr><td>#10</td><td>Opt-in mimalloc as global allocator for the perf probe</td><td><code>mimalloc_perf</code> cargo feature</td></tr>
+<tr><td>#11</td><td>Fast-path semantic-runtime wrapper for grammars without predicates</td><td>regex grammar takes the fast path</td></tr>
+<tr><td>#12</td><td>Eliminate redundant outer clone in <code>$N</code> extraction</td><td>annotation-system codegen</td></tr>
+<tr><td>#13</td><td>Recovery (mimalloc re-enabled correctly in the perf probe)</td><td><code>regex_perf_probe</code> feature wiring</td></tr>
+</tbody>
+</table>
+</div>
+<p>Cumulative effect on the <strong>direct-parser-path</strong> (<code>RegexParser::new(...).parse_full_regex()</code>) measured on Apple M4 Pro / mimalloc / current HEAD / 5000 samples / 200 warmup:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th style="text-align: right">RGX-reported PGEN p50 (<code>1.1.40</code>, default alloc)</th><th style="text-align: right">PGEN p50 at HEAD (mimalloc, direct path)</th><th style="text-align: right">PGEN-side speedup</th></tr>
+</thead>
+<tbody>
+<tr><td>literal_simple</td><td style="text-align: right">92,042 ns</td><td style="text-align: right">13,750 ns</td><td style="text-align: right">6.7x</td></tr>
+<tr><td>digit_sequence</td><td style="text-align: right">216,833 ns</td><td style="text-align: right">33,334 ns</td><td style="text-align: right">6.5x</td></tr>
+<tr><td>character_class</td><td style="text-align: right">266,584 ns</td><td style="text-align: right">52,083 ns</td><td style="text-align: right">5.1x</td></tr>
+<tr><td>alternation</td><td style="text-align: right">119,709 ns</td><td style="text-align: right">27,958 ns</td><td style="text-align: right">4.3x</td></tr>
+<tr><td>capture_groups</td><td style="text-align: right">265,000 ns</td><td style="text-align: right">62,334 ns</td><td style="text-align: right">4.3x</td></tr>
+<tr><td>url_simple</td><td style="text-align: right">196,292 ns</td><td style="text-align: right">29,041 ns</td><td style="text-align: right">6.8x</td></tr>
+<tr><td>email_basic</td><td style="text-align: right">213,292 ns</td><td style="text-align: right">46,458 ns</td><td style="text-align: right">4.6x</td></tr>
+<tr><td>anchor_complex</td><td style="text-align: right">377,209 ns</td><td style="text-align: right">98,875 ns</td><td style="text-align: right">3.8x</td></tr>
+</tbody>
+</table>
+</div>
+<p>So even before this release’s Optim #14/#15, the direct-parser-path geomean ratio against the PCRE2-no-JIT batch-mean was already down to ~70x — a 5x compression from the report’s 360x.</p>
+<p><strong>However</strong>, RGX’s iteration flow doesn’t measure the direct-parser-path. It measures the <strong>embedding-API path</strong> (<code>pgen::embedding_api::parse_grammar_profile_named("regex", "regex_default", input)</code>), per <code>pgen_pcre2_compile_ratio.rs:79-85</code>. And that path was carrying a structural overhead that Optim #1–#13 didn’t touch. Which brings us to:</p>
+<h4 id="where-the-rest-of-the-360x-came-from--the-embedding-api-per-call-thread-spawn"><a class="header" href="#where-the-rest-of-the-360x-came-from--the-embedding-api-per-call-thread-spawn">Where the rest of the 360x came from — the embedding-API per-call thread spawn</a></h4>
+<p>The embedding-API path includes a defensive thread spawn that the direct path doesn’t:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// rust/src/embedding_api.rs:run_generated_regex_on_dedicated_stack — pre-Optim-#14
+fn run_generated_regex_on_dedicated_stack&lt;T, F&gt;(input: &amp;str, f: F) -&gt; Result&lt;T, ParseDiagnostic&gt; {
+    let owned_input = input.to_string();
+    let handle = std::thread::Builder::new()
+        .name("pgen-generated-regex".to_string())
+        .stack_size(GENERATED_REGEX_WORKER_STACK_BYTES)  // 64 MB
+        .spawn(move || f(owned_input))
+        .map_err(...)?;
+    handle.join().map_err(|_| parse_failure_diagnostic("..."))?
+}
+<span class="boring">}</span></code></pre>
+<p>Every call to <code>parse_grammar_profile_named("regex", "regex_default", ...)</code> spawned a fresh 64MB-stack OS thread, ran the parser there, and joined. The 64MB safety margin defends against deeply nested PCRE2 conformance patterns + serde_json::Value’s recursive <code>Drop</code> on the parser’s intermediate AST (commit <code>2311eb1</code>, “Embedding API tests: align regex integration test stack with production”).</p>
+<p>OS-thread spawn on macOS arm64 is ~50–100µs depending on system load. Paid on EVERY parse call, regardless of input depth. Even on a 4-byte input like <code>"test"</code> where the actual parse takes ~13.7µs, the dispatch was ~76µs — <strong>5.5x the parse work itself</strong>.</p>
+<p>Measured per-pattern dispatch overhead at HEAD on the embedding-API path (before Optim #14):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th style="text-align: right">Direct path p50</th><th style="text-align: right">Embedding-API p50 (pre-#14)</th><th style="text-align: right">Per-call dispatch overhead</th></tr>
+</thead>
+<tbody>
+<tr><td>literal_simple</td><td style="text-align: right">13,750</td><td style="text-align: right">90,292</td><td style="text-align: right">76,542 ns</td></tr>
+<tr><td>digit_sequence</td><td style="text-align: right">33,334</td><td style="text-align: right">193,542</td><td style="text-align: right">160,208 ns</td></tr>
+<tr><td>character_class</td><td style="text-align: right">52,083</td><td style="text-align: right">234,792</td><td style="text-align: right">182,709 ns</td></tr>
+<tr><td>alternation</td><td style="text-align: right">27,958</td><td style="text-align: right">111,834</td><td style="text-align: right">83,876 ns</td></tr>
+<tr><td>capture_groups</td><td style="text-align: right">62,334</td><td style="text-align: right">230,167</td><td style="text-align: right">167,833 ns</td></tr>
+<tr><td>url_simple</td><td style="text-align: right">29,041</td><td style="text-align: right">170,125</td><td style="text-align: right">141,084 ns</td></tr>
+<tr><td>email_basic</td><td style="text-align: right">46,458</td><td style="text-align: right">186,750</td><td style="text-align: right">140,292 ns</td></tr>
+<tr><td>anchor_complex</td><td style="text-align: right">98,875</td><td style="text-align: right">291,792</td><td style="text-align: right">192,917 ns</td></tr>
+</tbody>
+</table>
+</div>
+<p>The dispatch overhead <strong>dominated 60–85% of the embedding-API number on shallow patterns</strong>. So the ~317x embedding-API geomean ratio at HEAD (pre-#14) decomposed into:</p>
+<ul>
+<li><strong>~70x real parser cost</strong> (direct-path geomean) +</li>
+<li><strong>~250x per-call thread-spawn overhead</strong> (structurally unrelated to parser performance)</li>
+</ul>
+<p>This is why RGX’s report came in at ~360x even though the underlying parser had already been compressed 5x by Optim #1–#13: those optims fixed the parser, but the embedding-API dispatch was untouched and dominated the path RGX was measuring.</p>
+<h4 id="what-optim-14-this-release-did"><a class="header" href="#what-optim-14-this-release-did">What Optim #14 (this release) did</a></h4>
+<p>Replaced the per-call <code>std::thread::Builder::spawn(...).join()</code> with a single long-lived 64MB-stack worker thread + mpsc channel:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// rust/src/embedding_api.rs — post-Optim-#14
+fn generated_regex_worker() -&gt; &amp;'static GeneratedRegexWorker {
+    static WORKER: std::sync::OnceLock&lt;GeneratedRegexWorker&gt; = std::sync::OnceLock::new();
+    WORKER.get_or_init(|| {
+        let (sender, receiver) = std::sync::mpsc::channel::&lt;GeneratedRegexJob&gt;();
+        std::thread::Builder::new()
+            .name("pgen-generated-regex".to_string())
+            .stack_size(GENERATED_REGEX_WORKER_STACK_BYTES)
+            .spawn(move || {
+                while let Ok(job) = receiver.recv() {
+                    job();
+                }
+            })
+            .expect("...");
+        ...
+    })
+}
+<span class="boring">}</span></code></pre>
+<p>The worker is lazily initialised on first use via <code>OnceLock</code> and lives for the process lifetime. Each parse call sends a closure + sync_channel for the result, and blocks on the result. Panics are caught via <code>catch_unwind</code> so a malformed-input panic doesn’t poison the worker for subsequent parses.</p>
+<p>Per-call cost drops from ~50–100µs (thread spawn + join) to ~6–50µs (channel send + condvar wakeup). The 64MB stack guarantee is preserved — the dedicated worker has it once, amortized.</p>
+<p>Behavior change RGX should know about: <strong>parses are now SERIALIZED through the single cached worker</strong> (vs previously parallel via thread-per-call). For RGX’s typical use case (one parse at a time per <code>Regex::compile</code> call site) this is fine. For multi-threaded callers needing concurrent deep-pattern parses, the worker pool can be expanded as a follow-up — the per-call setup cost is gone regardless of pool size.</p>
+<p><code>stacker::maybe_grow</code> was investigated as a true zero-dispatch alternative (run inline on caller’s stack with psm-based growth) but its stack-headroom heuristic does not appear to grow segments on cargo test runner threads under Rust 1.95 / macOS arm64 — deeply nested success-sample tests overflow even with <code>new_stack_size = 64MB</code>. Tracked as a follow-up; the cached-worker design is the conservative fallback.</p>
+<h4 id="what-optim-15-this-release-did"><a class="header" href="#what-optim-15-this-release-did">What Optim #15 (this release) did</a></h4>
+<p>Added a per-call depth heuristic that bypasses the worker entirely for shallow inputs:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>const GENERATED_REGEX_INLINE_DEPTH_THRESHOLD: usize = 16;
+
+fn estimate_max_grouping_nesting(input: &amp;str) -&gt; usize {
+    let mut depth = 0usize;
+    let mut max_depth = 0usize;
+    let mut bytes = input.bytes();
+    while let Some(b) = bytes.next() {
+        match b {
+            b'\\' =&gt; { let _ = bytes.next(); }  // skip escaped byte
+            b'(' | b'[' =&gt; { depth += 1; if depth &gt; max_depth { max_depth = depth; } }
+            b')' | b']' =&gt; { depth = depth.saturating_sub(1); }
+            _ =&gt; {}
+        }
+    }
+    max_depth
+}
+
+fn run_generated_regex_on_dedicated_stack&lt;T, F&gt;(input: &amp;str, f: F) -&gt; Result&lt;T, ParseDiagnostic&gt; {
+    if estimate_max_grouping_nesting(input) &lt;= GENERATED_REGEX_INLINE_DEPTH_THRESHOLD {
+        return f(input.to_string());  // inline on caller's stack, zero dispatch
+    }
+    // Otherwise use the cached worker thread (defined above).
+    ...
+}
+<span class="boring">}</span></code></pre>
+<p>The PGEN-RGX-0073 8-pattern bench corpus has max grouping depth 4, so all 8 patterns take the inline path. The integration contract’s stress samples (<code>nested_capturing_groups_50</code>, <code>deep_nested_backreference_80</code>) exceed the threshold and continue to use the cached worker thread for the 64MB safety margin. Both deeply nested success-sample tests confirmed passing post-change.</p>
+<h4 id="combined-post-optim-1415-numbers-apple-m4-pro--mimalloc--current-head--5000-samples--200-warmup"><a class="header" href="#combined-post-optim-1415-numbers-apple-m4-pro--mimalloc--current-head--5000-samples--200-warmup">Combined post-Optim-#14+#15 numbers (Apple M4 Pro / mimalloc / current HEAD / 5000 samples / 200 warmup)</a></h4>
+<p>Embedding-API path (the path RGX measures), p50 in nanoseconds:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th style="text-align: right">Pre-#14</th><th style="text-align: right">Post-#14</th><th style="text-align: right">Post-#15 (HEAD)</th><th style="text-align: right">PCRE2 batch-mean (RGX)</th><th style="text-align: right">Ratio at HEAD</th></tr>
+</thead>
+<tbody>
+<tr><td>literal_simple</td><td style="text-align: right">90,292</td><td style="text-align: right">20,208</td><td style="text-align: right">14,667</td><td style="text-align: right">346</td><td style="text-align: right">42x</td></tr>
+<tr><td>digit_sequence</td><td style="text-align: right">193,542</td><td style="text-align: right">44,833</td><td style="text-align: right">37,500</td><td style="text-align: right">682</td><td style="text-align: right">55x</td></tr>
+<tr><td>character_class</td><td style="text-align: right">234,792</td><td style="text-align: right">65,125</td><td style="text-align: right">61,375</td><td style="text-align: right">1,156</td><td style="text-align: right">53x</td></tr>
+<tr><td>alternation</td><td style="text-align: right">111,834</td><td style="text-align: right">38,708</td><td style="text-align: right">32,542</td><td style="text-align: right">463</td><td style="text-align: right">70x</td></tr>
+<tr><td>capture_groups</td><td style="text-align: right">230,167</td><td style="text-align: right">77,042</td><td style="text-align: right">74,833</td><td style="text-align: right">685</td><td style="text-align: right">109x</td></tr>
+<tr><td>url_simple</td><td style="text-align: right">170,125</td><td style="text-align: right">39,042</td><td style="text-align: right">33,833</td><td style="text-align: right">370</td><td style="text-align: right">91x</td></tr>
+<tr><td>email_basic</td><td style="text-align: right">186,750</td><td style="text-align: right">58,167</td><td style="text-align: right">50,042</td><td style="text-align: right">389</td><td style="text-align: right">129x</td></tr>
+<tr><td>anchor_complex</td><td style="text-align: right">291,792</td><td style="text-align: right">116,292</td><td style="text-align: right">116,041</td><td style="text-align: right">766</td><td style="text-align: right">151x</td></tr>
+<tr><td><strong>geomean</strong></td><td style="text-align: right"><strong>~218,000</strong></td><td style="text-align: right"><strong>~57,000</strong></td><td style="text-align: right"><strong>~50,000</strong></td><td style="text-align: right"><strong>~605</strong></td><td style="text-align: right"><strong>~80x</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>Same patterns measured against PCRE2-with-JIT batch-mean: geomean ratio ~17x at HEAD (was ~85x in the report).</p>
+<h4 id="what-this-means-for-the-closure-picture"><a class="header" href="#what-this-means-for-the-closure-picture">What this means for the closure picture</a></h4>
+<p>The <code>&lt;5x of PCRE2 compile</code> ROADMAP target you cited still holds as the integration-side closure criterion. Where we are vs. that target:</p>
+<ul>
+<li><strong>Was: ~360x against no-JIT, ~85x against +JIT</strong> (RGX’s 2026-05-01 measurement).</li>
+<li><strong>Now: ~80x against no-JIT, ~17x against +JIT</strong> (this release).</li>
+<li><strong>Target: &lt;5x against no-JIT</strong> — still ~16x of compression away.</li>
+</ul>
+<p>The remaining gap is <strong>structural</strong>, not dispatch overhead:</p>
+<ul>
+<li><strong>Direct-parser-path geomean is ~70x</strong> at HEAD. The ~10x gap between direct-path (~70x) and embedding-API-path (~80x) is what’s left of the dispatch overhead — small enough that further dispatch tuning (~1µs at the per-call level) won’t move the geomean meaningfully.</li>
+<li>The 70x is the cost of PGEN’s general-purpose EBNF-driven codegen processing PCRE2-like grammars vs. PCRE2’s hand-tuned C compile. Closing it requires either:
+<ol>
+<li><strong>Specialised codegen for the regex grammar</strong> (most likely route per the report’s analysis): bypass PGEN’s general-purpose EBNF-driven codegen for the regex profile specifically, emit a hand-tuned recursive-descent parser matching the published shape. Could be limited to the <code>regex</code> profile, leaving SystemVerilog / VHDL grammars on the general path.</li>
+<li><strong>Sustained Optim #16+ track</strong> on parser-internal hot paths. Less likely to deliver order-of-magnitude wins given the structural argument (PGEN parse &lt; PCRE2 compile structurally yet runs slower), but viable if hot paths concentrate in a few rewritable spots.</li>
+<li><strong>Diagnostic out-of-scope decision</strong>: PGEN team determines the general-purpose architecture cannot reach &lt;5x without specialised codegen, and specialised codegen is out-of-scope for the regex grammar — in that case 0078 closes with a forward reference and the <code>&lt;5x of PCRE2 compile</code> ROADMAP target gets retired.</li>
+</ol>
+</li>
+</ul>
+<h4 id="verification-commands-rgx-can-run-on-its-own-host"><a class="header" href="#verification-commands-rgx-can-run-on-its-own-host">Verification commands RGX can run on its own host</a></h4>
+<p>Reproduce the embedding-API ratio at any current PGEN HEAD without leaving the PGEN tree:</p>
+<pre><code class="language-bash"># In the PGEN tree:
+cd rust
+cargo build --release --features generated_parsers --features mimalloc_perf \
+    --bin regex_perf_probe_embedding_api
+./target/release/regex_perf_probe_embedding_api
+# Output: per-pattern p50 ns + min/mean/p99/max
+</code></pre>
+<p>Reproduce the direct-parser-path ratio (the ~70x number) the same way with <code>regex_perf_probe</code>:</p>
+<pre><code class="language-bash">cargo build --release --features generated_parsers --features mimalloc_perf \
+    --bin regex_perf_probe
+./target/release/regex_perf_probe --samples 5000 --warmup 200
+</code></pre>
+<p>Reproduce the validation-pass cost (confirming it’s not the bottleneck):</p>
+<pre><code class="language-bash">cargo build --release --features mimalloc_perf --bin regex_validation_microbench
+./target/release/regex_validation_microbench
+</code></pre>
+<p>Both binaries are committed at <code>rust/src/bin/</code>. Their output is stable across reruns within ±10% (allocator + scheduler noise). Compare against the tables above on the same Apple M4 Pro / mimalloc / current HEAD methodology to verify reproducibility.</p>
+<p>For the PCRE2 side, RGX’s existing C bench programs in <code>pgen-issues/artifacts/PGEN-RGX-0078/pgen_iteration_flow/</code> continue to work — but <strong>fix the metric mismatch</strong> before publishing any combined ratio table: either change PGEN-side to batch-mean or change PCRE2-side to per-call p50. Don’t mix them.</p>
+<h4 id="ledger--bug-status"><a class="header" href="#ledger--bug-status">Ledger + bug status</a></h4>
+<ul>
+<li><a href="../../contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.html"><code>REGEX-0078</code></a> Notes column updated 2026-05-04 with the verification findings + Optim #14/#15 measurement + closure-path implications.</li>
+<li>Status remains <strong>“Acknowledged / Deferred (non-blocking)”</strong> pending the structural ~16x parser-internal compression. The combined Optim #1–#15 + mimalloc compression of 4.5x against the report’s 360x is meaningful but not closure.</li>
+<li>No bug-class change. PGEN-RGX-0078 is still classified as “pathological performance per protocol §4” — not a correctness issue.</li>
+</ul>
+<p><strong>Contract section</strong>: <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.74 / Contract 1.1.76 Highlights”.</p>
 <h3 id="1173--contract-1175--pgen-rgx-0079-fix-invalid-braced-escapes-rejected-no-silent-misparse"><a class="header" href="#1173--contract-1175--pgen-rgx-0079-fix-invalid-braced-escapes-rejected-no-silent-misparse">1.1.73 / Contract 1.1.75 — PGEN-RGX-0079 fix: invalid braced escapes rejected (no silent misparse)</a></h3>
 <p><strong>What changed:</strong> Negative-lookahead guards added to <code>simple_escape</code> to block the <code>\X{...}</code> brace-form fallback for invalid braced escapes.</p>
 <pre><code class="language-ebnf">simple_escape = !"o{" !"x{" !"p{" !"P{" any_char
