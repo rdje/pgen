@@ -36,6 +36,16 @@ path = "src/bin/regex_perf_probe.rs"
 required-features = ["generated_parsers"]
 
 [[bin]]
+# PGEN-RGX-0078 verification probe. Mirrors `regex_perf_probe` but measures
+# via `pgen::embedding_api::parse_grammar_profile_named("regex",
+# "regex_default", input)` — the embedding-API path RGX measured in their
+# 2026-05-01 ratio table. Used to quantify the cached-worker dispatch
+# overhead vs the direct `RegexParser::parse_full_regex()` path.
+name = "regex_perf_probe_embedding_api"
+path = "src/bin/regex_perf_probe_embedding_api.rs"
+required-features = ["generated_parsers"]
+
+[[bin]]
 name = "ebnf_dual_run_diff"
 path = "src/bin/ebnf_dual_run_diff.rs"
 required-features = ["ebnf_dual_run"]

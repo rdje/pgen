@@ -1,4 +1,62 @@
 # CHANGES.md
+## 2026-05-04 - Optim #14 (PGEN-RGX-0078): cached 64MB-stack worker thread eliminates per-call thread spawn
+
+### What landed
+
+`run_generated_regex_on_dedicated_stack` in `rust/src/embedding_api.rs` previously spawned a fresh 64MB-stack OS thread on every call to `parse_grammar_profile_named("regex", "regex_default", ...)` (or any embedding-API entry that goes through the regex grammar). Cost: ~50–100µs of OS-thread setup + join paid even on a 4-byte input like `"test"`.
+
+Replaced with a single long-lived 64MB-stack worker thread + mpsc channel. Per-call cost drops to a channel send + condvar wakeup. Worker is lazily initialised via `OnceLock` on first use and lives for the process lifetime.
+
+```rust
+type GeneratedRegexJob = Box<dyn FnOnce() + Send + 'static>;
+struct GeneratedRegexWorker {
+    sender: std::sync::Mutex<std::sync::mpsc::Sender<GeneratedRegexJob>>,
+}
+fn generated_regex_worker() -> &'static GeneratedRegexWorker { … OnceLock-initialised … }
+```
+
+Each call sends a job that owns the input + closure, blocks on a sync_channel for the result, and unwraps panics via `catch_unwind` so a malformed-input panic doesn't kill the worker.
+
+### Measurement on Apple M4 Pro, mimalloc, current HEAD, 5000 samples / 200 warmup
+
+| Pattern | Before (per-call thread spawn) | After (cached worker) | Speedup | New PGEN/PCRE2-no-JIT ratio |
+|---|---:|---:|---:|---:|
+| literal_simple   |  90,292 ns |  20,208 ns | **4.5x** |  58x |
+| digit_sequence   | 193,542 ns |  44,833 ns | **4.3x** |  66x |
+| character_class  | 234,792 ns |  65,125 ns | **3.6x** |  56x |
+| alternation      | 111,834 ns |  38,708 ns | **2.9x** |  84x |
+| capture_groups   | 230,167 ns |  77,042 ns | **3.0x** | 112x |
+| url_simple       | 170,125 ns |  39,042 ns | **4.4x** | 105x |
+| email_basic      | 186,750 ns |  58,167 ns | **3.2x** | 150x |
+| anchor_complex   | 291,792 ns | 116,292 ns | **2.5x** | 152x |
+
+Geomean PGEN/PCRE2-no-JIT for the embedding-API path: **~317x → ~88x** — a 3.6x compression on top of the ~5x compression Optim #1–#13 had already delivered. Combined: ~360x → ~88x = **~4.1x compression** vs RGX's PGEN-RGX-0078 reported number.
+
+### Verification work that surfaced this
+
+PGEN-RGX-0078's verification on this host found two methodology issues with the report's 360x figure:
+1. RGX's PCRE2 numbers (column header "p50") are batch-mean of 10000 compiles, not p50 — biasing PCRE2 number low and ratio high (`pcre2_compile_baseline.c:17-23`).
+2. The PGEN measurement was at pin `056f6784` (release 1.1.40) — current HEAD (1.1.73/1.1.75) has Optim #1–#13 + mimalloc on top.
+
+Direct-parser-path measurement at HEAD shows ~70x geomean ratio (5x compression vs 360x). Embedding-API-path measurement at HEAD shows ~317x — the difference is per-call thread spawn dispatch overhead (60–85% of the embedding-API number for shallow patterns). This commit eliminates that.
+
+### Why not stacker (investigated)
+
+`stacker::maybe_grow` would let the parser run inline on the caller's stack with `psm`-based segment growth only when needed — same approach used by rustc, syn, serde_json. Investigated but the stack-headroom heuristic does not appear to grow segments on cargo test runner threads under Rust 1.95 / macOS arm64; the deeply nested success-sample tests (`nested_capturing_groups_50`, `deep_nested_backreference_80`) overflow even with `new_stack_size = 64MB`. Tracked as a follow-up optim — the cached-worker design is the conservative fallback that keeps 497/0 tests green.
+
+### New tooling
+
+`rust/src/bin/regex_perf_probe_embedding_api.rs` — apples-to-apples PGEN-RGX-0078 verification probe. Mirrors `regex_perf_probe` but measures via `parse_grammar_profile_named` (the embedding-API path RGX measured) instead of the direct `RegexParser::parse_full_regex()` path. Used to quantify cached-worker dispatch overhead.
+
+### Behavior note
+
+Parses are now SERIALIZED through the single worker (vs previously parallel via thread-per-call). The bench corpus runs sequentially so we don't measure parallelism loss. For multi-threaded callers needing concurrent parses, the worker pool can be expanded as a follow-up — the fundamental win is eliminating per-call thread setup, which dominates regardless of pool size.
+
+### Verified
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- `regex_perf_probe_embedding_api` post-change shows 2.5–4.5x speedup across the corpus.
+- PGEN-RGX-0078 bug ledger entry updated with verification findings + Optim #14 measurement.
+
 ## 2026-05-04 - PGEN-RGX-0079 fix: invalid braced escapes rejected, not silently misparsed
 
 ### What landed
