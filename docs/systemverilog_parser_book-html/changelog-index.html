@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4a62b682.js";
+            window.path_to_searchindex_js = "searchindex-dc8d6cf2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,26 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="101--contract-101--sv-slice-1-systemverilog_file-typed-dangling-annotation-rescued"><a class="header" href="#101--contract-101--sv-slice-1-systemverilog_file-typed-dangling-annotation-rescued">1.0.1 / Contract 1.0.1 — SV-Slice-1: <code>systemverilog_file</code> typed (dangling annotation rescued)</a></h3>
+<p><strong>What changed:</strong> <code>grammars/systemverilog.ebnf</code> line 184’s <code>systemverilog_file</code> rule now carries its return annotation on the same multi-line definition (was dangling between the <code>sv_multi_entry_root</code> helper rule and <code>systemverilog_parseable_file</code>). The annotation <code>-&gt; {type: "systemverilog_file", source_text: $2}</code> now correctly latches onto <code>systemverilog_file</code>. Same slice removed the <code>//</code> prefix from <code>systemverilog_parseable_file</code>’s annotation (PGEN’s EBNF dialect uses <code>#</code> for comments, not <code>//</code>, so the <code>//</code> prefix was misleading rather than effective).</p>
+<p><strong>Empirical pre/post for <code>module m; endmodule\n</code>:</strong></p>
+<pre><code class="language-text"># Pre-SV-Slice-1 — recursive envelope:
+{"content": {"Sequence": [
+    {"content": {"Alternative": ...}, "rule_name": "element_0", ...},
+    {"content": {"Alternative": ...}, "rule_name": "element_1", ...},
+    ...
+]}}
+
+# Post-SV-Slice-1 — typed object at root:
+{"content": {"Json": {
+    "type": "systemverilog_file",
+    "source_text": [...]
+}}}
+</code></pre>
+<p><strong>Annotation inventory</strong> (from <code>ast_pipeline</code>’s reporting): 2 entries (was 1). New: <code>systemverilog_file</code>. Existing: <code>systemverilog_parseable_file</code> (was already registered via the misleading <code>//</code> prefix; now registered via the documented path).</p>
+<p><strong>Manifest update:</strong> <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code> <code>current_content_kind</code> updated from placeholder <code>"sequence"</code> to calibrated <code>"json_object"</code>. Drift status flipped to <code>calibrated_2026_05_04</code>. Layout note about line 195 dangling annotation removed (resolved). Calibration history block added.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code> (additive shape change within major version 1).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.1 / Contract 1.0.1 Highlights”.</p>
 <h3 id="100--contract-100--foundation-baseline-mdbook--contract-highlights-structure"><a class="header" href="#100--contract-100--foundation-baseline-mdbook--contract-highlights-structure">1.0.0 / Contract 1.0.0 — Foundation baseline (mdbook + contract Highlights structure)</a></h3>
 <p><strong>What changed:</strong> Initial systemverilog mdBook scaffolded at <code>docs/systemverilog_parser_book/</code>. The integration contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> was upgraded from a thin “stable surface” pointer to the same release-tracked Highlights structure used by the regex parser contract.</p>
 <p><strong>Mdbook chapters landed:</strong> welcome, quickstart, build-recipe, public-api, ast-envelope, parse-content-variants, json-carrier, walking-the-ast, rules-top-level, examples-minimal-module, schema-versioning, glossary, changelog-index. Per-rule and per-feature example chapters land as the annotation campaign progresses.</p>

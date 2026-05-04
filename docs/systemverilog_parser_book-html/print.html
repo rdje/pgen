@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4a62b682.js";
+            window.path_to_searchindex_js = "searchindex-dc8d6cf2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -621,11 +621,11 @@ pub struct ParserEmbeddingApiContract {
 <tr><th>Rule</th><th>Annotation</th><th>JSON shape produced</th></tr>
 </thead>
 <tbody>
-<tr><td><em>(none yet)</em></td><td><em>(none yet)</em></td><td><em>(none yet)</em></td></tr>
+<tr><td><code>systemverilog_file</code></td><td><code>-&gt; {type: "systemverilog_file", source_text: $2}</code></td><td><code>{"type": "systemverilog_file", "source_text": &lt;source_text-shape&gt;}</code> — root JSON object for any <code>sv_2017</code> / <code>sv_2023</code> parse. <code>source_text</code> field carries the raw envelope shape of the <code>source_text</code> rule until that rule is annotated in a subsequent slice.</td></tr>
+<tr><td><code>systemverilog_parseable_file</code></td><td><code>-&gt; {type: "systemverilog_parseable_file", items: $2}</code></td><td><code>{"type": "systemverilog_parseable_file", "items": &lt;parseable_source_item*-shape&gt;}</code> — alternative entry rule for the parseable-source profile. <code>items</code> field carries the array of parseable source items in their raw envelope shape.</td></tr>
 </tbody>
 </table>
 </div>
-<p>The first slice of the campaign will land in a follow-up commit and add its row here.</p>
 <h2 id="sub-rules-with-implicit-defaults"><a class="header" href="#sub-rules-with-implicit-defaults">Sub-rules with implicit defaults</a></h2>
 <p>Rules that have no explicit annotation default to their grammar-shape envelope (see <a href="#parsecontent-variants">Parse Content Variants</a>). The default is documented at the rule level in <code>grammars/systemverilog.ebnf</code> comments where the default is non-obvious.</p>
 <h2 id="unannotated-on-purpose-rules"><a class="header" href="#unannotated-on-purpose-rules">Unannotated-on-purpose rules</a></h2>
@@ -757,7 +757,7 @@ match schema {
 <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.</p>
 <blockquote>
-<p><strong>Status:</strong> Most top-level rules are currently un-annotated and produce the recursive-envelope shape. The first slice of the campaign will land here. Until then, this chapter documents the envelope shape for orientation.</p>
+<p><strong>Status:</strong> SV-Slice-1 (parser release <code>1.0.1</code>) typed <code>systemverilog_file</code> and <code>systemverilog_parseable_file</code>. The rest of the top-level rules are un-annotated and produce the recursive-envelope shape; subsequent slices will type them.</p>
 </blockquote>
 <h2 id="entry-points-by-profile"><a class="header" href="#entry-points-by-profile">Entry points by profile</a></h2>
 <div class="table-wrapper">
@@ -772,14 +772,19 @@ match schema {
 </table>
 </div>
 <p>Both profiles share <code>grammars/systemverilog.ebnf</code> as the single source. The profile selection determines which top-level dispatcher rule is used at parse time.</p>
-<h2 id="systemverilog_file-un-annotated"><a class="header" href="#systemverilog_file-un-annotated"><code>systemverilog_file</code> (un-annotated)</a></h2>
-<p>Per the LRM and <code>grammars/systemverilog.ebnf</code>, the top-level production is something like:</p>
-<pre><code class="language-ebnf">systemverilog_file = (timeunits_declaration?  description*)
+<h2 id="systemverilog_file-typed-since-sv-slice-1"><a class="header" href="#systemverilog_file-typed-since-sv-slice-1"><code>systemverilog_file</code> (typed since SV-Slice-1)</a></h2>
+<p>Per <code>grammars/systemverilog.ebnf</code> line 184:</p>
+<pre><code class="language-ebnf">systemverilog_file := trivia source_text trivia
+                   -&gt; {type: "systemverilog_file", source_text: $2}
 </code></pre>
-<p>Because there is no <code>-&gt; ...</code> annotation, the rule produces the recursive-envelope shape. For an input like <code>"module m; endmodule\n"</code>, the <code>root</code> field of <code>AstDumpPayload</code> is a JSON array reflecting the matched grammar shape:</p>
-<pre><code class="language-text">[&lt;timeunits_declaration_or_empty&gt;, &lt;description_iterations&gt;]
+<p>The annotation produces a typed JSON object at the root of every <code>sv_2017</code> / <code>sv_2023</code> parse. For an input like <code>"module m; endmodule\n"</code>:</p>
+<pre><code class="language-json">{
+  "type": "systemverilog_file",
+  "source_text": [/* source_text envelope */]
+}
 </code></pre>
-<p>The exact JSON shape until the first annotation slice lands depends on the un-annotated emitter behavior; see <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code> for the calibration sample (<code>current_content_kind</code> field).</p>
+<p>The <code>source_text</code> field carries the raw envelope of the <code>source_text</code> rule until that rule is annotated in a subsequent slice. Consumers walking the SV AST should dispatch on <code>obj["type"] == "systemverilog_file"</code> at the root level.</p>
+<p>See <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code> for the calibrated regression-lock sample.</p>
 <h2 id="description-un-annotated"><a class="header" href="#description-un-annotated"><code>description</code> (un-annotated)</a></h2>
 <p><code>description</code> is the per-construct top-level alternative — module / interface / class / package / etc. Per LRM A.1.2:</p>
 <pre><code class="language-ebnf">description = module_declaration
@@ -918,6 +923,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.2.0</td><td>1.0.1</td><td><strong>SV-Slice-1: <code>systemverilog_file</code> typed.</strong> Dangling <code>-&gt; {type: "systemverilog_file", source_text: $2}</code> annotation at line 195 of <code>grammars/systemverilog.ebnf</code> was rescued by moving it onto its target rule <code>systemverilog_file := trivia source_text trivia</code> (line 184). Removed misleading <code>//</code> prefix from <code>systemverilog_parseable_file</code>’s annotation (PGEN’s EBNF dialect uses <code>#</code> for comments, not <code>//</code>). Both annotations now register via the documented path. AST root for <code>module m; endmodule\n</code> changed from recursive-envelope <code>Sequence</code> to typed <code>{type: "systemverilog_file", source_text: ...}</code> JSON object. First effective annotation on the systemverilog parser. Manifest <code>current_content_kind</code> calibrated to <code>"json_object"</code>.</td></tr>
 </tbody>
 </table>
 </div>
@@ -975,6 +981,26 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="101--contract-101--sv-slice-1-systemverilog_file-typed-dangling-annotation-rescued"><a class="header" href="#101--contract-101--sv-slice-1-systemverilog_file-typed-dangling-annotation-rescued">1.0.1 / Contract 1.0.1 — SV-Slice-1: <code>systemverilog_file</code> typed (dangling annotation rescued)</a></h3>
+<p><strong>What changed:</strong> <code>grammars/systemverilog.ebnf</code> line 184’s <code>systemverilog_file</code> rule now carries its return annotation on the same multi-line definition (was dangling between the <code>sv_multi_entry_root</code> helper rule and <code>systemverilog_parseable_file</code>). The annotation <code>-&gt; {type: "systemverilog_file", source_text: $2}</code> now correctly latches onto <code>systemverilog_file</code>. Same slice removed the <code>//</code> prefix from <code>systemverilog_parseable_file</code>’s annotation (PGEN’s EBNF dialect uses <code>#</code> for comments, not <code>//</code>, so the <code>//</code> prefix was misleading rather than effective).</p>
+<p><strong>Empirical pre/post for <code>module m; endmodule\n</code>:</strong></p>
+<pre><code class="language-text"># Pre-SV-Slice-1 — recursive envelope:
+{"content": {"Sequence": [
+    {"content": {"Alternative": ...}, "rule_name": "element_0", ...},
+    {"content": {"Alternative": ...}, "rule_name": "element_1", ...},
+    ...
+]}}
+
+# Post-SV-Slice-1 — typed object at root:
+{"content": {"Json": {
+    "type": "systemverilog_file",
+    "source_text": [...]
+}}}
+</code></pre>
+<p><strong>Annotation inventory</strong> (from <code>ast_pipeline</code>’s reporting): 2 entries (was 1). New: <code>systemverilog_file</code>. Existing: <code>systemverilog_parseable_file</code> (was already registered via the misleading <code>//</code> prefix; now registered via the documented path).</p>
+<p><strong>Manifest update:</strong> <code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code> <code>current_content_kind</code> updated from placeholder <code>"sequence"</code> to calibrated <code>"json_object"</code>. Drift status flipped to <code>calibrated_2026_05_04</code>. Layout note about line 195 dangling annotation removed (resolved). Calibration history block added.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code> (additive shape change within major version 1).</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.1 / Contract 1.0.1 Highlights”.</p>
 <h3 id="100--contract-100--foundation-baseline-mdbook--contract-highlights-structure"><a class="header" href="#100--contract-100--foundation-baseline-mdbook--contract-highlights-structure">1.0.0 / Contract 1.0.0 — Foundation baseline (mdbook + contract Highlights structure)</a></h3>
 <p><strong>What changed:</strong> Initial systemverilog mdBook scaffolded at <code>docs/systemverilog_parser_book/</code>. The integration contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> was upgraded from a thin “stable surface” pointer to the same release-tracked Highlights structure used by the regex parser contract.</p>
 <p><strong>Mdbook chapters landed:</strong> welcome, quickstart, build-recipe, public-api, ast-envelope, parse-content-variants, json-carrier, walking-the-ast, rules-top-level, examples-minimal-module, schema-versioning, glossary, changelog-index. Per-rule and per-feature example chapters land as the annotation campaign progresses.</p>

@@ -2,8 +2,10 @@
   "version": 1,
   "grammar": "systemverilog",
   "purpose": "Per-parser-family AST-shape contract for the SystemVerilog grammar. The generated SV parser is NOT in the default `cargo test --features generated_parsers` build; it is produced on-demand by `sv_stimuli_quality_gate` (and similar) into `rust/target/<gate>/work/systemverilog_parser.rs` and discarded. The cfg `has_generated_systemverilog_parser` therefore stays off in default builds and the matching unit test compiles out. When the parser is present (gate run or `PGEN_SYSTEMVERILOG_PARSER_PATH` override), the test activates and the contract is enforced.",
-  "doctrine": "First run after the parser becomes available will probably hit a regression-lock failure because `current_content_kind` here is a placeholder calibrated from grammar inspection rather than from running the parser. The expected workflow on first activation is: read the regression-lock message, update `current_content_kind` to the observed value, and commit the manifest update alongside the parser availability change.",
-  "layout_note": "[grammars/systemverilog.ebnf](../../../grammars/systemverilog.ebnf) line 195 declares `-> {type: \"systemverilog_file\", source_text: $2}`, but the annotation is positioned AFTER the helper rule `sv_multi_entry_root := systemverilog_file | library_text | systemverilog_parseable_file` (line 193). In typical EBNF parsing logic an annotation latches onto the most recent rule, which would make this annotation attach to `sv_multi_entry_root` rather than `systemverilog_file`. The annotation's `$2` reference is consistent with `systemverilog_file` (whose body has 3 elements where $2 is `source_text`) but inconsistent with `sv_multi_entry_root` (Or-root, $2 = `library_text`). Whether this is a positional grammar bug or a tolerated EBNF-parsing convention should be confirmed during first calibration.",
+  "doctrine": "Calibrated 2026-05-04 against a freshly-generated parser (parser release 1.0.1, contract 1.0.1). On first run with the parser available, this manifest is expected to match — `current_content_kind: \"json_object\"` was confirmed by running `parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` after the SV-Slice-1 grammar fix that moved the dangling `systemverilog_file` annotation onto the rule it was supposed to attach to. Future drift fails the regression-lock and surfaces the change to the slice that introduced it.",
+  "calibration_history": [
+    "2026-05-04 SV-Slice-1: dangling annotation `-> {type: \"systemverilog_file\", source_text: $2}` at grammars/systemverilog.ebnf line 195 was moved onto its target rule `systemverilog_file` (line 184). Pre-fix the annotation was lost (separated from its rule by a blank line + the `sv_multi_entry_root` helper definition + another blank line) and the parser registered 0 annotations effective on systemverilog_file. Post-fix the parser registers 2 annotations (systemverilog_file + systemverilog_parseable_file) and the AST root for `module m; endmodule\\n` is the typed `{type: \"systemverilog_file\", source_text: ...}` JSON object documented below."
+  ],
   "samples": [
     {
       "name": "minimal_module",
@@ -13,9 +15,9 @@
       "expected_content_kind": "json_object",
       "expected_json_object_keys_present": ["type", "source_text"],
       "expected_json_object_string_values": {"type": "systemverilog_file"},
-      "current_content_kind": "sequence",
-      "drift_status": "parser_unavailable_in_default_build_pending_first_run_calibration",
-      "drift_tracked_in": "PGEN: SV per-family contract calibration on first parser availability + regen coordination follow-up. See layout_note above."
+      "current_content_kind": "json_object",
+      "drift_status": "calibrated_2026_05_04",
+      "drift_tracked_in": "SV-Slice-1 (parser release 1.0.1 / contract 1.0.1) — first effective annotation on the systemverilog parser. See docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md § \"Release 1.0.1 / Contract 1.0.1 Highlights\"."
     }
   ]
 }

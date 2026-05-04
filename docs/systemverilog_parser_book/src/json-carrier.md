@@ -8,9 +8,8 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 
 | Rule | Annotation | JSON shape produced |
 |---|---|---|
-| _(none yet)_ | _(none yet)_ | _(none yet)_ |
-
-The first slice of the campaign will land in a follow-up commit and add its row here.
+| `systemverilog_file` | `-> {type: "systemverilog_file", source_text: $2}` | `{"type": "systemverilog_file", "source_text": <source_text-shape>}` — root JSON object for any `sv_2017` / `sv_2023` parse. `source_text` field carries the raw envelope shape of the `source_text` rule until that rule is annotated in a subsequent slice. |
+| `systemverilog_parseable_file` | `-> {type: "systemverilog_parseable_file", items: $2}` | `{"type": "systemverilog_parseable_file", "items": <parseable_source_item*-shape>}` — alternative entry rule for the parseable-source profile. `items` field carries the array of parseable source items in their raw envelope shape. |
 
 ## Sub-rules with implicit defaults
 

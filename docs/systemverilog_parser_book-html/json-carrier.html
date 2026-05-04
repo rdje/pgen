@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4a62b682.js";
+            window.path_to_searchindex_js = "searchindex-dc8d6cf2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -192,11 +192,11 @@
 <tr><th>Rule</th><th>Annotation</th><th>JSON shape produced</th></tr>
 </thead>
 <tbody>
-<tr><td><em>(none yet)</em></td><td><em>(none yet)</em></td><td><em>(none yet)</em></td></tr>
+<tr><td><code>systemverilog_file</code></td><td><code>-&gt; {type: "systemverilog_file", source_text: $2}</code></td><td><code>{"type": "systemverilog_file", "source_text": &lt;source_text-shape&gt;}</code> — root JSON object for any <code>sv_2017</code> / <code>sv_2023</code> parse. <code>source_text</code> field carries the raw envelope shape of the <code>source_text</code> rule until that rule is annotated in a subsequent slice.</td></tr>
+<tr><td><code>systemverilog_parseable_file</code></td><td><code>-&gt; {type: "systemverilog_parseable_file", items: $2}</code></td><td><code>{"type": "systemverilog_parseable_file", "items": &lt;parseable_source_item*-shape&gt;}</code> — alternative entry rule for the parseable-source profile. <code>items</code> field carries the array of parseable source items in their raw envelope shape.</td></tr>
 </tbody>
 </table>
 </div>
-<p>The first slice of the campaign will land in a follow-up commit and add its row here.</p>
 <h2 id="sub-rules-with-implicit-defaults"><a class="header" href="#sub-rules-with-implicit-defaults">Sub-rules with implicit defaults</a></h2>
 <p>Rules that have no explicit annotation default to their grammar-shape envelope (see <a href="parse-content-variants.html">Parse Content Variants</a>). The default is documented at the rule level in <code>grammars/systemverilog.ebnf</code> comments where the default is non-obvious.</p>
 <h2 id="unannotated-on-purpose-rules"><a class="header" href="#unannotated-on-purpose-rules">Unannotated-on-purpose rules</a></h2>

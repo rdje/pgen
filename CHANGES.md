@@ -1,4 +1,103 @@
 # CHANGES.md
+## 2026-05-04 - SV-Slice-1: `systemverilog_file` typed (dangling annotation rescued)
+
+### What landed
+
+Fixed two annotation-positioning bugs in `grammars/systemverilog.ebnf` that were preventing the systemverilog parser from carrying any effective return annotations.
+
+**Bug 1 — line-195 dangling annotation:**
+
+Pre-fix, `systemverilog_file := trivia source_text trivia` (line 184) had its return annotation `-> {type: "systemverilog_file", source_text: $2}` written 11 lines later (line 195), separated by a blank line + the `sv_multi_entry_root` helper-rule definition (line 193) + another blank line. The annotation latched onto nothing effective. The parser registered 0 annotations for `systemverilog_file` and its AST output stayed as the recursive-envelope `Sequence` shape.
+
+**Bug 2 — line-200 misleading `//` prefix:**
+
+Line 200's `// -> {type: "systemverilog_parseable_file", items: $2}` had a `//` prefix the grammar author presumed was a comment. PGEN's EBNF dialect uses `#` for comments (not `//`), so `// ` was treated as literal noise and the rest of the line was parsed as a real annotation. The `systemverilog_parseable_file` annotation was therefore active but for the wrong reason.
+
+**Fix:**
+
+```ebnf
+# Before:
+systemverilog_file := trivia source_text trivia
+
+sv_multi_entry_root := systemverilog_file | library_text | systemverilog_parseable_file
+
+-> {type: "systemverilog_file", source_text: $2}
+
+systemverilog_parseable_file := trivia parseable_source_item* trivia
+// -> {type: "systemverilog_parseable_file", items: $2}
+
+# After:
+systemverilog_file := trivia source_text trivia
+                   -> {type: "systemverilog_file", source_text: $2}
+
+sv_multi_entry_root := systemverilog_file | library_text | systemverilog_parseable_file
+
+systemverilog_parseable_file := trivia parseable_source_item* trivia
+                             -> {type: "systemverilog_parseable_file", items: $2}
+```
+
+### Empirical pre/post on `module m; endmodule\n`
+
+| | Pre-SV-Slice-1 | Post-SV-Slice-1 |
+|---|---|---|
+| Annotation inventory | 1 entry (only `systemverilog_parseable_file`, accidentally) | 2 entries (`systemverilog_file` + `systemverilog_parseable_file`) |
+| `content` kind at root | `Sequence` (recursive envelope) | `Json` (typed object) |
+| Top-level keys | (none — array) | `["source_text", "type"]` |
+| `type` field value | (n/a) | `"systemverilog_file"` |
+
+### Verification flow used
+
+```bash
+./target/release/ast_pipeline grammars/systemverilog.ebnf \
+    --generate-parser --eliminate-left-recursion \
+    --output /tmp/sv_calibration/systemverilog_parser.rs
+
+PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/sv_calibration/systemverilog_parser.rs \
+    cargo build --release --features "generated_parsers ebnf_dual_run" \
+    --bin parseability_probe
+
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty systemverilog \
+    /tmp/sv_calibration/minimal_module.sv \
+    /tmp/sv_calibration/minimal_module_ast.json \
+    --profile sv_2017
+```
+
+### Manifest update
+
+`rust/test_data/ast_shape_contract/systemverilog_v1.json`:
+- `current_content_kind`: `"sequence"` → `"json_object"` (calibrated against the post-fix parser).
+- `drift_status`: `parser_unavailable_in_default_build_pending_first_run_calibration` → `calibrated_2026_05_04`.
+- `layout_note` field removed (resolved by the slice).
+- New `calibration_history` field with the SV-Slice-1 entry.
+
+### Contract bump
+
+- Parser release: `1.0.0` → `1.0.1`.
+- Contract version: `1.0.0` → `1.0.1`.
+- Schema version: stays `1` (additive).
+- New "Release 1.0.1 / Contract 1.0.1 Highlights" section added to `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry for SV-Slice-1 with the empirical pre/post table.
+- `schema-versioning.md`: new row `0.2.0 / 1.0.1`.
+- `json-carrier.md`: 2 new rows (`systemverilog_file`, `systemverilog_parseable_file`) replacing the placeholder "(none yet)" row.
+- `rules-top-level.md`: `systemverilog_file` section rewritten from "un-annotated" placeholder to typed shape with the post-fix JSON example.
+
+`make systemverilog_parser_book_gate`: pass ✅.
+
+### Verified
+
+- `cargo test --lib --features generated_parsers --features ebnf_dual_run`: 497 / 0 (no regression).
+- mdBook gate green.
+- Annotation inventory verified: 2 entries (was 1).
+- Empirical AST shape verified: typed `{type, source_text}` object at root.
+
+### Note
+
+A regression-lock test for the SV manifest contract test exists in the codebase but is gated on `has_generated_systemverilog_parser` (the SV parser is not in default build). The manifest update will activate that test once the SV parser is built into default `cargo test`.
+
 ## 2026-05-04 - SV parser foundation: integration contract Highlights structure + mdBook scaffold
 
 ### What landed

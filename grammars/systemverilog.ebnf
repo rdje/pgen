@@ -182,6 +182,7 @@
 @coverage_target: 4
 @critical_path: true
 systemverilog_file := trivia source_text trivia
+                   -> {type: "systemverilog_file", source_text: $2}
 
 # --- Multi-entry closure-gate analysis aid (NOT a runtime parse entry) ---
 # Unions the three real top-level SV entries so the closure-gate static
@@ -192,12 +193,10 @@ systemverilog_file := trivia source_text trivia
 # of entries directly so this rule can be removed.
 sv_multi_entry_root := systemverilog_file | library_text | systemverilog_parseable_file
 
--> {type: "systemverilog_file", source_text: $2}
-
 @branch_policy: priority_first
 @priority: [20, 6, 4, 2]
 systemverilog_parseable_file := trivia parseable_source_item* trivia
-// -> {type: "systemverilog_parseable_file", items: $2}
+                             -> {type: "systemverilog_parseable_file", items: $2}
 
 @branch_policy: priority_first
 @priority: [20, 6, 4, 2]

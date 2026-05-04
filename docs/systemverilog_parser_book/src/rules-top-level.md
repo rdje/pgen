@@ -2,7 +2,7 @@
 
 This chapter describes the entry points of the SystemVerilog grammar and the AST shape they produce.
 
-> **Status:** Most top-level rules are currently un-annotated and produce the recursive-envelope shape. The first slice of the campaign will land here. Until then, this chapter documents the envelope shape for orientation.
+> **Status:** SV-Slice-1 (parser release `1.0.1`) typed `systemverilog_file` and `systemverilog_parseable_file`. The rest of the top-level rules are un-annotated and produce the recursive-envelope shape; subsequent slices will type them.
 
 ## Entry points by profile
 
@@ -13,21 +13,27 @@ This chapter describes the entry points of the SystemVerilog grammar and the AST
 
 Both profiles share `grammars/systemverilog.ebnf` as the single source. The profile selection determines which top-level dispatcher rule is used at parse time.
 
-## `systemverilog_file` (un-annotated)
+## `systemverilog_file` (typed since SV-Slice-1)
 
-Per the LRM and `grammars/systemverilog.ebnf`, the top-level production is something like:
+Per `grammars/systemverilog.ebnf` line 184:
 
 ```ebnf
-systemverilog_file = (timeunits_declaration?  description*)
+systemverilog_file := trivia source_text trivia
+                   -> {type: "systemverilog_file", source_text: $2}
 ```
 
-Because there is no `-> ...` annotation, the rule produces the recursive-envelope shape. For an input like `"module m; endmodule\n"`, the `root` field of `AstDumpPayload` is a JSON array reflecting the matched grammar shape:
+The annotation produces a typed JSON object at the root of every `sv_2017` / `sv_2023` parse. For an input like `"module m; endmodule\n"`:
 
-```text
-[<timeunits_declaration_or_empty>, <description_iterations>]
+```json
+{
+  "type": "systemverilog_file",
+  "source_text": [/* source_text envelope */]
+}
 ```
 
-The exact JSON shape until the first annotation slice lands depends on the un-annotated emitter behavior; see `rust/test_data/ast_shape_contract/systemverilog_v1.json` for the calibration sample (`current_content_kind` field).
+The `source_text` field carries the raw envelope of the `source_text` rule until that rule is annotated in a subsequent slice. Consumers walking the SV AST should dispatch on `obj["type"] == "systemverilog_file"` at the root level.
+
+See `rust/test_data/ast_shape_contract/systemverilog_v1.json` for the calibrated regression-lock sample.
 
 ## `description` (un-annotated)
 
