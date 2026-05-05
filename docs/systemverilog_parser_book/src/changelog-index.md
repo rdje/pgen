@@ -19,6 +19,24 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.31 / Contract 1.0.31 — SV-Slice-31 batch: action_block + statement framing typed (5 rules / 9 annotations)
+
+**What changed:** Closes action_block walk path (used pervasively by assertions) and statement framing path (used by function/task bodies).
+
+```ebnf
+action_block               -> 2 kinds (always {body} / with_else {pass, fail})
+statement                  -> {label, attributes, body}
+statement_or_null          -> 2 kinds (statement {body} / null {attributes})
+function_statement_or_null -> 2 kinds (parallel)
+tf_item_declaration        -> 2 kinds (block_item / tf_port)
+```
+
+**Annotation inventory:** 367 entries (was 358). +9 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.31 / Contract 1.0.31 Highlights".
+
 ### 1.0.30 / Contract 1.0.30 — SV-Slice-30 batch: deferred immediate assertions typed (5 rules / 10 annotations)
 
 **What changed:** Closes assertion_item.kind=="deferred_immediate" walk path.

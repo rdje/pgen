@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a0601c9a.js";
+            window.path_to_searchindex_js = "searchindex-c395fc32.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -325,6 +325,11 @@
 <tr><td><code>deferred_immediate_assert_statement</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"zero_delay"</code> (<code>{expression, action}</code> — <code>assert #0 (expr) action_block</code>; LRM 1800-2017 §16.3.1 Re-NBA evaluation) / <code>"final"</code> (<code>{expression, action}</code> — <code>assert final (expr) action_block</code>; end-of-simulation evaluation).</td></tr>
 <tr><td><code>deferred_immediate_assume_statement</code> (2 branches)</td><td>per-branch typed</td><td>Same 2 kinds and shape as deferred_immediate_assert_statement (with <code>kw_assume</code> instead of <code>kw_assert</code>).</td></tr>
 <tr><td><code>deferred_immediate_cover_statement</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"zero_delay"</code> / <code>"final"</code> (parallel to assert/assume). Uses <code>statement</code> (statement_or_null) instead of <code>action</code> since cover has no pass/fail branching.</td></tr>
+<tr><td><code>action_block</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"always"</code> (<code>{body}</code> — runs unconditionally; LRM A.6.3 single statement_or_null form) / <code>"with_else"</code> (<code>{pass, fail}</code> — <code>[statement] else statement_or_null</code> form; <code>pass</code> is <code>[]</code> if pass-statement omitted, like <code>assert (x) else $error(...)</code>).</td></tr>
+<tr><td><code>statement</code></td><td><code>-&gt; {label: $1, attributes: $2, body: $3}</code></td><td><code>label</code> is optional <code>( block_identifier colon !colon )?</code> — the <code>!colon</code> lookahead distinguishes block label from <code>::</code> package-scope-resolution. <code>body</code> is a typed <code>statement_item</code>.</td></tr>
+<tr><td><code>statement_or_null</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"statement"</code> (<code>{body}</code>) / <code>"null"</code> (<code>{attributes}</code> — bare <code>;</code> with optional preceding <code>attribute_instance*</code>).</td></tr>
+<tr><td><code>function_statement_or_null</code> (2 branches)</td><td>per-branch typed</td><td>Same shape as statement_or_null but for function bodies.</td></tr>
+<tr><td><code>tf_item_declaration</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"block_item"</code> / <code>"tf_port"</code>. Reached from <code>function_body_declaration.items[]</code> and <code>task_body_declaration.items[]</code>.</td></tr>
 </tbody>
 </table>
 </div>

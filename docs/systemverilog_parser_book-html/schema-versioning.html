@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a0601c9a.js";
+            window.path_to_searchindex_js = "searchindex-c395fc32.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,6 +216,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.32.0</td><td>1.0.31</td><td><strong>SV-Slice-31 batch: action_block + statement framing typed.</strong> 5 rules / 9 annotations: action_block (2 kinds: always / with_else), statement (<code>{label, attributes, body}</code>), statement_or_null / function_statement_or_null (each 2 kinds: statement / null), tf_item_declaration (2 kinds: block_item / tf_port). Closes action_block walk path used by assertions, and statement framing for function/task bodies. Annotation inventory: 367 entries (was 358).</td></tr>
 <tr><td>0.31.0</td><td>1.0.30</td><td><strong>SV-Slice-30 batch: deferred immediate assertions typed.</strong> 5 rules / 10 annotations: deferred_immediate_assertion_item (<code>{label, body}</code>), deferred_immediate_assertion_statement (3 kinds: assert / assume / cover), deferred_immediate_assert_statement / deferred_immediate_assume_statement / deferred_immediate_cover_statement (each 2 kinds: zero_delay / final). Closes assertion_item.kind==“deferred_immediate” walk path. Annotation inventory: 358 entries (was 348).</td></tr>
 <tr><td>0.30.0</td><td>1.0.29</td><td><strong>SV-Slice-29 batch: concurrent assertion + constraint family typed.</strong> 16 rules / 28 annotations covering 5-kind concurrent_assertion_statement, 6 individual property statements (assert / assume / cover_property / cover_sequence / restrict / expect), constraint_block / constraint_block_item / constraint_declaration (sv_2017 + sv_2023) / constraint_expression (6 kinds: expression / uniqueness / implies / if / foreach / disable_soft) / constraint_prototype (sv_2017 + sv_2023) / constraint_prototype_qualifier (2 kinds bare) / constraint_set (2 kinds). Closes assertion_item.kind==“concurrent” and class_constraint walk paths. Annotation inventory: 348 entries (was 320).</td></tr>
 <tr><td>0.29.0</td><td>1.0.28</td><td><strong>SV-Slice-28 batch: class qualifiers typed.</strong> 3 rules / 6 annotations: method_qualifier (2 kinds: virtual <code>{pure}</code> / class_item_qualifier <code>{body}</code>), property_qualifier (2 kinds: random <code>{body}</code> / class_item_qualifier <code>{body}</code>), random_qualifier (2 kinds bare <code>{kind}</code>: rand / randc). Completes SV-Slice-27’s class body picture. Annotation inventory: 320 entries (was 314).</td></tr>

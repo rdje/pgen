@@ -141,6 +141,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `deferred_immediate_assert_statement` (2 branches) | per-branch typed | Kind labels: `"zero_delay"` (`{expression, action}` — `assert #0 (expr) action_block`; LRM 1800-2017 §16.3.1 Re-NBA evaluation) / `"final"` (`{expression, action}` — `assert final (expr) action_block`; end-of-simulation evaluation). |
 | `deferred_immediate_assume_statement` (2 branches) | per-branch typed | Same 2 kinds and shape as deferred_immediate_assert_statement (with `kw_assume` instead of `kw_assert`). |
 | `deferred_immediate_cover_statement` (2 branches) | per-branch typed | Kind labels: `"zero_delay"` / `"final"` (parallel to assert/assume). Uses `statement` (statement_or_null) instead of `action` since cover has no pass/fail branching. |
+| `action_block` (2 branches) | per-branch typed | Kind labels: `"always"` (`{body}` — runs unconditionally; LRM A.6.3 single statement_or_null form) / `"with_else"` (`{pass, fail}` — `[statement] else statement_or_null` form; `pass` is `[]` if pass-statement omitted, like `assert (x) else $error(...)`). |
+| `statement` | `-> {label: $1, attributes: $2, body: $3}` | `label` is optional `( block_identifier colon !colon )?` — the `!colon` lookahead distinguishes block label from `::` package-scope-resolution. `body` is a typed `statement_item`. |
+| `statement_or_null` (2 branches) | per-branch typed | Kind labels: `"statement"` (`{body}`) / `"null"` (`{attributes}` — bare `;` with optional preceding `attribute_instance*`). |
+| `function_statement_or_null` (2 branches) | per-branch typed | Same shape as statement_or_null but for function bodies. |
+| `tf_item_declaration` (2 branches) | per-branch `{kind, body}` | Kind labels: `"block_item"` / `"tf_port"`. Reached from `function_body_declaration.items[]` and `task_body_declaration.items[]`. |
 
 ## Sub-rules with implicit defaults
 

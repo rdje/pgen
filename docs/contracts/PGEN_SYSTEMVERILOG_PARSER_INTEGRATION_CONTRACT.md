@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.30`
+  - `1.0.31`
 - Parser release version:
-  - `1.0.30`
+  - `1.0.31`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,55 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.31 / Contract 1.0.31 Highlights — SV-Slice-31 batch: action_block + statement framing typed (5 rules / 9 annotations)
+
+Closes the action_block walk path (referenced from every concurrent / deferred-immediate assertion typed in SV-Slice-29/30) and the statement framing path (referenced from function/task bodies typed in SV-Slice-25). Every assertion's `action`/`statement` field, every function/task body item, and every framed statement now exposes typed dispatch into actual content.
+
+### Annotations
+
+```ebnf
+action_block := statement_or_null
+                     -> {kind: "always",    body: $1}
+              | ( statement )? kw_else statement_or_null
+                     -> {kind: "with_else", pass: $1, fail: $3}
+
+statement := ( block_identifier colon !colon )? attribute_instance* statement_item
+          -> {label: $1, attributes: $2, body: $3}
+
+statement_or_null := statement                  -> {kind: "statement", body: $1}
+                   | attribute_instance* semi   -> {kind: "null",      attributes: $1}
+
+function_statement_or_null := function_statement       -> {kind: "statement", body: $1}
+                            | attribute_instance* semi -> {kind: "null",      attributes: $1}
+
+tf_item_declaration := block_item_declaration -> {kind: "block_item", body: $1}
+                     | tf_port_declaration    -> {kind: "tf_port",    body: $1}
+```
+
+### Field semantics
+
+- `action_block.kind == "always"`: the unconditional `action;` form. The statement runs whether the assertion passes or fails. `body` is a typed `statement_or_null`.
+- `action_block.kind == "with_else"`: the LRM `[statement] else statement_or_null` form. `pass` (optional) runs on assertion success; `fail` runs on assertion failure. `pass` is `[]` when the pass-statement is omitted (e.g., `assert (x) else $error("bad");` has no pass-statement).
+- `statement.label`: optional `( block_identifier colon !colon )?` — the `!colon` negative lookahead distinguishes block label (`name:`) from `::` package-scope-resolution. `[]` when statement has no label.
+- `statement_or_null.kind == "null"` and `function_statement_or_null.kind == "null"`: bare `;` (with optional preceding `attribute_instance*`). The annotation preserves attributes so consumers can still attach metadata to a null statement.
+- `tf_item_declaration` is the union of variable/port declarations inside a function or task body — referenced from `function_body_declaration.items[]` and `task_body_declaration.items[]` (typed in SV-Slice-25).
+
+### Annotation inventory
+
+367 entries (was 358). +9 in this batch (2 action_block + 1 statement + 2 statement_or_null + 2 function_statement_or_null + 2 tf_item_declaration).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `statement_item` (close the statement.body field — large dispatch into procedural statement forms).
+- `block_item_declaration` (close tf_item_declaration's body field).
+- `data_type_or_implicit` / `data_type_or_void`.
+- `property_spec` / `sequence_expr`.
+- `covergroup_declaration` internals.
 
 ## Release 1.0.30 / Contract 1.0.30 Highlights — SV-Slice-30 batch: deferred immediate assertions typed (5 rules / 10 annotations)
 

@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-31 batch: action_block + statement framing typed (5 rules / 9 annotations)
+
+Closes the action_block walk path (used pervasively by assertions) and the statement framing path (used by function/task bodies).
+
+```ebnf
+action_block               -> 2 kinds (always {body} / with_else {pass, fail})
+statement                  -> {label, attributes, body}
+statement_or_null          -> 2 kinds (statement / null)
+function_statement_or_null -> 2 kinds (parallel)
+tf_item_declaration        -> 2 kinds (block_item / tf_port)
+```
+
+Annotation count: **367** (was 358, +9). Same accept set. Schema stays at `1`. Contract bumped 1.0.30 → 1.0.31. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-30 batch: deferred immediate assertions typed (5 rules / 10 annotations)
 
 Closes the `assertion_item.kind == "deferred_immediate"` walk path. Both branches of `assertion_item` (concurrent + deferred_immediate) now expose typed dispatch end-to-end.

@@ -333,7 +333,10 @@ modport_simple_ports_declaration := port_direction modport_simple_port
 
 # Profile-aware LRM-derived syntax
 
-action_block := statement_or_null | ( statement )? kw_else_ae050f5b statement_or_null
+action_block := statement_or_null
+                     -> {kind: "always",    body: $1}
+              | ( statement )? kw_else_ae050f5b statement_or_null
+                     -> {kind: "with_else", pass: $1, fail: $3}
 
 always_construct := always_keyword statement
 
@@ -1285,7 +1288,8 @@ function_prototype := function_prototype_sv_2017 | function_prototype_sv_2023
 
 function_statement := statement
 
-function_statement_or_null := function_statement | attribute_instance* semi
+function_statement_or_null := function_statement       -> {kind: "statement", body: $1}
+                            | attribute_instance* semi -> {kind: "null",      attributes: $1}
 
 function_subroutine_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call
 
@@ -2669,6 +2673,7 @@ start_edge_offset := mintypmax_expression
 state_dependent_path_declaration := kw_if_958f57f5 lparen module_path_expression rparen simple_path_declaration | kw_if_958f57f5 lparen module_path_expression rparen edge_sensitive_path_declaration | kw_ifnone_32ae8180 simple_path_declaration
 
 statement := ( block_identifier colon !colon )? attribute_instance* statement_item
+          -> {label: $1, attributes: $2, body: $3}
 
 @profiles: ["sv_2017"]
 statement_item_sv_2017 := blocking_assignment semi | nonblocking_assignment semi | procedural_continuous_assignment semi | case_statement | conditional_statement | inc_or_dec_expression semi | subroutine_call_statement | disable_statement | event_trigger | loop_statement | jump_statement | par_block | procedural_timing_control_statement | seq_block | wait_statement | procedural_assertion_statement | clocking_drive semi | randsequence_statement | randcase_statement | expect_property_statement
@@ -2678,7 +2683,8 @@ statement_item_sv_2023 := blocking_assignment semi | nonblocking_assignment semi
 
 statement_item := statement_item_sv_2017 | statement_item_sv_2023
 
-statement_or_null := statement | @probe_sample: ";" attribute_instance* semi
+statement_or_null := statement                                -> {kind: "statement", body: $1}
+                   | @probe_sample: ";" attribute_instance* semi -> {kind: "null",      attributes: $1}
 
 stream_concatenation := ( stream_expression ( comma stream_expression )* )*
 
@@ -2799,7 +2805,8 @@ tf_call := plain_tf_call_with_args | tf_call_with_args | scoped_or_hierarchical_
 
 tf_identifier := callable_identifier
 
-tf_item_declaration := block_item_declaration | tf_port_declaration
+tf_item_declaration := block_item_declaration -> {kind: "block_item", body: $1}
+                     | tf_port_declaration    -> {kind: "tf_port",    body: $1}
 
 tf_port_declaration := attribute_instance* tf_port_direction ( kw_var_e5b4e786 )? data_type_or_implicit list_of_tf_variable_identifiers semi
 
