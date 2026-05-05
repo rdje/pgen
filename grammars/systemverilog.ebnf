@@ -511,22 +511,37 @@ case_generate_item := constant_expression ( comma constant_expression )* colon g
                           -> {kind: "default",   block: $3}
 
 @profiles: ["sv_2017"]
-case_inside_item_sv_2017 := open_range_list colon statement_or_null | kw_default_7505d64a ( colon )? statement_or_null
+case_inside_item_sv_2017 := open_range_list colon statement_or_null
+                                 -> {kind: "range_list", ranges: $1, body: $3}
+                          | kw_default_7505d64a ( colon )? statement_or_null
+                                 -> {kind: "default",    body: $3}
 
 @profiles: ["sv_2023"]
-case_inside_item_sv_2023 := range_list colon statement_or_null | kw_default_7505d64a ( colon )? statement_or_null
+case_inside_item_sv_2023 := range_list colon statement_or_null
+                                 -> {kind: "range_list", ranges: $1, body: $3}
+                          | kw_default_7505d64a ( colon )? statement_or_null
+                                 -> {kind: "default",    body: $3}
 
 case_inside_item := case_inside_item_sv_2017 | case_inside_item_sv_2023
 
-case_item := case_item_expression ( comma case_item_expression )* colon statement_or_null | kw_default_7505d64a ( colon )? statement_or_null
+case_item := case_item_expression ( comma case_item_expression )* colon statement_or_null
+                  -> {kind: "expr_list", exprs: {first: $1, rest: $2}, body: $4}
+           | kw_default_7505d64a ( colon )? statement_or_null
+                  -> {kind: "default",   body: $3}
 
 case_item_expression := expression
 
-case_keyword := kw_case_6406510c | kw_casez_b8fbe0e1 | kw_casex_b31a7350
+case_keyword := kw_case_6406510c  -> {kind: "case"}
+              | kw_casez_b8fbe0e1 -> {kind: "casez"}
+              | kw_casex_b31a7350 -> {kind: "casex"}
 
-case_pattern_item := pattern ( logical_and3 expression )? colon statement_or_null | kw_default_7505d64a ( colon )? statement_or_null
+case_pattern_item := pattern ( logical_and3 expression )? colon statement_or_null
+                          -> {kind: "pattern", pattern: $1, condition: $2, body: $4}
+                   | kw_default_7505d64a ( colon )? statement_or_null
+                          -> {kind: "default", body: $3}
 
 case_statement := @sample: "case (a) default: ; endcase" ( unique_priority )? case_keyword lparen case_expression rparen case_item case_item* kw_endcase_a27a6786
+               -> {unique_priority: $1, keyword: $2, expr: $4, items: {first: $6, rest: $7}}
                 | @sample: "case (a) matches default: ; endcase" ( unique_priority )? case_keyword lparen case_expression rparen kw_matches_9f3e9242 case_pattern_item case_pattern_item* kw_endcase_a27a6786
                 | @sample: "case (a) inside [0:1]: ; endcase" ( unique_priority )? kw_case_6406510c lparen case_expression rparen kw_inside_fcc53788 case_inside_item case_inside_item* kw_endcase_a27a6786
 
@@ -1680,7 +1695,18 @@ local_parameter_declaration := local_parameter_declaration_sv_2017 | local_param
 loop_generate_construct := kw_for_43eef9a6 lparen genvar_initialization semi genvar_expression semi genvar_iteration rparen generate_block
                         -> {init: $3, condition: $5, step: $7, block: $9}
 
-loop_statement := kw_forever_e07f8c4a statement_or_null | kw_repeat_c0ac4842 lparen expression rparen statement_or_null | kw_while_6517f89c lparen expression rparen statement_or_null | kw_for_43eef9a6 lparen ( for_initialization )? semi ( expression )? semi ( for_step )? rparen statement_or_null | kw_do_eadcd9bd statement_or_null kw_while_6517f89c lparen expression rparen semi | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen statement
+loop_statement := kw_forever_e07f8c4a statement_or_null
+                       -> {kind: "forever",  body: $2}
+                | kw_repeat_c0ac4842 lparen expression rparen statement_or_null
+                       -> {kind: "repeat",   count: $3, body: $5}
+                | kw_while_6517f89c lparen expression rparen statement_or_null
+                       -> {kind: "while",    condition: $3, body: $5}
+                | kw_for_43eef9a6 lparen ( for_initialization )? semi ( expression )? semi ( for_step )? rparen statement_or_null
+                       -> {kind: "for",      init: $3, condition: $5, step: $7, body: $9}
+                | kw_do_eadcd9bd statement_or_null kw_while_6517f89c lparen expression rparen semi
+                       -> {kind: "do_while", body: $2, condition: $5}
+                | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen statement
+                       -> {kind: "foreach",  array: $3, loop_vars: $5, body: $8}
 
 loop_variables := ( index_variable_identifier )? ( comma ( index_variable_identifier )? )*
 

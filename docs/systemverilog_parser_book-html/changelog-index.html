@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1d2bceb4.js";
+            window.path_to_searchindex_js = "searchindex-4e484792.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,20 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1034--contract-1034--sv-slice-34-batch-case--loop-families-typed-7-rules--18-annotations"><a class="header" href="#1034--contract-1034--sv-slice-34-batch-case--loop-families-typed-7-rules--18-annotations">1.0.34 / Contract 1.0.34 — SV-Slice-34 batch: case + loop families typed (7 rules / 18 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes case-statement and loop-statement walks.</p>
+<pre><code class="language-ebnf">case_statement           -&gt; {unique_priority, keyword, expr, items: {first, rest}}
+case_keyword             -&gt; 3 kinds bare (case / casez / casex)
+case_item                -&gt; 2 kinds (expr_list / default)
+case_pattern_item        -&gt; 2 kinds (pattern {pattern, condition, body} / default)
+case_inside_item_sv_2017 -&gt; 2 kinds (range_list using open_range_list / default)
+case_inside_item_sv_2023 -&gt; 2 kinds (range_list using range_list per LRM 2023 / default)
+loop_statement           -&gt; 6 kinds (forever / repeat / while / for / do_while / foreach)
+</code></pre>
+<p><strong>DEFERRED:</strong> unique_priority (grammar duplicate-branch bug), conditional_statement (parens-Or with lookahead — needs helper rule).</p>
+<p><strong>Annotation inventory:</strong> 454 entries (was 436). +18 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.34 / Contract 1.0.34 Highlights”.</p>
 <h3 id="1033--contract-1033--sv-slice-33-batch-procedural-statement-forms-typed-11-rules--26-annotations"><a class="header" href="#1033--contract-1033--sv-slice-33-batch-procedural-statement-forms-typed-11-rules--26-annotations">1.0.33 / Contract 1.0.33 — SV-Slice-33 batch: procedural-statement forms typed (11 rules / 26 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes 7 of statement_item’s 19/20 kinds.</p>
 <pre><code class="language-ebnf">disable_statement                    -&gt; 3 kinds (task / block / fork)

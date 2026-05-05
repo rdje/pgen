@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-34 batch: case + loop families typed (7 rules / 18 annotations)
+
+Closes case-statement and loop-statement walks (`statement_item.kind == "case"` / `"loop"`).
+
+```ebnf
+case_statement           -> {unique_priority, keyword, expr, items: {first, rest}}
+case_keyword             -> 3 kinds bare (case / casez / casex)
+case_item                -> 2 kinds (expr_list / default)
+case_pattern_item        -> 2 kinds (pattern / default)
+case_inside_item_sv_2017 -> 2 kinds (range_list using open_range_list / default)
+case_inside_item_sv_2023 -> 2 kinds (range_list using LRM 2023 range_list / default)
+loop_statement           -> 6 kinds (forever / repeat / while / for / do_while / foreach)
+```
+
+DEFERRED: `unique_priority` (grammar duplicate-branch bug), `conditional_statement` (parens-Or with `&kw_else` lookahead — needs helper rule).
+
+Annotation count: **454** (was 436, +18). Same accept set. Schema stays at `1`. Contract bumped 1.0.33 → 1.0.34. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-33 batch: procedural-statement forms typed (11 rules / 26 annotations)
 
 Closes 7 of `statement_item`'s 19/20 kinds (typed in SV-Slice-32).

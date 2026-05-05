@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1d2bceb4.js";
+            window.path_to_searchindex_js = "searchindex-4e484792.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -344,6 +344,13 @@
 <tr><td><code>subroutine_call_statement</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"call"</code> (<code>{body}</code> — wraps subroutine_call with trailing <code>;</code>) / <code>"void_cast"</code> (<code>{body}</code> — <code>void'(func_call);</code> discards return value).</td></tr>
 <tr><td><code>seq_block</code></td><td><code>-&gt; {label, declarations, statements, end_label}</code></td><td>Drops <code>kw_begin</code> / <code>kw_end</code>. <code>label</code> is optional <code>( colon block_identifier )?</code> (e.g., <code>begin : my_block</code>).</td></tr>
 <tr><td><code>par_block</code></td><td><code>-&gt; {label, declarations, statements, join, end_label}</code></td><td>Same as seq_block plus <code>join</code> field carrying the typed <code>join_keyword</code> (discriminates <code>join</code> / <code>join_any</code> / <code>join_none</code> per SV-Slice-7).</td></tr>
+<tr><td><code>case_statement</code></td><td><code>-&gt; {unique_priority, keyword, expr, items: {first, rest}}</code></td><td>Drops <code>kw_endcase</code> and parens. <code>keyword</code> is the typed <code>case_keyword</code> (case/casez/casex). <code>items</code> is mini-mixed-array with first matched case_item + rest iteration. <code>unique_priority</code> raw envelope (still — see DEFERRED in slice 34 contract).</td></tr>
+<tr><td><code>case_keyword</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"case"</code> / <code>"casez"</code> / <code>"casex"</code>.</td></tr>
+<tr><td><code>case_item</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"expr_list"</code> (<code>{exprs: {first, rest}, body}</code> — N-way label-list <code>expr1, expr2, ... : stmt;</code>) / <code>"default"</code> (<code>{body}</code> — drops <code>kw_default</code> and optional colon). Same shape pattern as case_generate_item from SV-Slice-23.</td></tr>
+<tr><td><code>case_pattern_item</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"pattern"</code> (<code>{pattern, condition, body}</code> — <code>condition</code> is the optional <code>&amp;&amp;&amp; expression</code> guard per LRM A.6.7.1) / <code>"default"</code> (<code>{body}</code>).</td></tr>
+<tr><td><code>case_inside_item_sv_2017</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"range_list"</code> (<code>{ranges, body}</code> — ranges is open_range_list) / <code>"default"</code> (<code>{body}</code>).</td></tr>
+<tr><td><code>case_inside_item_sv_2023</code> (2 branches)</td><td>per-branch typed</td><td>Same kind labels as sv_2017; ranges field uses LRM 2023 <code>range_list</code> (simplified naming).</td></tr>
+<tr><td><code>loop_statement</code> (6 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"forever"</code> (<code>{body}</code>) / <code>"repeat"</code> (<code>{count, body}</code>) / <code>"while"</code> (<code>{condition, body}</code>) / <code>"for"</code> (<code>{init, condition, step, body}</code> — each of init/condition/step is <code>[]</code> when omitted) / <code>"do_while"</code> (<code>{body, condition}</code>) / <code>"foreach"</code> (<code>{array, loop_vars, body}</code> — body is a typed <code>statement</code>, not statement_or_null since bare <code>;</code> not allowed).</td></tr>
 </tbody>
 </table>
 </div>

@@ -160,6 +160,13 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `subroutine_call_statement` (2 branches) | per-branch typed | Kind labels: `"call"` (`{body}` — wraps subroutine_call with trailing `;`) / `"void_cast"` (`{body}` — `void'(func_call);` discards return value). |
 | `seq_block` | `-> {label, declarations, statements, end_label}` | Drops `kw_begin` / `kw_end`. `label` is optional `( colon block_identifier )?` (e.g., `begin : my_block`). |
 | `par_block` | `-> {label, declarations, statements, join, end_label}` | Same as seq_block plus `join` field carrying the typed `join_keyword` (discriminates `join` / `join_any` / `join_none` per SV-Slice-7). |
+| `case_statement` | `-> {unique_priority, keyword, expr, items: {first, rest}}` | Drops `kw_endcase` and parens. `keyword` is the typed `case_keyword` (case/casez/casex). `items` is mini-mixed-array with first matched case_item + rest iteration. `unique_priority` raw envelope (still — see DEFERRED in slice 34 contract). |
+| `case_keyword` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"case"` / `"casez"` / `"casex"`. |
+| `case_item` (2 branches) | per-branch typed | Kind labels: `"expr_list"` (`{exprs: {first, rest}, body}` — N-way label-list `expr1, expr2, ... : stmt;`) / `"default"` (`{body}` — drops `kw_default` and optional colon). Same shape pattern as case_generate_item from SV-Slice-23. |
+| `case_pattern_item` (2 branches) | per-branch typed | Kind labels: `"pattern"` (`{pattern, condition, body}` — `condition` is the optional `&&& expression` guard per LRM A.6.7.1) / `"default"` (`{body}`). |
+| `case_inside_item_sv_2017` (2 branches) | per-branch typed | Kind labels: `"range_list"` (`{ranges, body}` — ranges is open_range_list) / `"default"` (`{body}`). |
+| `case_inside_item_sv_2023` (2 branches) | per-branch typed | Same kind labels as sv_2017; ranges field uses LRM 2023 `range_list` (simplified naming). |
+| `loop_statement` (6 branches) | per-branch typed | Kind labels: `"forever"` (`{body}`) / `"repeat"` (`{count, body}`) / `"while"` (`{condition, body}`) / `"for"` (`{init, condition, step, body}` — each of init/condition/step is `[]` when omitted) / `"do_while"` (`{body, condition}`) / `"foreach"` (`{array, loop_vars, body}` — body is a typed `statement`, not statement_or_null since bare `;` not allowed). |
 
 ## Sub-rules with implicit defaults
 

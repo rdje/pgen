@@ -7,15 +7,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.33`
+  - `1.0.34`
 - Parser release version:
-  - `1.0.33`
+  - `1.0.34`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-05-05`
+  - `2026-05-06`
 - Current grammar family label:
   - `systemverilog`
 - Current stable host profiles:
@@ -35,6 +35,85 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.34 / Contract 1.0.34 Highlights — SV-Slice-34 batch: case + loop families typed (7 rules / 18 annotations)
+
+Closes the case-statement and loop-statement walks (`statement_item.kind == "case"` / `"loop"` from SV-Slice-32).
+
+### Annotations
+
+```ebnf
+case_statement := ( unique_priority )? case_keyword lparen case_expression rparen case_item case_item* kw_endcase
+               -> {unique_priority: $1, keyword: $2, expr: $4, items: {first: $6, rest: $7}}
+
+case_keyword := kw_case  -> {kind: "case"}
+              | kw_casez -> {kind: "casez"}
+              | kw_casex -> {kind: "casex"}
+
+case_item := case_item_expression ( comma case_item_expression )* colon statement_or_null
+                  -> {kind: "expr_list", exprs: {first: $1, rest: $2}, body: $4}
+           | kw_default ( colon )? statement_or_null
+                  -> {kind: "default",   body: $3}
+
+case_pattern_item := pattern ( logical_and3 expression )? colon statement_or_null
+                          -> {kind: "pattern", pattern: $1, condition: $2, body: $4}
+                   | kw_default ( colon )? statement_or_null
+                          -> {kind: "default", body: $3}
+
+@profiles: ["sv_2017"]
+case_inside_item_sv_2017 := open_range_list colon statement_or_null
+                                 -> {kind: "range_list", ranges: $1, body: $3}
+                          | kw_default ( colon )? statement_or_null
+                                 -> {kind: "default",    body: $3}
+
+@profiles: ["sv_2023"]
+case_inside_item_sv_2023 := /* parallel to sv_2017; uses LRM 2023 `range_list` instead of `open_range_list` */
+
+loop_statement := kw_forever statement_or_null
+                       -> {kind: "forever",  body: $2}
+                | kw_repeat lparen expression rparen statement_or_null
+                       -> {kind: "repeat",   count: $3, body: $5}
+                | kw_while lparen expression rparen statement_or_null
+                       -> {kind: "while",    condition: $3, body: $5}
+                | kw_for lparen ( for_initialization )? semi ( expression )? semi ( for_step )? rparen statement_or_null
+                       -> {kind: "for",      init: $3, condition: $5, step: $7, body: $9}
+                | kw_do statement_or_null kw_while lparen expression rparen semi
+                       -> {kind: "do_while", body: $2, condition: $5}
+                | kw_foreach lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen statement
+                       -> {kind: "foreach",  array: $3, loop_vars: $5, body: $8}
+```
+
+### Field semantics
+
+- `case_statement.unique_priority` is `[]` for plain `case`, `[<unique_priority shape>]` for `unique`/`unique0`/`priority` prefix (raw envelope still — see DEFERRED below).
+- `case_pattern_item.condition`: optional `&&& expression` guard per LRM A.6.7.1; `[]` when absent.
+- `loop_statement.kind == "for"`: `init`, `condition`, `step` are each `[]` when omitted (e.g., `for (;;)` is valid SV).
+- `loop_statement.kind == "foreach"`: `body` is a typed `statement` (note: not `statement_or_null` — bare `;` not allowed for foreach).
+
+### Profile difference
+
+`case_inside_item_sv_2017` uses `open_range_list`; `case_inside_item_sv_2023` uses `range_list` (LRM 2023 simplification). The `kind` labels and field names are identical.
+
+### DEFERRED
+
+- `unique_priority` typing: rule has duplicate `kw_unique` branches (probable grammar bug — branches 0 and 1 are identical `kw_unique`), needs grammar fix before clean annotation. Tracking as a follow-up.
+- `conditional_statement` typing: rule uses `&kw_else` positive lookahead + parens-Or `( conditional_statement | statement_or_null )`. The parens-Or hits task #38; needs helper-rule extraction with attention to the lookahead pattern.
+
+### Annotation inventory
+
+454 entries (was 436). +18 in this batch (1 case_statement + 3 case_keyword + 2 case_item + 2 case_pattern_item + 2 case_inside_item_sv_2017 + 2 case_inside_item_sv_2023 + 6 loop_statement).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `conditional_statement` (with helper-rule extraction).
+- `procedural_assertion_statement`, `clocking_drive`.
+- `data_type` / `data_type_or_implicit` / `data_type_or_void`.
+- `randsequence_statement` / `randcase_statement`.
+- `unique_priority` (after grammar fix).
 
 ## Release 1.0.33 / Contract 1.0.33 Highlights — SV-Slice-33 batch: procedural-statement forms typed (11 rules / 26 annotations)
 

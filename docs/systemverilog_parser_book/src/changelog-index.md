@@ -19,6 +19,28 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.34 / Contract 1.0.34 — SV-Slice-34 batch: case + loop families typed (7 rules / 18 annotations)
+
+**What changed:** Closes case-statement and loop-statement walks.
+
+```ebnf
+case_statement           -> {unique_priority, keyword, expr, items: {first, rest}}
+case_keyword             -> 3 kinds bare (case / casez / casex)
+case_item                -> 2 kinds (expr_list / default)
+case_pattern_item        -> 2 kinds (pattern {pattern, condition, body} / default)
+case_inside_item_sv_2017 -> 2 kinds (range_list using open_range_list / default)
+case_inside_item_sv_2023 -> 2 kinds (range_list using range_list per LRM 2023 / default)
+loop_statement           -> 6 kinds (forever / repeat / while / for / do_while / foreach)
+```
+
+**DEFERRED:** unique_priority (grammar duplicate-branch bug), conditional_statement (parens-Or with lookahead — needs helper rule).
+
+**Annotation inventory:** 454 entries (was 436). +18 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.34 / Contract 1.0.34 Highlights".
+
 ### 1.0.33 / Contract 1.0.33 — SV-Slice-33 batch: procedural-statement forms typed (11 rules / 26 annotations)
 
 **What changed:** Closes 7 of statement_item's 19/20 kinds.
