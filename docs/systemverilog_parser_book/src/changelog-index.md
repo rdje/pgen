@@ -19,6 +19,30 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.33 / Contract 1.0.33 — SV-Slice-33 batch: procedural-statement forms typed (11 rules / 26 annotations)
+
+**What changed:** Closes 7 of statement_item's 19/20 kinds.
+
+```ebnf
+disable_statement                    -> 3 kinds (task / block / fork)
+jump_statement                       -> 3 kinds (return / break / continue)
+wait_statement                       -> 3 kinds (wait / wait_fork / wait_order)
+event_trigger_sv_2017                -> 2 kinds (non_blocking / blocking)
+event_trigger_sv_2023                -> 2 kinds (parallel; adds `select` field)
+procedural_timing_control_statement  -> {control, body}
+procedural_timing_control            -> 3 kinds (delay / event / cycle)
+subroutine_call                      -> 5 kinds (class_scoped_tf / tf / system_tf / method / randomize)
+subroutine_call_statement            -> 2 kinds (call / void_cast)
+seq_block                            -> {label, declarations, statements, end_label}
+par_block                            -> {label, declarations, statements, join, end_label}
+```
+
+**Annotation inventory:** 436 entries (was 410). +26 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.33 / Contract 1.0.33 Highlights".
+
 ### 1.0.32 / Contract 1.0.32 — SV-Slice-32 batch: statement_item dispatch typed (3 rules / 43 annotations — crosses 400-annotation milestone)
 
 **What changed:** Closes statement.body field, exposing typed dispatch into all 20 (sv_2017) / 19 (sv_2023) procedural-statement forms.

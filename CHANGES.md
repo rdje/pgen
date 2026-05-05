@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-33 batch: procedural-statement forms typed (11 rules / 26 annotations)
+
+Closes 7 of `statement_item`'s 19/20 kinds (typed in SV-Slice-32).
+
+```ebnf
+disable_statement                    -> 3 kinds (task / block / fork)
+jump_statement                       -> 3 kinds (return / break / continue)
+wait_statement                       -> 3 kinds (wait / wait_fork / wait_order)
+event_trigger_sv_2017                -> 2 kinds (non_blocking / blocking)
+event_trigger_sv_2023                -> 2 kinds (parallel; adds `select` field)
+procedural_timing_control_statement  -> {control, body}
+procedural_timing_control            -> 3 kinds (delay / event / cycle)
+subroutine_call                      -> 5 kinds (class_scoped_tf / tf / system_tf / method / randomize)
+subroutine_call_statement            -> 2 kinds (call / void_cast)
+seq_block                            -> {label, declarations, statements, end_label}
+par_block                            -> {label, declarations, statements, join, end_label}
+```
+
+Annotation count: **436** (was 410, +26). Same accept set. Schema stays at `1`. Contract bumped 1.0.32 → 1.0.33. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-32 batch: statement_item dispatch typed (3 rules / 43 annotations — crosses 400-annotation milestone)
 
 Closes the `statement.body` field, exposing typed dispatch into all 20 (sv_2017) / 19 (sv_2023) procedural-statement forms. Crosses the 400-annotation threshold.

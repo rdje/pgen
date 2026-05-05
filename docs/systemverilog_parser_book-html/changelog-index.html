@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ff6b7a43.js";
+            window.path_to_searchindex_js = "searchindex-1d2bceb4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,23 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1033--contract-1033--sv-slice-33-batch-procedural-statement-forms-typed-11-rules--26-annotations"><a class="header" href="#1033--contract-1033--sv-slice-33-batch-procedural-statement-forms-typed-11-rules--26-annotations">1.0.33 / Contract 1.0.33 — SV-Slice-33 batch: procedural-statement forms typed (11 rules / 26 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes 7 of statement_item’s 19/20 kinds.</p>
+<pre><code class="language-ebnf">disable_statement                    -&gt; 3 kinds (task / block / fork)
+jump_statement                       -&gt; 3 kinds (return / break / continue)
+wait_statement                       -&gt; 3 kinds (wait / wait_fork / wait_order)
+event_trigger_sv_2017                -&gt; 2 kinds (non_blocking / blocking)
+event_trigger_sv_2023                -&gt; 2 kinds (parallel; adds `select` field)
+procedural_timing_control_statement  -&gt; {control, body}
+procedural_timing_control            -&gt; 3 kinds (delay / event / cycle)
+subroutine_call                      -&gt; 5 kinds (class_scoped_tf / tf / system_tf / method / randomize)
+subroutine_call_statement            -&gt; 2 kinds (call / void_cast)
+seq_block                            -&gt; {label, declarations, statements, end_label}
+par_block                            -&gt; {label, declarations, statements, join, end_label}
+</code></pre>
+<p><strong>Annotation inventory:</strong> 436 entries (was 410). +26 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.33 / Contract 1.0.33 Highlights”.</p>
 <h3 id="1032--contract-1032--sv-slice-32-batch-statement_item-dispatch-typed-3-rules--43-annotations--crosses-400-annotation-milestone"><a class="header" href="#1032--contract-1032--sv-slice-32-batch-statement_item-dispatch-typed-3-rules--43-annotations--crosses-400-annotation-milestone">1.0.32 / Contract 1.0.32 — SV-Slice-32 batch: statement_item dispatch typed (3 rules / 43 annotations — crosses 400-annotation milestone)</a></h3>
 <p><strong>What changed:</strong> Closes statement.body field, exposing typed dispatch into all 20 (sv_2017) / 19 (sv_2023) procedural-statement forms.</p>
 <pre><code class="language-ebnf">statement_item_sv_2017  -&gt; 20 kinds (blocking_assignment, nonblocking_assignment, procedural_continuous_assignment, case, conditional, inc_or_dec_expression, subroutine_call, disable, event_trigger, loop, jump, par_block, procedural_timing_control, seq_block, wait, procedural_assertion, clocking_drive, randsequence, randcase, expect_property)

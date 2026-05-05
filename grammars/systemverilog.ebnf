@@ -1109,7 +1109,12 @@ description := module_declaration                 -> {kind: "module_declaration"
 
 design_statement := kw_design_056f1182 ( ( library_identifier dot )? cell_identifier )* semi
 
-disable_statement := kw_disable_ccf09e2d hierarchical_task_identifier semi | kw_disable_ccf09e2d hierarchical_block_identifier semi | kw_disable_ccf09e2d kw_fork_3f673f2a semi
+disable_statement := kw_disable_ccf09e2d hierarchical_task_identifier semi
+                          -> {kind: "task",  target: $2}
+                   | kw_disable_ccf09e2d hierarchical_block_identifier semi
+                          -> {kind: "block", target: $2}
+                   | kw_disable_ccf09e2d kw_fork_3f673f2a semi
+                          -> {kind: "fork"}
 
 @profiles: ["sv_2017"]
 dist_item_sv_2017 := value_range ( dist_weight )?
@@ -1203,10 +1208,16 @@ event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e ex
 event_expression := event_expression_primary ( ( kw_or_1758356d | comma ) event_expression_primary )*
 
 @profiles: ["sv_2017"]
-event_trigger_sv_2017 := implies hierarchical_event_identifier semi | implies ( delay_or_event_control )? hierarchical_event_identifier semi
+event_trigger_sv_2017 := implies hierarchical_event_identifier semi
+                              -> {kind: "non_blocking", name: $2}
+                       | implies ( delay_or_event_control )? hierarchical_event_identifier semi
+                              -> {kind: "blocking",     control: $2, name: $3}
 
 @profiles: ["sv_2023"]
-event_trigger_sv_2023 := implies hierarchical_event_identifier nonrange_select semi | implies ( delay_or_event_control )? hierarchical_event_identifier nonrange_select semi
+event_trigger_sv_2023 := implies hierarchical_event_identifier nonrange_select semi
+                              -> {kind: "non_blocking", name: $2, select: $3}
+                       | implies ( delay_or_event_control )? hierarchical_event_identifier nonrange_select semi
+                              -> {kind: "blocking",     control: $2, name: $3, select: $4}
 
 event_trigger := event_trigger_sv_2017 | event_trigger_sv_2023
 
@@ -1525,7 +1536,9 @@ interface_port_identifier := interface_port_identifier_sv_2023
 
 join_keyword := kw_join_c455b38e | kw_join_any_24358a7a | kw_join_none_4454a7a6
 
-jump_statement := kw_return_63143b6f ( expression )? semi | kw_break_4f9cac8d semi | kw_continue_eee0bbba semi
+jump_statement := kw_return_63143b6f ( expression )? semi -> {kind: "return",   value: $2}
+                | kw_break_4f9cac8d semi                   -> {kind: "break"}
+                | kw_continue_eee0bbba semi                -> {kind: "continue"}
 
 let_actual_arg := expression
 
@@ -2139,6 +2152,7 @@ package_scope := package_identifier scope_resolution | kw_sv_dollar_unit_1d99223
 packed_dimension := lbrack constant_range rbrack | unsized_dimension
 
 par_block := kw_fork_3f673f2a ( colon block_identifier )? block_item_declaration* statement_or_null* join_keyword ( colon block_identifier )?
+          -> {label: $2, declarations: $3, statements: $4, join: $5, end_label: $6}
 
 @profiles: ["sv_2017"]
 parallel_edge_sensitive_path_description_sv_2017 := lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies lparen specify_output_terminal_descriptor ( polarity_operator )? colon data_source_expression rparen rparen
@@ -2276,9 +2290,12 @@ procedural_assertion_statement := concurrent_assertion_statement | immediate_ass
 
 procedural_continuous_assignment := kw_assign_9009b730 variable_assignment | kw_deassign_1af170b4 variable_lvalue | kw_force_fafec1e5 variable_assignment | kw_force_fafec1e5 net_assignment | kw_release_01f561ac variable_lvalue | kw_release_01f561ac net_lvalue
 
-procedural_timing_control := delay_control | event_control | cycle_delay
+procedural_timing_control := delay_control -> {kind: "delay", body: $1}
+                           | event_control -> {kind: "event", body: $1}
+                           | cycle_delay   -> {kind: "cycle", body: $1}
 
 procedural_timing_control_statement := procedural_timing_control statement_or_null
+                                    -> {control: $1, body: $2}
 
 @profiles: ["sv_2017"]
 production_sv_2017 := ( data_type_or_void )? production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
@@ -2579,6 +2596,7 @@ select_condition := kw_binsof_efb35b22 lparen bins_expression rparen ( kw_inters
 select_expression := select_condition | bang select_condition | select_expression logical_and select_expression | select_expression logical_or select_expression | lparen select_expression rparen | select_expression kw_with_8fcd25a3 lparen with_covergroup_expression rparen ( kw_matches_9f3e9242 integer_covergroup_expression )? | cross_identifier | cross_set_expression ( kw_matches_9f3e9242 integer_covergroup_expression )?
 
 seq_block := kw_begin_8cbd0a74 ( colon block_identifier )? block_item_declaration* statement_or_null* kw_end_7a92f3d2 ( colon block_identifier )?
+          -> {label: $2, declarations: $3, statements: $4, end_label: $6}
 
 seq_input_list := level_input_list | edge_input_list
 
@@ -2758,9 +2776,17 @@ struct_union_member := attribute_instance* ( random_qualifier )? data_type_or_vo
 structure_pattern_key := member_identifier | assignment_pattern_key
 
 @branch_policy: priority_first
-subroutine_call := class_scoped_tf_call | tf_call | system_tf_call | method_call | ( kw_std_55ec981f scope_resolution )? randomize_call
+subroutine_call := class_scoped_tf_call                            -> {kind: "class_scoped_tf", body: $1}
+                 | tf_call                                          -> {kind: "tf",             body: $1}
+                 | system_tf_call                                   -> {kind: "system_tf",      body: $1}
+                 | method_call                                      -> {kind: "method",         body: $1}
+                 | ( kw_std_55ec981f scope_resolution )? randomize_call
+                                                                    -> {kind: "randomize",      std_scope: $1, body: $2}
 
-subroutine_call_statement := subroutine_call semi | kw_void_e9cede9b tick lparen function_subroutine_call rparen semi
+subroutine_call_statement := subroutine_call semi
+                                  -> {kind: "call",      body: $1}
+                           | kw_void_e9cede9b tick lparen function_subroutine_call rparen semi
+                                  -> {kind: "void_cast", body: $4}
 
 sv_dollar_fullskew_timing_check := kw_sv_dollar_fullskew_1e1514b3 lparen reference_event comma data_event comma timing_check_limit comma timing_check_limit ( comma ( notifier )? ( comma ( event_based_flag )? ( comma ( remain_active_flag )? )? )? )? rparen semi
 
@@ -3094,7 +3120,12 @@ variable_port_header := ( port_direction )? variable_port_type
 
 variable_port_type := var_data_type
 
-wait_statement := kw_wait_daaad336 lparen expression rparen statement_or_null | kw_wait_daaad336 kw_fork_3f673f2a semi | kw_wait_order_e1b7850a lparen hierarchical_identifier ( comma hierarchical_identifier )* rparen action_block
+wait_statement := kw_wait_daaad336 lparen expression rparen statement_or_null
+                       -> {kind: "wait",       condition: $3, body: $5}
+                | kw_wait_daaad336 kw_fork_3f673f2a semi
+                       -> {kind: "wait_fork"}
+                | kw_wait_order_e1b7850a lparen hierarchical_identifier ( comma hierarchical_identifier )* rparen action_block
+                       -> {kind: "wait_order", events: {first: $3, rest: $4}, action: $6}
 
 @profiles: ["sv_2017"]
 weight_specification_sv_2017 := integral_number | ps_identifier | lparen expression rparen

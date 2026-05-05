@@ -149,6 +149,17 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `statement_item_sv_2017` (20 branches) | per-branch `{kind, body}` | Kind labels: `"blocking_assignment"` / `"nonblocking_assignment"` / `"procedural_continuous_assignment"` (each drops trailing `semi`) / `"case"` / `"conditional"` / `"inc_or_dec_expression"` (drops `semi`; sv_2017-only) / `"subroutine_call"` / `"disable"` / `"event_trigger"` / `"loop"` / `"jump"` / `"par_block"` / `"procedural_timing_control"` / `"seq_block"` / `"wait"` / `"procedural_assertion"` / `"clocking_drive"` (drops `semi`) / `"randsequence"` / `"randcase"` / `"expect_property"`. Reached from `statement.body`. |
 | `statement_item_sv_2023` (19 branches) | per-branch `{kind, body}` | Same 19 kinds as sv_2017 except `"inc_or_dec_expression"` is removed — LRM 2023 subsumes the semantics into `blocking_assignment` with `++`/`--` operators. |
 | `block_item_declaration` (4 branches) | per-branch `{kind, attributes, body}` | Kind labels: `"block_data"` / `"local_parameter"` / `"parameter"` / `"let"`. Each preserves leading `attribute_instance*` prefix. Reached from `tf_item_declaration.kind == "block_item"`. |
+| `disable_statement` (3 branches) | per-branch typed | Kind labels: `"task"` (`{target}`) / `"block"` (`{target}`) / `"fork"` (bare). Reached from `statement_item.kind == "disable"`. |
+| `jump_statement` (3 branches) | per-branch typed | Kind labels: `"return"` (`{value}` — value is `[]` for bare `return;` or `[<expr>]` for `return expr;`) / `"break"` (bare) / `"continue"` (bare). |
+| `wait_statement` (3 branches) | per-branch typed | Kind labels: `"wait"` (`{condition, body}`) / `"wait_fork"` (bare) / `"wait_order"` (`{events: {first, rest}, action}` — wait order(e1, e2, ..., eN) action_block; mini-mixed-array on events). |
+| `event_trigger_sv_2017` (2 branches) | per-branch typed | Kind labels: `"non_blocking"` (`{name}` — `-> name;`) / `"blocking"` (`{control, name}` — `->> [delay] name;`). |
+| `event_trigger_sv_2023` (2 branches) | per-branch typed | Same 2 kinds as sv_2017 plus a `select` field per branch (LRM 2023 nonrange_select extension). |
+| `procedural_timing_control_statement` | `-> {control: $1, body: $2}` | Standard timing-controlled statement form: `<control> statement_or_null`. Reached from `statement_item.kind == "procedural_timing_control"`. |
+| `procedural_timing_control` (3 branches) | per-branch `{kind, body}` | Kind labels: `"delay"` (#N delay) / `"event"` (@(...) event) / `"cycle"` (##N cycle delay). |
+| `subroutine_call` (5 branches) | per-branch typed | Kind labels: `"class_scoped_tf"` (`{body}`) / `"tf"` (`{body}`) / `"system_tf"` (`{body}` — $display etc.) / `"method"` (`{body}`) / `"randomize"` (`{std_scope, body}` — std_scope is `[]` for plain randomize, `[<kw_std, ::>]` for std::randomize). |
+| `subroutine_call_statement` (2 branches) | per-branch typed | Kind labels: `"call"` (`{body}` — wraps subroutine_call with trailing `;`) / `"void_cast"` (`{body}` — `void'(func_call);` discards return value). |
+| `seq_block` | `-> {label, declarations, statements, end_label}` | Drops `kw_begin` / `kw_end`. `label` is optional `( colon block_identifier )?` (e.g., `begin : my_block`). |
+| `par_block` | `-> {label, declarations, statements, join, end_label}` | Same as seq_block plus `join` field carrying the typed `join_keyword` (discriminates `join` / `join_any` / `join_none` per SV-Slice-7). |
 
 ## Sub-rules with implicit defaults
 

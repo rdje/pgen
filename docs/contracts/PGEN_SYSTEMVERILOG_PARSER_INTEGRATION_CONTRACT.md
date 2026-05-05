@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.32`
+  - `1.0.33`
 - Parser release version:
-  - `1.0.32`
+  - `1.0.33`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,87 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.33 / Contract 1.0.33 Highlights — SV-Slice-33 batch: procedural-statement forms typed (11 rules / 26 annotations)
+
+Closes 7 of `statement_item`'s 19/20 kinds (typed in SV-Slice-32) — `disable` / `jump` / `wait` / `event_trigger` / `procedural_timing_control` / `subroutine_call` / `par_block` / `seq_block` now expose typed dispatch into actual content.
+
+### Annotations
+
+```ebnf
+disable_statement := kw_disable hierarchical_task_identifier semi  -> {kind: "task",  target: $2}
+                   | kw_disable hierarchical_block_identifier semi -> {kind: "block", target: $2}
+                   | kw_disable kw_fork semi                       -> {kind: "fork"}
+
+jump_statement := kw_return ( expression )? semi -> {kind: "return", value: $2}
+                | kw_break semi                  -> {kind: "break"}
+                | kw_continue semi               -> {kind: "continue"}
+
+wait_statement := kw_wait lparen expression rparen statement_or_null
+                       -> {kind: "wait",       condition: $3, body: $5}
+                | kw_wait kw_fork semi
+                       -> {kind: "wait_fork"}
+                | kw_wait_order lparen hierarchical_identifier ( comma hierarchical_identifier )* rparen action_block
+                       -> {kind: "wait_order", events: {first: $3, rest: $4}, action: $6}
+
+@profiles: ["sv_2017"]
+event_trigger_sv_2017 := implies hierarchical_event_identifier semi
+                              -> {kind: "non_blocking", name: $2}
+                       | implies ( delay_or_event_control )? hierarchical_event_identifier semi
+                              -> {kind: "blocking",     control: $2, name: $3}
+
+@profiles: ["sv_2023"]
+event_trigger_sv_2023 := /* parallel; both branches add `select: <nonrange_select>` field per LRM 2023 */
+
+procedural_timing_control_statement := procedural_timing_control statement_or_null
+                                    -> {control: $1, body: $2}
+
+procedural_timing_control := delay_control -> {kind: "delay", body: $1}
+                           | event_control -> {kind: "event", body: $1}
+                           | cycle_delay   -> {kind: "cycle", body: $1}
+
+subroutine_call := class_scoped_tf_call -> {kind: "class_scoped_tf", body: $1}
+                 | tf_call               -> {kind: "tf",             body: $1}
+                 | system_tf_call        -> {kind: "system_tf",      body: $1}
+                 | method_call           -> {kind: "method",         body: $1}
+                 | ( kw_std scope_resolution )? randomize_call
+                                         -> {kind: "randomize",      std_scope: $1, body: $2}
+
+subroutine_call_statement := subroutine_call semi
+                                  -> {kind: "call",      body: $1}
+                           | kw_void tick lparen function_subroutine_call rparen semi
+                                  -> {kind: "void_cast", body: $4}
+
+seq_block := kw_begin ( colon block_identifier )? block_item_declaration* statement_or_null* kw_end ( colon block_identifier )?
+          -> {label: $2, declarations: $3, statements: $4, end_label: $6}
+
+par_block := kw_fork ( colon block_identifier )? block_item_declaration* statement_or_null* join_keyword ( colon block_identifier )?
+          -> {label: $2, declarations: $3, statements: $4, join: $5, end_label: $6}
+```
+
+### Field semantics
+
+- `wait_statement.kind == "wait_order"`: the LRM `wait order(e1, e2, ..., eN) action_block` form. `events.first` + `events.rest` carry the comma-separated event list (mini-mixed-array).
+- `subroutine_call.kind == "randomize"`: `std_scope` is `[]` for plain `randomize(...)`, `[<kw_std, scope_resolution>]` for `std::randomize(...)`.
+- `subroutine_call_statement.kind == "void_cast"`: the `void'(func_call);` idiom — discards the return value of a function called as a statement.
+- `seq_block.label` and `par_block.label`: optional `( colon block_identifier )?` (e.g., `begin : my_block ... end`).
+- `par_block.join`: typed `join_keyword` shape (typed earlier in SV-Slice-7 — discriminates `join` / `join_any` / `join_none`).
+
+### Annotation inventory
+
+436 entries (was 410). +26 in this batch (3 disable + 3 jump + 3 wait + 2 event_trigger_sv_2017 + 2 event_trigger_sv_2023 + 1 procedural_timing_control_statement + 3 procedural_timing_control + 5 subroutine_call + 2 subroutine_call_statement + 1 seq_block + 1 par_block).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `case_statement` / `case_item` (close case-statement walk).
+- `conditional_statement` (with helper-rule extraction for the `( conditional_statement | statement_or_null )` parens-Or per task #38).
+- `loop_statement` (6 branches: forever / repeat / while / for / do_while / foreach).
+- `procedural_assertion_statement`, `clocking_drive`.
+- `data_type` / `data_type_or_implicit` / `data_type_or_void`.
 
 ## Release 1.0.32 / Contract 1.0.32 Highlights — SV-Slice-32 batch: statement_item dispatch typed (3 rules / 43 annotations — crosses 400-annotation milestone)
 
