@@ -19,6 +19,26 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.24 / Contract 1.0.24 — SV-Slice-24 batch: assertion + genvar dispatch typed (7 rules / 26 annotations)
+
+**What changed:** Closes the assertion-item walk path and the loop_generate_construct init/step typed dispatch.
+
+```ebnf
+assertion_item              -> 2 kinds (concurrent / deferred_immediate)
+assertion_item_declaration  -> 3 kinds (property / sequence / let)
+concurrent_assertion_item   -> 2 kinds (statement {label, body} / checker_instantiation {body})
+genvar_initialization       -> {genvar_keyword, name, value}
+genvar_iteration            -> 3 kinds (assign / prefix_inc_dec / postfix_inc_dec)
+assignment_operator         -> 13 kinds (assign / plus_assign / ... / arithmetic_shift_right_assign) — bare {kind}
+inc_or_dec_operator         -> 2 kinds (plus_plus / minus_minus) — bare {kind}
+```
+
+**Annotation inventory:** 260 entries (was 234). +26 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.24 / Contract 1.0.24 Highlights" with full annotation source + field semantics for each rule.
+
 ### 1.0.23 / Contract 1.0.23 — SV-Slice-23 batch: generate-construct internals typed (6 rules / 9 annotations + 1 new helper rule)
 
 **What changed:** Closes the loop / conditional / case-generate dispatch path.

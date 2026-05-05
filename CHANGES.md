@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-24 batch: assertion + genvar dispatch typed (7 rules / 26 annotations)
+
+Closes the assertion-item walk path and the loop_generate_construct init/step typed dispatch.
+
+```ebnf
+assertion_item              -> 2 kinds (concurrent / deferred_immediate)
+assertion_item_declaration  -> 3 kinds (property / sequence / let)
+concurrent_assertion_item   -> 2 kinds (statement {label, body} / checker_instantiation {body})
+genvar_initialization       -> {genvar_keyword, name, value}
+genvar_iteration            -> 3 kinds (assign / prefix_inc_dec / postfix_inc_dec)
+assignment_operator         -> 13 kinds — bare {kind}
+inc_or_dec_operator         -> 2 kinds — bare {kind}
+```
+
+Annotation count: **260** (was 234, +26). Same accept set. Schema stays at `1`. Contract bumped 1.0.23 → 1.0.24. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-23 batch: generate-construct internals typed (6 rules / 9 annotations + 1 new helper rule)
 
 Closes the loop / conditional / case-generate dispatch path. Every reachable `module_common_item.kind=='loop_generate_construct'` and `'conditional_generate_construct'` now exposes typed structural dispatch all the way to the generate body.

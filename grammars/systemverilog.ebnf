@@ -230,7 +230,19 @@ comment_only_source_region := white_space* ( line_comment | block_comment ) ( wh
 
 binary_operator := plus | minus | star | slash | percent | equal | not_equal | case_equal | case_not_equal | wildcard_equal | wildcard_not_equal | logical_and | logical_or | power | less_than | less_equal | greater_than | greater_equal | bitwise_and | bitwise_or | bitwise_xor | reduction_xnor_alt | reduction_xnor | shift_right | shift_left | arithmetic_shift_right | arithmetic_shift_left | implies | iff_arrow
 
-assignment_operator := assign | plus_assign | minus_assign | star_assign | slash_assign | percent_assign | and_assign | or_assign | xor_assign | shift_left_assign | shift_right_assign | arithmetic_shift_left_assign | arithmetic_shift_right_assign
+assignment_operator := assign                          -> {kind: "assign"}
+                     | plus_assign                     -> {kind: "plus_assign"}
+                     | minus_assign                    -> {kind: "minus_assign"}
+                     | star_assign                     -> {kind: "star_assign"}
+                     | slash_assign                    -> {kind: "slash_assign"}
+                     | percent_assign                  -> {kind: "percent_assign"}
+                     | and_assign                      -> {kind: "and_assign"}
+                     | or_assign                       -> {kind: "or_assign"}
+                     | xor_assign                      -> {kind: "xor_assign"}
+                     | shift_left_assign               -> {kind: "shift_left_assign"}
+                     | shift_right_assign              -> {kind: "shift_right_assign"}
+                     | arithmetic_shift_left_assign    -> {kind: "arithmetic_shift_left_assign"}
+                     | arithmetic_shift_right_assign   -> {kind: "arithmetic_shift_right_assign"}
 
 constant_expression_operand := unary_operator attribute_instance* constant_primary | constant_primary
 
@@ -352,9 +364,12 @@ array_range_expression := expression | expression colon expression | expression 
 
 assert_property_statement := kw_assert_64b5daad kw_property_269fe373 lparen property_spec rparen action_block
 
-assertion_item := concurrent_assertion_item | deferred_immediate_assertion_item
+assertion_item := concurrent_assertion_item            -> {kind: "concurrent",            body: $1}
+               | deferred_immediate_assertion_item     -> {kind: "deferred_immediate",    body: $1}
 
-assertion_item_declaration := property_declaration | sequence_declaration | let_declaration
+assertion_item_declaration := property_declaration -> {kind: "property", body: $1}
+                            | sequence_declaration -> {kind: "sequence", body: $1}
+                            | let_declaration      -> {kind: "let",      body: $1}
 
 assertion_variable_declaration := var_data_type list_of_variable_decl_assignments semi
 
@@ -675,7 +690,10 @@ combinational_entry := level_input_list colon output_symbol semi
 
 concatenation := lbrace expression ( comma expression )* rbrace
 
-concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_statement | checker_instantiation
+concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_statement
+                                  -> {kind: "statement",             label: $1, body: $2}
+                           | checker_instantiation
+                                  -> {kind: "checker_instantiation", body: $1}
 
 concurrent_assertion_statement := assert_property_statement | assume_property_statement | cover_property_statement | cover_sequence_statement | restrict_property_statement
 
@@ -1209,8 +1227,14 @@ genvar_expression := constant_expression
 genvar_identifier := identifier
 
 genvar_initialization := ( kw_genvar_9cb2eb8a )? genvar_identifier assign constant_expression
+                      -> {genvar_keyword: $1, name: $2, value: $4}
 
-genvar_iteration := genvar_identifier assignment_operator genvar_expression | inc_or_dec_operator genvar_identifier | genvar_identifier inc_or_dec_operator
+genvar_iteration := genvar_identifier assignment_operator genvar_expression
+                         -> {kind: "assign",         name: $1, op: $2, value: $3}
+                  | inc_or_dec_operator genvar_identifier
+                         -> {kind: "prefix_inc_dec", op: $1, name: $2}
+                  | genvar_identifier inc_or_dec_operator
+                         -> {kind: "postfix_inc_dec", name: $1, op: $2}
 
 goto_repetition := ( implies const_or_range_expression )?
 
@@ -1265,7 +1289,8 @@ import_export := kw_import_62fdfbd5 | kw_export_51713409
 
 inc_or_dec_expression := inc_or_dec_operator attribute_instance* variable_lvalue | variable_lvalue attribute_instance* inc_or_dec_operator
 
-inc_or_dec_operator := plus_plus | minus_minus
+inc_or_dec_operator := plus_plus    -> {kind: "plus_plus"}
+                     | minus_minus  -> {kind: "minus_minus"}
 
 include_statement := kw_include_d3ecb0d8 kw_file_path_spec_c26c9dc9 semi
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1aba6450.js";
+            window.path_to_searchindex_js = "searchindex-dacc475a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -276,6 +276,13 @@
 <tr><td><code>if_generate_else_clause</code> (NEW; 2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"elseif"</code> (body is itself an if_generate_construct — supports <code>else if</code> chains) / <code>"else_block"</code> (body is a generate_block — terminal else). Helper rule extracted from inline <code>( kw_else if_generate_construct | kw_else generate_block )?</code> to dodge task #38.</td></tr>
 <tr><td><code>case_generate_construct</code></td><td><code>-&gt; {expr: $3, items: {first: $5, rest: $6}}</code></td><td>Single-sequence typed. <code>expr</code> is the case-discriminant constant_expression. <code>items</code> is a {first, rest} mini-mixed-array (first matched case_generate_item + raw Quantified iteration of repeats). Drops <code>kw_case</code>, <code>lparen</code>, <code>rparen</code>, <code>kw_endcase</code>.</td></tr>
 <tr><td><code>case_generate_item</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"expr_list"</code> (<code>{exprs: {first, rest}, block}</code> — N-way label-list form <code>expr1, expr2, ... : block</code>; mini-mixed-array on <code>exprs</code>) / <code>"default"</code> (<code>{block}</code> — drops <code>kw_default</code> and the optional <code>( colon )?</code> separator).</td></tr>
+<tr><td><code>assertion_item</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"concurrent"</code> / <code>"deferred_immediate"</code>. Reached from <code>module_common_item.kind == "assertion_item"</code>.</td></tr>
+<tr><td><code>assertion_item_declaration</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"property"</code> / <code>"sequence"</code> / <code>"let"</code>. Reached from <code>package_or_generate_item_declaration.kind == "assertion_item_declaration"</code>.</td></tr>
+<tr><td><code>concurrent_assertion_item</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"statement"</code> (<code>{label, body}</code> — <code>label</code> is the optional <code>( block_identifier colon )?</code> per LRM A.6.10; <code>[]</code> when no label) / <code>"checker_instantiation"</code> (<code>{body}</code>).</td></tr>
+<tr><td><code>genvar_initialization</code></td><td><code>-&gt; {genvar_keyword: $1, name: $2, value: $4}</code></td><td>Single-sequence typed. <code>genvar_keyword</code> is <code>[]</code> when re-using a pre-declared genvar, <code>[&lt;kw_genvar token&gt;]</code> when declare-and-init form. Drops <code>assign</code>. Reached from <code>loop_generate_construct.init</code>.</td></tr>
+<tr><td><code>genvar_iteration</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"assign"</code> (<code>{name, op, value}</code> — op is the typed <code>assignment_operator</code>), <code>"prefix_inc_dec"</code> (<code>{op, name}</code>), <code>"postfix_inc_dec"</code> (<code>{name, op}</code>). Reached from <code>loop_generate_construct.step</code>.</td></tr>
+<tr><td><code>assignment_operator</code> (13 branches)</td><td>per-branch <code>{kind}</code> (no body)</td><td>Kind labels: <code>"assign"</code> / <code>"plus_assign"</code> / <code>"minus_assign"</code> / <code>"star_assign"</code> / <code>"slash_assign"</code> / <code>"percent_assign"</code> / <code>"and_assign"</code> / <code>"or_assign"</code> / <code>"xor_assign"</code> / <code>"shift_left_assign"</code> / <code>"shift_right_assign"</code> / <code>"arithmetic_shift_left_assign"</code> / <code>"arithmetic_shift_right_assign"</code>. Each branch matches a single keyword token; the bare <code>{kind}</code> shape is sufficient for operator-by-name dispatch.</td></tr>
+<tr><td><code>inc_or_dec_operator</code> (2 branches)</td><td>per-branch <code>{kind}</code> (no body)</td><td>Kind labels: <code>"plus_plus"</code> / <code>"minus_minus"</code>. Same bare-<code>{kind}</code> pattern as <code>assignment_operator</code>.</td></tr>
 </tbody>
 </table>
 </div>

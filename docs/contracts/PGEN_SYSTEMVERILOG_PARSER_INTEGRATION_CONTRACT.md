@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.23`
+  - `1.0.24`
 - Parser release version:
-  - `1.0.23`
+  - `1.0.24`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,73 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.24 / Contract 1.0.24 Highlights — SV-Slice-24 batch: assertion + genvar dispatch typed (7 rules / 26 annotations)
+
+Closes the assertion-item walk path and the loop_generate_construct init/step typed dispatch. After this slice, `module_common_item.kind == "assertion_item"` resolves through to typed concurrent/deferred shapes; SV-Slice-23's loop_generate_construct.init / .step fields now expose typed genvar_initialization / genvar_iteration shapes; assignment_operator and inc_or_dec_operator both surface clean `{kind}` discriminators for operator-by-name dispatch.
+
+### Annotations
+
+```ebnf
+assertion_item := concurrent_assertion_item            -> {kind: "concurrent",         body: $1}
+               | deferred_immediate_assertion_item     -> {kind: "deferred_immediate", body: $1}
+
+assertion_item_declaration := property_declaration  -> {kind: "property", body: $1}
+                            | sequence_declaration  -> {kind: "sequence", body: $1}
+                            | let_declaration       -> {kind: "let",      body: $1}
+
+concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_statement
+                                  -> {kind: "statement",             label: $1, body: $2}
+                           | checker_instantiation
+                                  -> {kind: "checker_instantiation", body: $1}
+
+genvar_initialization := ( kw_genvar )? genvar_identifier assign constant_expression
+                      -> {genvar_keyword: $1, name: $2, value: $4}
+
+genvar_iteration := genvar_identifier assignment_operator genvar_expression
+                         -> {kind: "assign",          name: $1, op: $2, value: $3}
+                  | inc_or_dec_operator genvar_identifier
+                         -> {kind: "prefix_inc_dec",  op: $1, name: $2}
+                  | genvar_identifier inc_or_dec_operator
+                         -> {kind: "postfix_inc_dec", name: $1, op: $2}
+
+assignment_operator := assign                          -> {kind: "assign"}
+                     | plus_assign                     -> {kind: "plus_assign"}
+                     | minus_assign                    -> {kind: "minus_assign"}
+                     | star_assign                     -> {kind: "star_assign"}
+                     | slash_assign                    -> {kind: "slash_assign"}
+                     | percent_assign                  -> {kind: "percent_assign"}
+                     | and_assign                      -> {kind: "and_assign"}
+                     | or_assign                       -> {kind: "or_assign"}
+                     | xor_assign                      -> {kind: "xor_assign"}
+                     | shift_left_assign               -> {kind: "shift_left_assign"}
+                     | shift_right_assign              -> {kind: "shift_right_assign"}
+                     | arithmetic_shift_left_assign    -> {kind: "arithmetic_shift_left_assign"}
+                     | arithmetic_shift_right_assign   -> {kind: "arithmetic_shift_right_assign"}
+
+inc_or_dec_operator := plus_plus    -> {kind: "plus_plus"}
+                     | minus_minus  -> {kind: "minus_minus"}
+```
+
+### Field semantics
+
+- `genvar_initialization.genvar_keyword`: the optional `( kw_genvar )?` prefix. `[]` when absent (re-using a previously-declared genvar), `[<kw_genvar token>]` when present (declare-and-init form).
+- `concurrent_assertion_item.label` (statement kind): the optional `( block_identifier colon )?` prefix per LRM A.6.10. `[]` when no label, `[<block_id, colon>]` when labeled.
+- `assignment_operator.kind` and `inc_or_dec_operator.kind`: bare `{kind}` shape (no `body` field) — each branch matches a single keyword token, so the kind label is the only meaningful information. Consumers can dispatch by name without descending into the operator token.
+
+### Annotation inventory
+
+260 entries (was 234). +26 in this batch (2 assertion_item + 3 assertion_item_declaration + 2 concurrent_assertion_item + 1 genvar_initialization + 3 genvar_iteration + 13 assignment_operator + 2 inc_or_dec_operator).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `data_declaration` / `function_declaration` / `task_declaration` (close `package_or_generate_item_declaration` walk paths another level deeper).
+- `concurrent_assertion_statement` / `deferred_immediate_assertion_item` internals (close `assertion_item` body fields one level deeper).
+- `bind_target_scope` / remaining bind sub-tree pieces.
 
 ## Release 1.0.23 / Contract 1.0.23 Highlights — SV-Slice-23 batch: generate-construct internals typed (6 rules / 9 annotations + 1 new helper rule)
 
