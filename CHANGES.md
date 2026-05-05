@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-36 batch: assignments + procedural assertions + randcase typed (8 rules / 16 annotations)
+
+Closes 4 more `statement_item` kinds. After this slice, 19 of statement_item's 19/20 kinds expose typed dispatch end-to-end (only `blocking_assignment` remains DEFERRED — needs parens-Or helper-rule extraction).
+
+```ebnf
+nonblocking_assignment           -> {lvalue, control, value}
+procedural_continuous_assignment -> 6 kinds (assign / deassign / force_variable / force_net / release_variable / release_net)
+clocking_drive                   -> {lvalue, cycle_delay, value}
+randcase_statement               -> {items: {first, rest}}
+randcase_item                    -> {weight, body}
+procedural_assertion_statement   -> 3 kinds (concurrent / immediate / checker_instantiation)
+immediate_assertion_statement    -> 2 kinds (simple / deferred)
+variable_assignment              -> {lvalue, value}
+```
+
+Annotation count: **473** (was 457, +16). Same accept set. Schema stays at `1`. Contract bumped 1.0.35 → 1.0.36. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-35 batch: conditional_statement typed via helper-rule extraction (1 rule / 1 annotation + 1 new helper rule with 2 annotations)
 
 Closes the SV-Slice-34 DEFERRED `conditional_statement` typing using the helper-rule extraction pattern (third use after if_generate_else_clause and net_strength/net_vector_scalar).

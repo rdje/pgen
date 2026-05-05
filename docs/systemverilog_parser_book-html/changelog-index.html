@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4e484792.js";
+            window.path_to_searchindex_js = "searchindex-6ec16ecd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,29 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1036--contract-1036--sv-slice-36-batch-assignments--procedural-assertions--randcase-typed-8-rules--16-annotations"><a class="header" href="#1036--contract-1036--sv-slice-36-batch-assignments--procedural-assertions--randcase-typed-8-rules--16-annotations">1.0.36 / Contract 1.0.36 — SV-Slice-36 batch: assignments + procedural assertions + randcase typed (8 rules / 16 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes 4 more statement_item kinds. After this slice, 19 of statement_item’s 19/20 kinds expose typed dispatch end-to-end (only blocking_assignment remains DEFERRED).</p>
+<pre><code class="language-ebnf">nonblocking_assignment           -&gt; {lvalue, control, value}
+procedural_continuous_assignment -&gt; 6 kinds (assign / deassign / force_variable / force_net / release_variable / release_net)
+clocking_drive                   -&gt; {lvalue, cycle_delay, value}
+randcase_statement               -&gt; {items: {first, rest}}
+randcase_item                    -&gt; {weight, body}
+procedural_assertion_statement   -&gt; 3 kinds (concurrent / immediate / checker_instantiation)
+immediate_assertion_statement    -&gt; 2 kinds (simple / deferred)
+variable_assignment              -&gt; {lvalue, value}
+</code></pre>
+<p><strong>DEFERRED:</strong> <code>blocking_assignment_sv_2017/2023</code> (parens-Or workaround needed, 4th use of helper-rule pattern).</p>
+<p><strong>Annotation inventory:</strong> 473 entries (was 457). +16 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.36 / Contract 1.0.36 Highlights” with full annotation source + statement_item dispatch coverage table.</p>
+<h3 id="1035--contract-1035--sv-slice-35-batch-conditional_statement-typed-via-helper-rule-extraction-1-rule--1-annotation--1-new-helper-rule-with-2-annotations"><a class="header" href="#1035--contract-1035--sv-slice-35-batch-conditional_statement-typed-via-helper-rule-extraction-1-rule--1-annotation--1-new-helper-rule-with-2-annotations">1.0.35 / Contract 1.0.35 — SV-Slice-35 batch: conditional_statement typed via helper-rule extraction (1 rule / 1 annotation + 1 new helper rule with 2 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the SV-Slice-34 DEFERRED <code>conditional_statement</code> typing using the helper-rule extraction pattern (third use after if_generate_else_clause and net_strength/net_vector_scalar).</p>
+<pre><code class="language-ebnf">conditional_statement      -&gt; {unique_priority, condition, then_body, else_body}
+conditional_else_branch (NEW) -&gt; 2 kinds (elseif {body} / else {body})
+</code></pre>
+<p><strong>Annotation inventory:</strong> 457 entries (was 454). +3 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.35 / Contract 1.0.35 Highlights”.</p>
 <h3 id="1034--contract-1034--sv-slice-34-batch-case--loop-families-typed-7-rules--18-annotations"><a class="header" href="#1034--contract-1034--sv-slice-34-batch-case--loop-families-typed-7-rules--18-annotations">1.0.34 / Contract 1.0.34 — SV-Slice-34 batch: case + loop families typed (7 rules / 18 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes case-statement and loop-statement walks.</p>
 <pre><code class="language-ebnf">case_statement           -&gt; {unique_priority, keyword, expr, items: {first, rest}}

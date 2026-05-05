@@ -19,6 +19,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.36 / Contract 1.0.36 — SV-Slice-36 batch: assignments + procedural assertions + randcase typed (8 rules / 16 annotations)
+
+**What changed:** Closes 4 more statement_item kinds. After this slice, 19 of statement_item's 19/20 kinds expose typed dispatch end-to-end (only blocking_assignment remains DEFERRED).
+
+```ebnf
+nonblocking_assignment           -> {lvalue, control, value}
+procedural_continuous_assignment -> 6 kinds (assign / deassign / force_variable / force_net / release_variable / release_net)
+clocking_drive                   -> {lvalue, cycle_delay, value}
+randcase_statement               -> {items: {first, rest}}
+randcase_item                    -> {weight, body}
+procedural_assertion_statement   -> 3 kinds (concurrent / immediate / checker_instantiation)
+immediate_assertion_statement    -> 2 kinds (simple / deferred)
+variable_assignment              -> {lvalue, value}
+```
+
+**DEFERRED:** `blocking_assignment_sv_2017/2023` (parens-Or workaround needed, 4th use of helper-rule pattern).
+
+**Annotation inventory:** 473 entries (was 457). +16 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.36 / Contract 1.0.36 Highlights" with full annotation source + statement_item dispatch coverage table.
+
 ### 1.0.35 / Contract 1.0.35 — SV-Slice-35 batch: conditional_statement typed via helper-rule extraction (1 rule / 1 annotation + 1 new helper rule with 2 annotations)
 
 **What changed:** Closes the SV-Slice-34 DEFERRED `conditional_statement` typing using the helper-rule extraction pattern (third use after if_generate_else_clause and net_strength/net_vector_scalar).

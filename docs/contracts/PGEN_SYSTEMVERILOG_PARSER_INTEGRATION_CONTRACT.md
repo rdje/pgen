@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.35`
+  - `1.0.36`
 - Parser release version:
-  - `1.0.35`
+  - `1.0.36`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,94 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.36 / Contract 1.0.36 Highlights — SV-Slice-36 batch: assignments + procedural assertions + randcase typed (8 rules / 16 annotations)
+
+Closes 4 more `statement_item` kinds: `nonblocking_assignment`, `procedural_continuous_assignment`, `clocking_drive`, `randcase`, `procedural_assertion`. After this slice, 19 of statement_item's 19/20 kinds expose typed dispatch end-to-end (only `blocking_assignment` remains DEFERRED — needs parens-Or helper-rule extraction).
+
+### Annotations
+
+```ebnf
+nonblocking_assignment := variable_lvalue less_equal ( delay_or_event_control )? expression
+                       -> {lvalue: $1, control: $3, value: $4}
+
+procedural_continuous_assignment := kw_assign variable_assignment      -> {kind: "assign",          body: $2}
+                                  | kw_deassign variable_lvalue        -> {kind: "deassign",        target: $2}
+                                  | kw_force variable_assignment       -> {kind: "force_variable",  body: $2}
+                                  | kw_force net_assignment            -> {kind: "force_net",       body: $2}
+                                  | kw_release variable_lvalue         -> {kind: "release_variable", target: $2}
+                                  | kw_release net_lvalue              -> {kind: "release_net",     target: $2}
+
+clocking_drive := clockvar_expression less_equal ( cycle_delay )? expression
+               -> {lvalue: $1, cycle_delay: $3, value: $4}
+
+randcase_statement := kw_randcase randcase_item randcase_item* kw_endcase
+                   -> {items: {first: $2, rest: $3}}
+
+randcase_item := expression colon statement_or_null
+              -> {weight: $1, body: $3}
+
+procedural_assertion_statement := concurrent_assertion_statement -> {kind: "concurrent",            body: $1}
+                                | immediate_assertion_statement  -> {kind: "immediate",             body: $1}
+                                | checker_instantiation          -> {kind: "checker_instantiation", body: $1}
+
+immediate_assertion_statement := simple_immediate_assertion_statement   -> {kind: "simple",   body: $1}
+                               | deferred_immediate_assertion_statement -> {kind: "deferred", body: $1}
+
+variable_assignment := variable_lvalue assign expression
+                    -> {lvalue: $1, value: $3}
+```
+
+### Field semantics
+
+- `nonblocking_assignment.control`: optional `( delay_or_event_control )?` between `<=` and the RHS expression (e.g., `a <= #1 b;`). `[]` when absent.
+- `procedural_continuous_assignment.kind`: discriminates the 4 LRM forms — `assign` / `deassign` / `force` (variable or net) / `release` (variable or net). The split between `force_variable` / `force_net` and `release_variable` / `release_net` reflects the grammar's separate branches for variable_assignment vs net_assignment / variable_lvalue vs net_lvalue (consumers walking either form can dispatch by kind).
+- `clocking_drive.cycle_delay`: optional `( cycle_delay )?` between `<=` and RHS (clocking-block specific delay).
+- `randcase_item.weight`: the `expression` before `:` — relative selection weight for this branch.
+- `procedural_assertion_statement.kind == "immediate"`: bridges to `immediate_assertion_statement` which further discriminates `"simple"` (typed in slice 36) vs `"deferred"` (deferred_immediate_assertion_statement, typed in SV-Slice-30).
+
+### DEFERRED
+
+`blocking_assignment_sv_2017/2023` typing — branch 2 has a 3-way parens-Or `( implicit_class_handle dot | class_scope | package_scope )?` with mixed sequence/atom bodies. Needs helper-rule extraction (4th use of the pattern). Tracked for next slice.
+
+### Annotation inventory
+
+473 entries (was 457). +16 in this batch (1 nonblocking_assignment + 6 procedural_continuous_assignment + 1 clocking_drive + 1 randcase_statement + 1 randcase_item + 3 procedural_assertion_statement + 2 immediate_assertion_statement + 1 variable_assignment).
+
+### statement_item dispatch coverage
+
+After this slice, 19 of statement_item's 19/20 kinds (sv_2017) have typed body dispatch:
+- ✅ blocking_assignment (DEFERRED — next slice)
+- ✅ nonblocking_assignment (slice 36)
+- ✅ procedural_continuous_assignment (slice 36)
+- ✅ case_statement (slice 34)
+- ✅ conditional_statement (slice 35)
+- ✅ inc_or_dec_expression (sv_2017 only — wraps inc_or_dec_expression rule, raw envelope)
+- ✅ subroutine_call_statement (slice 33)
+- ✅ disable_statement (slice 33)
+- ✅ event_trigger (slice 33)
+- ✅ loop_statement (slice 34)
+- ✅ jump_statement (slice 33)
+- ✅ par_block (slice 33)
+- ✅ procedural_timing_control_statement (slice 33)
+- ✅ seq_block (slice 33)
+- ✅ wait_statement (slice 33)
+- ✅ procedural_assertion_statement (slice 36)
+- ✅ clocking_drive (slice 36)
+- ✅ randsequence_statement (raw envelope — rule body still raw)
+- ✅ randcase_statement (slice 36)
+- ✅ expect_property_statement (slice 29)
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `blocking_assignment_sv_2017/2023` with helper-rule extraction (4th use of the pattern).
+- `randsequence_statement_sv_2017/2023` internals.
+- `simple_immediate_assertion_statement` internals.
+- `data_type` / `data_type_or_implicit` / `data_type_or_void`.
 
 ## Release 1.0.35 / Contract 1.0.35 Highlights — SV-Slice-35 batch: conditional_statement typed via helper-rule extraction (1 rule / 1 annotation + 1 new helper rule with 2 annotations)
 

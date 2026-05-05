@@ -715,6 +715,7 @@ clocking_declaration := @sample: "clocking cb @(posedge clk); endclocking : cb" 
 clocking_direction := kw_input_140f86aa ( clocking_skew )? | kw_output_1029d676 ( clocking_skew )? | kw_input_140f86aa ( clocking_skew )? kw_output_1029d676 ( clocking_skew )? | kw_inout_c900aaa9
 
 clocking_drive := clockvar_expression less_equal ( cycle_delay )? expression
+               -> {lvalue: $1, cycle_delay: $3, value: $4}
 
 @profiles: ["sv_2017"]
 clocking_event_sv_2017 := @probe_sample: "@clk" at_sign identifier
@@ -1406,7 +1407,8 @@ if_generate_construct := kw_if_958f57f5 lparen constant_expression rparen genera
 if_generate_else_clause := kw_else_ae050f5b if_generate_construct -> {kind: "elseif",     body: $2}
                          | kw_else_ae050f5b generate_block        -> {kind: "else_block", body: $2}
 
-immediate_assertion_statement := simple_immediate_assertion_statement | deferred_immediate_assertion_statement
+immediate_assertion_statement := simple_immediate_assertion_statement   -> {kind: "simple",   body: $1}
+                               | deferred_immediate_assertion_statement -> {kind: "deferred", body: $1}
 
 implicit_class_handle := kw_this_c2543fff | kw_super_8451ba8a | kw_this_c2543fff dot kw_super_8451ba8a
 
@@ -2068,6 +2070,7 @@ non_zero_decimal_digit := non_zero_decimal_digit_sv_2017
 non_zero_unsigned_number := non_zero_decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )*
 
 nonblocking_assignment := variable_lvalue less_equal ( delay_or_event_control )? expression
+                       -> {lvalue: $1, control: $3, value: $4}
 
 @profiles: ["sv_2023"]
 nonconsecutive_repetition_sv_2023 := ( assign const_or_range_expression )?
@@ -2316,9 +2319,22 @@ primary := primary_sv_2017 | primary_sv_2023
 
 primary_literal := number | time_literal | unbased_unsized_literal | string_literal
 
-procedural_assertion_statement := concurrent_assertion_statement | immediate_assertion_statement | checker_instantiation
+procedural_assertion_statement := concurrent_assertion_statement -> {kind: "concurrent",             body: $1}
+                                | immediate_assertion_statement  -> {kind: "immediate",              body: $1}
+                                | checker_instantiation          -> {kind: "checker_instantiation",  body: $1}
 
-procedural_continuous_assignment := kw_assign_9009b730 variable_assignment | kw_deassign_1af170b4 variable_lvalue | kw_force_fafec1e5 variable_assignment | kw_force_fafec1e5 net_assignment | kw_release_01f561ac variable_lvalue | kw_release_01f561ac net_lvalue
+procedural_continuous_assignment := kw_assign_9009b730 variable_assignment
+                                         -> {kind: "assign",          body: $2}
+                                  | kw_deassign_1af170b4 variable_lvalue
+                                         -> {kind: "deassign",        target: $2}
+                                  | kw_force_fafec1e5 variable_assignment
+                                         -> {kind: "force_variable",  body: $2}
+                                  | kw_force_fafec1e5 net_assignment
+                                         -> {kind: "force_net",       body: $2}
+                                  | kw_release_01f561ac variable_lvalue
+                                         -> {kind: "release_variable", target: $2}
+                                  | kw_release_01f561ac net_lvalue
+                                         -> {kind: "release_net",     target: $2}
 
 procedural_timing_control := delay_control -> {kind: "delay", body: $1}
                            | event_control -> {kind: "event", body: $1}
@@ -2507,8 +2523,10 @@ queue_dimension := lbrack kw_dollar ( colon constant_expression )? rbrack
 // quoted_string_item := quoted_string_item_sv_2023
 
 randcase_item := expression colon statement_or_null
+              -> {weight: $1, body: $3}
 
 randcase_statement := kw_randcase_89bbd045 randcase_item randcase_item* kw_endcase_a27a6786
+                   -> {items: {first: $2, rest: $3}}
 
 random_qualifier := kw_rand_52400560  -> {kind: "rand"}
                   | kw_randc_c870e2bc -> {kind: "randc"}
@@ -3135,6 +3153,7 @@ value_range := value_range_sv_2017 | value_range_sv_2023
 var_data_type := data_type | kw_var_e5b4e786 data_type_or_implicit
 
 variable_assignment := variable_lvalue assign expression
+                    -> {lvalue: $1, value: $3}
 
 variable_decl_assignment := variable_identifier !lparen variable_dimension* ( assign expression )? | dynamic_array_variable_identifier unsized_dimension variable_dimension* ( assign dynamic_array_new )? | class_variable_identifier ( assign class_new )?
 
