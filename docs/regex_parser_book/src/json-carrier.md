@@ -34,10 +34,16 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `anchor` (branch 0..8) | `-> {type: "anchor", kind: "<name>"}` per branch | Object `{type:"anchor", kind:<name>}` — `kind` ∈ `start_of_line` / `end_of_line` / `start_of_input` / `end_of_input_or_before_last_newline` / `end_of_input` / `word_boundary` / `non_word_boundary` / `match_start` / `keep_out` |
 | `posix_word_boundary_alias` (branch 0) | `-> {type: "anchor", kind: "posix_word_start"}` | Same anchor family as the `anchor` rule (kind = `posix_word_start`) |
 | `posix_word_boundary_alias` (branch 1) | `-> {type: "anchor", kind: "posix_word_end"}` | Same anchor family as the `anchor` rule (kind = `posix_word_end`) |
-| `backreference` (branch 0) | `-> {type: "backreference", kind: "numeric", index: $2}` | Object `{type, kind:"numeric", index:<int>}` |
-| `backreference` (branch 1) | `-> {type: "backreference", kind: "named", ref: $2}` | Object `{type, kind:"named", ref:<raw name_ref shape>}` |
-| `backreference` (branch 2) | `-> {type: "backreference", kind: "named_braced", ref: $2}` | Object `{type, kind:"named_braced", ref:<raw braced_name_ref shape>}` |
-| `backreference` (branch 3) | `-> {type: "backreference", kind: "subroutine", ref: $2}` | Object `{type, kind:"subroutine", ref:<raw subroutine_ref shape>}` |
+| `backreference` (branch 0) | `-> {type: "backreference", kind: "numeric", index: $2}` | Object `{type, kind:"numeric", index:<int>}` — `\1`, `\2`, etc. |
+| `backreference` (branch 1) | `-> {type: "backreference", kind: "named", ref: $2}` | Object `{type, kind:"named", ref:<name_string>}` — `\k<NAME>` / `\k'NAME'`. |
+| `backreference` (branch 2) | `-> {type: "backreference", kind: "named_braced", ref: $2}` | Object `{type, kind:"named_braced", ref:<name_string>}` — `\k{NAME}` and (per PGEN-RGX-0081 fix) `\g{NAME}` route here uniformly. |
+| `backreference` (branch 3) | `-> {type: "backreference", kind: "subroutine_named", ref: $3}` | Object — `\g<NAME>` (subroutine call, named). |
+| `backreference` (branch 4) | `-> {type: "backreference", kind: "subroutine_numeric", ref: $3}` | Object — `\g<N>` (subroutine call, numeric — `ref` is `{sign,value}`). |
+| `backreference` (branch 5) | `-> {type: "backreference", kind: "subroutine_named", ref: $3}` | Object — `\g'NAME'` (apostrophe variant of branch 3). |
+| `backreference` (branch 6) | `-> {type: "backreference", kind: "subroutine_numeric", ref: $3}` | Object — `\g'N'` (apostrophe variant of branch 4). |
+| `backreference` (branch 7) | `-> {type: "backreference", kind: "named_braced", ref: $4}` | Object — `\g{NAME}` (back-reference per PCRE2; same kind as branch 2 for `\k{NAME}`). |
+| `backreference` (branch 8) | `-> {type: "backreference", kind: "numeric_backreference", ref: $4}` | Object — `\g{N}` (back-reference, numeric — `ref` is `{sign,value}`). |
+| `backreference` (branch 9) | `-> {type: "backreference", kind: "numeric_backreference", ref: $2}` | Object — `\gN`, `\g+1`, `\g-2` (bare back-reference, numeric — `ref` is `{sign,value}`). |
 | `backreference_digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
 | `name_ref` (branch 0, angle) | `-> $2` | Whatever `name` produced (typed name string) |
 | `name_ref` (branch 1, quote) | `-> $2` | Whatever `name` produced (typed name string) |
@@ -101,7 +107,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `callout` | `-> {type:"atom", kind:"callout", arg:$2}` | Object. `arg` is `callout_arg`'s typed-int (digits) or string (callout_string) shape. `[]` when un-matched. |
 | `directive_verb` | `-> {type:"atom", kind:"directive_verb", body:$2}` | Object. `body` is the raw `directive_body` shape (sub-rule typing is a separate slice). |
 | `code_block_plain` | `-> {type:"atom", kind:"code_block", lang:null, content:$2}` | Object. `lang:null` distinguishes plain form. `content` is `code_content` (raw). |
-| `code_block_lang` | `-> {type:"atom", kind:"code_block", lang:$2, content:$4}` | Same kind as plain; `lang` is the matched language ident. |
+| `code_block_lang` | `-> {type:"atom", kind:"code_block", lang:$2, content:$5}` | Same kind as plain; `lang` is the matched language ident; `content` is the actual `code_content` body (per PGEN-RGX-0082 fix; was `$4` = `ws?` slot). |
 | `scan_substring_group` | `-> {type:"atom", kind:"scan_substring_group", name:$2, captures:$4, body:$5}` | Object. `name` is `"scs"` or `"scan_substring"` (PCRE2-equivalent). `captures` is the raw `returned_capture_group_list` shape. |
 | `script_run_group` | `-> {type:"atom", kind:"script_run_group", name:$2, body:$4}` | Object. `name` is `"sr"`/`"script_run"`/`"asr"`/`"atomic_script_run"` (atomic vs non-atomic encoded in name). |
 | `subroutine_call` (branch 0, with captures) | `-> {type:"atom", kind:"subroutine_call", target:$2}` | Object. `target` is `returned_capture_subroutine` (target + capture-list). |

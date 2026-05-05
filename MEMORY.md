@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-05 (+0200, task: SV-Slice-11-batch-program-header-sub-tree-typed)
+Last updated: 2026-05-05 (+0200, task: PGEN-RGX-0081-0082-fixes)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **PGEN-RGX-0081 + 0082 fixes landed.** Two RGX-reported AST-shape bugs (filed 2026-05-04).
+  **0081:** `\g`-prefixed forms collapsed under `kind:"subroutine"` losing PCRE2's bracket-form-determines-semantic distinction. Fix split into 7 sub-branches with new kinds: `subroutine_named`, `subroutine_numeric`, `numeric_backreference` (plus brace `\g{NAME}` routes to existing `named_braced`). 4 → 10 backreference branches.
+  **0082:** `code_block_lang` annotation referenced `$4` (the `ws?` slot) instead of `$5` (`code_content`). For `(?{native:NAME})` the callback name was silently dropped. Fix: positional ref `$4` → `$5`.
+  Empirically verified with 10-pattern + 4-pattern matrices. Annotation count: 142 (was 138). Same accept set. Schema stays 1. Regex contract bumped 1.1.74/1.1.76 → 1.1.75/1.1.77. Bug ledger entries REGEX-0081 and REGEX-0082 added → "Released". 2 new regression-lock tests in embedding_api.rs (`regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form`, `regex_parser_pgen_rgx_0082_code_block_lang_preserves_content`). 499/0 tests pass (was 497, +2). regex book gate green ✅. mdBook synced (changelog-index, schema-versioning row 0.49.0, json-carrier expanded). **Unpushed commits: 14/30** (after this commit). User paused SV campaign + _meta work to address these. After the commit, awaiting direction on whether to resume SV or pivot to _meta Phase 1.
+
+### Earlier session note (kept for context):
 - **SV-Slice-11 batch landed: program-header sub-tree typed (sibling of module/interface headers).** 2 rules: program_ansi_header, program_nonansi_header. Same 6 field names as module/interface header pairs (attributes, lifetime, name, imports, parameters, ports — sans keyword since program only has one keyword). Verified on `program p; endprogram\n`: header.name = "p", all 6 fields present. **Sibling-rule symmetry achieved**: module/interface/program ANSI/non-ANSI header pairs all expose the same field set, so consumer code can write a single generic header walker. Annotation count: 67 (was 65, +2). Same accept set. Contract bumped 1.0.10 → 1.0.11. Schema stays 1. mdBook synced (changelog-index, schema-versioning row 0.12.0, json-carrier 2 new rows, rules-top-level status). SV book gate green ✅. 497/0 regex tests still pass. **Unpushed commits: 13/30.** Continuing per "until none remaining" directive. Next: udp_declaration_sv_*, udp_ansi/nonansi_declaration.
 
 ### Earlier session note (kept for context):

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-be852df8.js";
+            window.path_to_searchindex_js = "searchindex-ae66eb97.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -215,10 +215,16 @@
 <tr><td><code>anchor</code> (branch 0..8)</td><td><code>-&gt; {type: "anchor", kind: "&lt;name&gt;"}</code> per branch</td><td>Object <code>{type:"anchor", kind:&lt;name&gt;}</code> — <code>kind</code> ∈ <code>start_of_line</code> / <code>end_of_line</code> / <code>start_of_input</code> / <code>end_of_input_or_before_last_newline</code> / <code>end_of_input</code> / <code>word_boundary</code> / <code>non_word_boundary</code> / <code>match_start</code> / <code>keep_out</code></td></tr>
 <tr><td><code>posix_word_boundary_alias</code> (branch 0)</td><td><code>-&gt; {type: "anchor", kind: "posix_word_start"}</code></td><td>Same anchor family as the <code>anchor</code> rule (kind = <code>posix_word_start</code>)</td></tr>
 <tr><td><code>posix_word_boundary_alias</code> (branch 1)</td><td><code>-&gt; {type: "anchor", kind: "posix_word_end"}</code></td><td>Same anchor family as the <code>anchor</code> rule (kind = <code>posix_word_end</code>)</td></tr>
-<tr><td><code>backreference</code> (branch 0)</td><td><code>-&gt; {type: "backreference", kind: "numeric", index: $2}</code></td><td>Object <code>{type, kind:"numeric", index:&lt;int&gt;}</code></td></tr>
-<tr><td><code>backreference</code> (branch 1)</td><td><code>-&gt; {type: "backreference", kind: "named", ref: $2}</code></td><td>Object <code>{type, kind:"named", ref:&lt;raw name_ref shape&gt;}</code></td></tr>
-<tr><td><code>backreference</code> (branch 2)</td><td><code>-&gt; {type: "backreference", kind: "named_braced", ref: $2}</code></td><td>Object <code>{type, kind:"named_braced", ref:&lt;raw braced_name_ref shape&gt;}</code></td></tr>
-<tr><td><code>backreference</code> (branch 3)</td><td><code>-&gt; {type: "backreference", kind: "subroutine", ref: $2}</code></td><td>Object <code>{type, kind:"subroutine", ref:&lt;raw subroutine_ref shape&gt;}</code></td></tr>
+<tr><td><code>backreference</code> (branch 0)</td><td><code>-&gt; {type: "backreference", kind: "numeric", index: $2}</code></td><td>Object <code>{type, kind:"numeric", index:&lt;int&gt;}</code> — <code>\1</code>, <code>\2</code>, etc.</td></tr>
+<tr><td><code>backreference</code> (branch 1)</td><td><code>-&gt; {type: "backreference", kind: "named", ref: $2}</code></td><td>Object <code>{type, kind:"named", ref:&lt;name_string&gt;}</code> — <code>\k&lt;NAME&gt;</code> / <code>\k'NAME'</code>.</td></tr>
+<tr><td><code>backreference</code> (branch 2)</td><td><code>-&gt; {type: "backreference", kind: "named_braced", ref: $2}</code></td><td>Object <code>{type, kind:"named_braced", ref:&lt;name_string&gt;}</code> — <code>\k{NAME}</code> and (per PGEN-RGX-0081 fix) <code>\g{NAME}</code> route here uniformly.</td></tr>
+<tr><td><code>backreference</code> (branch 3)</td><td><code>-&gt; {type: "backreference", kind: "subroutine_named", ref: $3}</code></td><td>Object — <code>\g&lt;NAME&gt;</code> (subroutine call, named).</td></tr>
+<tr><td><code>backreference</code> (branch 4)</td><td><code>-&gt; {type: "backreference", kind: "subroutine_numeric", ref: $3}</code></td><td>Object — <code>\g&lt;N&gt;</code> (subroutine call, numeric — <code>ref</code> is <code>{sign,value}</code>).</td></tr>
+<tr><td><code>backreference</code> (branch 5)</td><td><code>-&gt; {type: "backreference", kind: "subroutine_named", ref: $3}</code></td><td>Object — <code>\g'NAME'</code> (apostrophe variant of branch 3).</td></tr>
+<tr><td><code>backreference</code> (branch 6)</td><td><code>-&gt; {type: "backreference", kind: "subroutine_numeric", ref: $3}</code></td><td>Object — <code>\g'N'</code> (apostrophe variant of branch 4).</td></tr>
+<tr><td><code>backreference</code> (branch 7)</td><td><code>-&gt; {type: "backreference", kind: "named_braced", ref: $4}</code></td><td>Object — <code>\g{NAME}</code> (back-reference per PCRE2; same kind as branch 2 for <code>\k{NAME}</code>).</td></tr>
+<tr><td><code>backreference</code> (branch 8)</td><td><code>-&gt; {type: "backreference", kind: "numeric_backreference", ref: $4}</code></td><td>Object — <code>\g{N}</code> (back-reference, numeric — <code>ref</code> is <code>{sign,value}</code>).</td></tr>
+<tr><td><code>backreference</code> (branch 9)</td><td><code>-&gt; {type: "backreference", kind: "numeric_backreference", ref: $2}</code></td><td>Object — <code>\gN</code>, <code>\g+1</code>, <code>\g-2</code> (bare back-reference, numeric — <code>ref</code> is <code>{sign,value}</code>).</td></tr>
 <tr><td><code>backreference_digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
 <tr><td><code>name_ref</code> (branch 0, angle)</td><td><code>-&gt; $2</code></td><td>Whatever <code>name</code> produced (typed name string)</td></tr>
 <tr><td><code>name_ref</code> (branch 1, quote)</td><td><code>-&gt; $2</code></td><td>Whatever <code>name</code> produced (typed name string)</td></tr>
@@ -282,7 +288,7 @@
 <tr><td><code>callout</code></td><td><code>-&gt; {type:"atom", kind:"callout", arg:$2}</code></td><td>Object. <code>arg</code> is <code>callout_arg</code>’s typed-int (digits) or string (callout_string) shape. <code>[]</code> when un-matched.</td></tr>
 <tr><td><code>directive_verb</code></td><td><code>-&gt; {type:"atom", kind:"directive_verb", body:$2}</code></td><td>Object. <code>body</code> is the raw <code>directive_body</code> shape (sub-rule typing is a separate slice).</td></tr>
 <tr><td><code>code_block_plain</code></td><td><code>-&gt; {type:"atom", kind:"code_block", lang:null, content:$2}</code></td><td>Object. <code>lang:null</code> distinguishes plain form. <code>content</code> is <code>code_content</code> (raw).</td></tr>
-<tr><td><code>code_block_lang</code></td><td><code>-&gt; {type:"atom", kind:"code_block", lang:$2, content:$4}</code></td><td>Same kind as plain; <code>lang</code> is the matched language ident.</td></tr>
+<tr><td><code>code_block_lang</code></td><td><code>-&gt; {type:"atom", kind:"code_block", lang:$2, content:$5}</code></td><td>Same kind as plain; <code>lang</code> is the matched language ident; <code>content</code> is the actual <code>code_content</code> body (per PGEN-RGX-0082 fix; was <code>$4</code> = <code>ws?</code> slot).</td></tr>
 <tr><td><code>scan_substring_group</code></td><td><code>-&gt; {type:"atom", kind:"scan_substring_group", name:$2, captures:$4, body:$5}</code></td><td>Object. <code>name</code> is <code>"scs"</code> or <code>"scan_substring"</code> (PCRE2-equivalent). <code>captures</code> is the raw <code>returned_capture_group_list</code> shape.</td></tr>
 <tr><td><code>script_run_group</code></td><td><code>-&gt; {type:"atom", kind:"script_run_group", name:$2, body:$4}</code></td><td>Object. <code>name</code> is <code>"sr"</code>/<code>"script_run"</code>/<code>"asr"</code>/<code>"atomic_script_run"</code> (atomic vs non-atomic encoded in name).</td></tr>
 <tr><td><code>subroutine_call</code> (branch 0, with captures)</td><td><code>-&gt; {type:"atom", kind:"subroutine_call", target:$2}</code></td><td>Object. <code>target</code> is <code>returned_capture_subroutine</code> (target + capture-list).</td></tr>

@@ -178,7 +178,43 @@
         "rule": "backreference",
         "branch_index": 3,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"backreference\", kind: \"subroutine\", ref: $2}"
+        "normalized_text": "{type: \"backreference\", kind: \"subroutine_named\", ref: $3}"
+      },
+      {
+        "rule": "backreference",
+        "branch_index": 4,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"backreference\", kind: \"subroutine_numeric\", ref: $3}"
+      },
+      {
+        "rule": "backreference",
+        "branch_index": 5,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"backreference\", kind: \"subroutine_named\", ref: $3}"
+      },
+      {
+        "rule": "backreference",
+        "branch_index": 6,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"backreference\", kind: \"subroutine_numeric\", ref: $3}"
+      },
+      {
+        "rule": "backreference",
+        "branch_index": 7,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"backreference\", kind: \"named_braced\", ref: $4}"
+      },
+      {
+        "rule": "backreference",
+        "branch_index": 8,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"backreference\", kind: \"numeric_backreference\", ref: $4}"
+      },
+      {
+        "rule": "backreference",
+        "branch_index": 9,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"backreference\", kind: \"numeric_backreference\", ref: $2}"
       },
       {
         "rule": "braced_name_ref",
@@ -286,7 +322,7 @@
         "rule": "code_block_lang",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"atom\", kind: \"code_block\", lang: $2, content: $4}"
+        "normalized_text": "{type: \"atom\", kind: \"code_block\", lang: $2, content: $5}"
       },
       {
         "rule": "code_block_plain",

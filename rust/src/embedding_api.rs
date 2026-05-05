@@ -3402,6 +3402,126 @@ mod tests {
         }
     }
 
+    /// PGEN-RGX-0081: typed `\g`-prefixed backref/subroutine shape lost
+    /// the bracket-form distinction. Pre-fix: all 5 forms (`\g<n>`,
+    /// `\g{n}`, `\g<1>`, `\g{1}`, `\gN`) collapsed to
+    /// `kind:"subroutine"`. PCRE2 distinguishes angle/apostrophe
+    /// (subroutine call) from brace/bare (back-reference) — the
+    /// bracket form determines the semantic. Fix split the `\\g`
+    /// branch in `backreference` into 7 sub-branches with 4
+    /// kinds: `subroutine_named`, `subroutine_numeric`,
+    /// `named_braced` (shared with `\k{...}`), `numeric_backreference`.
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form() {
+        let cases: &[(&str, &str)] = &[
+            // angle/apostrophe forms = subroutine call
+            ("\\g<n>", "subroutine_named"),
+            ("\\g'n'", "subroutine_named"),
+            ("\\g<1>", "subroutine_numeric"),
+            ("\\g'1'", "subroutine_numeric"),
+            // brace form = back-reference (named or numeric depending
+            // on inner content)
+            ("\\g{n}", "named_braced"),
+            ("\\g{1}", "numeric_backreference"),
+            // bare digit form = numeric back-reference
+            ("\\g1", "numeric_backreference"),
+            // existing kinds still produced for the \k family
+            ("\\k<n>", "named"),
+            ("\\k{n}", "named_braced"),
+            ("\\1", "numeric"),
+        ];
+
+        for (pattern, expected_kind) in cases {
+            let outcome = parse_grammar_profile_ast_dump_named(
+                "regex",
+                "regex_default",
+                pattern,
+                &AstDumpOptions::default(),
+            );
+            assert!(
+                matches!(outcome.status, ParseStatus::Success),
+                "pattern {:?} did not parse: {:?}",
+                pattern,
+                outcome.diagnostic
+            );
+            let dump = outcome
+                .ast_dump
+                .as_ref()
+                .expect("ast_dump on Success outcome");
+            let dump_text = dump.dump_json.clone();
+            // The kind discriminator should appear in the dump JSON.
+            assert!(
+                dump_text.contains(&format!("\"kind\":\"{}\"", expected_kind)),
+                "pattern {:?} expected kind {:?} in dump but got: {}",
+                pattern,
+                expected_kind,
+                dump_text
+            );
+        }
+    }
+
+    /// PGEN-RGX-0082: `code_block_lang` annotation referenced `$4`
+    /// (the optional `ws?` slot) instead of `$5` (the actual
+    /// `code_content`). Pre-fix: `(?{native:NAME})` produced
+    /// `{kind:"code_block", lang:"native", content:[]}` — the
+    /// callback name was silently dropped. Fix: bumped the positional
+    /// ref to `$5` so content carries the actual code body.
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0082_code_block_lang_preserves_content() {
+        let cases: &[(&str, &str)] = &[
+            ("(?{native:check_env})", "check_env"),
+            ("(?{native:my_callback_42})", "my_callback_42"),
+            ("(?{native:})", ""),
+            ("(?{lua:print('x')})", "print"),
+        ];
+
+        for (pattern, expected_substr) in cases {
+            let outcome = parse_grammar_profile_ast_dump_named(
+                "regex",
+                "regex_default",
+                pattern,
+                &AstDumpOptions::default(),
+            );
+            assert!(
+                matches!(outcome.status, ParseStatus::Success),
+                "pattern {:?} did not parse: {:?}",
+                pattern,
+                outcome.diagnostic
+            );
+            let dump = outcome
+                .ast_dump
+                .as_ref()
+                .expect("ast_dump on Success outcome");
+            let dump_text = dump.dump_json.clone();
+            // Empty-body case: just confirm the kind is present and a
+            // content field exists. Non-empty: confirm the body chars
+            // appear in the dump.
+            assert!(
+                dump_text.contains("\"kind\":\"code_block\""),
+                "pattern {:?} expected code_block in dump: {}",
+                pattern,
+                dump_text
+            );
+            if !expected_substr.is_empty() {
+                // The body chars should appear in the content array.
+                // The content is per-char strings — check each char of
+                // the expected substring appears.
+                for ch in expected_substr.chars() {
+                    let needle = format!("\"{}\"", ch);
+                    assert!(
+                        dump_text.contains(&needle),
+                        "pattern {:?} expected char {:?} in code_block content but dump = {}",
+                        pattern,
+                        ch,
+                        dump_text
+                    );
+                }
+            }
+        }
+    }
+
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     fn run_with_regex_worker_stack<F: FnOnce() + Send + 'static>(f: F) {
         std::thread::Builder::new()

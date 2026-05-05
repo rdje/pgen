@@ -1,4 +1,75 @@
 # CHANGES.md
+## 2026-05-05 - PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration
+
+Two RGX-reported AST-shape bugs landed in regex slices 11+12+13 (parser releases 1.1.41–43) and the code_block typing slice. Both pure shape fixes.
+
+### PGEN-RGX-0081 — `\g`-prefixed bracket-form distinction restored
+
+Pre-fix, all 5 `\g`-prefixed forms (`\g<n>`, `\g{n}`, `\g<1>`, `\g{1}`, `\gN`) collapsed to `kind:"subroutine"`, dropping PCRE2's bracket-form-determines-semantic distinction. RGX's `tests::g_bracketed_is_subroutine_call_not_backref` and 8+ conformance tests failed.
+
+Fix: split `"\\g" subroutine_ref` branch into 7 sub-branches with new kinds:
+
+```ebnf
+backreference = ...
+              | "\\g" "<" name ">"                              -> {kind: "subroutine_named",       ref: $3}
+              | "\\g" "<" signed_digits ">"                     -> {kind: "subroutine_numeric",     ref: $3}
+              | "\\g" "'" name "'"                              -> {kind: "subroutine_named",       ref: $3}
+              | "\\g" "'" signed_digits "'"                     -> {kind: "subroutine_numeric",     ref: $3}
+              | "\\g" "{" brace_ws? name brace_ws? "}"          -> {kind: "named_braced",           ref: $4}
+              | "\\g" "{" brace_ws? signed_digits brace_ws? "}" -> {kind: "numeric_backreference",  ref: $4}
+              | "\\g" signed_digits                             -> {kind: "numeric_backreference",  ref: $2}
+```
+
+Brace-form `\g{NAME}` routes to existing `kind:"named_braced"` (semantically identical to `\k{NAME}` per PCRE2 spec).
+
+### PGEN-RGX-0082 — `code_block_lang` content drop fixed
+
+Off-by-one positional ref. The 6-element rule `"(?{" code_lang ":" ws? code_content "})"` had positions $1–$6, but the annotation referenced `content: $4` (the `ws?` slot) instead of `$5` (`code_content`).
+
+Fix: `$4` → `$5`. Pre-fix `(?{native:NAME})` produced `{kind:"code_block", lang:"native", content:[]}`; post-fix carries body chars.
+
+### Empirical reproducer matrix
+
+10-pattern matrix for 0081 verified, 4-pattern matrix for 0082 verified. See contract Highlights for the full table.
+
+### Annotation inventory
+
+142 entries (was 138). +4 from 0081 split (4 → 10 backreference branches).
+
+### Manifest update
+
+`rust/test_data/ast_shape_contract/regex_v1.json`:
+- backreference branches 0–3 → 0–9 (kind set updated)
+- code_block_lang branch 0 annotation `$4` → `$5`
+
+### Regression-lock tests
+
+- `regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form` — 10-pattern matrix.
+- `regex_parser_pgen_rgx_0082_code_block_lang_preserves_content` — 4-pattern matrix + `(?{lua:...})` audit case.
+
+Test count: 499 / 0 (was 497, +2 new).
+
+### Contract bump
+
+- Parser release: `1.1.74` → `1.1.75`.
+- Contract version: `1.1.76` → `1.1.77`.
+- Schema version stays `1`.
+- New "Release 1.1.75 / Contract 1.1.77 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry for both fixes.
+- `schema-versioning.md`: new row `0.49.0 / 1.1.75`.
+- `json-carrier.md`: backreference table expanded from 4 to 10 rows; code_block_lang row updated.
+
+`make regex_parser_book_gate` green.
+
+### Bug ledger
+
+REGEX-0081 and REGEX-0082 → "Released" in `1.1.75`.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
 ## 2026-05-05 - SV-Slice-11 batch: program-header sub-tree typed (sibling of module/interface headers)
 
 ### What landed

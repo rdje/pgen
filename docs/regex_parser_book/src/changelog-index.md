@@ -23,6 +23,30 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.75 / Contract 1.1.77 — PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration
+
+Two RGX-reported AST-shape bugs landed by slices 11+12+13 (parser releases 1.1.41–43) and the code_block typing slice. Both pure shape fixes; same accept set; schema stays at `1`.
+
+**PGEN-RGX-0081 — `\g`-prefixed bracket-form distinction restored:** all 5 forms (`\g<n>`, `\g{n}`, `\g<1>`, `\g{1}`, `\gN`) previously collapsed to `kind:"subroutine"`. Fix splits into 7 sub-branches with new kinds: `subroutine_named`, `subroutine_numeric`, `numeric_backreference`. The brace-form `\g{NAME}` routes to existing `kind:"named_braced"` (semantically identical to `\k{NAME}` per PCRE2 spec).
+
+```text
+\g<n>  → kind:"subroutine_named",       ref:"n"
+\g'1'  → kind:"subroutine_numeric",     ref:{sign,value}
+\g{n}  → kind:"named_braced",           ref:"n"          (was: subroutine)
+\g{1}  → kind:"numeric_backreference",  ref:{sign,value} (was: subroutine)
+\gN    → kind:"numeric_backreference",  ref:{sign,value} (was: subroutine)
+```
+
+**PGEN-RGX-0082 — `code_block_lang` content drop fixed:** off-by-one positional ref. Annotation referenced `$4` (the optional `ws?` slot) instead of `$5` (the actual `code_content`). Pre-fix `(?{native:NAME})` produced `{kind:"code_block", lang:"native", content:[]}`; post-fix `content` carries the body chars. RGX's `register_native` API now resolves callbacks correctly.
+
+**Annotation inventory:** 142 entries (was 138). +4 from the 0081 split (4 → 10 backreference branches).
+
+**Regression-lock tests:** `regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form`, `regex_parser_pgen_rgx_0082_code_block_lang_preserves_content` in `rust/src/embedding_api.rs`. Test count: 499 / 0 (was 497, +2 new).
+
+**Bug ledger:** REGEX-0081 and REGEX-0082 → "Released".
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.75 / Contract 1.1.77 Highlights" — has full annotation source + 10-pattern test matrix.
+
 ### 1.1.74 / Contract 1.1.76 — PGEN-RGX-0078 verification + Optim #14 / #15: embedding-API dispatch overhead eliminated
 
 > **For RGX maintainers**: this section explains what changed, why your reported 360x figure no longer holds at HEAD, and what the closure picture looks like now. Read top-to-bottom — the methodology corrections matter for how you should interpret future ratio runs.

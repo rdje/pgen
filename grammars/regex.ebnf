@@ -192,10 +192,16 @@ anchor         = "^"   -> {type: "anchor", kind: "start_of_line"}
 #                       consumers may want to treat both the same.
 #   - "subroutine"   → \g<...> / \g'...' / \g{...} / \g+digit. `ref`
 #                       carries the raw `subroutine_ref` shape.
-backreference  = "\\" backreference_digits  -> {type: "backreference", kind: "numeric",      index: $2}
-               | "\\k" name_ref             -> {type: "backreference", kind: "named",        ref:   $2}
-               | "\\k" braced_name_ref      -> {type: "backreference", kind: "named_braced", ref:   $2}
-               | "\\g" subroutine_ref       -> {type: "backreference", kind: "subroutine",   ref:   $2}
+backreference  = "\\" backreference_digits                              -> {type: "backreference", kind: "numeric",                index: $2}
+               | "\\k" name_ref                                          -> {type: "backreference", kind: "named",                  ref:   $2}
+               | "\\k" braced_name_ref                                   -> {type: "backreference", kind: "named_braced",           ref:   $2}
+               | "\\g" "<" name ">"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
+               | "\\g" "<" signed_digits ">"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+               | "\\g" "'" name "'"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
+               | "\\g" "'" signed_digits "'"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+               | "\\g" "{" brace_ws? name brace_ws? "}"                  -> {type: "backreference", kind: "named_braced",           ref:   $4}
+               | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -> {type: "backreference", kind: "numeric_backreference",  ref:   $4}
+               | "\\g" signed_digits                                     -> {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 
 # `backreference_digits` rewritten as a single regex with an
 # `@transform`, mirroring how `digits` was typed. The regex disallows
@@ -870,7 +876,7 @@ extended_class_special = '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | 
 # Consumer reads `obj.lang` and `obj.content` directly.
 code_block     = code_block_lang | code_block_plain
 code_block_plain = "(?{" code_content "})"                          -> {type: "atom", kind: "code_block", lang: null, content: $2}
-code_block_lang  = "(?{" code_lang ":" ws? code_content "})"        -> {type: "atom", kind: "code_block", lang: $2, content: $4}
+code_block_lang  = "(?{" code_lang ":" ws? code_content "})"        -> {type: "atom", kind: "code_block", lang: $2, content: $5}
 code_lang      = "lua" | "js" | "javascript" | "rhai" | "native" | "wasm"
 
 # Code content with proper brace balancing and quoted string handling

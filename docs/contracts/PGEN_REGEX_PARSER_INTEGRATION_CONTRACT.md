@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.76`
+  - `1.1.77`
 - Parser release version:
-  - `1.1.74`
+  - `1.1.75`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-05-04`
+  - `2026-05-05`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -33,6 +33,93 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.75 / Contract 1.1.77 Highlights — PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration
+
+Two RGX-reported AST shape bugs landed in slices 11+12+13 (parser releases 1.1.41–43) and the code_block typing slice. Both are pure shape fixes; same accept set; schema stays at `1`.
+
+### PGEN-RGX-0081: `\g`-prefixed bracket-form distinction restored
+
+Pre-fix, all 5 `\g`-prefixed forms (`\g<n>`, `\g{n}`, `\g<1>`, `\g{1}`, `\gN`) collapsed to a single `kind:"subroutine"` shape, dropping PCRE2's bracket-form-determines-semantic distinction. Fix splits the `"\\g" subroutine_ref` branch into 7 sub-branches with new kinds:
+
+```ebnf
+backreference  = "\\" backreference_digits                              -> {type: "backreference", kind: "numeric",                index: $2}
+               | "\\k" name_ref                                          -> {type: "backreference", kind: "named",                  ref:   $2}
+               | "\\k" braced_name_ref                                   -> {type: "backreference", kind: "named_braced",           ref:   $2}
+               | "\\g" "<" name ">"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
+               | "\\g" "<" signed_digits ">"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+               | "\\g" "'" name "'"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
+               | "\\g" "'" signed_digits "'"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+               | "\\g" "{" brace_ws? name brace_ws? "}"                  -> {type: "backreference", kind: "named_braced",           ref:   $4}
+               | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -> {type: "backreference", kind: "numeric_backreference",  ref:   $4}
+               | "\\g" signed_digits                                     -> {type: "backreference", kind: "numeric_backreference",  ref:   $2}
+```
+
+**4 new kinds**: `subroutine_named`, `subroutine_numeric`, `numeric_backreference`. The brace-form `\g{NAME}` routes to existing `kind:"named_braced"` (semantically identical to `\k{NAME}` per PCRE2 spec).
+
+**Empirical reproducer matrix verified:**
+
+| Pattern | Pre-fix kind | Post-fix kind |
+|---|---|---|
+| `\g<n>`  | `subroutine` | `subroutine_named` |
+| `\g'n'`  | `subroutine` | `subroutine_named` |
+| `\g<1>`  | `subroutine` | `subroutine_numeric` |
+| `\g'1'`  | `subroutine` | `subroutine_numeric` |
+| `\g{n}`  | `subroutine` | `named_braced` |
+| `\g{1}`  | `subroutine` | `numeric_backreference` |
+| `\gN`    | `subroutine` | `numeric_backreference` |
+| `\k<n>`  | `named` | `named` (unchanged) |
+| `\k{n}`  | `named_braced` | `named_braced` (unchanged) |
+| `\1`     | `numeric` | `numeric` (unchanged) |
+
+**Regression-lock test:** `regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form` in `rust/src/embedding_api.rs`.
+
+### PGEN-RGX-0082: `code_block_lang` content drop fixed (off-by-one)
+
+Pre-fix annotation:
+```ebnf
+code_block_lang = "(?{" code_lang ":" ws? code_content "})"
+                  -> {type: "atom", kind: "code_block", lang: $2, content: $4}    // ✗ $4 is `ws?`!
+```
+
+The 6-element sequence's positions are: `$1="(?{"`, `$2=code_lang`, `$3=":"`, `$4=ws?`, `$5=code_content`, `$6="})"`. The annotation referenced `$4` (the optional whitespace) instead of `$5` (the actual content). For `(?{native:NAME})`: typed AST emitted `{kind:"code_block", lang:"native", content:[]}` — callback name silently dropped, breaking RGX's `register_native(NAME, callback)` resolution.
+
+Fix: changed `content: $4` → `content: $5`. Now content correctly carries the body chars.
+
+```ebnf
+code_block_lang = "(?{" code_lang ":" ws? code_content "})"
+                  -> {type: "atom", kind: "code_block", lang: $2, content: $5}    // ✓
+```
+
+**Empirical pre/post on `(?{native:check_env})`:**
+
+```text
+# Pre: content empty, callback name lost.
+{"kind": "code_block", "lang": "native", "content": []}
+
+# Post: content carries the callback name.
+{"kind": "code_block", "lang": "native", "content": ["c","h","e","c","k","_","e","n","v"]}
+```
+
+**Regression-lock test:** `regex_parser_pgen_rgx_0082_code_block_lang_preserves_content` in `rust/src/embedding_api.rs`.
+
+### Same accept set across both fixes. Schema stays at `1`. Public API surface unchanged.
+
+### Annotation inventory
+
+142 entries (was 138). +4 in this release: 0081 added 6 backreference branches (was 4 → now 10) and 0082 didn't add new entries (just edited `$4` → `$5`).
+
+### mdBook updates
+
+`changelog-index.md`, `schema-versioning.md`, `json-carrier.md`, `rules-misc.md` (backreference subtree) updated. `make regex_parser_book_gate` green.
+
+### Bug ledger update
+
+REGEX-0081 and REGEX-0082 → "Released" (released in `1.1.75`).
+
+### Next slice candidate
+
+Per the user's pending direction: implement `_meta` Phase 1 (span + rule + branch_index on every typed object). Current `1.1.75` shape doesn't yet carry per-node spans — the design is approved and saved in memory `feedback_meta_carrier_design.md`.
 
 ## Release 1.1.74 / Contract 1.1.76 Highlights — PGEN-RGX-0078 verification + Optim #14 / #15: embedding-API dispatch overhead eliminated
 
