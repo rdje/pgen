@@ -885,10 +885,24 @@ cycle_delay_const_range_expression := constant_expression colon constant_express
 cycle_delay_range := kw_token_93ac8946 constant_primary | kw_token_93ac8946 ( cycle_delay_const_range_expression )? | kw_token_71b8cf7e | kw_token_9768502a
 
 @profiles: ["sv_2017"]
-data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | net_type_declaration
+data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi
+                                -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                         | type_declaration
+                                -> {kind: "type",                  body: $1}
+                         | package_import_declaration
+                                -> {kind: "package_import",        body: $1}
+                         | net_type_declaration
+                                -> {kind: "net_type",              body: $1}
 
 @profiles: ["sv_2023"]
-data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | nettype_declaration
+data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi
+                                -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                         | type_declaration
+                                -> {kind: "type",                  body: $1}
+                         | package_import_declaration
+                                -> {kind: "package_import",        body: $1}
+                         | nettype_declaration
+                                -> {kind: "nettype",               body: $1}
 
 data_declaration := data_declaration_sv_2017 | data_declaration_sv_2023
 
@@ -1173,6 +1187,7 @@ full_edge_sensitive_path_description := full_edge_sensitive_path_description_sv_
 full_path_description := lparen list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
 
 function_body_declaration := @sample: "int f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                          -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}
                            | @sample: "int f(); endfunction : f" function_data_type_or_implicit function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                            | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                            | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
@@ -1181,9 +1196,11 @@ function_data_type_or_implicit := data_type_or_void | implicit_data_type
 
 @profiles: ["sv_2017"]
 function_declaration_sv_2017 := kw_function_c218e39e ( lifetime )? function_body_declaration
+                             -> {lifetime: $2, body: $3}
 
 @profiles: ["sv_2023"]
 function_declaration_sv_2023 := kw_function_c218e39e ( dynamic_override_specifiers )? ( lifetime )? function_body_declaration
+                             -> {dynamic_override: $2, lifetime: $3, body: $4}
 
 function_declaration := function_declaration_sv_2017 | function_declaration_sv_2023
 
@@ -2661,15 +2678,18 @@ tagged_union_expression_sv_2023 := kw_tagged_8e1ec218 member_identifier ( primar
 tagged_union_expression := tagged_union_expression_sv_2017 | tagged_union_expression_sv_2023
 
 task_body_declaration := @sample: "t; endtask : t" task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                      -> {name: $1, items: $3, statements: $4, end_label: $6}
                        | @sample: "t(); endtask : t" task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                        | ( interface_identifier dot | class_scope ) task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                        | ( interface_identifier dot | class_scope ) task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
 
 @profiles: ["sv_2017"]
 task_declaration_sv_2017 := kw_task_7fbb727d ( lifetime )? task_body_declaration
+                         -> {lifetime: $2, body: $3}
 
 @profiles: ["sv_2023"]
 task_declaration_sv_2023 := kw_task_7fbb727d ( dynamic_override_specifiers )? ( lifetime )? task_body_declaration
+                         -> {dynamic_override: $2, lifetime: $3, body: $4}
 
 task_declaration := task_declaration_sv_2017 | task_declaration_sv_2023
 

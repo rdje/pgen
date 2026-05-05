@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-25 batch: data/function/task declarations + bodies typed (8 rules / 14 annotations)
+
+Closes the data / function / task walk paths from `package_or_generate_item_declaration`. After this slice, every reachable `package_or_generate_item_declaration.kind == "data_declaration"` / `"function_declaration"` / `"task_declaration"` exposes typed dispatch all the way to the function/task body's name + items + statements + end_label.
+
+```ebnf
+data_declaration_sv_2017     -> 4 kinds (variable_decl / type / package_import / net_type)
+data_declaration_sv_2023     -> 4 kinds (same 3 + nettype, LRM 2023 naming)
+function_declaration_sv_2017 -> {lifetime, body}
+function_declaration_sv_2023 -> {dynamic_override, lifetime, body}
+function_body_declaration    -> {return_type, name, items, statements, end_label}
+task_declaration_sv_2017     -> {lifetime, body}
+task_declaration_sv_2023     -> {dynamic_override, lifetime, body}
+task_body_declaration        -> {name, items, statements, end_label}
+```
+
+DEFERRED: `net_declaration` typing (parens-Or workaround needed; planned for next slice).
+
+Annotation count: **274** (was 260, +14). Same accept set. Schema stays at `1`. Contract bumped 1.0.24 → 1.0.25. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-24 batch: assertion + genvar dispatch typed (7 rules / 26 annotations)
 
 Closes the assertion-item walk path and the loop_generate_construct init/step typed dispatch.

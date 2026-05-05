@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.24`
+  - `1.0.25`
 - Parser release version:
-  - `1.0.24`
+  - `1.0.25`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,76 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.25 / Contract 1.0.25 Highlights — SV-Slice-25 batch: data/function/task declarations + bodies typed (8 rules / 14 annotations)
+
+Closes the data / function / task walk paths from `package_or_generate_item_declaration`. After this slice, every reachable `package_or_generate_item_declaration.kind == "data_declaration"` / `"function_declaration"` / `"task_declaration"` exposes typed dispatch all the way to the function/task body's name + items + statements + end_label.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+data_declaration_sv_2017 := ( kw_const )? ( kw_var )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi
+                                -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                         | type_declaration                       -> {kind: "type",                  body: $1}
+                         | package_import_declaration             -> {kind: "package_import",        body: $1}
+                         | net_type_declaration                   -> {kind: "net_type",              body: $1}
+
+@profiles: ["sv_2023"]
+data_declaration_sv_2023 := /* same first 3 branches; 4th is `nettype_declaration` -> {kind: "nettype", body: $1} per LRM 2023 naming */
+
+@profiles: ["sv_2017"]
+function_declaration_sv_2017 := kw_function ( lifetime )? function_body_declaration
+                             -> {lifetime: $2, body: $3}
+
+@profiles: ["sv_2023"]
+function_declaration_sv_2023 := kw_function ( dynamic_override_specifiers )? ( lifetime )? function_body_declaration
+                             -> {dynamic_override: $2, lifetime: $3, body: $4}
+
+function_body_declaration := function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction ( colon function_identifier )?
+                          -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}
+
+@profiles: ["sv_2017"]
+task_declaration_sv_2017 := kw_task ( lifetime )? task_body_declaration
+                         -> {lifetime: $2, body: $3}
+
+@profiles: ["sv_2023"]
+task_declaration_sv_2023 := kw_task ( dynamic_override_specifiers )? ( lifetime )? task_body_declaration
+                         -> {dynamic_override: $2, lifetime: $3, body: $4}
+
+task_body_declaration := task_identifier semi tf_item_declaration* statement_or_null* kw_endtask ( colon task_identifier )?
+                      -> {name: $1, items: $3, statements: $4, end_label: $6}
+```
+
+### Field semantics
+
+- `data_declaration_*.kind == "variable_decl"`: the most common form. `const_keyword` and `var_keyword` are `[]` when absent. `lifetime` is `[]` or a typed `lifetime` shape (per SV-Slice-7). `data_type` is the matched `data_type_or_implicit`. `assignments` is a `list_of_variable_decl_assignments` envelope.
+- `function_declaration_sv_2023.dynamic_override`: optional `( dynamic_override_specifiers )?` slot added in LRM 2023. Always `[]` for sv_2017 (sub-rule doesn't have the slot).
+- `function_body_declaration.return_type`: the matched `function_data_type_or_implicit` (function may return void, scalar, vector, or struct).
+- `task_body_declaration` has no `return_type` — task is void by definition.
+
+### Profile differences
+
+`data_declaration_sv_2017` uses `net_type_declaration` (kind label `"net_type"`); `data_declaration_sv_2023` uses `nettype_declaration` (kind label `"nettype"`). LRM 2023 renamed the rule (one-word `nettype` vs two-word `net_type`). Consumers need to handle both kind labels when walking a profile-agnostic workflow.
+
+### DEFERRED: net_declaration
+
+`net_declaration_sv_2017/sv_2023` typing is deferred to the next slice: it has parens-Or `( drive_strength | charge_strength )?` and `( kw_vectored | kw_scalared )?` that hit task #38. Will use the helper-rule extraction pattern established in SV-Slice-23 (`if_generate_else_clause`).
+
+### Annotation inventory
+
+274 entries (was 260). +14 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `net_declaration_sv_2017` / `net_declaration_sv_2023` with helper-rule extraction (`net_strength`, `net_vector_scalar`).
+- `concurrent_assertion_statement` / `deferred_immediate_assertion_item` internals (close `assertion_item` body fields one level deeper).
+- `tf_item_declaration` / `function_statement_or_null` / `statement_or_null` (close function/task body internals one level deeper).
+- `class_declaration_sv_2017/2023` internals — `class_item` etc.
 
 ## Release 1.0.24 / Contract 1.0.24 Highlights — SV-Slice-24 batch: assertion + genvar dispatch typed (7 rules / 26 annotations)
 

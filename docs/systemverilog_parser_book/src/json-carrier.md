@@ -99,6 +99,14 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `genvar_iteration` (3 branches) | per-branch typed | Kind labels: `"assign"` (`{name, op, value}` — op is the typed `assignment_operator`), `"prefix_inc_dec"` (`{op, name}`), `"postfix_inc_dec"` (`{name, op}`). Reached from `loop_generate_construct.step`. |
 | `assignment_operator` (13 branches) | per-branch `{kind}` (no body) | Kind labels: `"assign"` / `"plus_assign"` / `"minus_assign"` / `"star_assign"` / `"slash_assign"` / `"percent_assign"` / `"and_assign"` / `"or_assign"` / `"xor_assign"` / `"shift_left_assign"` / `"shift_right_assign"` / `"arithmetic_shift_left_assign"` / `"arithmetic_shift_right_assign"`. Each branch matches a single keyword token; the bare `{kind}` shape is sufficient for operator-by-name dispatch. |
 | `inc_or_dec_operator` (2 branches) | per-branch `{kind}` (no body) | Kind labels: `"plus_plus"` / `"minus_minus"`. Same bare-`{kind}` pattern as `assignment_operator`. |
+| `data_declaration_sv_2017` (4 branches) | per-branch typed | Kind labels: `"variable_decl"` (`{const_keyword, var_keyword, lifetime, data_type, assignments}` — most common form) / `"type"` (`{body}`) / `"package_import"` (`{body}`) / `"net_type"` (`{body}`). Reached from `package_or_generate_item_declaration.kind == "data_declaration"` (sv_2017 profile). |
+| `data_declaration_sv_2023` (4 branches) | per-branch typed | Same first 3 kinds as sv_2017; 4th kind is `"nettype"` (LRM 2023 renamed `net_type` → `nettype`). Profile-agnostic walks should accept both `"net_type"` and `"nettype"`. |
+| `function_declaration_sv_2017` | `-> {lifetime: $2, body: $3}` | Single-sequence typed. Drops `kw_function`. `lifetime` is `[]` or typed `lifetime` shape. `body` is the typed `function_body_declaration`. |
+| `function_declaration_sv_2023` | `-> {dynamic_override: $2, lifetime: $3, body: $4}` | Same as sv_2017 plus LRM 2023's `( dynamic_override_specifiers )?` slot. `dynamic_override` is `[]` when absent. |
+| `function_body_declaration` | `-> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}` | Drops `semi`, `kw_endfunction`. `return_type` is the matched `function_data_type_or_implicit` (function may return void / scalar / vector / struct). `name` is a clean function_identifier string (per SV-Slice-8 identifier propagation). |
+| `task_declaration_sv_2017` | `-> {lifetime: $2, body: $3}` | Parallel to `function_declaration_sv_2017`. |
+| `task_declaration_sv_2023` | `-> {dynamic_override: $2, lifetime: $3, body: $4}` | Parallel to `function_declaration_sv_2023`. |
+| `task_body_declaration` | `-> {name: $1, items: $3, statements: $4, end_label: $6}` | Same shape as `function_body_declaration` but no `return_type` (task is void by definition). |
 
 ## Sub-rules with implicit defaults
 

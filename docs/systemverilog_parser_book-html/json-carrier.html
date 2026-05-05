@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacc475a.js";
+            window.path_to_searchindex_js = "searchindex-aa828d6b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -283,6 +283,14 @@
 <tr><td><code>genvar_iteration</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"assign"</code> (<code>{name, op, value}</code> — op is the typed <code>assignment_operator</code>), <code>"prefix_inc_dec"</code> (<code>{op, name}</code>), <code>"postfix_inc_dec"</code> (<code>{name, op}</code>). Reached from <code>loop_generate_construct.step</code>.</td></tr>
 <tr><td><code>assignment_operator</code> (13 branches)</td><td>per-branch <code>{kind}</code> (no body)</td><td>Kind labels: <code>"assign"</code> / <code>"plus_assign"</code> / <code>"minus_assign"</code> / <code>"star_assign"</code> / <code>"slash_assign"</code> / <code>"percent_assign"</code> / <code>"and_assign"</code> / <code>"or_assign"</code> / <code>"xor_assign"</code> / <code>"shift_left_assign"</code> / <code>"shift_right_assign"</code> / <code>"arithmetic_shift_left_assign"</code> / <code>"arithmetic_shift_right_assign"</code>. Each branch matches a single keyword token; the bare <code>{kind}</code> shape is sufficient for operator-by-name dispatch.</td></tr>
 <tr><td><code>inc_or_dec_operator</code> (2 branches)</td><td>per-branch <code>{kind}</code> (no body)</td><td>Kind labels: <code>"plus_plus"</code> / <code>"minus_minus"</code>. Same bare-<code>{kind}</code> pattern as <code>assignment_operator</code>.</td></tr>
+<tr><td><code>data_declaration_sv_2017</code> (4 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"variable_decl"</code> (<code>{const_keyword, var_keyword, lifetime, data_type, assignments}</code> — most common form) / <code>"type"</code> (<code>{body}</code>) / <code>"package_import"</code> (<code>{body}</code>) / <code>"net_type"</code> (<code>{body}</code>). Reached from <code>package_or_generate_item_declaration.kind == "data_declaration"</code> (sv_2017 profile).</td></tr>
+<tr><td><code>data_declaration_sv_2023</code> (4 branches)</td><td>per-branch typed</td><td>Same first 3 kinds as sv_2017; 4th kind is <code>"nettype"</code> (LRM 2023 renamed <code>net_type</code> → <code>nettype</code>). Profile-agnostic walks should accept both <code>"net_type"</code> and <code>"nettype"</code>.</td></tr>
+<tr><td><code>function_declaration_sv_2017</code></td><td><code>-&gt; {lifetime: $2, body: $3}</code></td><td>Single-sequence typed. Drops <code>kw_function</code>. <code>lifetime</code> is <code>[]</code> or typed <code>lifetime</code> shape. <code>body</code> is the typed <code>function_body_declaration</code>.</td></tr>
+<tr><td><code>function_declaration_sv_2023</code></td><td><code>-&gt; {dynamic_override: $2, lifetime: $3, body: $4}</code></td><td>Same as sv_2017 plus LRM 2023’s <code>( dynamic_override_specifiers )?</code> slot. <code>dynamic_override</code> is <code>[]</code> when absent.</td></tr>
+<tr><td><code>function_body_declaration</code></td><td><code>-&gt; {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}</code></td><td>Drops <code>semi</code>, <code>kw_endfunction</code>. <code>return_type</code> is the matched <code>function_data_type_or_implicit</code> (function may return void / scalar / vector / struct). <code>name</code> is a clean function_identifier string (per SV-Slice-8 identifier propagation).</td></tr>
+<tr><td><code>task_declaration_sv_2017</code></td><td><code>-&gt; {lifetime: $2, body: $3}</code></td><td>Parallel to <code>function_declaration_sv_2017</code>.</td></tr>
+<tr><td><code>task_declaration_sv_2023</code></td><td><code>-&gt; {dynamic_override: $2, lifetime: $3, body: $4}</code></td><td>Parallel to <code>function_declaration_sv_2023</code>.</td></tr>
+<tr><td><code>task_body_declaration</code></td><td><code>-&gt; {name: $1, items: $3, statements: $4, end_label: $6}</code></td><td>Same shape as <code>function_body_declaration</code> but no <code>return_type</code> (task is void by definition).</td></tr>
 </tbody>
 </table>
 </div>

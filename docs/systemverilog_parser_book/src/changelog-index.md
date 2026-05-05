@@ -19,6 +19,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.25 / Contract 1.0.25 — SV-Slice-25 batch: data/function/task declarations + bodies typed (8 rules / 14 annotations)
+
+**What changed:** Closes the data / function / task walk paths from package_or_generate_item_declaration.
+
+```ebnf
+data_declaration_sv_2017     -> 4 kinds (variable_decl / type / package_import / net_type)
+data_declaration_sv_2023     -> 4 kinds (same 3 + nettype, LRM 2023 naming)
+function_declaration_sv_2017 -> {lifetime, body}
+function_declaration_sv_2023 -> {dynamic_override, lifetime, body}
+function_body_declaration    -> {return_type, name, items, statements, end_label}
+task_declaration_sv_2017     -> {lifetime, body}
+task_declaration_sv_2023     -> {dynamic_override, lifetime, body}
+task_body_declaration        -> {name, items, statements, end_label}
+```
+
+**DEFERRED:** `net_declaration_sv_2017/2023` typing (parens-Or workaround needed; planned for next slice with helper-rule extraction following SV-Slice-23 pattern).
+
+**Annotation inventory:** 274 entries (was 260). +14 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.25 / Contract 1.0.25 Highlights" with full annotation source + field semantics + profile differences (net_type vs nettype).
+
 ### 1.0.24 / Contract 1.0.24 — SV-Slice-24 batch: assertion + genvar dispatch typed (7 rules / 26 annotations)
 
 **What changed:** Closes the assertion-item walk path and the loop_generate_construct init/step typed dispatch.
