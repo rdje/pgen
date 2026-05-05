@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.13`
+  - `1.0.14`
 - Parser release version:
-  - `1.0.13`
+  - `1.0.14`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,84 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.14 / Contract 1.0.14 Highlights — SV-Slice-14 batch: bind sub-tree completion + interface_class_declaration + config_declaration
+
+5 rules typed in one batch — completes the bind directive sub-tree (started in SV-Slice-13) and adds two more top-level construct families.
+
+### Annotations
+
+```ebnf
+bind_target_scope := module_identifier    -> {kind: "module",    name: $1}
+                  | interface_identifier -> {kind: "interface", name: $1}
+
+bind_target_instance := hierarchical_identifier constant_bit_select
+                     -> {name: $1, bit_select: $2}
+
+bind_target_instance_list := bind_target_instance (comma bind_target_instance)*
+                          -> {first: $1, rest: $2}
+
+interface_class_declaration := kw_interface kw_class declared_interface_class_identifier
+                                (parameter_port_list)?
+                                (kw_extends interface_class_type (comma interface_class_type)*)?
+                                semi interface_class_item* kw_endclass (colon class_identifier)?
+                            -> {name: $3, parameters: $4, extends: $5, items: $7, end_label: $9}
+
+config_declaration := kw_config config_identifier semi
+                       (local_parameter_declaration semi)*
+                       design_statement
+                       config_rule_statement*
+                       kw_endconfig (colon config_identifier)?
+                   -> {name: $2, local_params: $4, design: $5, rules: $6, end_label: $8}
+```
+
+### Bind sub-tree fully typed
+
+Combined with SV-Slice-13's bind_directive/bind_instantiation typing, consumers walking a bind directive get clean typed access at every level:
+
+```rust
+// description.kind = "bind_directive" → desc.body is the typed bind shape
+match desc.body.kind {
+    "scoped" => {
+        // bind <target_scope> [: <instances>] <instantiation>
+        let scope = &desc.body.target_scope;     // {kind, name} from bind_target_scope
+        let instances = &desc.body.instances;    // {first, rest} from bind_target_instance_list (or [] if no `:` clause)
+        let inst = &desc.body.instantiation;     // {kind, body} from bind_instantiation
+        match scope.kind { "module" | "interface" => /* ... */ }
+        // ... iterate instances.first + instances.rest with each as
+        //     {name, bit_select} from bind_target_instance
+    }
+    "single" => {
+        // bind <target_instance> <instantiation>
+        let inst = &desc.body.target_instance;   // {name, bit_select}
+        // ...
+    }
+}
+```
+
+### `interface_class_declaration` and `config_declaration`
+
+Both are single-sequence rules (no Or branches) typed with named fields. Reachable via `package_item.kind = "declaration"` (then walk into the package_or_generate_item_declaration body) for interface_class_declaration; via `description.kind = "config_declaration"` for config_declaration.
+
+### Annotation inventory
+
+95 entries (was 89). +6 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Annotation-language idiom note
+
+**`{first, rest}` workaround applied a third time** (after attribute_instance and udp_port_decls) — for `bind_target_instance_list`'s `X (comma X)*` mini-mixed-array. The pattern is now firmly established for any "required-first + repeat" rule shape. A future codegen extension supporting true `[$1, $2**]` mixed-array spread would let these all flatten to clean arrays.
+
+### Next slice candidates
+
+- `bind_target_instance.bit_select` deep typing (constant_bit_select sub-rule).
+- `udp_port_list` / `udp_declaration_port_list` (sub-rule typing inside `header.ports` for UDP).
+- `list_of_ports` / `list_of_port_declarations` (sub-rule typing for module/interface/program port lists).
+- `package_or_generate_item_declaration` (large Or — the actual content under package_item.kind = "declaration").
+- `package_export_declaration`, `anonymous_program` per-branch typing.
 
 ## Release 1.0.13 / Contract 1.0.13 Highlights — SV-Slice-13 batch: bind_directive + bind_instantiation + package_item per-branch typed
 

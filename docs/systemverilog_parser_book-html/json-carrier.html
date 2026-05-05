@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d2e3162f.js";
+            window.path_to_searchindex_js = "searchindex-1ee5f5ef.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -227,6 +227,11 @@
 <tr><td><code>bind_directive</code> (2 branches)</td><td>per-branch typed shapes</td><td>Kind labels: <code>"scoped"</code> (with target_scope, optional instances, instantiation) / <code>"single"</code> (with target_instance, instantiation).</td></tr>
 <tr><td><code>bind_instantiation</code> (4 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"program"</code> / <code>"module"</code> / <code>"interface"</code> / <code>"checker"</code> — uniform shape over the 4 instantiation forms.</td></tr>
 <tr><td><code>package_item</code> (4 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"declaration"</code> (package_or_generate_item_declaration) / <code>"anonymous_program"</code> / <code>"export"</code> (package_export_declaration) / <code>"timeunits"</code> (timeunits_declaration).</td></tr>
+<tr><td><code>bind_target_scope</code> (2 branches)</td><td>per-branch <code>{kind, name}</code></td><td>Kind labels: <code>"module"</code> / <code>"interface"</code>. <code>name</code> is a clean identifier string.</td></tr>
+<tr><td><code>bind_target_instance</code></td><td><code>-&gt; {name, bit_select}</code></td><td>2-element typed object. <code>name</code> is the hierarchical_identifier, <code>bit_select</code> is the constant_bit_select.</td></tr>
+<tr><td><code>bind_target_instance_list</code></td><td><code>-&gt; {first, rest}</code></td><td>Mini-mixed-array workaround for <code>bind_target_instance (comma bind_target_instance)*</code>.</td></tr>
+<tr><td><code>interface_class_declaration</code></td><td><code>-&gt; {name, parameters, extends, items, end_label}</code></td><td>Single-sequence shape mirror to class_declaration.</td></tr>
+<tr><td><code>config_declaration</code></td><td><code>-&gt; {name, local_params, design, rules, end_label}</code></td><td>Single-sequence shape with config-specific fields.</td></tr>
 </tbody>
 </table>
 </div>

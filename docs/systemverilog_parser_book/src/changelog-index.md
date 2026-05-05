@@ -19,6 +19,26 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.14 / Contract 1.0.14 — SV-Slice-14 batch: bind sub-tree completion + interface_class_declaration + config_declaration
+
+**What changed:** 5 rules typed in one batch:
+
+```ebnf
+bind_target_scope          -> 2 kinds: module/interface ({kind, name})
+bind_target_instance       -> {name, bit_select}
+bind_target_instance_list  -> {first, rest} (mini-mixed-array workaround)
+interface_class_declaration -> {name, parameters, extends, items, end_label}
+config_declaration         -> {name, local_params, design, rules, end_label}
+```
+
+**Bind sub-tree fully typed** — combined with SV-Slice-13's bind_directive/bind_instantiation typing, consumers walking a bind directive get clean typed access at every level (target_scope, target_instance, instances, instantiation).
+
+**Annotation inventory:** 95 entries (was 89). +6 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.14 / Contract 1.0.14 Highlights" with full annotation source + bind walker recipe.
+
 ### 1.0.13 / Contract 1.0.13 — SV-Slice-13 batch: bind_directive + bind_instantiation + package_item per-branch typed
 
 **What changed:** 3 Or rules typed. Consumers gain clean kind dispatch on description's `package_item` and `bind_directive` branches.

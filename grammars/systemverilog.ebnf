@@ -402,10 +402,13 @@ bind_instantiation := program_instantiation   -> {kind: "program",   body: $1}
                    | checker_instantiation    -> {kind: "checker",   body: $1}
 
 bind_target_instance := hierarchical_identifier constant_bit_select
+                     -> {name: $1, bit_select: $2}
 
 bind_target_instance_list := bind_target_instance ( comma bind_target_instance )*
+                          -> {first: $1, rest: $2}
 
-bind_target_scope := module_identifier | interface_identifier
+bind_target_scope := module_identifier    -> {kind: "module",    name: $1}
+                  | interface_identifier -> {kind: "interface", name: $1}
 
 bins_expression := variable_identifier | cover_point_identifier ( dot bin_identifier )?
 
@@ -676,6 +679,7 @@ conditional_statement := @sample: "if (a) ; else ;" ( unique_priority )? kw_if_9
                        | @sample: "if (a) ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null !kw_else_ae050f5b
 
 config_declaration := kw_config_dfba7aad config_identifier semi ( local_parameter_declaration semi )* design_statement config_rule_statement* kw_endconfig_3fd27f95 ( colon config_identifier )?
+                   -> {name: $2, local_params: $4, design: $5, rules: $6, end_label: $8}
 
 config_identifier := declaration_identifier
 
@@ -1306,6 +1310,7 @@ interface_ansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )?
                       -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 interface_class_declaration := kw_interface_5ea2d81a kw_class_8d767bf5 declared_interface_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 interface_class_type ( comma interface_class_type )* )? semi interface_class_item* kw_endclass_b43ac277 ( colon class_identifier )?
+                            -> {name: $3, parameters: $4, extends: $5, items: $7, end_label: $9}
 
 interface_class_item := type_declaration | attribute_instance* interface_class_method | local_parameter_declaration semi | parameter_declaration semi | semi
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d2e3162f.js";
+            window.path_to_searchindex_js = "searchindex-1ee5f5ef.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,6 +216,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.15.0</td><td>1.0.14</td><td><strong>SV-Slice-14 batch: bind sub-tree completion + interface_class_declaration + config_declaration.</strong> 5 rules: bind_target_scope (2 kinds), bind_target_instance, bind_target_instance_list ({first, rest}), interface_class_declaration, config_declaration. Bind sub-tree fully typed end-to-end (combined with SV-Slice-13). Annotation inventory: 95 entries (was 89).</td></tr>
 <tr><td>0.14.0</td><td>1.0.13</td><td><strong>SV-Slice-13 batch: bind_directive + bind_instantiation + package_item per-branch typed.</strong> 3 Or rules: bind_directive (2 kinds: scoped/single), bind_instantiation (4 kinds: program/module/interface/checker), package_item (4 kinds: declaration/anonymous_program/export/timeunits). Consumer gains clean kind dispatch on description’s package_item / bind_directive branches. Annotation inventory: 89 entries (was 79).</td></tr>
 <tr><td>0.13.0</td><td>1.0.12</td><td><strong>SV-Slice-12 batch: UDP declaration family typed.</strong> 4 rules: udp_ansi_declaration, udp_nonansi_declaration, udp_declaration_sv_2017 (5 per-branch kinds: nonansi/ansi/extern_nonansi/extern_ansi/wildcard), udp_declaration_sv_2023 (mirror with positional shift). Special: nonansi branch’s <code>udp_port_declaration udp_port_declaration*</code> mini-mixed-array uses <code>port_decls: {first, rest}</code> workaround. Annotation inventory: 79 entries (was 67).</td></tr>
 <tr><td>0.12.0</td><td>1.0.11</td><td><strong>SV-Slice-11 batch: program-header sub-tree typed.</strong> 2 rules: program_ansi_header, program_nonansi_header. Same 6-field shape as module/interface headers (attributes, lifetime, name, imports, parameters, ports). Verified on <code>program p; endprogram\n</code>: header.name = “p”. Annotation inventory: 67 entries (was 65).</td></tr>

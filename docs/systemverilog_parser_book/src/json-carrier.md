@@ -43,6 +43,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `bind_directive` (2 branches) | per-branch typed shapes | Kind labels: `"scoped"` (with target_scope, optional instances, instantiation) / `"single"` (with target_instance, instantiation). |
 | `bind_instantiation` (4 branches) | per-branch `{kind, body}` | Kind labels: `"program"` / `"module"` / `"interface"` / `"checker"` — uniform shape over the 4 instantiation forms. |
 | `package_item` (4 branches) | per-branch `{kind, body}` | Kind labels: `"declaration"` (package_or_generate_item_declaration) / `"anonymous_program"` / `"export"` (package_export_declaration) / `"timeunits"` (timeunits_declaration). |
+| `bind_target_scope` (2 branches) | per-branch `{kind, name}` | Kind labels: `"module"` / `"interface"`. `name` is a clean identifier string. |
+| `bind_target_instance` | `-> {name, bit_select}` | 2-element typed object. `name` is the hierarchical_identifier, `bit_select` is the constant_bit_select. |
+| `bind_target_instance_list` | `-> {first, rest}` | Mini-mixed-array workaround for `bind_target_instance (comma bind_target_instance)*`. |
+| `interface_class_declaration` | `-> {name, parameters, extends, items, end_label}` | Single-sequence shape mirror to class_declaration. |
+| `config_declaration` | `-> {name, local_params, design, rules, end_label}` | Single-sequence shape with config-specific fields. |
 
 ## Sub-rules with implicit defaults
 

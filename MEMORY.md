@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-05 (+0200, task: SV-Slice-13-batch-bind_directive-bind_instantiation-package_item-typed)
+Last updated: 2026-05-05 (+0200, task: SV-Slice-14-batch-bind-subtree-completion-interface_class_declaration-config_declaration)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-14 batch landed: bind sub-tree completion + interface_class_declaration + config_declaration.** 5 rules: bind_target_scope (2 kinds: module/interface, `{kind, name}` shape), bind_target_instance (`{name, bit_select}`), bind_target_instance_list (`{first, rest}` mini-mixed-array workaround), interface_class_declaration (`{name, parameters, extends, items, end_label}`), config_declaration (`{name, local_params, design, rules, end_label}`). Bind sub-tree fully typed end-to-end (combined with SV-Slice-13). Annotation count: 95 (was 89, +6). Same accept set. Contract bumped 1.0.13 → 1.0.14. Schema stays 1. mdBook synced (changelog-index, schema-versioning row 0.15.0, json-carrier 5 new rows, rules-top-level status). SV book gate green ✅. **Unpushed commits: 3** (SV-Slice-12, SV-Slice-13, SV-Slice-14). Continuing per "until none remaining" directive. **Pattern firmly established**: each slice batches 3-12 related rules, follows the same workflow (grammar edit → regen → manifest update → contract bump → mdBook sync → gate). Next: bind_target_instance.bit_select deep typing, udp_port_list / udp_declaration_port_list, list_of_ports / list_of_port_declarations, package_or_generate_item_declaration (large Or).
+
+### Earlier session note (kept for context):
 - **SV-Slice-13 batch landed: bind_directive + bind_instantiation + package_item per-branch typed.** 3 Or rules. bind_directive: 2 kinds (scoped: target_scope+optional instances+instantiation; single: target_instance+instantiation). bind_instantiation: 4 kinds (program/module/interface/checker — uniform `{kind, body}`). package_item: 4 kinds (declaration/anonymous_program/export/timeunits). Consumers walking description's `package_item` and `bind_directive` branches now have clean kind dispatch into 4-form (package_item) and 2-form (bind_directive) discriminators. Annotation count: 89 (was 79, +10). Same accept set. Contract bumped 1.0.12 → 1.0.13. Schema stays 1. mdBook synced. SV book gate green ✅. 499/0 regex tests still pass. **Unpushed commits: 2** (SV-Slice-12 + SV-Slice-13). Continuing per "until none remaining" directive. Next: bind_target_scope, bind_target_instance, interface_class_declaration, config_declaration, sub-rule typing inside header.ports.
 
 ### Earlier session note (kept for context):

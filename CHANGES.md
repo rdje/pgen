@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-14 batch: bind sub-tree completion + interface_class_declaration + config_declaration
+
+5 rules typed: bind_target_scope (2 kinds), bind_target_instance, bind_target_instance_list ({first, rest}), interface_class_declaration, config_declaration. Bind sub-tree fully typed end-to-end (combined with SV-Slice-13).
+
+Annotation count: 95 (was 89, +6). Same accept set. Schema stays at `1`. Contract bumped 1.0.13 → 1.0.14. mdBook synced. Gate green ✅.
+
 ## 2026-05-05 - SV-Slice-13 batch: bind_directive + bind_instantiation + package_item per-branch typed
 
 3 Or rules typed; consumers gain clean kind dispatch on description's `package_item` and `bind_directive` branches.
