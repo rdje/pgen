@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-74d7752a.js";
+            window.path_to_searchindex_js = "searchindex-80b7a7a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,28 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1029--contract-1029--sv-slice-29-batch-concurrent-assertion--constraint-family-typed-16-rules--28-annotations"><a class="header" href="#1029--contract-1029--sv-slice-29-batch-concurrent-assertion--constraint-family-typed-16-rules--28-annotations">1.0.29 / Contract 1.0.29 — SV-Slice-29 batch: concurrent assertion + constraint family typed (16 rules / 28 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes assertion_item.kind==“concurrent” walk (typed in SV-Slice-24) and class_constraint walk (typed in SV-Slice-27).</p>
+<pre><code class="language-ebnf">concurrent_assertion_statement -&gt; 5 kinds (assert_property / assume_property / cover_property / cover_sequence / restrict_property)
+assert_property_statement      -&gt; {spec, action}
+assume_property_statement      -&gt; {spec, action}
+cover_property_statement       -&gt; {spec, statement}
+cover_sequence_statement       -&gt; {clocking, disable_iff, sequence, statement}
+restrict_property_statement    -&gt; {spec}
+expect_property_statement      -&gt; {spec, action}
+constraint_declaration_sv_2017 -&gt; {static_keyword, name, block}
+constraint_declaration_sv_2023 -&gt; {static_keyword, dynamic_override, name, block}
+constraint_block               -&gt; {items}
+constraint_block_item          -&gt; 2 kinds (solve_before {before, after} / expression {body})
+constraint_expression          -&gt; 6 kinds (expression / uniqueness / implies / if / foreach / disable_soft)
+constraint_prototype_sv_2017   -&gt; {qualifier, static_keyword, name}
+constraint_prototype_sv_2023   -&gt; {qualifier, static_keyword, dynamic_override, name}
+constraint_prototype_qualifier -&gt; 2 kinds bare (extern / pure)
+constraint_set                 -&gt; 2 kinds (single {body} / block {exprs})
+</code></pre>
+<p><strong>Annotation inventory:</strong> 348 entries (was 320). +28 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.29 / Contract 1.0.29 Highlights”.</p>
 <h3 id="1028--contract-1028--sv-slice-28-batch-class-qualifiers-typed-3-rules--6-annotations"><a class="header" href="#1028--contract-1028--sv-slice-28-batch-class-qualifiers-typed-3-rules--6-annotations">1.0.28 / Contract 1.0.28 — SV-Slice-28 batch: class qualifiers typed (3 rules / 6 annotations)</a></h3>
 <p><strong>What changed:</strong> Completes SV-Slice-27’s class body picture.</p>
 <pre><code class="language-ebnf">method_qualifier   -&gt; 2 kinds (virtual {pure} / class_item_qualifier {body})

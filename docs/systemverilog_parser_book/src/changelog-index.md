@@ -19,6 +19,35 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.29 / Contract 1.0.29 — SV-Slice-29 batch: concurrent assertion + constraint family typed (16 rules / 28 annotations)
+
+**What changed:** Closes assertion_item.kind=="concurrent" walk (typed in SV-Slice-24) and class_constraint walk (typed in SV-Slice-27).
+
+```ebnf
+concurrent_assertion_statement -> 5 kinds (assert_property / assume_property / cover_property / cover_sequence / restrict_property)
+assert_property_statement      -> {spec, action}
+assume_property_statement      -> {spec, action}
+cover_property_statement       -> {spec, statement}
+cover_sequence_statement       -> {clocking, disable_iff, sequence, statement}
+restrict_property_statement    -> {spec}
+expect_property_statement      -> {spec, action}
+constraint_declaration_sv_2017 -> {static_keyword, name, block}
+constraint_declaration_sv_2023 -> {static_keyword, dynamic_override, name, block}
+constraint_block               -> {items}
+constraint_block_item          -> 2 kinds (solve_before {before, after} / expression {body})
+constraint_expression          -> 6 kinds (expression / uniqueness / implies / if / foreach / disable_soft)
+constraint_prototype_sv_2017   -> {qualifier, static_keyword, name}
+constraint_prototype_sv_2023   -> {qualifier, static_keyword, dynamic_override, name}
+constraint_prototype_qualifier -> 2 kinds bare (extern / pure)
+constraint_set                 -> 2 kinds (single {body} / block {exprs})
+```
+
+**Annotation inventory:** 348 entries (was 320). +28 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.29 / Contract 1.0.29 Highlights".
+
 ### 1.0.28 / Contract 1.0.28 — SV-Slice-28 batch: class qualifiers typed (3 rules / 6 annotations)
 
 **What changed:** Completes SV-Slice-27's class body picture.

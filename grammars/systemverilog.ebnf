@@ -363,6 +363,7 @@ array_pattern_key := constant_expression | assignment_pattern_key
 array_range_expression := expression | expression colon expression | expression plus colon expression | expression minus colon expression
 
 assert_property_statement := kw_assert_64b5daad kw_property_269fe373 lparen property_spec rparen action_block
+                          -> {spec: $4, action: $6}
 
 assertion_item := concurrent_assertion_item            -> {kind: "concurrent",            body: $1}
                | deferred_immediate_assertion_item     -> {kind: "deferred_immediate",    body: $1}
@@ -391,6 +392,7 @@ assignment_pattern_variable_lvalue := tick lbrace variable_lvalue ( comma variab
 associative_dimension := lbrack data_type rbrack | lbrack star rbrack
 
 assume_property_statement := kw_assume_661e458e kw_property_269fe373 lparen property_spec rparen action_block
+                          -> {spec: $4, action: $6}
 
 attr_name := identifier
 
@@ -727,7 +729,11 @@ concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_st
                            | checker_instantiation
                                   -> {kind: "checker_instantiation", body: $1}
 
-concurrent_assertion_statement := assert_property_statement | assume_property_statement | cover_property_statement | cover_sequence_statement | restrict_property_statement
+concurrent_assertion_statement := assert_property_statement   -> {kind: "assert_property",   body: $1}
+                                | assume_property_statement   -> {kind: "assume_property",   body: $1}
+                                | cover_property_statement    -> {kind: "cover_property",    body: $1}
+                                | cover_sequence_statement    -> {kind: "cover_sequence",    body: $1}
+                                | restrict_property_statement -> {kind: "restrict_property", body: $1}
 
 cond_pattern := expression_base kw_matches_9f3e9242 pattern
 
@@ -791,23 +797,35 @@ constant_range_expression := constant_expression | constant_part_select_range
 constant_select := ( ( dot member_identifier constant_bit_select )* dot member_identifier )? ( lbrack constant_part_select_range rbrack | constant_bit_select ( lbrack constant_part_select_range rbrack )? )?
 
 constraint_block := lbrace constraint_block_item* rbrace
+                 -> {items: $2}
 
-constraint_block_item := kw_solve_f544e4c9 solve_before_list kw_before_51de2b83 solve_before_list semi | constraint_expression
+constraint_block_item := kw_solve_f544e4c9 solve_before_list kw_before_51de2b83 solve_before_list semi
+                              -> {kind: "solve_before", before: $2, after: $4}
+                      | constraint_expression
+                              -> {kind: "expression",   body: $1}
 
 @profiles: ["sv_2017"]
 constraint_declaration_sv_2017 := ( kw_static_a381562a )? kw_constraint_9f454fd4 constraint_identifier constraint_block
+                                -> {static_keyword: $1, name: $3, block: $4}
 
 @profiles: ["sv_2023"]
 constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9f454fd4 ( dynamic_override_specifiers )? constraint_identifier constraint_block
+                                -> {static_keyword: $1, dynamic_override: $3, name: $4, block: $5}
 
 constraint_declaration := constraint_declaration_sv_2017 | constraint_declaration_sv_2023
 
 constraint_expression := @probe_sample: "a;" ( kw_soft_eb74f2cb )? expression_or_dist semi
+                              -> {kind: "expression",   soft: $1, expr: $2}
                        | uniqueness_constraint semi
+                              -> {kind: "uniqueness",   body: $1}
                        | expression implies constraint_set
+                              -> {kind: "implies",      condition: $1, body: $3}
                        | kw_if_958f57f5 lparen expression rparen constraint_set ( kw_else_ae050f5b constraint_set )?
+                              -> {kind: "if",           condition: $3, then_body: $5, else_clause: $6}
                        | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen constraint_set
+                              -> {kind: "foreach",      array: $3, loop_vars: $5, body: $8}
                        | kw_disable_ccf09e2d kw_soft_eb74f2cb constraint_primary semi
+                              -> {kind: "disable_soft", target: $3}
 
 constraint_identifier := identifier
 
@@ -821,15 +839,19 @@ constraint_primary := constraint_primary_sv_2017 | constraint_primary_sv_2023
 
 @profiles: ["sv_2017"]
 constraint_prototype_sv_2017 := ( constraint_prototype_qualifier )? ( kw_static_a381562a )? kw_constraint_9f454fd4 constraint_identifier semi
+                             -> {qualifier: $1, static_keyword: $2, name: $4}
 
 @profiles: ["sv_2023"]
 constraint_prototype_sv_2023 := ( constraint_prototype_qualifier )? ( kw_static_a381562a )? kw_constraint_9f454fd4 ( dynamic_override_specifiers )? constraint_identifier semi
+                             -> {qualifier: $1, static_keyword: $2, dynamic_override: $4, name: $5}
 
 constraint_prototype := constraint_prototype_sv_2017 | constraint_prototype_sv_2023
 
-constraint_prototype_qualifier := kw_extern_bf1ee311 | kw_pure_afe003f1
+constraint_prototype_qualifier := kw_extern_bf1ee311 -> {kind: "extern"}
+                                | kw_pure_afe003f1   -> {kind: "pure"}
 
-constraint_set := constraint_expression | lbrace constraint_expression* rbrace
+constraint_set := constraint_expression                 -> {kind: "single", body: $1}
+                | lbrace constraint_expression* rbrace  -> {kind: "block",  exprs: $2}
 
 continuous_assign := kw_assign_9009b730 ( drive_strength )? ( delay )? list_of_net_assignments semi
                         -> {kind: "net",      drive_strength: $2, delay: $3, assignments: $4}
@@ -847,8 +869,10 @@ cover_point := ( ( data_type_or_implicit )? cover_point_identifier colon )? kw_c
 cover_point_identifier := identifier
 
 cover_property_statement := kw_cover_a28100fa kw_property_269fe373 lparen property_spec rparen statement_or_null
+                         -> {spec: $4, statement: $6}
 
 cover_sequence_statement := kw_cover_a28100fa kw_sequence_92504616 lparen ( clocking_event )? ( kw_disable_ccf09e2d kw_iff_ee1c009e lparen expression_or_dist rparen )? sequence_expr rparen statement_or_null
+                         -> {clocking: $4, disable_iff: $5, sequence: $6, statement: $8}
 
 coverage_event := clocking_event | kw_with_8fcd25a3 kw_function_c218e39e kw_sample_8151325d lparen ( tf_port_list )? rparen | at_sign at_sign lparen block_event_expression rparen
 
@@ -1167,6 +1191,7 @@ event_trigger := event_trigger_sv_2017 | event_trigger_sv_2023
 exp := kw_e_58e6b3a4 | kw_E_e0184ade
 
 expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen action_block
+                          -> {spec: $3, action: $5}
 
 expression_or_cond_pattern := expression_base | cond_pattern
 
@@ -2446,6 +2471,7 @@ remain_active_flag := constant_mintypmax_expression
 repeat_range := covergroup_expression | covergroup_expression colon covergroup_expression
 
 restrict_property_statement := kw_restrict_ee1e5b88 kw_property_269fe373 lparen property_spec rparen semi
+                            -> {spec: $4}
 
 rs_case := kw_case_6406510c lparen case_expression rparen rs_case_item rs_case_item* kw_endcase_a27a6786
 

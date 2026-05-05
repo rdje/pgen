@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.28`
+  - `1.0.29`
 - Parser release version:
-  - `1.0.28`
+  - `1.0.29`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,97 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.29 / Contract 1.0.29 Highlights — SV-Slice-29 batch: concurrent assertion + constraint family typed (16 rules / 28 annotations)
+
+Closes the `assertion_item.kind == "concurrent"` walk path (typed in SV-Slice-24) and the `class_constraint` walk path (typed in SV-Slice-27). Every concurrent-assertion form now exposes its property spec / action / clocking / disable_iff fields with kind discrimination; constraint declarations expose their static / dynamic-override / name / block structure; constraint expressions dispatch on `kind` (expression / uniqueness / implies / if / foreach / disable_soft).
+
+### Concurrent assertion annotations
+
+```ebnf
+concurrent_assertion_statement := assert_property_statement   -> {kind: "assert_property",   body: $1}
+                                | assume_property_statement   -> {kind: "assume_property",   body: $1}
+                                | cover_property_statement    -> {kind: "cover_property",    body: $1}
+                                | cover_sequence_statement    -> {kind: "cover_sequence",    body: $1}
+                                | restrict_property_statement -> {kind: "restrict_property", body: $1}
+
+assert_property_statement   := kw_assert kw_property lparen property_spec rparen action_block
+                            -> {spec: $4, action: $6}
+assume_property_statement   := kw_assume kw_property lparen property_spec rparen action_block
+                            -> {spec: $4, action: $6}
+cover_property_statement    := kw_cover kw_property lparen property_spec rparen statement_or_null
+                            -> {spec: $4, statement: $6}
+restrict_property_statement := kw_restrict kw_property lparen property_spec rparen semi
+                            -> {spec: $4}
+expect_property_statement   := kw_expect lparen property_spec rparen action_block
+                            -> {spec: $3, action: $5}
+
+cover_sequence_statement := kw_cover kw_sequence lparen ( clocking_event )? ( kw_disable kw_iff lparen expression_or_dist rparen )? sequence_expr rparen statement_or_null
+                         -> {clocking: $4, disable_iff: $5, sequence: $6, statement: $8}
+```
+
+### Constraint family annotations
+
+```ebnf
+constraint_block := lbrace constraint_block_item* rbrace
+                 -> {items: $2}
+
+constraint_block_item := kw_solve solve_before_list kw_before solve_before_list semi
+                              -> {kind: "solve_before", before: $2, after: $4}
+                      | constraint_expression
+                              -> {kind: "expression",   body: $1}
+
+@profiles: ["sv_2017"]
+constraint_declaration_sv_2017 := ( kw_static )? kw_constraint constraint_identifier constraint_block
+                                -> {static_keyword: $1, name: $3, block: $4}
+
+@profiles: ["sv_2023"]
+constraint_declaration_sv_2023 := ( kw_static )? kw_constraint ( dynamic_override_specifiers )? constraint_identifier constraint_block
+                                -> {static_keyword: $1, dynamic_override: $3, name: $4, block: $5}
+
+constraint_expression := ( kw_soft )? expression_or_dist semi
+                              -> {kind: "expression",   soft: $1, expr: $2}
+                       | uniqueness_constraint semi
+                              -> {kind: "uniqueness",   body: $1}
+                       | expression implies constraint_set
+                              -> {kind: "implies",      condition: $1, body: $3}
+                       | kw_if lparen expression rparen constraint_set ( kw_else constraint_set )?
+                              -> {kind: "if",           condition: $3, then_body: $5, else_clause: $6}
+                       | kw_foreach lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen constraint_set
+                              -> {kind: "foreach",      array: $3, loop_vars: $5, body: $8}
+                       | kw_disable kw_soft constraint_primary semi
+                              -> {kind: "disable_soft", target: $3}
+
+@profiles: ["sv_2017"]
+constraint_prototype_sv_2017 := ( constraint_prototype_qualifier )? ( kw_static )? kw_constraint constraint_identifier semi
+                             -> {qualifier: $1, static_keyword: $2, name: $4}
+
+@profiles: ["sv_2023"]
+constraint_prototype_sv_2023 := ( constraint_prototype_qualifier )? ( kw_static )? kw_constraint ( dynamic_override_specifiers )? constraint_identifier semi
+                             -> {qualifier: $1, static_keyword: $2, dynamic_override: $4, name: $5}
+
+constraint_prototype_qualifier := kw_extern -> {kind: "extern"}
+                                | kw_pure   -> {kind: "pure"}
+
+constraint_set := constraint_expression                 -> {kind: "single", body: $1}
+                | lbrace constraint_expression* rbrace  -> {kind: "block",  exprs: $2}
+```
+
+### Annotation inventory
+
+348 entries (was 320). +28 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `property_spec` / `sequence_expr` internals (close concurrent_assertion property/sequence fields one level deeper).
+- `action_block` (close assert/assume/expect action fields).
+- `tf_item_declaration` / `function_statement_or_null` / `statement_or_null`.
+- `covergroup_declaration` / `interface_class_declaration` internals.
+- `data_type_or_implicit` / `data_type_or_void`.
 
 ## Release 1.0.28 / Contract 1.0.28 Highlights — SV-Slice-28 batch: class qualifiers typed (3 rules / 6 annotations)
 

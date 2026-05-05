@@ -120,6 +120,22 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `method_qualifier` (2 branches) | per-branch typed | Kind labels: `"virtual"` (`{pure}` — `pure` is `[]` for bare virtual, `[<kw_pure>]` for `pure virtual`) / `"class_item_qualifier"` (`{body}` — body is typed class_item_qualifier shape: static/protected/local). Reached from `class_method.qualifiers[]`. |
 | `property_qualifier` (2 branches) | per-branch `{kind, body}` | Kind labels: `"random"` (body is typed random_qualifier: rand/randc) / `"class_item_qualifier"` (body is typed class_item_qualifier: static/protected/local). Reached from `class_property.qualifiers[]`. |
 | `random_qualifier` (2 branches) | per-branch `{kind}` (bare) | Kind labels: `"rand"` / `"randc"`. Same bare-`{kind}` pattern as `class_item_qualifier`. |
+| `concurrent_assertion_statement` (5 branches) | per-branch `{kind, body}` | Kind labels: `"assert_property"` / `"assume_property"` / `"cover_property"` / `"cover_sequence"` / `"restrict_property"`. Reached from `concurrent_assertion_item.kind == "statement"` body. |
+| `assert_property_statement` | `-> {spec, action}` | Drops `kw_assert`, `kw_property`, parens. `spec` is the property_spec; `action` is the action_block (assert can branch on pass/fail). |
+| `assume_property_statement` | `-> {spec, action}` | Parallel to assert. |
+| `cover_property_statement` | `-> {spec, statement}` | Cover uses `statement_or_null` instead of action_block (no pass/fail branching). |
+| `cover_sequence_statement` | `-> {clocking, disable_iff, sequence, statement}` | Different from cover_property: covers a sequence_expr with optional clocking_event prefix and optional `disable iff (...)` clause. |
+| `restrict_property_statement` | `-> {spec}` | No action — restrict prunes formal traces but doesn't branch on outcome. |
+| `expect_property_statement` | `-> {spec, action}` | Same shape as assert. |
+| `constraint_block` | `-> {items: $2}` | Drops braces. `items` is the constraint_block_item* iteration. |
+| `constraint_block_item` (2 branches) | per-branch typed | Kind labels: `"solve_before"` (`{before, after}` — drops kw_solve / kw_before / semi) / `"expression"` (`{body}` — wraps a constraint_expression). |
+| `constraint_declaration_sv_2017` | `-> {static_keyword, name, block}` | `static_keyword` is `[]` or `[<kw_static>]`. |
+| `constraint_declaration_sv_2023` | `-> {static_keyword, dynamic_override, name, block}` | Adds `dynamic_override` slot per LRM 2023, parallel to function/task. |
+| `constraint_expression` (6 branches) | per-branch typed | Kind labels: `"expression"` (`{soft, expr}` — `soft` is `[]` or `[<kw_soft>]`) / `"uniqueness"` (`{body}`) / `"implies"` (`{condition, body}` — `expression implies constraint_set`) / `"if"` (`{condition, then_body, else_clause}` — `else_clause` is `[]` or `[<kw_else, set>]`) / `"foreach"` (`{array, loop_vars, body}`) / `"disable_soft"` (`{target}`). |
+| `constraint_prototype_sv_2017` | `-> {qualifier, static_keyword, name}` | `qualifier` is the optional `( constraint_prototype_qualifier )?` (typed). |
+| `constraint_prototype_sv_2023` | `-> {qualifier, static_keyword, dynamic_override, name}` | Same as sv_2017 plus dynamic_override. |
+| `constraint_prototype_qualifier` (2 branches) | per-branch `{kind}` (bare) | Kind labels: `"extern"` / `"pure"`. |
+| `constraint_set` (2 branches) | per-branch typed | Kind labels: `"single"` (`{body}` — wraps a single constraint_expression) / `"block"` (`{exprs}` — brace-delimited list of constraint_expressions). |
 
 ## Sub-rules with implicit defaults
 

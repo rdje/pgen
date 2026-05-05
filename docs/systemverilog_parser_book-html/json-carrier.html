@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-74d7752a.js";
+            window.path_to_searchindex_js = "searchindex-80b7a7a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -304,6 +304,22 @@
 <tr><td><code>method_qualifier</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"virtual"</code> (<code>{pure}</code> — <code>pure</code> is <code>[]</code> for bare virtual, <code>[&lt;kw_pure&gt;]</code> for <code>pure virtual</code>) / <code>"class_item_qualifier"</code> (<code>{body}</code> — body is typed class_item_qualifier shape: static/protected/local). Reached from <code>class_method.qualifiers[]</code>.</td></tr>
 <tr><td><code>property_qualifier</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"random"</code> (body is typed random_qualifier: rand/randc) / <code>"class_item_qualifier"</code> (body is typed class_item_qualifier: static/protected/local). Reached from <code>class_property.qualifiers[]</code>.</td></tr>
 <tr><td><code>random_qualifier</code> (2 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"rand"</code> / <code>"randc"</code>. Same bare-<code>{kind}</code> pattern as <code>class_item_qualifier</code>.</td></tr>
+<tr><td><code>concurrent_assertion_statement</code> (5 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"assert_property"</code> / <code>"assume_property"</code> / <code>"cover_property"</code> / <code>"cover_sequence"</code> / <code>"restrict_property"</code>. Reached from <code>concurrent_assertion_item.kind == "statement"</code> body.</td></tr>
+<tr><td><code>assert_property_statement</code></td><td><code>-&gt; {spec, action}</code></td><td>Drops <code>kw_assert</code>, <code>kw_property</code>, parens. <code>spec</code> is the property_spec; <code>action</code> is the action_block (assert can branch on pass/fail).</td></tr>
+<tr><td><code>assume_property_statement</code></td><td><code>-&gt; {spec, action}</code></td><td>Parallel to assert.</td></tr>
+<tr><td><code>cover_property_statement</code></td><td><code>-&gt; {spec, statement}</code></td><td>Cover uses <code>statement_or_null</code> instead of action_block (no pass/fail branching).</td></tr>
+<tr><td><code>cover_sequence_statement</code></td><td><code>-&gt; {clocking, disable_iff, sequence, statement}</code></td><td>Different from cover_property: covers a sequence_expr with optional clocking_event prefix and optional <code>disable iff (...)</code> clause.</td></tr>
+<tr><td><code>restrict_property_statement</code></td><td><code>-&gt; {spec}</code></td><td>No action — restrict prunes formal traces but doesn’t branch on outcome.</td></tr>
+<tr><td><code>expect_property_statement</code></td><td><code>-&gt; {spec, action}</code></td><td>Same shape as assert.</td></tr>
+<tr><td><code>constraint_block</code></td><td><code>-&gt; {items: $2}</code></td><td>Drops braces. <code>items</code> is the constraint_block_item* iteration.</td></tr>
+<tr><td><code>constraint_block_item</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"solve_before"</code> (<code>{before, after}</code> — drops kw_solve / kw_before / semi) / <code>"expression"</code> (<code>{body}</code> — wraps a constraint_expression).</td></tr>
+<tr><td><code>constraint_declaration_sv_2017</code></td><td><code>-&gt; {static_keyword, name, block}</code></td><td><code>static_keyword</code> is <code>[]</code> or <code>[&lt;kw_static&gt;]</code>.</td></tr>
+<tr><td><code>constraint_declaration_sv_2023</code></td><td><code>-&gt; {static_keyword, dynamic_override, name, block}</code></td><td>Adds <code>dynamic_override</code> slot per LRM 2023, parallel to function/task.</td></tr>
+<tr><td><code>constraint_expression</code> (6 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"expression"</code> (<code>{soft, expr}</code> — <code>soft</code> is <code>[]</code> or <code>[&lt;kw_soft&gt;]</code>) / <code>"uniqueness"</code> (<code>{body}</code>) / <code>"implies"</code> (<code>{condition, body}</code> — <code>expression implies constraint_set</code>) / <code>"if"</code> (<code>{condition, then_body, else_clause}</code> — <code>else_clause</code> is <code>[]</code> or <code>[&lt;kw_else, set&gt;]</code>) / <code>"foreach"</code> (<code>{array, loop_vars, body}</code>) / <code>"disable_soft"</code> (<code>{target}</code>).</td></tr>
+<tr><td><code>constraint_prototype_sv_2017</code></td><td><code>-&gt; {qualifier, static_keyword, name}</code></td><td><code>qualifier</code> is the optional <code>( constraint_prototype_qualifier )?</code> (typed).</td></tr>
+<tr><td><code>constraint_prototype_sv_2023</code></td><td><code>-&gt; {qualifier, static_keyword, dynamic_override, name}</code></td><td>Same as sv_2017 plus dynamic_override.</td></tr>
+<tr><td><code>constraint_prototype_qualifier</code> (2 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"extern"</code> / <code>"pure"</code>.</td></tr>
+<tr><td><code>constraint_set</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"single"</code> (<code>{body}</code> — wraps a single constraint_expression) / <code>"block"</code> (<code>{exprs}</code> — brace-delimited list of constraint_expressions).</td></tr>
 </tbody>
 </table>
 </div>

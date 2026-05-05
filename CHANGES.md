@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-29 batch: concurrent assertion + constraint family typed (16 rules / 28 annotations)
+
+Closes the `assertion_item.kind == "concurrent"` walk path and the `class_constraint` walk path.
+
+```ebnf
+concurrent_assertion_statement -> 5 kinds (assert/assume/cover_property/cover_sequence/restrict)
+6 individual property statements: assert/assume/cover_property/cover_sequence/restrict/expect
+constraint_block               -> {items}
+constraint_block_item          -> 2 kinds (solve_before / expression)
+constraint_declaration_sv_2017 -> {static_keyword, name, block}
+constraint_declaration_sv_2023 -> {static_keyword, dynamic_override, name, block}
+constraint_expression          -> 6 kinds (expression / uniqueness / implies / if / foreach / disable_soft)
+constraint_prototype_sv_2017   -> {qualifier, static_keyword, name}
+constraint_prototype_sv_2023   -> {qualifier, static_keyword, dynamic_override, name}
+constraint_prototype_qualifier -> 2 kinds bare (extern / pure)
+constraint_set                 -> 2 kinds (single / block)
+```
+
+Annotation count: **348** (was 320, +28). Same accept set. Schema stays at `1`. Contract bumped 1.0.28 → 1.0.29. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-28 batch: class qualifiers typed (3 rules / 6 annotations)
 
 Completes SV-Slice-27's class body picture. Every reachable `class_method.qualifiers[]` and `class_property.qualifiers[]` now exposes typed dispatch.
