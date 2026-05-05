@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-05 (+0200, task: SV-Slice-17-batch-UDP-body-sub-tree-typed-end-to-end)
+Last updated: 2026-05-05 (+0200, task: SV-Slice-18-batch-udp-truth-table-entries-typed)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-18 batch landed: UDP truth-table entries typed.** 3 rules / 3 annotations: combinational_entry ({inputs, output}), sequential_entry ({inputs, current_state, next_state}), udp_initial_statement ({name, init_val}). Every UDP truth-table row now exposes clean typed shape; consumers walk entries.first + entries.rest directly. Annotation count: 122 (was 119, +3). Same accept set. Contract bumped 1.0.17 → 1.0.18. Schema stays 1. mdBook synced. SV book gate green ✅. **Unpushed commits: 7** (SV-Slice-12 through 18). Continuing per "until none remaining" directive. Next: net_alias, continuous_assign, package_or_generate_item_declaration (large Or). Task #38 fix would unblock ansi_port_declaration + comment_only_source_region + others.
+
+### Earlier session note (kept for context):
 - **SV-Slice-17 batch landed: UDP body sub-tree typed end-to-end.** 6 rules / 8 annotations: udp_body (2 kinds), udp_input_declaration ({attributes, identifiers}), udp_output_declaration (2 kinds: wire/reg), combinational_body ({entries: {first, rest}}), sequential_body ({initial, entries: {first, rest}}), list_of_udp_port_identifiers ({first, rest}). Combined with SV-Slice-12 (UDP top-level) and SV-Slice-15 (port lists), UDP declaration internals are now fully typed end-to-end. Annotation count: 119 (was 111, +8). Same accept set. Contract bumped 1.0.16 → 1.0.17. Schema stays 1. mdBook synced. SV book gate green ✅. **Unpushed commits: 6** (SV-Slice-12 through 17). Continuing per "until none remaining" directive. Next: combinational_entry, sequential_entry, udp_initial_statement, package_or_generate_item_declaration (large Or).
 
 ### Earlier session note (kept for context):

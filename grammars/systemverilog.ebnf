@@ -660,6 +660,7 @@ combinational_body := kw_table_c3ee137d combinational_entry combinational_entry*
                    -> {entries: {first: $2, rest: $3}}
 
 combinational_entry := level_input_list colon output_symbol semi
+                    -> {inputs: $1, output: $3}
 
 // comment := one_line_comment | block_comment
 
@@ -2349,6 +2350,7 @@ sequential_body := ( udp_initial_statement )? kw_table_c3ee137d sequential_entry
                 -> {initial: $1, entries: {first: $3, rest: $4}}
 
 sequential_entry := seq_input_list colon current_state colon next_state semi
+                 -> {inputs: $1, current_state: $3, next_state: $5}
 
 set_covergroup_expression := covergroup_expression
 
@@ -2704,6 +2706,7 @@ udp_declaration_port_list := udp_output_declaration comma udp_input_declaration 
 udp_identifier := identifier
 
 udp_initial_statement := kw_initial_8ad7d21c output_port_identifier assign init_val semi
+                      -> {name: $2, init_val: $4}
 
 udp_input_declaration := attribute_instance* kw_input_140f86aa list_of_udp_port_identifiers
                       -> {attributes: $1, identifiers: $3}

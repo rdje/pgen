@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-18 batch: UDP truth-table entries typed
+
+3 rules / 3 annotations completing the UDP truth-table walk path.
+
+```ebnf
+combinational_entry   -> {inputs, output}
+sequential_entry      -> {inputs, current_state, next_state}
+udp_initial_statement -> {name, init_val}
+```
+
+Every UDP truth-table row now exposes a clean typed shape — consumers walk `entries.first` and each `entries.rest` item directly without descending the raw envelope.
+
+Annotation count: **122** (was 119, +3). Same accept set. Schema stays at `1`. Contract bumped 1.0.17 → 1.0.18. mdBook synced. Gate green ✅.
+
 ## 2026-05-05 - SV-Slice-17 batch: UDP body sub-tree typed (UDP internals fully typed end-to-end)
 
 6 rules / 8 annotations completing UDP declaration internals.

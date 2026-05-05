@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-840eabef.js";
+            window.path_to_searchindex_js = "searchindex-a351499e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,6 +216,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.19.0</td><td>1.0.18</td><td><strong>SV-Slice-18 batch: UDP truth-table entries typed.</strong> 3 rules: combinational_entry ({inputs, output}), sequential_entry ({inputs, current_state, next_state}), udp_initial_statement ({name, init_val}). Annotation inventory: 122 entries (was 119).</td></tr>
 <tr><td>0.18.0</td><td>1.0.17</td><td><strong>SV-Slice-17 batch: UDP body sub-tree typed.</strong> 6 rules / 8 annotations: udp_body (2 kinds), udp_input_declaration, udp_output_declaration (2 kinds: wire/reg), combinational_body, sequential_body, list_of_udp_port_identifiers. UDP declaration internals fully typed end-to-end. Annotation inventory: 119 entries (was 111).</td></tr>
 <tr><td>0.17.0</td><td>1.0.16</td><td><strong>SV-Slice-16 batch: port + port_direction + package_import family typed.</strong> 4 rules / 9 annotations: port (2 kinds: expression/named), port_direction (4 kinds: input/output/inout/ref), package_import_declaration ({items:{first,rest}}), package_import_item (2 kinds: explicit/wildcard). DEFERRED: ansi_port_declaration — task #38 blocker (parens-grouped-Or in branch 0 causes branch-attribution renumbering). Annotation inventory: 111 entries (was 102).</td></tr>
 <tr><td>0.16.0</td><td>1.0.15</td><td><strong>SV-Slice-15 batch: port-list family + small structural rules typed.</strong> 6 rules / 7 annotations: list_of_ports ({first, rest}), list_of_port_declarations ($2), udp_port_list ({output, inputs: {first, rest}}), udp_declaration_port_list (parallel), anonymous_program ({items}), package_export_declaration (2 kinds: wildcard / explicit). Crossing 100 annotations on the SV grammar — campaign mid-flight. Annotation inventory: 102 entries (was 95).</td></tr>

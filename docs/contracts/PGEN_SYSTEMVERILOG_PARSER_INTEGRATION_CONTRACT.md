@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.17`
+  - `1.0.18`
 - Parser release version:
-  - `1.0.17`
+  - `1.0.18`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,31 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.18 / Contract 1.0.18 Highlights — SV-Slice-18 batch: UDP truth-table entries typed
+
+3 rules / 3 annotations completing the UDP truth-table walk path.
+
+```ebnf
+combinational_entry := level_input_list colon output_symbol semi
+                    -> {inputs: $1, output: $3}
+
+sequential_entry := seq_input_list colon current_state colon next_state semi
+                 -> {inputs: $1, current_state: $3, next_state: $5}
+
+udp_initial_statement := kw_initial output_port_identifier assign init_val semi
+                      -> {name: $2, init_val: $4}
+```
+
+Every UDP truth-table row now exposes a clean typed shape — consumers walk `entries.first` and each `entries.rest` item directly without descending the raw envelope.
+
+### Annotation inventory
+
+122 entries (was 119). +3 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
 
 ## Release 1.0.17 / Contract 1.0.17 Highlights — SV-Slice-17 batch: UDP body sub-tree typed
 

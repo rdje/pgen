@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-840eabef.js";
+            window.path_to_searchindex_js = "searchindex-a351499e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,15 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1018--contract-1018--sv-slice-18-batch-udp-truth-table-entries-typed"><a class="header" href="#1018--contract-1018--sv-slice-18-batch-udp-truth-table-entries-typed">1.0.18 / Contract 1.0.18 — SV-Slice-18 batch: UDP truth-table entries typed</a></h3>
+<p><strong>What changed:</strong> 3 rules / 3 annotations completing the UDP truth-table walk path.</p>
+<pre><code class="language-ebnf">combinational_entry   -&gt; {inputs, output}
+sequential_entry      -&gt; {inputs, current_state, next_state}
+udp_initial_statement -&gt; {name, init_val}
+</code></pre>
+<p><strong>Annotation inventory:</strong> 122 entries (was 119). +3.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.18 / Contract 1.0.18 Highlights”.</p>
 <h3 id="1017--contract-1017--sv-slice-17-batch-udp-body-sub-tree-typed"><a class="header" href="#1017--contract-1017--sv-slice-17-batch-udp-body-sub-tree-typed">1.0.17 / Contract 1.0.17 — SV-Slice-17 batch: UDP body sub-tree typed</a></h3>
 <p><strong>What changed:</strong> 6 rules / 8 annotations completing UDP declaration internals.</p>
 <pre><code class="language-ebnf">udp_body                     -&gt; 2 kinds: combinational/sequential

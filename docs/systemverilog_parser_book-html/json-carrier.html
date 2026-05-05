@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-840eabef.js";
+            window.path_to_searchindex_js = "searchindex-a351499e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -248,6 +248,9 @@
 <tr><td><code>combinational_body</code></td><td><code>-&gt; {entries: {first, rest}}</code></td><td>Drops kw_table/kw_endtable. Entries are the truth-table rows.</td></tr>
 <tr><td><code>sequential_body</code></td><td><code>-&gt; {initial, entries: {first, rest}}</code></td><td>Preserves optional initial statement.</td></tr>
 <tr><td><code>list_of_udp_port_identifiers</code></td><td><code>-&gt; {first, rest}</code></td><td>Mini-mixed-array workaround for <code>port_identifier (comma port_identifier)*</code>.</td></tr>
+<tr><td><code>combinational_entry</code></td><td><code>-&gt; {inputs, output}</code></td><td>Single truth-table row for combinational UDP.</td></tr>
+<tr><td><code>sequential_entry</code></td><td><code>-&gt; {inputs, current_state, next_state}</code></td><td>Single state-transition row for sequential UDP.</td></tr>
+<tr><td><code>udp_initial_statement</code></td><td><code>-&gt; {name, init_val}</code></td><td>Initial value assignment for sequential UDP.</td></tr>
 </tbody>
 </table>
 </div>

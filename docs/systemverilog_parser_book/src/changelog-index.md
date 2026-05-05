@@ -19,6 +19,22 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.18 / Contract 1.0.18 — SV-Slice-18 batch: UDP truth-table entries typed
+
+**What changed:** 3 rules / 3 annotations completing the UDP truth-table walk path.
+
+```ebnf
+combinational_entry   -> {inputs, output}
+sequential_entry      -> {inputs, current_state, next_state}
+udp_initial_statement -> {name, init_val}
+```
+
+**Annotation inventory:** 122 entries (was 119). +3.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.18 / Contract 1.0.18 Highlights".
+
 ### 1.0.17 / Contract 1.0.17 — SV-Slice-17 batch: UDP body sub-tree typed
 
 **What changed:** 6 rules / 8 annotations completing UDP declaration internals.

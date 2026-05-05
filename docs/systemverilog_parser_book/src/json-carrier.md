@@ -64,6 +64,9 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `combinational_body` | `-> {entries: {first, rest}}` | Drops kw_table/kw_endtable. Entries are the truth-table rows. |
 | `sequential_body` | `-> {initial, entries: {first, rest}}` | Preserves optional initial statement. |
 | `list_of_udp_port_identifiers` | `-> {first, rest}` | Mini-mixed-array workaround for `port_identifier (comma port_identifier)*`. |
+| `combinational_entry` | `-> {inputs, output}` | Single truth-table row for combinational UDP. |
+| `sequential_entry` | `-> {inputs, current_state, next_state}` | Single state-transition row for sequential UDP. |
+| `udp_initial_statement` | `-> {name, init_val}` | Initial value assignment for sequential UDP. |
 
 ## Sub-rules with implicit defaults
 
