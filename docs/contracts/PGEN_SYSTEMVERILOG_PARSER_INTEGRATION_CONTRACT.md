@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.11`
+  - `1.0.12`
 - Parser release version:
-  - `1.0.11`
+  - `1.0.12`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,75 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.12 / Contract 1.0.12 Highlights — SV-Slice-12 batch: UDP declaration family typed (mirror of module/interface/program pattern + mini-mixed-array workaround)
+
+> **For Nexsim maintainers:** UDP (User-Defined Primitive) declarations now have the same typed surface as module/interface/program. 4-layer typed dispatch end-to-end for `primitive p (...) ... endprimitive` constructs reachable from `description.body` when `kind:"udp_declaration"`.
+
+### Annotations
+
+```ebnf
+udp_ansi_declaration := attribute_instance* kw_primitive udp_identifier lparen udp_declaration_port_list rparen semi
+                     -> {attributes: $1, name: $3, ports: $5}
+
+udp_nonansi_declaration := attribute_instance* kw_primitive udp_identifier lparen udp_port_list rparen semi
+                        -> {attributes: $1, name: $3, ports: $5}
+
+udp_declaration_sv_2017 := udp_nonansi_declaration udp_port_declaration udp_port_declaration* udp_body kw_endprimitive (colon udp_identifier)?
+                            -> {kind: "nonansi", header: $1, port_decls: {first: $2, rest: $3}, body: $4, end_label: $6}
+                         | udp_ansi_declaration udp_body kw_endprimitive (colon udp_identifier)?
+                            -> {kind: "ansi", header: $1, body: $2, end_label: $4}
+                         | kw_extern udp_nonansi_declaration
+                            -> {kind: "extern_nonansi", header: $2}
+                         | kw_extern udp_ansi_declaration
+                            -> {kind: "extern_ansi", header: $2}
+                         | attribute_instance* kw_primitive udp_identifier lparen dot_star rparen semi udp_port_declaration* udp_body kw_endprimitive (colon udp_identifier)?
+                            -> {kind: "wildcard", attributes: $1, name: $3, port_decls: $8, body: $9, end_label: $11}
+
+udp_declaration_sv_2023 := /* same 5 branches; wildcard branch positional shift for `dot star` (2 tokens) vs `dot_star` (1 token) → port_decls $8→$9, body $9→$10, end_label $11→$12 */
+```
+
+### `port_decls: {first, rest}` mini-mixed-array workaround
+
+The `nonansi` branch (branch 0) has the pattern `udp_port_declaration udp_port_declaration*` — a required first port-decl followed by zero-or-more reps. Mixed-array spread `[$2, $3**]` is currently blocked by the annotation-language limitation (per `feedback_annotation_no_mixed_spread.md`), so the typed shape uses the `{first, rest}` workaround (same idiom as `attribute_instance` from SV-Slice-6). Consumers walking `port_decls` for `kind:"nonansi"` should:
+
+```rust
+let port_decls = &udp["port_decls"];
+process_port_decl(&port_decls["first"]);
+for rest_item in port_decls["rest"].as_array().unwrap() {
+    // rest_item is a [matched_iteration] envelope of udp_port_declaration
+    process_port_decl(rest_item);
+}
+```
+
+For `kind:"wildcard"`, `port_decls` is a plain `[]`-iteration array (no leading port; handled identically to module/interface wildcard).
+
+### 5 kind labels
+
+- `nonansi` — `udp_nonansi_declaration` form with port-decl block
+- `ansi` — `udp_ansi_declaration` form
+- `wildcard` — `(.*)` form (UDP variant)
+- `extern_nonansi`, `extern_ansi` — extern declarations
+
+### Annotation inventory
+
+79 entries (was 67). +12 in this batch: 1 (udp_ansi_declaration) + 1 (udp_nonansi_declaration) + 5 (udp_declaration_sv_2017) + 5 (udp_declaration_sv_2023).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Annotation-language idiom note
+
+**`{first, rest}` workaround for `X X*` mini-mixed-array** — used here for `port_decls: {first: $2, rest: $3}`. Same idiom as `attribute_instance: {first, rest}` from SV-Slice-6. Until the annotation language gains true mixed-array spread (`[$2, $3**]`), this is the canonical pattern for "required-first + repeat" rule shapes.
+
+### Next slice candidates
+
+- `interface_class_declaration` per-branch (sibling to class_declaration).
+- `program_ansi_header` / `program_nonansi_header` (already done in SV-Slice-11).
+- `udp_port_list` / `udp_declaration_port_list` (sub-rule typing inside `header.ports`).
+- `udp_body` / `udp_port_declaration` (sub-rules inside the typed UDP shape).
+- `description` further branches: `package_item`, `bind_directive`, `config_declaration`.
 
 ## Release 1.0.11 / Contract 1.0.11 Highlights — SV-Slice-11 batch: program-header sub-tree typed (mirror of module/interface header pattern)
 

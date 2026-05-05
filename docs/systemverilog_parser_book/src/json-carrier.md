@@ -36,6 +36,10 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `program_declaration_sv_2023` (5 branches) | per-branch typed shapes (same kind set as sv_2017) | Wildcard branch positions shift to $9 timeunits, $10 items, $12 end_label (due to `dot star` vs `dot_star`). |
 | `program_ansi_header` | `-> {attributes, lifetime, name, imports, parameters, ports}` | Same 6 named fields as `interface_ansi_header`. `name:` is a clean program_identifier string. |
 | `program_nonansi_header` | `-> {attributes, lifetime, name, imports, parameters, ports}` | Same field names as program_ansi_header. Only `ports:` source rule differs (`list_of_ports` vs `(list_of_port_declarations)?`). |
+| `udp_ansi_declaration` | `-> {attributes, name, ports}` | 3 named fields. Drops kw_primitive, parens, semi. `ports:` is the raw `udp_declaration_port_list` shape (sub-rule typing pending). |
+| `udp_nonansi_declaration` | `-> {attributes, name, ports}` | Same field names as udp_ansi_declaration. Only `ports:` source rule differs (`udp_port_list` vs `udp_declaration_port_list`). |
+| `udp_declaration_sv_2017` (5 branches) | per-branch typed shapes (full source in contract Highlights) | Kind labels: `"nonansi"` / `"ansi"` / `"extern_nonansi"` / `"extern_ansi"` / `"wildcard"`. **Special: `nonansi` branch uses `port_decls: {first, rest}` workaround** for the `udp_port_declaration udp_port_declaration*` mini-mixed-array. |
+| `udp_declaration_sv_2023` (5 branches) | per-branch typed shapes (same kind set as sv_2017) | Identical to sv_2017 except wildcard branch positions shift due to `dot star` (2 tokens) vs `dot_star` (1 token): port_decls $9, body $10, end_label $12. |
 
 ## Sub-rules with implicit defaults
 

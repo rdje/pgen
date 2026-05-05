@@ -2633,14 +2633,33 @@ tz_path_delay_expression := path_delay_expression
 tzx_path_delay_expression := path_delay_expression
 
 udp_ansi_declaration := attribute_instance* kw_primitive_9756bf34 udp_identifier lparen udp_declaration_port_list rparen semi
+                     -> {attributes: $1, name: $3, ports: $5}
 
 udp_body := combinational_body | sequential_body
 
 @profiles: ["sv_2017"]
-udp_declaration_sv_2017 := udp_nonansi_declaration udp_port_declaration udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )? | udp_ansi_declaration udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )? | kw_extern_bf1ee311 udp_nonansi_declaration | kw_extern_bf1ee311 udp_ansi_declaration | attribute_instance* kw_primitive_9756bf34 udp_identifier lparen dot_star rparen semi udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
+udp_declaration_sv_2017 := udp_nonansi_declaration udp_port_declaration udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
+                            -> {kind: "nonansi", header: $1, port_decls: {first: $2, rest: $3}, body: $4, end_label: $6}
+                         | udp_ansi_declaration udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
+                            -> {kind: "ansi", header: $1, body: $2, end_label: $4}
+                         | kw_extern_bf1ee311 udp_nonansi_declaration
+                            -> {kind: "extern_nonansi", header: $2}
+                         | kw_extern_bf1ee311 udp_ansi_declaration
+                            -> {kind: "extern_ansi", header: $2}
+                         | attribute_instance* kw_primitive_9756bf34 udp_identifier lparen dot_star rparen semi udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
+                            -> {kind: "wildcard", attributes: $1, name: $3, port_decls: $8, body: $9, end_label: $11}
 
 @profiles: ["sv_2023"]
-udp_declaration_sv_2023 := udp_nonansi_declaration udp_port_declaration udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )? | udp_ansi_declaration udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )? | kw_extern_bf1ee311 udp_nonansi_declaration | kw_extern_bf1ee311 udp_ansi_declaration | attribute_instance* kw_primitive_9756bf34 udp_identifier lparen dot star rparen semi udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
+udp_declaration_sv_2023 := udp_nonansi_declaration udp_port_declaration udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
+                            -> {kind: "nonansi", header: $1, port_decls: {first: $2, rest: $3}, body: $4, end_label: $6}
+                         | udp_ansi_declaration udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
+                            -> {kind: "ansi", header: $1, body: $2, end_label: $4}
+                         | kw_extern_bf1ee311 udp_nonansi_declaration
+                            -> {kind: "extern_nonansi", header: $2}
+                         | kw_extern_bf1ee311 udp_ansi_declaration
+                            -> {kind: "extern_ansi", header: $2}
+                         | attribute_instance* kw_primitive_9756bf34 udp_identifier lparen dot star rparen semi udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
+                            -> {kind: "wildcard", attributes: $1, name: $3, port_decls: $9, body: $10, end_label: $12}
 
 udp_declaration := udp_declaration_sv_2017 | udp_declaration_sv_2023
 
@@ -2658,6 +2677,7 @@ udp_instance := ( name_of_instance )? lparen output_terminal comma input_termina
 udp_instantiation := udp_identifier ( drive_strength )? ( delay )? udp_instance ( comma udp_instance )* semi
 
 udp_nonansi_declaration := attribute_instance* kw_primitive_9756bf34 udp_identifier lparen udp_port_list rparen semi
+                        -> {attributes: $1, name: $3, ports: $5}
 
 udp_output_declaration := attribute_instance* kw_output_1029d676 port_identifier | attribute_instance* kw_output_1029d676 kw_reg_e06b9586 port_identifier ( assign constant_expression )?
 

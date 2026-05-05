@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8bd0bd34.js";
+            window.path_to_searchindex_js = "searchindex-f904e071.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -220,6 +220,10 @@
 <tr><td><code>program_declaration_sv_2023</code> (5 branches)</td><td>per-branch typed shapes (same kind set as sv_2017)</td><td>Wildcard branch positions shift to $9 timeunits, $10 items, $12 end_label (due to <code>dot star</code> vs <code>dot_star</code>).</td></tr>
 <tr><td><code>program_ansi_header</code></td><td><code>-&gt; {attributes, lifetime, name, imports, parameters, ports}</code></td><td>Same 6 named fields as <code>interface_ansi_header</code>. <code>name:</code> is a clean program_identifier string.</td></tr>
 <tr><td><code>program_nonansi_header</code></td><td><code>-&gt; {attributes, lifetime, name, imports, parameters, ports}</code></td><td>Same field names as program_ansi_header. Only <code>ports:</code> source rule differs (<code>list_of_ports</code> vs <code>(list_of_port_declarations)?</code>).</td></tr>
+<tr><td><code>udp_ansi_declaration</code></td><td><code>-&gt; {attributes, name, ports}</code></td><td>3 named fields. Drops kw_primitive, parens, semi. <code>ports:</code> is the raw <code>udp_declaration_port_list</code> shape (sub-rule typing pending).</td></tr>
+<tr><td><code>udp_nonansi_declaration</code></td><td><code>-&gt; {attributes, name, ports}</code></td><td>Same field names as udp_ansi_declaration. Only <code>ports:</code> source rule differs (<code>udp_port_list</code> vs <code>udp_declaration_port_list</code>).</td></tr>
+<tr><td><code>udp_declaration_sv_2017</code> (5 branches)</td><td>per-branch typed shapes (full source in contract Highlights)</td><td>Kind labels: <code>"nonansi"</code> / <code>"ansi"</code> / <code>"extern_nonansi"</code> / <code>"extern_ansi"</code> / <code>"wildcard"</code>. <strong>Special: <code>nonansi</code> branch uses <code>port_decls: {first, rest}</code> workaround</strong> for the <code>udp_port_declaration udp_port_declaration*</code> mini-mixed-array.</td></tr>
+<tr><td><code>udp_declaration_sv_2023</code> (5 branches)</td><td>per-branch typed shapes (same kind set as sv_2017)</td><td>Identical to sv_2017 except wildcard branch positions shift due to <code>dot star</code> (2 tokens) vs <code>dot_star</code> (1 token): port_decls $9, body $10, end_label $12.</td></tr>
 </tbody>
 </table>
 </div>

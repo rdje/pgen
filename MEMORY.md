@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-05 (+0200, task: PGEN-RGX-0081-0082-fixes)
+Last updated: 2026-05-05 (+0200, task: SV-Slice-12-batch-udp-declaration-family-typed)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-12 batch landed: UDP declaration family typed.** 4 rules: udp_ansi_declaration `{attributes, name, ports}`, udp_nonansi_declaration same shape, udp_declaration_sv_2017 (5 per-branch kinds: nonansi/ansi/extern_nonansi/extern_ansi/wildcard), udp_declaration_sv_2023 (mirror with positional shift in wildcard for `dot star` vs `dot_star`). **Special: nonansi branch's `udp_port_declaration udp_port_declaration*` mini-mixed-array uses `port_decls: {first: $2, rest: $3}` workaround** — same idiom as `attribute_instance: {first, rest}` from SV-Slice-6. Annotation count: 79 (was 67, +12). Same accept set. Contract bumped 1.0.11 → 1.0.12. Schema stays 1. mdBook synced (changelog-index, schema-versioning row 0.13.0, json-carrier 4 new rows, rules-top-level status). SV book gate green ✅. 499/0 regex tests still pass. **Pushed: 0 unpushed commits (all 16 prior + this commit pushed in 108de21..08593d0 + this).** Wait, actually the push happened before this slice — let me recount. Push happened after PGEN-RGX-0081/0082 catch-up commit (08593d0). This SV-Slice-12 is post-push, so currently 1 unpushed commit. Continuing per "until none remaining" directive. Next: interface_class_declaration, package_item, bind_directive, config_declaration, sub-rule typing inside header.ports.
+
+### Earlier session note (kept for context):
 - **PGEN-RGX-0081 + 0082 fixes landed.** Two RGX-reported AST-shape bugs (filed 2026-05-04).
   **0081:** `\g`-prefixed forms collapsed under `kind:"subroutine"` losing PCRE2's bracket-form-determines-semantic distinction. Fix split into 7 sub-branches with new kinds: `subroutine_named`, `subroutine_numeric`, `numeric_backreference` (plus brace `\g{NAME}` routes to existing `named_braced`). 4 → 10 backreference branches.
   **0082:** `code_block_lang` annotation referenced `$4` (the `ws?` slot) instead of `$5` (`code_content`). For `(?{native:NAME})` the callback name was silently dropped. Fix: positional ref `$4` → `$5`.

@@ -1,4 +1,66 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-12 batch: UDP declaration family typed (mini-mixed-array workaround)
+
+### What landed
+
+4 rules typed across the UDP (User-Defined Primitive) declaration family. Same structural pattern as module/interface/program with one twist: the `nonansi` branch has a `udp_port_declaration udp_port_declaration*` mini-mixed-array that uses the `{first, rest}` workaround.
+
+```ebnf
+udp_ansi_declaration     -> {attributes, name, ports}
+udp_nonansi_declaration  -> {attributes, name, ports}
+udp_declaration_sv_2017  -> 5 per-branch kinds (nonansi/ansi/extern_nonansi/extern_ansi/wildcard)
+udp_declaration_sv_2023  -> mirror with positional shift in wildcard
+```
+
+### Mini-mixed-array workaround
+
+The nonansi branch's `udp_port_declaration udp_port_declaration*` (a required first + repeat) hits the annotation-language limitation around mixed-array spread `[$2, $3**]`. Workaround: `port_decls: {first: $2, rest: $3}` — same idiom as `attribute_instance: {first, rest}` from SV-Slice-6.
+
+Consumer iteration:
+
+```rust
+let port_decls = &udp["port_decls"];
+process_port_decl(&port_decls["first"]);
+for rest_item in port_decls["rest"].as_array().unwrap() {
+    process_port_decl(rest_item);
+}
+```
+
+### Annotation inventory
+
+79 entries (was 67). +12 in this batch.
+
+### Manifest
+
+`drift_status` updated to `calibrated_2026_05_05_slice_12`. Calibration history block prepended.
+
+### Contract bump
+
+- Parser release: `1.0.11` → `1.0.12`.
+- Contract version: `1.0.11` → `1.0.12`.
+- Schema version stays `1`.
+- New "Release 1.0.12 / Contract 1.0.12 Highlights" section.
+
+### mdBook updates
+
+- `changelog-index.md`: top-level entry.
+- `schema-versioning.md`: new row `0.13.0 / 1.0.12`.
+- `json-carrier.md`: 4 new rows.
+- `rules-top-level.md`: status line.
+
+`make systemverilog_parser_book_gate` green.
+
+### Verified
+
+- Annotation inventory: 79 entries (was 67).
+- 499/0 regex tests still pass (no regression).
+
+### Next slice candidates
+
+- `interface_class_declaration` per-branch (sibling to class_declaration).
+- Sub-rule typing inside `header.ports` (`udp_port_list` / `udp_declaration_port_list`).
+- `description` further branches (`package_item`, `bind_directive`, `config_declaration`).
+
 ## 2026-05-05 - PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration
 
 Two RGX-reported AST-shape bugs landed in regex slices 11+12+13 (parser releases 1.1.41–43) and the code_block typing slice. Both pure shape fixes.
