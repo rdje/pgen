@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-91f50939.js";
+            window.path_to_searchindex_js = "searchindex-1466c434.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -295,6 +295,12 @@
 <tr><td><code>net_declaration_sv_2023</code> (3 branches)</td><td>per-branch typed</td><td>Same 3 kinds as sv_2017; alias branch uses field <code>nettype_id</code> instead of <code>net_type_id</code> (LRM 2023 nettype-vs-net_type rule rename).</td></tr>
 <tr><td><code>net_strength</code> (NEW; 2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"drive"</code> (body is the matched drive_strength shape) / <code>"charge"</code> (body is the matched charge_strength shape). Helper rule extracted from inline <code>( drive_strength | charge_strength )?</code> to dodge task #38.</td></tr>
 <tr><td><code>net_vector_scalar</code> (NEW; 2 branches)</td><td>per-branch <code>{kind}</code> (no body)</td><td>Kind labels: <code>"vectored"</code> / <code>"scalared"</code>. Helper rule extracted from inline <code>( kw_vectored | kw_scalared )?</code> to dodge task #38. Bare <code>{kind}</code> shape — each branch matches a single keyword token.</td></tr>
+<tr><td><code>class_item_sv_2017</code> (8 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"property"</code> / <code>"method"</code> / <code>"constraint"</code> / <code>"class"</code> / <code>"covergroup"</code> (first 5 with <code>attribute_instance*</code> prefix as <code>attributes</code>) / <code>"local_parameter"</code> / <code>"parameter"</code> (drop trailing <code>semi</code> via <code>body: $1</code>) / <code>"semi"</code> (bare, no body). Reached from <code>class_declaration_sv_2017.items[]</code>.</td></tr>
+<tr><td><code>class_item_sv_2023</code> (9 branches)</td><td>per-branch typed</td><td>Same 8 kinds as sv_2017 plus <code>"interface_class"</code> (with <code>attribute_instance*</code> prefix) — LRM 2023 allows nested interface-class declarations.</td></tr>
+<tr><td><code>class_item_qualifier</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"static"</code> / <code>"protected"</code> / <code>"local"</code>. Same bare-<code>{kind}</code> pattern as <code>assignment_operator</code> / <code>inc_or_dec_operator</code>.</td></tr>
+<tr><td><code>class_constraint</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"prototype"</code> / <code>"declaration"</code>. Reached from <code>class_item.kind == "constraint"</code>.</td></tr>
+<tr><td><code>class_property</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"decl"</code> (<code>{qualifiers, body}</code> — standard form <code>property_qualifier* data_declaration</code>; body is the typed data_declaration shape from SV-Slice-25) / <code>"const"</code> (<code>{qualifiers, data_type, name, init}</code> — kw_const-prefixed form; <code>qualifiers</code> is the typed <code>class_item_qualifier*</code> slot, <code>init</code> is <code>[]</code> when no initializer or <code>[&lt;assign, expr&gt;]</code> when present).</td></tr>
+<tr><td><code>class_method</code> (6 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"task"</code> / <code>"function"</code> (<code>{qualifiers, body}</code> — body is typed task_declaration / function_declaration from SV-Slice-25) / <code>"pure_virtual"</code> (<code>{qualifiers, prototype}</code> — prototype-only, no body; <code>qualifiers</code> is typed <code>class_item_qualifier*</code> slot) / <code>"extern"</code> (<code>{qualifiers, prototype}</code> — prototype-only, kw_extern-prefixed) / <code>"constructor"</code> (<code>{qualifiers, body}</code> — class_constructor_declaration with full body) / <code>"extern_constructor"</code> (<code>{qualifiers, prototype}</code> — extern class new).</td></tr>
 </tbody>
 </table>
 </div>

@@ -556,7 +556,8 @@ checker_port_item := attribute_instance* ( checker_port_direction )? property_fo
 
 checker_port_list := checker_port_item ( comma checker_port_item )*
 
-class_constraint := constraint_prototype | constraint_declaration
+class_constraint := constraint_prototype   -> {kind: "prototype",   body: $1}
+                  | constraint_declaration -> {kind: "declaration", body: $1}
 
 @profiles: ["sv_2023"]
 class_constructor_arg_sv_2023 := tf_port_item | kw_default_7505d64a
@@ -605,20 +606,51 @@ declared_class_identifier := class_identifier
 declared_interface_class_identifier := class_identifier
 
 @profiles: ["sv_2017"]
-class_item_sv_2017 := attribute_instance* class_property | attribute_instance* class_method | attribute_instance* class_constraint | attribute_instance* class_declaration | attribute_instance* covergroup_declaration | local_parameter_declaration semi | parameter_declaration semi | semi
+class_item_sv_2017 := attribute_instance* class_property              -> {kind: "property",         attributes: $1, body: $2}
+                    | attribute_instance* class_method                -> {kind: "method",           attributes: $1, body: $2}
+                    | attribute_instance* class_constraint            -> {kind: "constraint",       attributes: $1, body: $2}
+                    | attribute_instance* class_declaration           -> {kind: "class",            attributes: $1, body: $2}
+                    | attribute_instance* covergroup_declaration      -> {kind: "covergroup",       attributes: $1, body: $2}
+                    | local_parameter_declaration semi                -> {kind: "local_parameter",  body: $1}
+                    | parameter_declaration semi                      -> {kind: "parameter",        body: $1}
+                    | semi                                            -> {kind: "semi"}
 
 @profiles: ["sv_2023"]
-class_item_sv_2023 := attribute_instance* class_property | attribute_instance* class_method | attribute_instance* class_constraint | attribute_instance* class_declaration | attribute_instance* interface_class_declaration | attribute_instance* covergroup_declaration | local_parameter_declaration semi | parameter_declaration semi | semi
+class_item_sv_2023 := attribute_instance* class_property              -> {kind: "property",         attributes: $1, body: $2}
+                    | attribute_instance* class_method                -> {kind: "method",           attributes: $1, body: $2}
+                    | attribute_instance* class_constraint            -> {kind: "constraint",       attributes: $1, body: $2}
+                    | attribute_instance* class_declaration           -> {kind: "class",            attributes: $1, body: $2}
+                    | attribute_instance* interface_class_declaration -> {kind: "interface_class",  attributes: $1, body: $2}
+                    | attribute_instance* covergroup_declaration      -> {kind: "covergroup",       attributes: $1, body: $2}
+                    | local_parameter_declaration semi                -> {kind: "local_parameter",  body: $1}
+                    | parameter_declaration semi                      -> {kind: "parameter",        body: $1}
+                    | semi                                            -> {kind: "semi"}
 
 class_item := class_item_sv_2017 | class_item_sv_2023
 
-class_item_qualifier := kw_static_a381562a | kw_protected_964cab4b | kw_local_939bb46a
+class_item_qualifier := kw_static_a381562a    -> {kind: "static"}
+                      | kw_protected_964cab4b -> {kind: "protected"}
+                      | kw_local_939bb46a     -> {kind: "local"}
 
-class_method := method_qualifier* task_declaration | method_qualifier* function_declaration | kw_pure_afe003f1 kw_virtual_af84d91f class_item_qualifier* method_prototype semi | kw_extern_bf1ee311 method_qualifier* method_prototype semi | method_qualifier* class_constructor_declaration | kw_extern_bf1ee311 method_qualifier* class_constructor_prototype
+class_method := method_qualifier* task_declaration
+                     -> {kind: "task",                qualifiers: $1, body: $2}
+             | method_qualifier* function_declaration
+                     -> {kind: "function",            qualifiers: $1, body: $2}
+             | kw_pure_afe003f1 kw_virtual_af84d91f class_item_qualifier* method_prototype semi
+                     -> {kind: "pure_virtual",        qualifiers: $3, prototype: $4}
+             | kw_extern_bf1ee311 method_qualifier* method_prototype semi
+                     -> {kind: "extern",              qualifiers: $2, prototype: $3}
+             | method_qualifier* class_constructor_declaration
+                     -> {kind: "constructor",         qualifiers: $1, body: $2}
+             | kw_extern_bf1ee311 method_qualifier* class_constructor_prototype
+                     -> {kind: "extern_constructor",  qualifiers: $2, prototype: $3}
 
 class_new := ( class_scope )? kw_new_c2a6b03f ( lparen list_of_arguments rparen )? | kw_new_c2a6b03f expression
 
-class_property := property_qualifier* data_declaration | kw_const_b42f3f6f class_item_qualifier* data_type const_identifier ( assign constant_expression )? semi
+class_property := property_qualifier* data_declaration
+                       -> {kind: "decl",  qualifiers: $1, body: $2}
+               | kw_const_b42f3f6f class_item_qualifier* data_type const_identifier ( assign constant_expression )? semi
+                       -> {kind: "const", qualifiers: $2, data_type: $3, name: $4, init: $5}
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
 known_unscoped_class_scope_class_identifier := class_identifier

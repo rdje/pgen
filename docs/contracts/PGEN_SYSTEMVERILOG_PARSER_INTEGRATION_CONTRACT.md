@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.26`
+  - `1.0.27`
 - Parser release version:
-  - `1.0.26`
+  - `1.0.27`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,82 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.27 / Contract 1.0.27 Highlights — SV-Slice-27 batch: class body sub-tree typed (6 rules / 30 annotations)
+
+Closes the class body walk path. Every reachable `class_declaration_sv_2017/2023.items[]` (typed in SV-Slice-10) now exposes typed dispatch into class members. Method qualifiers (static / protected / local), property kind (decl vs const), method kind (task / function / pure_virtual / extern / constructor / extern_constructor) all directly accessible via `kind` discriminators.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+class_item_sv_2017 := attribute_instance* class_property         -> {kind: "property",        attributes: $1, body: $2}
+                    | attribute_instance* class_method           -> {kind: "method",          attributes: $1, body: $2}
+                    | attribute_instance* class_constraint       -> {kind: "constraint",      attributes: $1, body: $2}
+                    | attribute_instance* class_declaration      -> {kind: "class",           attributes: $1, body: $2}
+                    | attribute_instance* covergroup_declaration -> {kind: "covergroup",      attributes: $1, body: $2}
+                    | local_parameter_declaration semi           -> {kind: "local_parameter", body: $1}
+                    | parameter_declaration semi                 -> {kind: "parameter",       body: $1}
+                    | semi                                       -> {kind: "semi"}
+
+@profiles: ["sv_2023"]
+class_item_sv_2023 := /* same 8 plus 1 between class and covergroup:
+                        attribute_instance* interface_class_declaration -> {kind: "interface_class", attributes: $1, body: $2} */
+
+class_item_qualifier := kw_static    -> {kind: "static"}
+                      | kw_protected -> {kind: "protected"}
+                      | kw_local     -> {kind: "local"}
+
+class_constraint := constraint_prototype   -> {kind: "prototype",   body: $1}
+                  | constraint_declaration -> {kind: "declaration", body: $1}
+
+class_property := property_qualifier* data_declaration
+                       -> {kind: "decl",  qualifiers: $1, body: $2}
+               | kw_const class_item_qualifier* data_type const_identifier ( assign constant_expression )? semi
+                       -> {kind: "const", qualifiers: $2, data_type: $3, name: $4, init: $5}
+
+class_method := method_qualifier* task_declaration
+                     -> {kind: "task",                qualifiers: $1, body: $2}
+             | method_qualifier* function_declaration
+                     -> {kind: "function",            qualifiers: $1, body: $2}
+             | kw_pure kw_virtual class_item_qualifier* method_prototype semi
+                     -> {kind: "pure_virtual",        qualifiers: $3, prototype: $4}
+             | kw_extern method_qualifier* method_prototype semi
+                     -> {kind: "extern",              qualifiers: $2, prototype: $3}
+             | method_qualifier* class_constructor_declaration
+                     -> {kind: "constructor",         qualifiers: $1, body: $2}
+             | kw_extern method_qualifier* class_constructor_prototype
+                     -> {kind: "extern_constructor",  qualifiers: $2, prototype: $3}
+```
+
+### Field semantics
+
+- `class_item.kind == "property" / "method" / "constraint" / "class" / "covergroup" / "interface_class"`: each preserves the leading `attribute_instance*` slot as `attributes`. The `body` field is the typed sub-rule shape (typed in this slice for property/method/constraint, typed in SV-Slice-10 for class_declaration, raw envelope still for covergroup_declaration / interface_class_declaration which are deferred to a later slice).
+- `class_property.kind == "decl"`: the standard form `property_qualifier* data_declaration` (e.g., `static int count;`). `qualifiers` is the matched property_qualifier* iteration (rand/randc/static/protected/local/etc., still raw envelope — typing deferred). `body` is the typed `data_declaration` (typed in SV-Slice-25).
+- `class_property.kind == "const"`: the kw_const-prefixed form (e.g., `const static int N = 10;`). `qualifiers` is the inner class_item_qualifier* (typed THIS slice), `data_type` is the matched data_type, `name` is the const_identifier, `init` is `[]` when no initializer or `[<assign, expr>]` when present.
+- `class_method.kind == "pure_virtual"` / `"extern"`: prototype-only forms (no body). The `prototype` field carries the matched method_prototype.
+- `class_method.kind == "extern_constructor"`: prototype-only form for extern class new declaration.
+- `class_item_qualifier`: bare `{kind}` shape — each branch matches a single keyword token.
+
+### Profile difference
+
+`class_item_sv_2023` adds an `"interface_class"` kind (not present in sv_2017) — LRM 2023 allows nested `interface class` declarations inside class bodies. The 8 sv_2017 kinds are unchanged.
+
+### Annotation inventory
+
+314 entries (was 284). +30 in this batch (8 class_item_sv_2017 + 9 class_item_sv_2023 + 3 class_item_qualifier + 2 class_constraint + 2 class_property + 6 class_method).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `method_qualifier`, `property_qualifier` (close class_method / class_property qualifier list typing).
+- `concurrent_assertion_statement` / `deferred_immediate_assertion_item` internals.
+- `tf_item_declaration` / `function_statement_or_null` / `statement_or_null` (function/task body internals).
+- `covergroup_declaration` / `interface_class_declaration` internals.
+- `constraint_declaration` / `constraint_prototype` (close class_constraint body fields).
 
 ## Release 1.0.26 / Contract 1.0.26 Highlights — SV-Slice-26 batch: net_declaration typed via helper-rule extraction (4 rules / 10 annotations + 2 new helper rules)
 

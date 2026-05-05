@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-91f50939.js";
+            window.path_to_searchindex_js = "searchindex-1466c434.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,18 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1027--contract-1027--sv-slice-27-batch-class-body-sub-tree-typed-6-rules--30-annotations"><a class="header" href="#1027--contract-1027--sv-slice-27-batch-class-body-sub-tree-typed-6-rules--30-annotations">1.0.27 / Contract 1.0.27 — SV-Slice-27 batch: class body sub-tree typed (6 rules / 30 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the class body walk path. Method qualifiers, property kind (decl vs const), method kind (task / function / pure_virtual / extern / constructor / extern_constructor) all now <code>kind</code>-discriminated.</p>
+<pre><code class="language-ebnf">class_item_sv_2017     -&gt; 8 kinds (property / method / constraint / class / covergroup / local_parameter / parameter / semi)
+class_item_sv_2023     -&gt; 9 kinds (same plus interface_class for LRM 2023 nested interface-class decls)
+class_item_qualifier   -&gt; 3 kinds (static / protected / local — bare {kind})
+class_constraint       -&gt; 2 kinds (prototype / declaration)
+class_property         -&gt; 2 kinds (decl {qualifiers, body} / const {qualifiers, data_type, name, init})
+class_method           -&gt; 6 kinds (task / function / pure_virtual / extern / constructor / extern_constructor)
+</code></pre>
+<p><strong>Annotation inventory:</strong> 314 entries (was 284). +30 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.27 / Contract 1.0.27 Highlights” with full annotation source + field semantics + profile differences.</p>
 <h3 id="1026--contract-1026--sv-slice-26-batch-net_declaration-typed-via-helper-rule-extraction-4-rules--10-annotations--2-new-helper-rules"><a class="header" href="#1026--contract-1026--sv-slice-26-batch-net_declaration-typed-via-helper-rule-extraction-4-rules--10-annotations--2-new-helper-rules">1.0.26 / Contract 1.0.26 — SV-Slice-26 batch: net_declaration typed via helper-rule extraction (4 rules / 10 annotations + 2 new helper rules)</a></h3>
 <p><strong>What changed:</strong> Closes the net_declaration walk path. Two new helper rules extracted from inline parens-Or to dodge task #38 (same pattern as SV-Slice-23).</p>
 <pre><code class="language-ebnf">net_declaration_sv_2017     -&gt; 3 kinds (wire / alias / interconnect)

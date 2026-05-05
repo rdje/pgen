@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-27 batch: class body sub-tree typed (6 rules / 30 annotations)
+
+Closes the class body walk path. Method qualifiers, property kind (decl vs const), method kind (task / function / pure_virtual / extern / constructor / extern_constructor) all now `kind`-discriminated.
+
+```ebnf
+class_item_sv_2017     -> 8 kinds
+class_item_sv_2023     -> 9 kinds (adds interface_class)
+class_item_qualifier   -> 3 kinds bare {kind} (static / protected / local)
+class_constraint       -> 2 kinds
+class_property         -> 2 kinds (decl / const)
+class_method           -> 6 kinds
+```
+
+Annotation count: **314** (was 284, +30). Same accept set. Schema stays at `1`. Contract bumped 1.0.26 → 1.0.27. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-26 batch: net_declaration typed via helper-rule extraction (4 rules / 10 annotations + 2 new helper rules)
 
 Closes the net_declaration walk path. Two new helper rules extracted from inline parens-Or to dodge task #38 (same pattern as SV-Slice-23's `if_generate_else_clause`).

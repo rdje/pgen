@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.27 / Contract 1.0.27 — SV-Slice-27 batch: class body sub-tree typed (6 rules / 30 annotations)
+
+**What changed:** Closes the class body walk path. Method qualifiers, property kind (decl vs const), method kind (task / function / pure_virtual / extern / constructor / extern_constructor) all now `kind`-discriminated.
+
+```ebnf
+class_item_sv_2017     -> 8 kinds (property / method / constraint / class / covergroup / local_parameter / parameter / semi)
+class_item_sv_2023     -> 9 kinds (same plus interface_class for LRM 2023 nested interface-class decls)
+class_item_qualifier   -> 3 kinds (static / protected / local — bare {kind})
+class_constraint       -> 2 kinds (prototype / declaration)
+class_property         -> 2 kinds (decl {qualifiers, body} / const {qualifiers, data_type, name, init})
+class_method           -> 6 kinds (task / function / pure_virtual / extern / constructor / extern_constructor)
+```
+
+**Annotation inventory:** 314 entries (was 284). +30 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.27 / Contract 1.0.27 Highlights" with full annotation source + field semantics + profile differences.
+
 ### 1.0.26 / Contract 1.0.26 — SV-Slice-26 batch: net_declaration typed via helper-rule extraction (4 rules / 10 annotations + 2 new helper rules)
 
 **What changed:** Closes the net_declaration walk path. Two new helper rules extracted from inline parens-Or to dodge task #38 (same pattern as SV-Slice-23).
