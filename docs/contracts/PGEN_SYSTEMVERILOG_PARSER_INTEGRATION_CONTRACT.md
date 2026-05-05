@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.14`
+  - `1.0.15`
 - Parser release version:
-  - `1.0.14`
+  - `1.0.15`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,57 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.15 / Contract 1.0.15 Highlights — SV-Slice-15 batch: port-list family + small structural rules typed
+
+6 rules / 7 annotations. Every `header.ports` field on every typed module/interface/program/UDP declaration now surfaces a typed shape instead of the raw envelope.
+
+### Annotations
+
+```ebnf
+list_of_ports := lparen port (comma port)* rparen
+              -> {first: $2, rest: $3}
+
+list_of_port_declarations := lparen (attribute_instance* ansi_port_declaration (comma attribute_instance* ansi_port_declaration)*)? rparen
+                          -> $2
+
+udp_port_list := output_port_identifier comma input_port_identifier (comma input_port_identifier)*
+              -> {output: $1, inputs: {first: $3, rest: $4}}
+
+udp_declaration_port_list := udp_output_declaration comma udp_input_declaration (comma udp_input_declaration)*
+                          -> {output: $1, inputs: {first: $3, rest: $4}}
+
+anonymous_program := kw_program semi anonymous_program_item* kw_endprogram
+                  -> {items: $3}
+
+package_export_declaration := kw_export star scope_resolution star semi
+                                 -> {kind: "wildcard"}
+                            | kw_export package_import_item (comma package_import_item)* semi
+                                 -> {kind: "explicit", items: {first: $2, rest: $3}}
+```
+
+### Notes per rule
+
+- **`list_of_ports` and `list_of_port_declarations` differ in shape**: the former emits `{first, rest}` (mini-mixed-array workaround for `port (comma port)*`); the latter passes the optional inner content through transparently with `-> $2` (the parens-grouped optional sequence). `list_of_port_declarations` body when populated is a 3-element envelope `[<attribute_instance*>, <ansi_port_declaration>, <(comma attribute_instance* ansi_port_declaration)*>]`. Per-rule typing of `ansi_port_declaration` is a follow-up slice.
+- **`udp_port_list` vs `udp_declaration_port_list`** parallel shapes (output + inputs.{first, rest}) but the underlying sub-rules differ — `udp_port_list` uses identifier strings (`output_port_identifier`, `input_port_identifier`), `udp_declaration_port_list` uses full declarations (`udp_output_declaration`, `udp_input_declaration`).
+- **`anonymous_program`** drops kw_program/semi/kw_endprogram and exposes only `items`. Reachable via `package_item.kind = "anonymous_program"` then walk `body.items`.
+- **`package_export_declaration`** discriminates between wildcard `export *::*;` and explicit `export item, item, ...;`. Wildcard form drops everything (just the kind label). Explicit form uses the standard {first, rest} mini-mixed-array.
+
+### Annotation inventory
+
+102 entries (was 95). +7 in this batch. **Crossing 100 annotations** for the SV grammar — the campaign is now mid-flight.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `port` per-branch typing (the inner element of `list_of_ports`).
+- `ansi_port_declaration` per-branch typing (the inner element of `list_of_port_declarations`).
+- `udp_output_declaration` / `udp_input_declaration` per-branch typing.
+- `package_or_generate_item_declaration` (large Or — the actual content under package_item.kind = "declaration"; reaches deep into the SV grammar).
+- `package_import_declaration` / `package_import_item` typing.
 
 ## Release 1.0.14 / Contract 1.0.14 Highlights — SV-Slice-14 batch: bind sub-tree completion + interface_class_declaration + config_declaration
 

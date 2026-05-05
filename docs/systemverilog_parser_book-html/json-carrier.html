@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1ee5f5ef.js";
+            window.path_to_searchindex_js = "searchindex-e486dd54.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -232,6 +232,12 @@
 <tr><td><code>bind_target_instance_list</code></td><td><code>-&gt; {first, rest}</code></td><td>Mini-mixed-array workaround for <code>bind_target_instance (comma bind_target_instance)*</code>.</td></tr>
 <tr><td><code>interface_class_declaration</code></td><td><code>-&gt; {name, parameters, extends, items, end_label}</code></td><td>Single-sequence shape mirror to class_declaration.</td></tr>
 <tr><td><code>config_declaration</code></td><td><code>-&gt; {name, local_params, design, rules, end_label}</code></td><td>Single-sequence shape with config-specific fields.</td></tr>
+<tr><td><code>list_of_ports</code></td><td><code>-&gt; {first, rest}</code></td><td>Drops <code>lparen</code>/<code>rparen</code>; mini-mixed-array workaround for <code>port (comma port)*</code>.</td></tr>
+<tr><td><code>list_of_port_declarations</code></td><td><code>-&gt; $2</code></td><td>Transparent passthrough of the optional inner content (which is itself a 3-element envelope when populated). Drops parens.</td></tr>
+<tr><td><code>udp_port_list</code></td><td><code>-&gt; {output, inputs: {first, rest}}</code></td><td>UDP-specific port list (uses port identifiers, not full declarations). <code>output</code> is a clean string (output_port_identifier); <code>inputs</code> is the {first, rest} array of input_port_identifier strings.</td></tr>
+<tr><td><code>udp_declaration_port_list</code></td><td><code>-&gt; {output, inputs: {first, rest}}</code></td><td>Parallel shape to udp_port_list but inner sub-rules are full declarations (udp_output_declaration / udp_input_declaration) instead of identifier strings.</td></tr>
+<tr><td><code>anonymous_program</code></td><td><code>-&gt; {items}</code></td><td>Drops kw_program/semi/kw_endprogram; surfaces only the items list. Reachable via package_item.kind = “anonymous_program”.</td></tr>
+<tr><td><code>package_export_declaration</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"wildcard"</code> (<code>export *::*;</code>, drops content) / <code>"explicit"</code> (with items: {first, rest}).</td></tr>
 </tbody>
 </table>
 </div>

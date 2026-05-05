@@ -48,6 +48,12 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `bind_target_instance_list` | `-> {first, rest}` | Mini-mixed-array workaround for `bind_target_instance (comma bind_target_instance)*`. |
 | `interface_class_declaration` | `-> {name, parameters, extends, items, end_label}` | Single-sequence shape mirror to class_declaration. |
 | `config_declaration` | `-> {name, local_params, design, rules, end_label}` | Single-sequence shape with config-specific fields. |
+| `list_of_ports` | `-> {first, rest}` | Drops `lparen`/`rparen`; mini-mixed-array workaround for `port (comma port)*`. |
+| `list_of_port_declarations` | `-> $2` | Transparent passthrough of the optional inner content (which is itself a 3-element envelope when populated). Drops parens. |
+| `udp_port_list` | `-> {output, inputs: {first, rest}}` | UDP-specific port list (uses port identifiers, not full declarations). `output` is a clean string (output_port_identifier); `inputs` is the {first, rest} array of input_port_identifier strings. |
+| `udp_declaration_port_list` | `-> {output, inputs: {first, rest}}` | Parallel shape to udp_port_list but inner sub-rules are full declarations (udp_output_declaration / udp_input_declaration) instead of identifier strings. |
+| `anonymous_program` | `-> {items}` | Drops kw_program/semi/kw_endprogram; surfaces only the items list. Reachable via package_item.kind = "anonymous_program". |
+| `package_export_declaration` (2 branches) | per-branch typed | Kind labels: `"wildcard"` (`export *::*;`, drops content) / `"explicit"` (with items: {first, rest}). |
 
 ## Sub-rules with implicit defaults
 

@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-15 batch: port-list family + small structural rules typed (crossing 100 annotations)
+
+6 rules / 7 annotations. Every `header.ports` field on every typed module/interface/program/UDP declaration now surfaces a typed shape instead of the raw envelope.
+
+```ebnf
+list_of_ports             -> {first, rest}
+list_of_port_declarations -> $2 (transparent passthrough)
+udp_port_list             -> {output, inputs: {first, rest}}
+udp_declaration_port_list -> {output, inputs: {first, rest}}
+anonymous_program         -> {items}
+package_export_declaration -> 2 kinds (wildcard / explicit)
+```
+
+Annotation count: **102** (was 95, +7). Crossing 100 annotations on the SV grammar — campaign mid-flight. Same accept set. Schema stays at `1`. Contract bumped 1.0.14 → 1.0.15. mdBook synced. Gate green ✅.
+
 ## 2026-05-05 - SV-Slice-14 batch: bind sub-tree completion + interface_class_declaration + config_declaration
 
 5 rules typed: bind_target_scope (2 kinds), bind_target_instance, bind_target_instance_list ({first, rest}), interface_class_declaration, config_declaration. Bind sub-tree fully typed end-to-end (combined with SV-Slice-13).

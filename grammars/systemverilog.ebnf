@@ -323,6 +323,7 @@ always_construct := always_keyword statement
 always_keyword := kw_always_6656018a | kw_always_comb_a1f2a86b | kw_always_latch_23c99af9 | kw_always_ff_3c7a051e
 
 anonymous_program := kw_program_81d9aeea semi anonymous_program_item* kw_endprogram_6b609b1f
+                  -> {items: $3}
 
 @profiles: ["sv_2017"]
 anonymous_program_item_sv_2017 := task_declaration | function_declaration | class_declaration | covergroup_declaration | class_constructor_declaration | semi
@@ -1481,10 +1482,12 @@ list_of_path_outputs := specify_output_terminal_descriptor ( comma specify_outpu
 list_of_port_connections := named_port_connection ( comma named_port_connection )* | ordered_port_connection ( comma ordered_port_connection )*
 
 list_of_port_declarations := lparen ( attribute_instance* ansi_port_declaration ( comma attribute_instance* ansi_port_declaration )* )? rparen
+                          -> $2
 
 list_of_port_identifiers := port_identifier unpacked_dimension* ( comma port_identifier unpacked_dimension* )*
 
 list_of_ports := lparen port ( comma port )* rparen
+              -> {first: $2, rest: $3}
 
 list_of_specparam_assignments := specparam_assignment ( comma specparam_assignment )*
 
@@ -1829,7 +1832,10 @@ output_terminal := net_lvalue
 package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
                     -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9}
 
-package_export_declaration := kw_export_51713409 star scope_resolution star semi | kw_export_51713409 package_import_item ( comma package_import_item )* semi
+package_export_declaration := kw_export_51713409 star scope_resolution star semi
+                                 -> {kind: "wildcard"}
+                            | kw_export_51713409 package_import_item ( comma package_import_item )* semi
+                                 -> {kind: "explicit", items: {first: $2, rest: $3}}
 
 package_identifier := declaration_identifier
 
@@ -2679,6 +2685,7 @@ udp_declaration := udp_declaration_sv_2017 | udp_declaration_sv_2023
 
 @sample: "output o, input i"
 udp_declaration_port_list := udp_output_declaration comma udp_input_declaration ( comma udp_input_declaration )*
+                          -> {output: $1, inputs: {first: $3, rest: $4}}
 
 udp_identifier := identifier
 
@@ -2698,6 +2705,7 @@ udp_output_declaration := attribute_instance* kw_output_1029d676 port_identifier
 udp_port_declaration := udp_output_declaration semi | udp_input_declaration semi | udp_reg_declaration semi
 
 udp_port_list := output_port_identifier comma input_port_identifier ( comma input_port_identifier )*
+              -> {output: $1, inputs: {first: $3, rest: $4}}
 
 udp_reg_declaration := attribute_instance* kw_reg_e06b9586 variable_identifier
 

@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.15 / Contract 1.0.15 — SV-Slice-15 batch: port-list family + small structural rules typed
+
+**What changed:** 6 rules / 7 annotations. Every `header.ports` field on every typed module/interface/program/UDP declaration now surfaces a typed shape.
+
+```ebnf
+list_of_ports             -> {first, rest}     (mini-mixed-array)
+list_of_port_declarations -> $2 (transparent passthrough of inner optional)
+udp_port_list             -> {output, inputs: {first, rest}}
+udp_declaration_port_list -> {output, inputs: {first, rest}}
+anonymous_program         -> {items}
+package_export_declaration -> 2 kinds (wildcard / explicit with {first, rest})
+```
+
+**Annotation inventory:** 102 entries (was 95). +7 in this batch. **Crossing 100 annotations** — campaign mid-flight.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.15 / Contract 1.0.15 Highlights" with full annotation source + per-rule notes.
+
 ### 1.0.14 / Contract 1.0.14 — SV-Slice-14 batch: bind sub-tree completion + interface_class_declaration + config_declaration
 
 **What changed:** 5 rules typed in one batch:

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1ee5f5ef.js";
+            window.path_to_searchindex_js = "searchindex-e486dd54.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,18 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1015--contract-1015--sv-slice-15-batch-port-list-family--small-structural-rules-typed"><a class="header" href="#1015--contract-1015--sv-slice-15-batch-port-list-family--small-structural-rules-typed">1.0.15 / Contract 1.0.15 — SV-Slice-15 batch: port-list family + small structural rules typed</a></h3>
+<p><strong>What changed:</strong> 6 rules / 7 annotations. Every <code>header.ports</code> field on every typed module/interface/program/UDP declaration now surfaces a typed shape.</p>
+<pre><code class="language-ebnf">list_of_ports             -&gt; {first, rest}     (mini-mixed-array)
+list_of_port_declarations -&gt; $2 (transparent passthrough of inner optional)
+udp_port_list             -&gt; {output, inputs: {first, rest}}
+udp_declaration_port_list -&gt; {output, inputs: {first, rest}}
+anonymous_program         -&gt; {items}
+package_export_declaration -&gt; 2 kinds (wildcard / explicit with {first, rest})
+</code></pre>
+<p><strong>Annotation inventory:</strong> 102 entries (was 95). +7 in this batch. <strong>Crossing 100 annotations</strong> — campaign mid-flight.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.15 / Contract 1.0.15 Highlights” with full annotation source + per-rule notes.</p>
 <h3 id="1014--contract-1014--sv-slice-14-batch-bind-sub-tree-completion--interface_class_declaration--config_declaration"><a class="header" href="#1014--contract-1014--sv-slice-14-batch-bind-sub-tree-completion--interface_class_declaration--config_declaration">1.0.14 / Contract 1.0.14 — SV-Slice-14 batch: bind sub-tree completion + interface_class_declaration + config_declaration</a></h3>
 <p><strong>What changed:</strong> 5 rules typed in one batch:</p>
 <pre><code class="language-ebnf">bind_target_scope          -&gt; 2 kinds: module/interface ({kind, name})

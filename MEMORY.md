@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-05 (+0200, task: SV-Slice-14-batch-bind-subtree-completion-interface_class_declaration-config_declaration)
+Last updated: 2026-05-05 (+0200, task: SV-Slice-15-batch-port-list-family-crossing-100-annotations)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-15 batch landed: port-list family + small structural rules typed.** 6 rules / 7 annotations: list_of_ports ({first, rest}), list_of_port_declarations ($2 passthrough), udp_port_list ({output, inputs: {first, rest}}), udp_declaration_port_list (parallel), anonymous_program ({items}), package_export_declaration (2 kinds: wildcard/explicit). Every `header.ports` field on every typed module/interface/program/UDP declaration now surfaces a typed shape. **Crossing 100 annotations** on the SV grammar (102, was 95). Same accept set. Contract bumped 1.0.14 → 1.0.15. Schema stays 1. mdBook synced. SV book gate green ✅. **Unpushed commits: 4** (SV-Slice-12/13/14/15). Continuing per "until none remaining" directive. Next: per-branch typing of `port`, `ansi_port_declaration`, `udp_output_declaration`, `udp_input_declaration`; `package_or_generate_item_declaration` (large Or).
+
+### Earlier session note (kept for context):
 - **SV-Slice-14 batch landed: bind sub-tree completion + interface_class_declaration + config_declaration.** 5 rules: bind_target_scope (2 kinds: module/interface, `{kind, name}` shape), bind_target_instance (`{name, bit_select}`), bind_target_instance_list (`{first, rest}` mini-mixed-array workaround), interface_class_declaration (`{name, parameters, extends, items, end_label}`), config_declaration (`{name, local_params, design, rules, end_label}`). Bind sub-tree fully typed end-to-end (combined with SV-Slice-13). Annotation count: 95 (was 89, +6). Same accept set. Contract bumped 1.0.13 → 1.0.14. Schema stays 1. mdBook synced (changelog-index, schema-versioning row 0.15.0, json-carrier 5 new rows, rules-top-level status). SV book gate green ✅. **Unpushed commits: 3** (SV-Slice-12, SV-Slice-13, SV-Slice-14). Continuing per "until none remaining" directive. **Pattern firmly established**: each slice batches 3-12 related rules, follows the same workflow (grammar edit → regen → manifest update → contract bump → mdBook sync → gate). Next: bind_target_instance.bit_select deep typing, udp_port_list / udp_declaration_port_list, list_of_ports / list_of_port_declarations, package_or_generate_item_declaration (large Or).
 
 ### Earlier session note (kept for context):
