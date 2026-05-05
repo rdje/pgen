@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-05 (+0200, task: SV-Slice-18-batch-udp-truth-table-entries-typed)
+Last updated: 2026-05-05 (+0200, task: SV-Slice-19-batch-module-items-dispatch-tree-typed-largest-batch-yet)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-19 batch landed: module-items dispatch tree typed (5 rules / 22 annotations — largest single-slice batch yet).** module_item (2 kinds: port_declaration/non_port_item), module_or_generate_item (5 kinds with attributes: parameter_override/gate_instantiation/udp_instantiation/module_instantiation/module_common_item), module_or_generate_item_declaration (5 kinds: package_or_generate/genvar/clocking/default_clocking/default_disable_iff), non_port_module_item (8 kinds), continuous_assign (2 kinds: net/variable). **Every header.items / body.items field on every typed module/interface/program declaration now surfaces kind-discriminated dispatch end-to-end.** 5+ layers of typed dispatch unlocked for module/interface walking. Annotation count: 144 (was 122, +22). Same accept set. Contract bumped 1.0.18 → 1.0.19. Schema stays 1. mdBook synced. SV book gate green ✅. **Unpushed commits: 8** (SV-Slice-12 through 19). Continuing per "until none remaining" directive. Next: interface_item / interface_or_generate_item, program_item / non_port_program_item, package_or_generate_item_declaration (large Or referenced by module_or_generate_item_declaration's branch 0), generate_region / generate_block.
+
+### Earlier session note (kept for context):
 - **SV-Slice-18 batch landed: UDP truth-table entries typed.** 3 rules / 3 annotations: combinational_entry ({inputs, output}), sequential_entry ({inputs, current_state, next_state}), udp_initial_statement ({name, init_val}). Every UDP truth-table row now exposes clean typed shape; consumers walk entries.first + entries.rest directly. Annotation count: 122 (was 119, +3). Same accept set. Contract bumped 1.0.17 → 1.0.18. Schema stays 1. mdBook synced. SV book gate green ✅. **Unpushed commits: 7** (SV-Slice-12 through 18). Continuing per "until none remaining" directive. Next: net_alias, continuous_assign, package_or_generate_item_declaration (large Or). Task #38 fix would unblock ansi_port_declaration + comment_only_source_region + others.
 
 ### Earlier session note (kept for context):

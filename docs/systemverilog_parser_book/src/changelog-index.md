@@ -19,6 +19,24 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.19 / Contract 1.0.19 — SV-Slice-19 batch: module-items dispatch tree typed (5 rules / 22 annotations)
+
+**What changed:** Largest batch yet. Every `header.items` and `body.items` field on every typed module/interface/program declaration now surfaces kind-discriminated dispatch.
+
+```ebnf
+module_item                          -> 2 kinds: port_declaration / non_port_item
+module_or_generate_item              -> 5 kinds (with attributes:): parameter_override / gate_instantiation / udp_instantiation / module_instantiation / module_common_item
+module_or_generate_item_declaration  -> 5 kinds: package_or_generate / genvar / clocking / default_clocking / default_disable_iff
+non_port_module_item                 -> 8 kinds: generate_region / module_or_generate / specify_block / specparam_declaration / program_declaration / module_declaration / interface_declaration / timeunits_declaration
+continuous_assign                    -> 2 kinds: net / variable
+```
+
+**Annotation inventory:** 144 entries (was 122). +22 in this batch — largest single-slice contribution to date.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.19 / Contract 1.0.19 Highlights" with full annotation source + 5-layer module-items walker recipe.
+
 ### 1.0.18 / Contract 1.0.18 — SV-Slice-18 batch: UDP truth-table entries typed
 
 **What changed:** 3 rules / 3 annotations completing the UDP truth-table walk path.

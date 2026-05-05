@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a351499e.js";
+            window.path_to_searchindex_js = "searchindex-a87d5bba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,17 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1019--contract-1019--sv-slice-19-batch-module-items-dispatch-tree-typed-5-rules--22-annotations"><a class="header" href="#1019--contract-1019--sv-slice-19-batch-module-items-dispatch-tree-typed-5-rules--22-annotations">1.0.19 / Contract 1.0.19 — SV-Slice-19 batch: module-items dispatch tree typed (5 rules / 22 annotations)</a></h3>
+<p><strong>What changed:</strong> Largest batch yet. Every <code>header.items</code> and <code>body.items</code> field on every typed module/interface/program declaration now surfaces kind-discriminated dispatch.</p>
+<pre><code class="language-ebnf">module_item                          -&gt; 2 kinds: port_declaration / non_port_item
+module_or_generate_item              -&gt; 5 kinds (with attributes:): parameter_override / gate_instantiation / udp_instantiation / module_instantiation / module_common_item
+module_or_generate_item_declaration  -&gt; 5 kinds: package_or_generate / genvar / clocking / default_clocking / default_disable_iff
+non_port_module_item                 -&gt; 8 kinds: generate_region / module_or_generate / specify_block / specparam_declaration / program_declaration / module_declaration / interface_declaration / timeunits_declaration
+continuous_assign                    -&gt; 2 kinds: net / variable
+</code></pre>
+<p><strong>Annotation inventory:</strong> 144 entries (was 122). +22 in this batch — largest single-slice contribution to date.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.19 / Contract 1.0.19 Highlights” with full annotation source + 5-layer module-items walker recipe.</p>
 <h3 id="1018--contract-1018--sv-slice-18-batch-udp-truth-table-entries-typed"><a class="header" href="#1018--contract-1018--sv-slice-18-batch-udp-truth-table-entries-typed">1.0.18 / Contract 1.0.18 — SV-Slice-18 batch: UDP truth-table entries typed</a></h3>
 <p><strong>What changed:</strong> 3 rules / 3 annotations completing the UDP truth-table walk path.</p>
 <pre><code class="language-ebnf">combinational_entry   -&gt; {inputs, output}

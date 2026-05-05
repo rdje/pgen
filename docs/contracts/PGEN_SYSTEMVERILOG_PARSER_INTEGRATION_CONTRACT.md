@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.18`
+  - `1.0.19`
 - Parser release version:
-  - `1.0.18`
+  - `1.0.19`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,91 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.19 / Contract 1.0.19 Highlights — SV-Slice-19 batch: module-items dispatch tree typed (5 rules / 22 annotations)
+
+Largest batch yet. Every `header.items` and `body.items` field on every typed module/interface/program declaration now surfaces kind-discriminated dispatch into the actual content.
+
+### Annotations
+
+```ebnf
+module_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
+            | non_port_module_item   -> {kind: "non_port_item",    body: $1}
+
+module_or_generate_item := attribute_instance* parameter_override     -> {kind: "parameter_override",  attributes: $1, body: $2}
+                        | attribute_instance* gate_instantiation     -> {kind: "gate_instantiation",  attributes: $1, body: $2}
+                        | attribute_instance* udp_instantiation      -> {kind: "udp_instantiation",   attributes: $1, body: $2}
+                        | attribute_instance* module_instantiation   -> {kind: "module_instantiation", attributes: $1, body: $2}
+                        | attribute_instance* module_common_item     -> {kind: "module_common_item",  attributes: $1, body: $2}
+
+module_or_generate_item_declaration := package_or_generate_item_declaration                                -> {kind: "package_or_generate", body: $1}
+                                    | genvar_declaration                                                  -> {kind: "genvar",              body: $1}
+                                    | clocking_declaration                                                -> {kind: "clocking",            body: $1}
+                                    | kw_default kw_clocking clocking_identifier semi                     -> {kind: "default_clocking",    name: $3}
+                                    | kw_default kw_disable kw_iff expression_or_dist semi                -> {kind: "default_disable_iff", expr: $4}
+
+non_port_module_item := generate_region                              -> {kind: "generate_region",       body: $1}
+                     | module_or_generate_item                       -> {kind: "module_or_generate",    body: $1}
+                     | specify_block                                  -> {kind: "specify_block",         body: $1}
+                     | attribute_instance* specparam_declaration     -> {kind: "specparam_declaration", attributes: $1, body: $2}
+                     | program_declaration                            -> {kind: "program_declaration",   body: $1}
+                     | module_declaration                             -> {kind: "module_declaration",    body: $1}
+                     | interface_declaration                          -> {kind: "interface_declaration", body: $1}
+                     | timeunits_declaration                          -> {kind: "timeunits_declaration", body: $1}
+
+continuous_assign := kw_assign (drive_strength)? (delay)? list_of_net_assignments semi
+                        -> {kind: "net",      drive_strength: $2, delay: $3, assignments: $4}
+                  | kw_assign (delay_control)? list_of_variable_assignments semi
+                        -> {kind: "variable", delay_control:  $2, assignments: $3}
+```
+
+### Consumer dispatch chains
+
+After this slice, the typed AST exposes 5+ layers of typed dispatch end-to-end for module/interface contents:
+
+```rust
+// description.body.body.items contains module_item entries
+for item in module.items.as_array().unwrap() {
+    match item["kind"].as_str().unwrap() {
+        "port_declaration" => walk_port_decl(&item["body"]),
+        "non_port_item" => {
+            let npi = &item["body"];     // non_port_module_item shape
+            match npi["kind"].as_str().unwrap() {
+                "generate_region" => walk_generate(&npi["body"]),
+                "module_or_generate" => {
+                    let mog = &npi["body"];   // module_or_generate_item shape
+                    match mog["kind"].as_str().unwrap() {
+                        "parameter_override" | "gate_instantiation" | "udp_instantiation" |
+                        "module_instantiation" | "module_common_item" => {
+                            let attrs = &mog["attributes"];
+                            walk_inner(mog["kind"].as_str(), attrs, &mog["body"]);
+                        }
+                    }
+                }
+                "specify_block" | "specparam_declaration" | "program_declaration" |
+                "module_declaration" | "interface_declaration" | "timeunits_declaration" => {
+                    walk_decl(npi["kind"].as_str(), &npi["body"]);
+                }
+            }
+        }
+    }
+}
+```
+
+### Annotation inventory
+
+144 entries (was 122). +22 in this batch — largest single-slice contribution to date.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `interface_item`, `interface_or_generate_item` (interface counterpart of module_item).
+- `program_item`, `non_port_program_item` (program counterpart).
+- `package_or_generate_item_declaration` (large Or — referenced by module_or_generate_item_declaration's branch 0).
+- `generate_region`, `generate_block` (generate sub-tree).
 
 ## Release 1.0.18 / Contract 1.0.18 Highlights — SV-Slice-18 batch: UDP truth-table entries typed
 

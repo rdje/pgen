@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a351499e.js";
+            window.path_to_searchindex_js = "searchindex-a87d5bba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -251,6 +251,11 @@
 <tr><td><code>combinational_entry</code></td><td><code>-&gt; {inputs, output}</code></td><td>Single truth-table row for combinational UDP.</td></tr>
 <tr><td><code>sequential_entry</code></td><td><code>-&gt; {inputs, current_state, next_state}</code></td><td>Single state-transition row for sequential UDP.</td></tr>
 <tr><td><code>udp_initial_statement</code></td><td><code>-&gt; {name, init_val}</code></td><td>Initial value assignment for sequential UDP.</td></tr>
+<tr><td><code>module_item</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"port_declaration"</code> / <code>"non_port_item"</code>.</td></tr>
+<tr><td><code>module_or_generate_item</code> (5 branches)</td><td>per-branch <code>{kind, attributes, body}</code></td><td>Kind labels: <code>"parameter_override"</code> / <code>"gate_instantiation"</code> / <code>"udp_instantiation"</code> / <code>"module_instantiation"</code> / <code>"module_common_item"</code>. Each carries leading <code>attribute_instance*</code> as <code>attributes</code>.</td></tr>
+<tr><td><code>module_or_generate_item_declaration</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"package_or_generate"</code> / <code>"genvar"</code> / <code>"clocking"</code> / <code>"default_clocking"</code> (with <code>name</code>) / <code>"default_disable_iff"</code> (with <code>expr</code>).</td></tr>
+<tr><td><code>non_port_module_item</code> (8 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"generate_region"</code> / <code>"module_or_generate"</code> / <code>"specify_block"</code> / <code>"specparam_declaration"</code> (with <code>attributes</code>) / <code>"program_declaration"</code> / <code>"module_declaration"</code> / <code>"interface_declaration"</code> / <code>"timeunits_declaration"</code>.</td></tr>
+<tr><td><code>continuous_assign</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"net"</code> (with <code>drive_strength</code>, <code>delay</code>, <code>assignments</code>) / <code>"variable"</code> (with <code>delay_control</code>, <code>assignments</code>).</td></tr>
 </tbody>
 </table>
 </div>

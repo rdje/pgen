@@ -771,7 +771,10 @@ constraint_prototype_qualifier := kw_extern_bf1ee311 | kw_pure_afe003f1
 
 constraint_set := constraint_expression | lbrace constraint_expression* rbrace
 
-continuous_assign := kw_assign_9009b730 ( drive_strength )? ( delay )? list_of_net_assignments semi | kw_assign_9009b730 ( delay_control )? list_of_variable_assignments semi
+continuous_assign := kw_assign_9009b730 ( drive_strength )? ( delay )? list_of_net_assignments semi
+                        -> {kind: "net",      drive_strength: $2, delay: $3, assignments: $4}
+                  | kw_assign_9009b730 ( delay_control )? list_of_variable_assignments semi
+                        -> {kind: "variable", delay_control:  $2, assignments: $3}
 
 controlled_reference_event := controlled_timing_check_event
 
@@ -1636,7 +1639,8 @@ module_identifier := declaration_identifier
 
 module_instantiation := module_identifier ( parameter_value_assignment )? hierarchical_instance ( comma hierarchical_instance )* semi
 
-module_item := port_declaration semi | non_port_module_item
+module_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
+            | non_port_module_item   -> {kind: "non_port_item",    body: $1}
 
 module_keyword := kw_module_fbd34a2b      -> {kind: "module"}
                 | kw_macromodule_df04b866 -> {kind: "macromodule"}
@@ -1645,9 +1649,27 @@ module_keyword := kw_module_fbd34a2b      -> {kind: "module"}
 module_nonansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
                       -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
-module_or_generate_item := attribute_instance* parameter_override | attribute_instance* gate_instantiation | attribute_instance* udp_instantiation | attribute_instance* module_instantiation | attribute_instance* module_common_item
+module_or_generate_item := attribute_instance* parameter_override
+                              -> {kind: "parameter_override",  attributes: $1, body: $2}
+                        | attribute_instance* gate_instantiation
+                              -> {kind: "gate_instantiation",  attributes: $1, body: $2}
+                        | attribute_instance* udp_instantiation
+                              -> {kind: "udp_instantiation",   attributes: $1, body: $2}
+                        | attribute_instance* module_instantiation
+                              -> {kind: "module_instantiation", attributes: $1, body: $2}
+                        | attribute_instance* module_common_item
+                              -> {kind: "module_common_item",  attributes: $1, body: $2}
 
-module_or_generate_item_declaration := package_or_generate_item_declaration | genvar_declaration | clocking_declaration | kw_default_7505d64a kw_clocking_4d22041d clocking_identifier semi | kw_default_7505d64a kw_disable_ccf09e2d kw_iff_ee1c009e expression_or_dist semi
+module_or_generate_item_declaration := package_or_generate_item_declaration
+                                          -> {kind: "package_or_generate", body: $1}
+                                    | genvar_declaration
+                                          -> {kind: "genvar",              body: $1}
+                                    | clocking_declaration
+                                          -> {kind: "clocking",            body: $1}
+                                    | kw_default_7505d64a kw_clocking_4d22041d clocking_identifier semi
+                                          -> {kind: "default_clocking",    name: $3}
+                                    | kw_default_7505d64a kw_disable_ccf09e2d kw_iff_ee1c009e expression_or_dist semi
+                                          -> {kind: "default_disable_iff", expr: $4}
 
 module_path_concatenation := ( module_path_expression ( comma module_path_expression )* )*
 
@@ -1768,7 +1790,22 @@ non_integer_type := kw_shortreal_99d69111 | kw_real_c9c64e07 | kw_realtime_91c46
 
 non_port_interface_item := generate_region | interface_or_generate_item | program_declaration | modport_declaration | interface_declaration | timeunits_declaration
 
-non_port_module_item := generate_region | module_or_generate_item | specify_block | attribute_instance* specparam_declaration | program_declaration | module_declaration | interface_declaration | timeunits_declaration
+non_port_module_item := generate_region
+                            -> {kind: "generate_region",       body: $1}
+                     | module_or_generate_item
+                            -> {kind: "module_or_generate",    body: $1}
+                     | specify_block
+                            -> {kind: "specify_block",         body: $1}
+                     | attribute_instance* specparam_declaration
+                            -> {kind: "specparam_declaration", attributes: $1, body: $2}
+                     | program_declaration
+                            -> {kind: "program_declaration",   body: $1}
+                     | module_declaration
+                            -> {kind: "module_declaration",    body: $1}
+                     | interface_declaration
+                            -> {kind: "interface_declaration", body: $1}
+                     | timeunits_declaration
+                            -> {kind: "timeunits_declaration", body: $1}
 
 non_port_program_item := attribute_instance* continuous_assign | attribute_instance* module_or_generate_item_declaration | attribute_instance* initial_construct | attribute_instance* final_construct | attribute_instance* concurrent_assertion_item | timeunits_declaration | program_generate_item
 

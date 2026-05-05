@@ -67,6 +67,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `combinational_entry` | `-> {inputs, output}` | Single truth-table row for combinational UDP. |
 | `sequential_entry` | `-> {inputs, current_state, next_state}` | Single state-transition row for sequential UDP. |
 | `udp_initial_statement` | `-> {name, init_val}` | Initial value assignment for sequential UDP. |
+| `module_item` (2 branches) | per-branch `{kind, body}` | Kind labels: `"port_declaration"` / `"non_port_item"`. |
+| `module_or_generate_item` (5 branches) | per-branch `{kind, attributes, body}` | Kind labels: `"parameter_override"` / `"gate_instantiation"` / `"udp_instantiation"` / `"module_instantiation"` / `"module_common_item"`. Each carries leading `attribute_instance*` as `attributes`. |
+| `module_or_generate_item_declaration` (5 branches) | per-branch typed | Kind labels: `"package_or_generate"` / `"genvar"` / `"clocking"` / `"default_clocking"` (with `name`) / `"default_disable_iff"` (with `expr`). |
+| `non_port_module_item` (8 branches) | per-branch typed | Kind labels: `"generate_region"` / `"module_or_generate"` / `"specify_block"` / `"specparam_declaration"` (with `attributes`) / `"program_declaration"` / `"module_declaration"` / `"interface_declaration"` / `"timeunits_declaration"`. |
+| `continuous_assign` (2 branches) | per-branch typed | Kind labels: `"net"` (with `drive_strength`, `delay`, `assignments`) / `"variable"` (with `delay_control`, `assignments`). |
 
 ## Sub-rules with implicit defaults
 

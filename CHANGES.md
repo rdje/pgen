@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-19 batch: module-items dispatch tree typed (5 rules / 22 annotations — largest batch yet)
+
+Largest single-slice batch. Every `header.items` and `body.items` field on every typed module/interface/program declaration now surfaces kind-discriminated dispatch into actual content.
+
+```ebnf
+module_item                          -> 2 kinds: port_declaration / non_port_item
+module_or_generate_item              -> 5 kinds (with attributes:): parameter_override, gate_instantiation, udp_instantiation, module_instantiation, module_common_item
+module_or_generate_item_declaration  -> 5 kinds: package_or_generate, genvar, clocking, default_clocking (with name), default_disable_iff (with expr)
+non_port_module_item                 -> 8 kinds: generate_region, module_or_generate, specify_block, specparam_declaration (with attributes), program_declaration, module_declaration, interface_declaration, timeunits_declaration
+continuous_assign                    -> 2 kinds: net (with drive_strength, delay, assignments), variable (with delay_control, assignments)
+```
+
+Annotation count: **144** (was 122, +22). Same accept set. Schema stays at `1`. Contract bumped 1.0.18 → 1.0.19. mdBook synced. Gate green ✅.
+
 ## 2026-05-05 - SV-Slice-18 batch: UDP truth-table entries typed
 
 3 rules / 3 annotations completing the UDP truth-table walk path.
