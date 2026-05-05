@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ae66eb97.js";
+            window.path_to_searchindex_js = "searchindex-197984b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -1909,13 +1909,18 @@ digits = /([0-9]+)/
 <p>For atom <code>\b</code>: <code>{"type": "anchor", "kind": "word_boundary"}</code>.</p>
 <p>See <a href="#examples-anchors-and-boundaries">Examples: Anchors and Boundaries</a> for the full set with consumer-side dispatch recipe.</p>
 <h2 id="backreference"><a class="header" href="#backreference"><code>backreference</code></a></h2>
-<pre><code class="language-ebnf">backreference = "\\" backreference_digits
-              | "\\k" name_ref             -&gt; {type: "backreference", kind: "named", ref: $2}
-              | "\\k" braced_name_ref      -&gt; {type: "backreference", kind: "named_braced", ref: $2}
-              | "\\g" subroutine_ref       -&gt; {type: "backreference", kind: "subroutine", ref: $2}
+<pre><code class="language-ebnf">backreference = "\\" backreference_digits                              -&gt; {type: "backreference", kind: "numeric",                index: $2}
+              | "\\k" name_ref                                          -&gt; {type: "backreference", kind: "named",                  ref:   $2}
+              | "\\k" braced_name_ref                                   -&gt; {type: "backreference", kind: "named_braced",           ref:   $2}
+              | "\\g" "&lt;" name "&gt;"                                      -&gt; {type: "backreference", kind: "subroutine_named",       ref:   $3}
+              | "\\g" "&lt;" signed_digits "&gt;"                             -&gt; {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+              | "\\g" "'" name "'"                                      -&gt; {type: "backreference", kind: "subroutine_named",       ref:   $3}
+              | "\\g" "'" signed_digits "'"                             -&gt; {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+              | "\\g" "{" brace_ws? name brace_ws? "}"                  -&gt; {type: "backreference", kind: "named_braced",           ref:   $4}
+              | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $4}
+              | "\\g" signed_digits                                     -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 </code></pre>
-<p>(Branch 0 — <code>"\\" backreference_digits</code> — annotated to <code>{type:"backreference", kind:"numeric", index: $2}</code>.)</p>
-<p>4-way Or, <strong>annotated</strong> as of slice 10 (post-1.1.38). Each branch emits a typed <code>{type:"backreference", kind:&lt;form&gt;, ...}</code> object.</p>
+<p>10-way Or, <strong>annotated</strong> as of slice 10 (initial 4-way) + PGEN-RGX-0081 fix (post-1.1.75 expanded to 10 branches with bracket-form discrimination).</p>
 <h3 id="shape-5-1"><a class="header" href="#shape-5-1">Shape</a></h3>
 <pre><code class="language-json">{"type": "backreference", "kind": &lt;form&gt;, ...form-specific-fields...}
 </code></pre>
@@ -1927,13 +1932,25 @@ digits = /([0-9]+)/
 </thead>
 <tbody>
 <tr><td>0</td><td><code>\1</code>, <code>\23</code></td><td><code>\1</code></td><td><code>{"type":"backreference","kind":"numeric","index":1}</code> (typed integer)</td></tr>
-<tr><td>1</td><td><code>\k&lt;name&gt;</code>, <code>\k'name'</code></td><td><code>\k&lt;foo&gt;</code></td><td><code>{"type":"backreference","kind":"named","ref":&lt;name_ref-raw-shape&gt;}</code></td></tr>
-<tr><td>2</td><td><code>\k{name}</code></td><td><code>\k{foo}</code></td><td><code>{"type":"backreference","kind":"named_braced","ref":&lt;braced_name_ref-raw-shape&gt;}</code></td></tr>
-<tr><td>3</td><td><code>\g&lt;...&gt;</code>, <code>\g'...'</code>, <code>\g{...}</code>, <code>\g+1</code>, <code>\g42</code></td><td><code>\g{2}</code></td><td><code>{"type":"backreference","kind":"subroutine","ref":&lt;subroutine_ref-raw-shape&gt;}</code></td></tr>
+<tr><td>1</td><td><code>\k&lt;name&gt;</code>, <code>\k'name'</code></td><td><code>\k&lt;foo&gt;</code></td><td><code>{"type":"backreference","kind":"named","ref":&lt;name string&gt;}</code></td></tr>
+<tr><td>2</td><td><code>\k{name}</code></td><td><code>\k{foo}</code></td><td><code>{"type":"backreference","kind":"named_braced","ref":&lt;name string&gt;}</code></td></tr>
+<tr><td>3</td><td><code>\g&lt;NAME&gt;</code></td><td><code>\g&lt;foo&gt;</code></td><td><code>{"type":"backreference","kind":"subroutine_named","ref":"foo"}</code> (PCRE2 subroutine call, named)</td></tr>
+<tr><td>4</td><td><code>\g&lt;N&gt;</code></td><td><code>\g&lt;1&gt;</code></td><td><code>{"type":"backreference","kind":"subroutine_numeric","ref":{"sign":[],"value":1}}</code> (PCRE2 subroutine call, numeric)</td></tr>
+<tr><td>5</td><td><code>\g'NAME'</code></td><td><code>\g'foo'</code></td><td>Same as branch 3 (apostrophe variant)</td></tr>
+<tr><td>6</td><td><code>\g'N'</code></td><td><code>\g'1'</code></td><td>Same as branch 4 (apostrophe variant)</td></tr>
+<tr><td>7</td><td><code>\g{NAME}</code></td><td><code>\g{foo}</code></td><td><code>{"type":"backreference","kind":"named_braced","ref":"foo"}</code> (back-reference per PCRE2; same kind as <code>\k{NAME}</code>)</td></tr>
+<tr><td>8</td><td><code>\g{N}</code></td><td><code>\g{1}</code></td><td><code>{"type":"backreference","kind":"numeric_backreference","ref":{"sign":[],"value":1}}</code> (numeric back-reference)</td></tr>
+<tr><td>9</td><td><code>\gN</code>, <code>\g+1</code>, <code>\g-2</code></td><td><code>\g42</code></td><td><code>{"type":"backreference","kind":"numeric_backreference","ref":{"sign":[],"value":42}}</code> (bare numeric back-reference)</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>backreference_digits</code> is itself annotated (<code>@transform: str::parse::&lt;usize&gt;</code>), so branch 0’s <code>index</code> is a typed integer directly. The other branches’ <code>ref</code> fields carry the inner sub-rule’s raw shape — a follow-up slice will type <code>name_ref</code>, <code>braced_name_ref</code>, and <code>subroutine_ref</code> so the <code>ref</code> field becomes a clean <code>{name: &lt;str&gt;}</code> / <code>{kind: ..., ...}</code> typed object instead of the raw EBNF Sequence. Until then, consumers walking <code>ref</code> for branches 1-3 dispatch on the raw structure documented in <a href="#anchors-backreferences-and-misc">Anchors, Backreferences, and Misc</a>.</p>
+<p><strong>PCRE2 semantics</strong> (per <code>pcre2pattern(3)</code> § “Subroutine references and recursive patterns”):</p>
+<ul>
+<li>Angle/apostrophe forms (<code>\g&lt;...&gt;</code>, <code>\g'...'</code>) → <strong>subroutine call</strong> (re-execute the group)</li>
+<li>Brace/bare forms (<code>\g{...}</code>, <code>\gN</code>) → <strong>back-reference</strong> (match what the group captured)</li>
+</ul>
+<p>The <code>kind</code> discriminator preserves this distinction — consumers can dispatch on <code>kind</code> to choose the right semantic. Pre-PGEN-RGX-0081 (parser releases 1.1.43 through 1.1.74) all <code>\g</code>-prefixed forms collapsed to <code>kind:"subroutine"</code>, losing this distinction.</p>
+<p><code>backreference_digits</code> is itself annotated (<code>@transform: str::parse::&lt;usize&gt;</code>), so branch 0’s <code>index</code> is a typed integer directly. Named-ref branches (1, 2, 3, 5, 7) carry a clean <code>name</code> string. Numeric-ref branches (4, 6, 8, 9) carry a <code>{sign, value}</code> object from the typed <code>signed_digits</code> rule.</p>
 <h3 id="consumer-extraction"><a class="header" href="#consumer-extraction">Consumer extraction</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1944,19 +1961,33 @@ digits = /([0-9]+)/
     }
     match obj.get("kind")?.as_str()? {
         "numeric" =&gt; {
+            // \1, \2, ...
             let index = obj.get("index")?.as_u64()?;
             Some(Backreference::Numeric(index))
         }
         "named" | "named_braced" =&gt; {
-            // ref is the raw name_ref / braced_name_ref shape until those rules
-            // are typed in a follow-up slice. For now, walk the raw chain.
-            let raw_ref = obj.get("ref")?;
-            let name = extract_name_from_raw(raw_ref)?;
+            // \k&lt;NAME&gt;, \k'NAME', \k{NAME}, \g{NAME}
+            let name = obj.get("ref")?.as_str()?.to_string();
             Some(Backreference::Named(name))
         }
-        "subroutine" =&gt; {
-            let raw_ref = obj.get("ref")?;
-            Some(Backreference::Subroutine(raw_ref.clone()))
+        "subroutine_named" =&gt; {
+            // \g&lt;NAME&gt;, \g'NAME' — subroutine call (re-execute group by name)
+            let name = obj.get("ref")?.as_str()?.to_string();
+            Some(Backreference::SubroutineCallNamed(name))
+        }
+        "subroutine_numeric" =&gt; {
+            // \g&lt;N&gt;, \g'N' — subroutine call (re-execute group N)
+            let r = obj.get("ref")?;
+            let sign = r.get("sign")?;
+            let value = r.get("value")?.as_u64()?;
+            Some(Backreference::SubroutineCallNumeric { sign: sign_str(sign), value })
+        }
+        "numeric_backreference" =&gt; {
+            // \g{N}, \gN — numeric back-reference
+            let r = obj.get("ref")?;
+            let sign = r.get("sign")?;
+            let value = r.get("value")?.as_u64()?;
+            Some(Backreference::NumericBackref { sign: sign_str(sign), value })
         }
         _ =&gt; None,
     }
@@ -2061,7 +2092,7 @@ digits = /([0-9]+)/
 <tr><td><code>whitespace_literal</code></td><td>bare string, single whitespace char</td><td><code>" "</code>, <code>"\t"</code></td></tr>
 <tr><td><code>dot</code></td><td>bare string <code>"."</code></td><td>exactly the <code>.</code> char</td></tr>
 <tr><td><code>anchor</code></td><td>typed object <code>{"type":"anchor","kind":"&lt;name&gt;"}</code></td><td>annotated in slice 7; dispatch on <code>obj.type == "anchor"</code> then read <code>obj.kind</code></td></tr>
-<tr><td><code>backreference</code></td><td>typed object <code>{"type":"backreference","kind":&lt;form&gt;,...}</code></td><td>annotated in slice 10; dispatch on <code>obj.kind</code> (<code>numeric</code> / <code>named</code> / <code>named_braced</code> / <code>subroutine</code>)</td></tr>
+<tr><td><code>backreference</code></td><td>typed object <code>{"type":"backreference","kind":&lt;form&gt;,...}</code></td><td>annotated in slice 10; expanded by PGEN-RGX-0081 fix (post-1.1.75). Dispatch on <code>obj.kind</code> (<code>numeric</code> / <code>named</code> / <code>named_braced</code> / <code>subroutine_named</code> / <code>subroutine_numeric</code> / <code>numeric_backreference</code>)</td></tr>
 <tr><td><code>quoted_literal</code></td><td>3-element array <code>["\\Q", &lt;chars&gt;, "\\E"]</code></td><td>full quoted literal</td></tr>
 <tr><td><code>escape</code></td><td>2-element array starting with <code>"\\"</code> and not matching backreference form</td><td><code>["\\", &lt;escape_unit&gt;]</code></td></tr>
 <tr><td><code>posix_word_boundary_alias</code></td><td>typed object `{“type”:“anchor”,“kind”:“posix_word_start”</td><td>“posix_word_end”}`</td></tr>
@@ -3795,18 +3826,47 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 ]
 </code></pre>
 <p>The subroutine_target distinguishes: <code>&amp;name</code>, <code>P&gt;name</code>, <code>R</code>, or signed digits. See <a href="#group-family">Group Family</a>.</p>
-<h2 id="code-block--lua-print1"><a class="header" href="#code-block--lua-print1">Code block — <code>(?{lua: print(1)})</code></a></h2>
-<pre><code class="language-json">"atom": [
-  "(?{",
-  "lua",
-  ":",
-  [],                       // optional ws
-  [&lt;balanced-brace code content&gt;],
-  "})"
-]
+<h2 id="code-block--lua-print1-typed"><a class="header" href="#code-block--lua-print1-typed">Code block — <code>(?{lua: print(1)})</code> (typed)</a></h2>
+<pre><code class="language-json">"atom": {
+  "type": "atom",
+  "kind": "code_block",
+  "lang": "lua",
+  "content": [/* per-char strings or matched code_element shapes */]
+}
 </code></pre>
 <p>The code content is a Quantified-<code>*</code> of <code>code_element</code>s. Each element is one of <code>code_string_double</code>, <code>code_string_single</code>, <code>code_balanced_braces</code>, <code>code_escaped_char</code>, <code>code_regular_char</code> — see grammar <code>regex.ebnf</code> lines covering <code>code_element</code>.</p>
-<p>For consumer purposes, the easiest extraction is via the source span of the code_block atom.</p>
+<h3 id="two-carrier-forms"><a class="header" href="#two-carrier-forms">Two carrier forms</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th><code>lang</code></th><th><code>content</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?{ check_env })</code> (Perl-style)</td><td><code>null</code></td><td><code>[" ","c","h","e","c","k","_","e","n","v"," "]</code></td></tr>
+<tr><td><code>(?{native:check_env})</code></td><td><code>"native"</code></td><td><code>["c","h","e","c","k","_","e","n","v"]</code> (since PGEN-RGX-0082 fix)</td></tr>
+<tr><td><code>(?{lua: print(1)})</code></td><td><code>"lua"</code></td><td><code>[" ","p","r","i","n","t","(","1",")"]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>PGEN-RGX-0082 note:</strong> in releases 1.1.74 and earlier, the <code>lang:</code> branch (<code>code_block_lang</code>) had an off-by-one positional reference (<code>content: $4</code> referenced the optional <code>ws?</code> slot, not the actual <code>code_content</code>). For <code>(?{native:NAME})</code> patterns: <code>content</code> was always <code>[]</code>, silently dropping the callback name. Fixed in 1.1.75 (<code>$4</code> → <code>$5</code>); both <code>(?{ NAME })</code> and <code>(?{lang:NAME})</code> now produce parallel typed shapes with content preserved.</p>
+<h3 id="consumer-extraction-3"><a class="header" href="#consumer-extraction-3">Consumer extraction</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_code_block(atom: &amp;Value) -&gt; Option&lt;(Option&lt;String&gt;, String)&gt; {
+    let obj = atom.as_object()?;
+    if obj.get("kind")?.as_str()? != "code_block" {
+        return None;
+    }
+    let lang = obj.get("lang")?.as_str().map(String::from);
+    // content is per-char array; concat to recover the code body string.
+    let content_arr = obj.get("content")?.as_array()?;
+    let body: String = content_arr.iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    Some((lang, body))
+}
+<span class="boring">}</span></code></pre>
+<p>For round-trip / source-span use cases, the easiest extraction is via the source span of the code_block atom (once <code>_meta.span</code> lands per the approved <code>_meta</code> carrier design).</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-qe-quoted-literals"><a class="header" href="#examples-qe-quoted-literals">Examples: \Q…\E Quoted Literals</a></h1>
 <p>The <code>\Q...\E</code> family is the focus of two correctness fixes — <strong>PGEN-RGX-0074</strong> (quantifier-attaches-to-last-char) and <strong>PGEN-RGX-0077</strong> (flat-pieces-no-extra-wrap). This chapter documents every member of the family with concrete probe outputs from the post-fix parser.</p>
@@ -4663,24 +4723,187 @@ fn ast_snapshot_for_canonical_inputs() {
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
 <h3 id="1175--contract-1177--pgen-rgx-0081--0082-fixes-typed-shape-regressions-surfaced-by-rgx-walker-migration"><a class="header" href="#1175--contract-1177--pgen-rgx-0081--0082-fixes-typed-shape-regressions-surfaced-by-rgx-walker-migration">1.1.75 / Contract 1.1.77 — PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration</a></h3>
-<p>Two RGX-reported AST-shape bugs landed by slices 11+12+13 (parser releases 1.1.41–43) and the code_block typing slice. Both pure shape fixes; same accept set; schema stays at <code>1</code>.</p>
-<p><strong>PGEN-RGX-0081 — <code>\g</code>-prefixed bracket-form distinction restored:</strong> all 5 forms (<code>\g&lt;n&gt;</code>, <code>\g{n}</code>, <code>\g&lt;1&gt;</code>, <code>\g{1}</code>, <code>\gN</code>) previously collapsed to <code>kind:"subroutine"</code>. Fix splits into 7 sub-branches with new kinds: <code>subroutine_named</code>, <code>subroutine_numeric</code>, <code>numeric_backreference</code>. The brace-form <code>\g{NAME}</code> routes to existing <code>kind:"named_braced"</code> (semantically identical to <code>\k{NAME}</code> per PCRE2 spec).</p>
-<pre><code class="language-text">\g&lt;n&gt;  → kind:"subroutine_named",       ref:"n"
-\g'1'  → kind:"subroutine_numeric",     ref:{sign,value}
-\g{n}  → kind:"named_braced",           ref:"n"          (was: subroutine)
-\g{1}  → kind:"numeric_backreference",  ref:{sign,value} (was: subroutine)
-\gN    → kind:"numeric_backreference",  ref:{sign,value} (was: subroutine)
+<blockquote>
+<p><strong>For RGX maintainers</strong>: this section explains the two AST-shape bugs that landed during the slice-11/12/13 (named-ref family) and code_block typing slice campaigns, and the post-fix shapes you should walk against. Both fixes are additive in spirit — schema stays at <code>1</code>, accept set unchanged, only the <code>kind</code> discriminator and one positional-ref change.</p>
+</blockquote>
+<h4 id="tldr-for-rgx"><a class="header" href="#tldr-for-rgx">TL;DR for RGX</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Bug</th><th>Pre-fix shape</th><th>Post-fix shape</th><th>RGX impact pre-fix</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>0081</strong> <code>\g</code>-prefixed</td><td>All 5 forms → <code>kind:"subroutine"</code></td><td>Bracket form → 4 new kinds</td><td>8+ conformance tests + <code>tests::g_bracketed_is_subroutine_call_not_backref</code> regression</td></tr>
+<tr><td><strong>0082</strong> <code>code_block_lang</code></td><td><code>content:[]</code> (callback name dropped)</td><td><code>content:[&lt;body chars&gt;]</code></td><td>8+ <code>full_mode_native_*</code> tests; <code>register_native</code> callback resolution broken</td></tr>
+</tbody>
+</table>
+</div>
+<p>Verify your walker against the 10-pattern matrix below + the post-fix <code>content</code> shape on <code>(?{native:NAME})</code>.</p>
+<h4 id="pgen-rgx-0081--g-prefixed-bracket-form-distinction-restored"><a class="header" href="#pgen-rgx-0081--g-prefixed-bracket-form-distinction-restored">PGEN-RGX-0081 — <code>\g</code>-prefixed bracket-form distinction restored</a></h4>
+<p><strong>Background.</strong> Slices 11+12+13 of the regex annotation campaign (parser releases 1.1.41–43) progressively typed the named-ref family, <code>subroutine_ref</code> cleanup, and <code>signed_digits</code>. The end state collapsed every <code>\g</code>-prefixed reference under a single <code>kind:"subroutine"</code> shape, irrespective of whether the source used angle (<code>\g&lt;...&gt;</code>), apostrophe (<code>\g'...'</code>), brace (<code>\g{...}</code>), or bare-digit (<code>\gN</code>) brackets.</p>
+<p><strong>Why this matters.</strong> PCRE2’s <code>pcre2pattern(3)</code> § “Subroutine references and recursive patterns” has clear bracket-form-determines-semantic rules:</p>
+<ul>
+<li><code>\g&lt;NAME&gt;</code> / <code>\g'NAME'</code> — <strong>subroutine call</strong> (re-execute the group; semantic ≠ back-reference)</li>
+<li><code>\g&lt;N&gt;</code> / <code>\g'N'</code> — <strong>subroutine call</strong> (re-execute group N)</li>
+<li><code>\g{NAME}</code> — <strong>back-reference</strong></li>
+<li><code>\g{N}</code> — <strong>back-reference</strong></li>
+<li><code>\gN</code> — <strong>back-reference</strong></li>
+</ul>
+<p>Pre-fix, every form produced the same <code>kind:"subroutine"</code> shape, so RGX couldn’t faithfully lower angle-vs-brace. RGX’s heuristic workaround (dispatch by <code>ref</code> shape: string → recursion, object → back-ref) got common cases right but mis-handled <code>\g&lt;N&gt;</code> (numeric subroutine call routed to back-reference instead of recursion).</p>
+<p><strong>The fix.</strong> Split the single <code>"\\g" subroutine_ref -&gt; {kind: "subroutine"...}</code> branch into 7 sub-branches, each pinned to a specific bracket form with its own kind:</p>
+<pre><code class="language-ebnf">backreference = "\\" backreference_digits                              -&gt; {type: "backreference", kind: "numeric",                index: $2}
+              | "\\k" name_ref                                          -&gt; {type: "backreference", kind: "named",                  ref:   $2}
+              | "\\k" braced_name_ref                                   -&gt; {type: "backreference", kind: "named_braced",           ref:   $2}
+              | "\\g" "&lt;" name "&gt;"                                      -&gt; {type: "backreference", kind: "subroutine_named",       ref:   $3}
+              | "\\g" "&lt;" signed_digits "&gt;"                             -&gt; {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+              | "\\g" "'" name "'"                                      -&gt; {type: "backreference", kind: "subroutine_named",       ref:   $3}
+              | "\\g" "'" signed_digits "'"                             -&gt; {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+              | "\\g" "{" brace_ws? name brace_ws? "}"                  -&gt; {type: "backreference", kind: "named_braced",           ref:   $4}
+              | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $4}
+              | "\\g" signed_digits                                     -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 </code></pre>
-<p><strong>PGEN-RGX-0082 — <code>code_block_lang</code> content drop fixed:</strong> off-by-one positional ref. Annotation referenced <code>$4</code> (the optional <code>ws?</code> slot) instead of <code>$5</code> (the actual <code>code_content</code>). Pre-fix <code>(?{native:NAME})</code> produced <code>{kind:"code_block", lang:"native", content:[]}</code>; post-fix <code>content</code> carries the body chars. RGX’s <code>register_native</code> API now resolves callbacks correctly.</p>
-<p><strong>Annotation inventory:</strong> 142 entries (was 138). +4 from the 0081 split (4 → 10 backreference branches).</p>
-<p><strong>Regression-lock tests:</strong> <code>regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form</code>, <code>regex_parser_pgen_rgx_0082_code_block_lang_preserves_content</code> in <code>rust/src/embedding_api.rs</code>. Test count: 499 / 0 (was 497, +2 new).</p>
-<p><strong>Bug ledger:</strong> REGEX-0081 and REGEX-0082 → “Released”.</p>
-<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.75 / Contract 1.1.77 Highlights” — has full annotation source + 10-pattern test matrix.</p>
+<p><strong>4 new kinds</strong>:</p>
+<ul>
+<li><code>subroutine_named</code> — <code>\g&lt;NAME&gt;</code> / <code>\g'NAME'</code> (subroutine call, named)</li>
+<li><code>subroutine_numeric</code> — <code>\g&lt;N&gt;</code> / <code>\g'N'</code> (subroutine call, numeric)</li>
+<li><code>numeric_backreference</code> — <code>\g{N}</code> / <code>\gN</code> (numeric back-reference)</li>
+<li>(existing) <code>named_braced</code> — <code>\k{NAME}</code> AND <code>\g{NAME}</code> route here (semantically identical per PCRE2 spec)</li>
+</ul>
+<p><strong>Empirical post-fix matrix</strong> (verified via <code>parseability_probe --parse-dump-ast-pretty regex .../pattern.txt --profile regex_default</code>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th>Pre-fix kind</th><th>Post-fix kind</th><th>Post-fix <code>ref</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>\g&lt;n&gt;</code></td><td><code>subroutine</code></td><td><code>subroutine_named</code></td><td><code>"n"</code></td></tr>
+<tr><td><code>\g'n'</code></td><td><code>subroutine</code></td><td><code>subroutine_named</code></td><td><code>"n"</code></td></tr>
+<tr><td><code>\g&lt;1&gt;</code></td><td><code>subroutine</code></td><td><code>subroutine_numeric</code></td><td><code>{"sign":[],"value":1}</code></td></tr>
+<tr><td><code>\g'1'</code></td><td><code>subroutine</code></td><td><code>subroutine_numeric</code></td><td><code>{"sign":[],"value":1}</code></td></tr>
+<tr><td><code>\g{n}</code></td><td><code>subroutine</code></td><td><code>named_braced</code></td><td><code>"n"</code></td></tr>
+<tr><td><code>\g{1}</code></td><td><code>subroutine</code></td><td><code>numeric_backreference</code></td><td><code>{"sign":[],"value":1}</code></td></tr>
+<tr><td><code>\gN</code></td><td><code>subroutine</code></td><td><code>numeric_backreference</code></td><td><code>{"sign":[],"value":1}</code></td></tr>
+<tr><td><code>\k&lt;n&gt;</code></td><td><code>named</code></td><td><code>named</code> (unchanged)</td><td><code>"n"</code></td></tr>
+<tr><td><code>\k{n}</code></td><td><code>named_braced</code></td><td><code>named_braced</code> (unchanged)</td><td><code>"n"</code></td></tr>
+<tr><td><code>\1</code></td><td><code>numeric</code></td><td><code>numeric</code> (unchanged)</td><td><code>index:1</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Consumer dispatch recipe</strong> (Rust):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match obj["kind"].as_str().unwrap() {
+    "numeric" =&gt; {
+        // \1, \2, ... — bare numeric backref
+        let index = obj["index"].as_u64().unwrap();
+        process_numeric_backref(index)
+    }
+    "named" =&gt; {
+        // \k&lt;NAME&gt;, \k'NAME'
+        let name = obj["ref"].as_str().unwrap();
+        process_named_backref(name)
+    }
+    "named_braced" =&gt; {
+        // \k{NAME} OR \g{NAME} — both back-references per PCRE2
+        let name = obj["ref"].as_str().unwrap();
+        process_named_backref(name)
+    }
+    "subroutine_named" =&gt; {
+        // \g&lt;NAME&gt;, \g'NAME' — subroutine call
+        let name = obj["ref"].as_str().unwrap();
+        process_subroutine_call_named(name)
+    }
+    "subroutine_numeric" =&gt; {
+        // \g&lt;N&gt;, \g'N' — subroutine call
+        let n = obj["ref"]["value"].as_u64().unwrap();
+        process_subroutine_call_numeric(n)
+    }
+    "numeric_backreference" =&gt; {
+        // \g{N}, \gN, \g+N, \g-N — numeric back-reference
+        let n = obj["ref"]["value"].as_u64().unwrap();
+        let sign = obj["ref"]["sign"].as_str();  // "+", "-", or empty
+        process_numeric_backref_signed(sign, n)
+    }
+    _ =&gt; unreachable!()
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Regression-lock test:</strong> <code>regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form</code> in <code>rust/src/embedding_api.rs</code> pins all 10 pattern → kind mappings.</p>
+<h4 id="pgen-rgx-0082--code_block_lang-content-drop-fixed-off-by-one-positional-ref"><a class="header" href="#pgen-rgx-0082--code_block_lang-content-drop-fixed-off-by-one-positional-ref">PGEN-RGX-0082 — <code>code_block_lang</code> content drop fixed (off-by-one positional ref)</a></h4>
+<p><strong>Background.</strong> When the <code>code_block</code> typing slice (atom-subtree slice 24, parser release <code>1.1.54</code>) typed the two code-block forms, the <code>code_block_lang</code> annotation referenced <code>content: $4</code>. The 6-element rule:</p>
+<pre><code class="language-ebnf">code_block_lang = "(?{" code_lang ":" ws? code_content "})"
+                  -&gt; {type: "atom", kind: "code_block", lang: $2, content: $4}    // ⚠ $4 is `ws?`!
+</code></pre>
+<p>has positions $1=<code>"(?{"</code>, $2=<code>code_lang</code>, $3=<code>":"</code>, $4=<code>ws?</code>, $5=<code>code_content</code>, $6=<code>"})"</code>. The annotation’s <code>$4</code> referenced the optional whitespace slot, not the actual <code>code_content</code>. For <code>(?{native:NAME})</code> patterns the typed AST emitted <code>{kind:"code_block", lang:"native", content:[]}</code> — the callback name was silently dropped. The Perl-style <code>(?{ NAME })</code> form (no <code>lang:</code> prefix) routed to <code>code_block_plain</code> and worked correctly because that branch’s <code>content: $2</code> correctly referenced <code>code_content</code>.</p>
+<p><strong>Why this matters for RGX.</strong> RGX’s <code>Regex::register_native(NAME, callback)</code> API resolves the callback name from the typed AST’s <code>content</code> field. With <code>content:[]</code>, the lookup found nothing and dispatch silently produced no match — <code>regex.is_match(...)</code> returned <code>false</code> regardless of whether the callback would have matched. 8+ <code>full_mode_native_*</code> regression tests in <code>rgx-core/src/lib.rs</code> failed silently after the PGEN bump.</p>
+<p><strong>The fix.</strong> Changed <code>content: $4</code> → <code>content: $5</code>:</p>
+<pre><code class="language-ebnf">code_block_lang = "(?{" code_lang ":" ws? code_content "})"
+                  -&gt; {type: "atom", kind: "code_block", lang: $2, content: $5}    // ✓
+</code></pre>
+<p><strong>Empirical post-fix matrix:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th>Pre-fix <code>content</code></th><th>Post-fix <code>content</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?{native:check_env})</code></td><td><code>[]</code></td><td><code>["c","h","e","c","k","_","e","n","v"]</code></td></tr>
+<tr><td><code>(?{native:my_callback_42})</code></td><td><code>[]</code></td><td>per-char array of <code>my_callback_42</code></td></tr>
+<tr><td><code>(?{native:})</code></td><td><code>[]</code></td><td><code>[]</code> (correct — empty body)</td></tr>
+<tr><td><code>(?{lua: print(1)})</code></td><td><code>[]</code></td><td><code>[" ","p","r","i","n","t","(","1",")"]</code></td></tr>
+<tr><td><code>(?{ check_env })</code> (no <code>lang:</code>)</td><td><code>[" ","c","h","e","c","k","_","e","n","v"," "]</code></td><td>unchanged</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Consumer dispatch recipe:</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_code_block(atom: &amp;Value) -&gt; Option&lt;(Option&lt;String&gt;, String)&gt; {
+    let obj = atom.as_object()?;
+    if obj.get("kind")?.as_str()? != "code_block" {
+        return None;
+    }
+    let lang = obj.get("lang")?.as_str().map(String::from);
+    let content_arr = obj.get("content")?.as_array()?;
+    // content is per-char strings — concat to recover the code body
+    let body: String = content_arr.iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    Some((lang, body))
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Regression-lock test:</strong> <code>regex_parser_pgen_rgx_0082_code_block_lang_preserves_content</code> in <code>rust/src/embedding_api.rs</code> pins 4 patterns including the <code>(?{lua:...})</code> audit case.</p>
+<h4 id="schema-accept-set-contract-bumps"><a class="header" href="#schema-accept-set-contract-bumps">Schema, accept set, contract bumps</a></h4>
+<ul>
+<li><strong>Schema version</strong>: stays at <code>1</code> (additive; same accept set).</li>
+<li><strong>Annotation inventory</strong>: 142 entries (was 138). +4 from 0081’s 4 → 10 split.</li>
+<li><strong>Parser release</strong>: <code>1.1.74</code> → <code>1.1.75</code>.</li>
+<li><strong>Contract version</strong>: <code>1.1.76</code> → <code>1.1.77</code>.</li>
+<li><strong>Bug ledger</strong>: <code>REGEX-0081</code>, <code>REGEX-0082</code> → “Released” in 1.1.75.</li>
+</ul>
+<h4 id="verification-commands-rgx-can-run-on-its-own-host"><a class="header" href="#verification-commands-rgx-can-run-on-its-own-host">Verification commands RGX can run on its own host</a></h4>
+<pre><code class="language-bash"># Build PGEN's parseability_probe with the regex backend:
+cd subs/pgen/rust
+cargo build --release --features generated_parsers --features ebnf_dual_run \
+    --bin parseability_probe
+
+# Test 0081: probe each pattern + check the typed `kind` discriminator.
+for p in '\\g&lt;n&gt;' '\\g{n}' '\\g&lt;1&gt;' '\\g{1}' '\\g1' '\\g'\\''n'\\''' '\\g'\\''1'\\''' '\\k{n}' '\\k&lt;n&gt;' '\\1'; do
+    echo -n "$p" &gt; /tmp/p.txt
+    ./target/release/parseability_probe --parse-dump-ast-pretty regex /tmp/p.txt /tmp/ast.json --profile regex_default
+    jq '.. | objects | select(.type=="backreference") | {kind, ref}' /tmp/ast.json
+done
+
+# Test 0082: probe (?{native:check_env}) and confirm content is non-empty.
+echo -n '(?{native:check_env})' &gt; /tmp/p.txt
+./target/release/parseability_probe --parse-dump-ast-pretty regex /tmp/p.txt /tmp/ast.json --profile regex_default
+jq '.. | objects | select(.kind=="code_block") | {lang, content}' /tmp/ast.json
+</code></pre>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.1.75 / Contract 1.1.77 Highlights” — full annotation source + parallel matrices.</p>
 <h3 id="1174--contract-1176--pgen-rgx-0078-verification--optim-14--15-embedding-api-dispatch-overhead-eliminated"><a class="header" href="#1174--contract-1176--pgen-rgx-0078-verification--optim-14--15-embedding-api-dispatch-overhead-eliminated">1.1.74 / Contract 1.1.76 — PGEN-RGX-0078 verification + Optim #14 / #15: embedding-API dispatch overhead eliminated</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: this section explains what changed, why your reported 360x figure no longer holds at HEAD, and what the closure picture looks like now. Read top-to-bottom — the methodology corrections matter for how you should interpret future ratio runs.</p>
 </blockquote>
-<h4 id="tldr-for-rgx"><a class="header" href="#tldr-for-rgx">TL;DR for RGX</a></h4>
+<h4 id="tldr-for-rgx-1"><a class="header" href="#tldr-for-rgx-1">TL;DR for RGX</a></h4>
 <ul>
 <li><strong>Your reported geomean PGEN/PCRE2-no-JIT compile ratio was ~360x at PGEN pin <code>056f6784</code> (release <code>1.1.40</code>, default macOS allocator).</strong> That number was correct for that pin and that methodology, but it does not survive at current HEAD (<code>1.1.74</code> / Contract <code>1.1.76</code>).</li>
 <li><strong>Two methodology issues</strong> in the report’s <code>pgen_iteration_flow/</code> cause the reported ratio to bias HIGH against PGEN (we explain both below).</li>
@@ -4885,7 +5108,7 @@ fn run_generated_regex_on_dedicated_stack&lt;T, F&gt;(input: &amp;str, f: F) -&g
 </ol>
 </li>
 </ul>
-<h4 id="verification-commands-rgx-can-run-on-its-own-host"><a class="header" href="#verification-commands-rgx-can-run-on-its-own-host">Verification commands RGX can run on its own host</a></h4>
+<h4 id="verification-commands-rgx-can-run-on-its-own-host-1"><a class="header" href="#verification-commands-rgx-can-run-on-its-own-host-1">Verification commands RGX can run on its own host</a></h4>
 <p>Reproduce the embedding-API ratio at any current PGEN HEAD without leaving the PGEN tree:</p>
 <pre><code class="language-bash"># In the PGEN tree:
 cd rust

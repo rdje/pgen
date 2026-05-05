@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ae66eb97.js";
+            window.path_to_searchindex_js = "searchindex-197984b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -357,18 +357,47 @@
 ]
 </code></pre>
 <p>The subroutine_target distinguishes: <code>&amp;name</code>, <code>P&gt;name</code>, <code>R</code>, or signed digits. See <a href="rules-groups.html">Group Family</a>.</p>
-<h2 id="code-block--lua-print1"><a class="header" href="#code-block--lua-print1">Code block — <code>(?{lua: print(1)})</code></a></h2>
-<pre><code class="language-json">"atom": [
-  "(?{",
-  "lua",
-  ":",
-  [],                       // optional ws
-  [&lt;balanced-brace code content&gt;],
-  "})"
-]
+<h2 id="code-block--lua-print1-typed"><a class="header" href="#code-block--lua-print1-typed">Code block — <code>(?{lua: print(1)})</code> (typed)</a></h2>
+<pre><code class="language-json">"atom": {
+  "type": "atom",
+  "kind": "code_block",
+  "lang": "lua",
+  "content": [/* per-char strings or matched code_element shapes */]
+}
 </code></pre>
 <p>The code content is a Quantified-<code>*</code> of <code>code_element</code>s. Each element is one of <code>code_string_double</code>, <code>code_string_single</code>, <code>code_balanced_braces</code>, <code>code_escaped_char</code>, <code>code_regular_char</code> — see grammar <code>regex.ebnf</code> lines covering <code>code_element</code>.</p>
-<p>For consumer purposes, the easiest extraction is via the source span of the code_block atom.</p>
+<h3 id="two-carrier-forms"><a class="header" href="#two-carrier-forms">Two carrier forms</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th><code>lang</code></th><th><code>content</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?{ check_env })</code> (Perl-style)</td><td><code>null</code></td><td><code>[" ","c","h","e","c","k","_","e","n","v"," "]</code></td></tr>
+<tr><td><code>(?{native:check_env})</code></td><td><code>"native"</code></td><td><code>["c","h","e","c","k","_","e","n","v"]</code> (since PGEN-RGX-0082 fix)</td></tr>
+<tr><td><code>(?{lua: print(1)})</code></td><td><code>"lua"</code></td><td><code>[" ","p","r","i","n","t","(","1",")"]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>PGEN-RGX-0082 note:</strong> in releases 1.1.74 and earlier, the <code>lang:</code> branch (<code>code_block_lang</code>) had an off-by-one positional reference (<code>content: $4</code> referenced the optional <code>ws?</code> slot, not the actual <code>code_content</code>). For <code>(?{native:NAME})</code> patterns: <code>content</code> was always <code>[]</code>, silently dropping the callback name. Fixed in 1.1.75 (<code>$4</code> → <code>$5</code>); both <code>(?{ NAME })</code> and <code>(?{lang:NAME})</code> now produce parallel typed shapes with content preserved.</p>
+<h3 id="consumer-extraction"><a class="header" href="#consumer-extraction">Consumer extraction</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_code_block(atom: &amp;Value) -&gt; Option&lt;(Option&lt;String&gt;, String)&gt; {
+    let obj = atom.as_object()?;
+    if obj.get("kind")?.as_str()? != "code_block" {
+        return None;
+    }
+    let lang = obj.get("lang")?.as_str().map(String::from);
+    // content is per-char array; concat to recover the code body string.
+    let content_arr = obj.get("content")?.as_array()?;
+    let body: String = content_arr.iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    Some((lang, body))
+}
+<span class="boring">}</span></code></pre>
+<p>For round-trip / source-span use cases, the easiest extraction is via the source span of the code_block atom (once <code>_meta.span</code> lands per the approved <code>_meta</code> carrier design).</p>
 
                     </main>
 

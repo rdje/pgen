@@ -25,27 +25,188 @@ Below are the shape-change highlights of recent slices, with pointers to the con
 
 ### 1.1.75 / Contract 1.1.77 — PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration
 
-Two RGX-reported AST-shape bugs landed by slices 11+12+13 (parser releases 1.1.41–43) and the code_block typing slice. Both pure shape fixes; same accept set; schema stays at `1`.
+> **For RGX maintainers**: this section explains the two AST-shape bugs that landed during the slice-11/12/13 (named-ref family) and code_block typing slice campaigns, and the post-fix shapes you should walk against. Both fixes are additive in spirit — schema stays at `1`, accept set unchanged, only the `kind` discriminator and one positional-ref change.
 
-**PGEN-RGX-0081 — `\g`-prefixed bracket-form distinction restored:** all 5 forms (`\g<n>`, `\g{n}`, `\g<1>`, `\g{1}`, `\gN`) previously collapsed to `kind:"subroutine"`. Fix splits into 7 sub-branches with new kinds: `subroutine_named`, `subroutine_numeric`, `numeric_backreference`. The brace-form `\g{NAME}` routes to existing `kind:"named_braced"` (semantically identical to `\k{NAME}` per PCRE2 spec).
+#### TL;DR for RGX
 
-```text
-\g<n>  → kind:"subroutine_named",       ref:"n"
-\g'1'  → kind:"subroutine_numeric",     ref:{sign,value}
-\g{n}  → kind:"named_braced",           ref:"n"          (was: subroutine)
-\g{1}  → kind:"numeric_backreference",  ref:{sign,value} (was: subroutine)
-\gN    → kind:"numeric_backreference",  ref:{sign,value} (was: subroutine)
+| Bug | Pre-fix shape | Post-fix shape | RGX impact pre-fix |
+|---|---|---|---|
+| **0081** `\g`-prefixed | All 5 forms → `kind:"subroutine"` | Bracket form → 4 new kinds | 8+ conformance tests + `tests::g_bracketed_is_subroutine_call_not_backref` regression |
+| **0082** `code_block_lang` | `content:[]` (callback name dropped) | `content:[<body chars>]` | 8+ `full_mode_native_*` tests; `register_native` callback resolution broken |
+
+Verify your walker against the 10-pattern matrix below + the post-fix `content` shape on `(?{native:NAME})`.
+
+#### PGEN-RGX-0081 — `\g`-prefixed bracket-form distinction restored
+
+**Background.** Slices 11+12+13 of the regex annotation campaign (parser releases 1.1.41–43) progressively typed the named-ref family, `subroutine_ref` cleanup, and `signed_digits`. The end state collapsed every `\g`-prefixed reference under a single `kind:"subroutine"` shape, irrespective of whether the source used angle (`\g<...>`), apostrophe (`\g'...'`), brace (`\g{...}`), or bare-digit (`\gN`) brackets.
+
+**Why this matters.** PCRE2's `pcre2pattern(3)` § "Subroutine references and recursive patterns" has clear bracket-form-determines-semantic rules:
+
+- `\g<NAME>` / `\g'NAME'` — **subroutine call** (re-execute the group; semantic ≠ back-reference)
+- `\g<N>` / `\g'N'` — **subroutine call** (re-execute group N)
+- `\g{NAME}` — **back-reference**
+- `\g{N}` — **back-reference**
+- `\gN` — **back-reference**
+
+Pre-fix, every form produced the same `kind:"subroutine"` shape, so RGX couldn't faithfully lower angle-vs-brace. RGX's heuristic workaround (dispatch by `ref` shape: string → recursion, object → back-ref) got common cases right but mis-handled `\g<N>` (numeric subroutine call routed to back-reference instead of recursion).
+
+**The fix.** Split the single `"\\g" subroutine_ref -> {kind: "subroutine"...}` branch into 7 sub-branches, each pinned to a specific bracket form with its own kind:
+
+```ebnf
+backreference = "\\" backreference_digits                              -> {type: "backreference", kind: "numeric",                index: $2}
+              | "\\k" name_ref                                          -> {type: "backreference", kind: "named",                  ref:   $2}
+              | "\\k" braced_name_ref                                   -> {type: "backreference", kind: "named_braced",           ref:   $2}
+              | "\\g" "<" name ">"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
+              | "\\g" "<" signed_digits ">"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+              | "\\g" "'" name "'"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
+              | "\\g" "'" signed_digits "'"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+              | "\\g" "{" brace_ws? name brace_ws? "}"                  -> {type: "backreference", kind: "named_braced",           ref:   $4}
+              | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -> {type: "backreference", kind: "numeric_backreference",  ref:   $4}
+              | "\\g" signed_digits                                     -> {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 ```
 
-**PGEN-RGX-0082 — `code_block_lang` content drop fixed:** off-by-one positional ref. Annotation referenced `$4` (the optional `ws?` slot) instead of `$5` (the actual `code_content`). Pre-fix `(?{native:NAME})` produced `{kind:"code_block", lang:"native", content:[]}`; post-fix `content` carries the body chars. RGX's `register_native` API now resolves callbacks correctly.
+**4 new kinds**:
+- `subroutine_named` — `\g<NAME>` / `\g'NAME'` (subroutine call, named)
+- `subroutine_numeric` — `\g<N>` / `\g'N'` (subroutine call, numeric)
+- `numeric_backreference` — `\g{N}` / `\gN` (numeric back-reference)
+- (existing) `named_braced` — `\k{NAME}` AND `\g{NAME}` route here (semantically identical per PCRE2 spec)
 
-**Annotation inventory:** 142 entries (was 138). +4 from the 0081 split (4 → 10 backreference branches).
+**Empirical post-fix matrix** (verified via `parseability_probe --parse-dump-ast-pretty regex .../pattern.txt --profile regex_default`):
 
-**Regression-lock tests:** `regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form`, `regex_parser_pgen_rgx_0082_code_block_lang_preserves_content` in `rust/src/embedding_api.rs`. Test count: 499 / 0 (was 497, +2 new).
+| Pattern | Pre-fix kind | Post-fix kind | Post-fix `ref` |
+|---|---|---|---|
+| `\g<n>`  | `subroutine` | `subroutine_named` | `"n"` |
+| `\g'n'`  | `subroutine` | `subroutine_named` | `"n"` |
+| `\g<1>`  | `subroutine` | `subroutine_numeric` | `{"sign":[],"value":1}` |
+| `\g'1'`  | `subroutine` | `subroutine_numeric` | `{"sign":[],"value":1}` |
+| `\g{n}`  | `subroutine` | `named_braced` | `"n"` |
+| `\g{1}`  | `subroutine` | `numeric_backreference` | `{"sign":[],"value":1}` |
+| `\gN`    | `subroutine` | `numeric_backreference` | `{"sign":[],"value":1}` |
+| `\k<n>`  | `named` | `named` (unchanged) | `"n"` |
+| `\k{n}`  | `named_braced` | `named_braced` (unchanged) | `"n"` |
+| `\1`     | `numeric` | `numeric` (unchanged) | `index:1` |
 
-**Bug ledger:** REGEX-0081 and REGEX-0082 → "Released".
+**Consumer dispatch recipe** (Rust):
 
-**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.75 / Contract 1.1.77 Highlights" — has full annotation source + 10-pattern test matrix.
+```rust
+match obj["kind"].as_str().unwrap() {
+    "numeric" => {
+        // \1, \2, ... — bare numeric backref
+        let index = obj["index"].as_u64().unwrap();
+        process_numeric_backref(index)
+    }
+    "named" => {
+        // \k<NAME>, \k'NAME'
+        let name = obj["ref"].as_str().unwrap();
+        process_named_backref(name)
+    }
+    "named_braced" => {
+        // \k{NAME} OR \g{NAME} — both back-references per PCRE2
+        let name = obj["ref"].as_str().unwrap();
+        process_named_backref(name)
+    }
+    "subroutine_named" => {
+        // \g<NAME>, \g'NAME' — subroutine call
+        let name = obj["ref"].as_str().unwrap();
+        process_subroutine_call_named(name)
+    }
+    "subroutine_numeric" => {
+        // \g<N>, \g'N' — subroutine call
+        let n = obj["ref"]["value"].as_u64().unwrap();
+        process_subroutine_call_numeric(n)
+    }
+    "numeric_backreference" => {
+        // \g{N}, \gN, \g+N, \g-N — numeric back-reference
+        let n = obj["ref"]["value"].as_u64().unwrap();
+        let sign = obj["ref"]["sign"].as_str();  // "+", "-", or empty
+        process_numeric_backref_signed(sign, n)
+    }
+    _ => unreachable!()
+}
+```
+
+**Regression-lock test:** `regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form` in `rust/src/embedding_api.rs` pins all 10 pattern → kind mappings.
+
+#### PGEN-RGX-0082 — `code_block_lang` content drop fixed (off-by-one positional ref)
+
+**Background.** When the `code_block` typing slice (atom-subtree slice 24, parser release `1.1.54`) typed the two code-block forms, the `code_block_lang` annotation referenced `content: $4`. The 6-element rule:
+
+```ebnf
+code_block_lang = "(?{" code_lang ":" ws? code_content "})"
+                  -> {type: "atom", kind: "code_block", lang: $2, content: $4}    // ⚠ $4 is `ws?`!
+```
+
+has positions $1=`"(?{"`, $2=`code_lang`, $3=`":"`, $4=`ws?`, $5=`code_content`, $6=`"})"`. The annotation's `$4` referenced the optional whitespace slot, not the actual `code_content`. For `(?{native:NAME})` patterns the typed AST emitted `{kind:"code_block", lang:"native", content:[]}` — the callback name was silently dropped. The Perl-style `(?{ NAME })` form (no `lang:` prefix) routed to `code_block_plain` and worked correctly because that branch's `content: $2` correctly referenced `code_content`.
+
+**Why this matters for RGX.** RGX's `Regex::register_native(NAME, callback)` API resolves the callback name from the typed AST's `content` field. With `content:[]`, the lookup found nothing and dispatch silently produced no match — `regex.is_match(...)` returned `false` regardless of whether the callback would have matched. 8+ `full_mode_native_*` regression tests in `rgx-core/src/lib.rs` failed silently after the PGEN bump.
+
+**The fix.** Changed `content: $4` → `content: $5`:
+
+```ebnf
+code_block_lang = "(?{" code_lang ":" ws? code_content "})"
+                  -> {type: "atom", kind: "code_block", lang: $2, content: $5}    // ✓
+```
+
+**Empirical post-fix matrix:**
+
+| Pattern | Pre-fix `content` | Post-fix `content` |
+|---|---|---|
+| `(?{native:check_env})` | `[]` | `["c","h","e","c","k","_","e","n","v"]` |
+| `(?{native:my_callback_42})` | `[]` | per-char array of `my_callback_42` |
+| `(?{native:})` | `[]` | `[]` (correct — empty body) |
+| `(?{lua: print(1)})` | `[]` | `[" ","p","r","i","n","t","(","1",")"]` |
+| `(?{ check_env })` (no `lang:`) | `[" ","c","h","e","c","k","_","e","n","v"," "]` | unchanged |
+
+**Consumer dispatch recipe:**
+
+```rust
+fn extract_code_block(atom: &Value) -> Option<(Option<String>, String)> {
+    let obj = atom.as_object()?;
+    if obj.get("kind")?.as_str()? != "code_block" {
+        return None;
+    }
+    let lang = obj.get("lang")?.as_str().map(String::from);
+    let content_arr = obj.get("content")?.as_array()?;
+    // content is per-char strings — concat to recover the code body
+    let body: String = content_arr.iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    Some((lang, body))
+}
+```
+
+**Regression-lock test:** `regex_parser_pgen_rgx_0082_code_block_lang_preserves_content` in `rust/src/embedding_api.rs` pins 4 patterns including the `(?{lua:...})` audit case.
+
+#### Schema, accept set, contract bumps
+
+- **Schema version**: stays at `1` (additive; same accept set).
+- **Annotation inventory**: 142 entries (was 138). +4 from 0081's 4 → 10 split.
+- **Parser release**: `1.1.74` → `1.1.75`.
+- **Contract version**: `1.1.76` → `1.1.77`.
+- **Bug ledger**: `REGEX-0081`, `REGEX-0082` → "Released" in 1.1.75.
+
+#### Verification commands RGX can run on its own host
+
+```bash
+# Build PGEN's parseability_probe with the regex backend:
+cd subs/pgen/rust
+cargo build --release --features generated_parsers --features ebnf_dual_run \
+    --bin parseability_probe
+
+# Test 0081: probe each pattern + check the typed `kind` discriminator.
+for p in '\\g<n>' '\\g{n}' '\\g<1>' '\\g{1}' '\\g1' '\\g'\\''n'\\''' '\\g'\\''1'\\''' '\\k{n}' '\\k<n>' '\\1'; do
+    echo -n "$p" > /tmp/p.txt
+    ./target/release/parseability_probe --parse-dump-ast-pretty regex /tmp/p.txt /tmp/ast.json --profile regex_default
+    jq '.. | objects | select(.type=="backreference") | {kind, ref}' /tmp/ast.json
+done
+
+# Test 0082: probe (?{native:check_env}) and confirm content is non-empty.
+echo -n '(?{native:check_env})' > /tmp/p.txt
+./target/release/parseability_probe --parse-dump-ast-pretty regex /tmp/p.txt /tmp/ast.json --profile regex_default
+jq '.. | objects | select(.kind=="code_block") | {lang, content}' /tmp/ast.json
+```
+
+**Contract section:** [`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.1.75 / Contract 1.1.77 Highlights" — full annotation source + parallel matrices.
 
 ### 1.1.74 / Contract 1.1.76 — PGEN-RGX-0078 verification + Optim #14 / #15: embedding-API dispatch overhead eliminated
 

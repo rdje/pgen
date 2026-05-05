@@ -233,19 +233,45 @@ PCRE2 only supports positive variants of non-atomic lookarounds. The `positive:t
 
 The subroutine_target distinguishes: `&name`, `P>name`, `R`, or signed digits. See [Group Family](rules-groups.md).
 
-## Code block — `(?{lua: print(1)})`
+## Code block — `(?{lua: print(1)})` (typed)
 
 ```json
-"atom": [
-  "(?{",
-  "lua",
-  ":",
-  [],                       // optional ws
-  [<balanced-brace code content>],
-  "})"
-]
+"atom": {
+  "type": "atom",
+  "kind": "code_block",
+  "lang": "lua",
+  "content": [/* per-char strings or matched code_element shapes */]
+}
 ```
 
 The code content is a Quantified-`*` of `code_element`s. Each element is one of `code_string_double`, `code_string_single`, `code_balanced_braces`, `code_escaped_char`, `code_regular_char` — see grammar `regex.ebnf` lines covering `code_element`.
 
-For consumer purposes, the easiest extraction is via the source span of the code_block atom.
+### Two carrier forms
+
+| Pattern | `lang` | `content` |
+|---|---|---|
+| `(?{ check_env })` (Perl-style) | `null` | `[" ","c","h","e","c","k","_","e","n","v"," "]` |
+| `(?{native:check_env})` | `"native"` | `["c","h","e","c","k","_","e","n","v"]` (since PGEN-RGX-0082 fix) |
+| `(?{lua: print(1)})` | `"lua"` | `[" ","p","r","i","n","t","(","1",")"]` |
+
+**PGEN-RGX-0082 note:** in releases 1.1.74 and earlier, the `lang:` branch (`code_block_lang`) had an off-by-one positional reference (`content: $4` referenced the optional `ws?` slot, not the actual `code_content`). For `(?{native:NAME})` patterns: `content` was always `[]`, silently dropping the callback name. Fixed in 1.1.75 (`$4` → `$5`); both `(?{ NAME })` and `(?{lang:NAME})` now produce parallel typed shapes with content preserved.
+
+### Consumer extraction
+
+```rust
+fn extract_code_block(atom: &Value) -> Option<(Option<String>, String)> {
+    let obj = atom.as_object()?;
+    if obj.get("kind")?.as_str()? != "code_block" {
+        return None;
+    }
+    let lang = obj.get("lang")?.as_str().map(String::from);
+    // content is per-char array; concat to recover the code body string.
+    let content_arr = obj.get("content")?.as_array()?;
+    let body: String = content_arr.iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    Some((lang, body))
+}
+```
+
+For round-trip / source-span use cases, the easiest extraction is via the source span of the code_block atom (once `_meta.span` lands per the approved `_meta` carrier design).

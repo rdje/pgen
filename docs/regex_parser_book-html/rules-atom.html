@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ae66eb97.js";
+            window.path_to_searchindex_js = "searchindex-197984b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -268,13 +268,18 @@
 <p>For atom <code>\b</code>: <code>{"type": "anchor", "kind": "word_boundary"}</code>.</p>
 <p>See <a href="examples-anchors.html">Examples: Anchors and Boundaries</a> for the full set with consumer-side dispatch recipe.</p>
 <h2 id="backreference"><a class="header" href="#backreference"><code>backreference</code></a></h2>
-<pre><code class="language-ebnf">backreference = "\\" backreference_digits
-              | "\\k" name_ref             -&gt; {type: "backreference", kind: "named", ref: $2}
-              | "\\k" braced_name_ref      -&gt; {type: "backreference", kind: "named_braced", ref: $2}
-              | "\\g" subroutine_ref       -&gt; {type: "backreference", kind: "subroutine", ref: $2}
+<pre><code class="language-ebnf">backreference = "\\" backreference_digits                              -&gt; {type: "backreference", kind: "numeric",                index: $2}
+              | "\\k" name_ref                                          -&gt; {type: "backreference", kind: "named",                  ref:   $2}
+              | "\\k" braced_name_ref                                   -&gt; {type: "backreference", kind: "named_braced",           ref:   $2}
+              | "\\g" "&lt;" name "&gt;"                                      -&gt; {type: "backreference", kind: "subroutine_named",       ref:   $3}
+              | "\\g" "&lt;" signed_digits "&gt;"                             -&gt; {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+              | "\\g" "'" name "'"                                      -&gt; {type: "backreference", kind: "subroutine_named",       ref:   $3}
+              | "\\g" "'" signed_digits "'"                             -&gt; {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
+              | "\\g" "{" brace_ws? name brace_ws? "}"                  -&gt; {type: "backreference", kind: "named_braced",           ref:   $4}
+              | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $4}
+              | "\\g" signed_digits                                     -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 </code></pre>
-<p>(Branch 0 — <code>"\\" backreference_digits</code> — annotated to <code>{type:"backreference", kind:"numeric", index: $2}</code>.)</p>
-<p>4-way Or, <strong>annotated</strong> as of slice 10 (post-1.1.38). Each branch emits a typed <code>{type:"backreference", kind:&lt;form&gt;, ...}</code> object.</p>
+<p>10-way Or, <strong>annotated</strong> as of slice 10 (initial 4-way) + PGEN-RGX-0081 fix (post-1.1.75 expanded to 10 branches with bracket-form discrimination).</p>
 <h3 id="shape-5"><a class="header" href="#shape-5">Shape</a></h3>
 <pre><code class="language-json">{"type": "backreference", "kind": &lt;form&gt;, ...form-specific-fields...}
 </code></pre>
@@ -286,13 +291,25 @@
 </thead>
 <tbody>
 <tr><td>0</td><td><code>\1</code>, <code>\23</code></td><td><code>\1</code></td><td><code>{"type":"backreference","kind":"numeric","index":1}</code> (typed integer)</td></tr>
-<tr><td>1</td><td><code>\k&lt;name&gt;</code>, <code>\k'name'</code></td><td><code>\k&lt;foo&gt;</code></td><td><code>{"type":"backreference","kind":"named","ref":&lt;name_ref-raw-shape&gt;}</code></td></tr>
-<tr><td>2</td><td><code>\k{name}</code></td><td><code>\k{foo}</code></td><td><code>{"type":"backreference","kind":"named_braced","ref":&lt;braced_name_ref-raw-shape&gt;}</code></td></tr>
-<tr><td>3</td><td><code>\g&lt;...&gt;</code>, <code>\g'...'</code>, <code>\g{...}</code>, <code>\g+1</code>, <code>\g42</code></td><td><code>\g{2}</code></td><td><code>{"type":"backreference","kind":"subroutine","ref":&lt;subroutine_ref-raw-shape&gt;}</code></td></tr>
+<tr><td>1</td><td><code>\k&lt;name&gt;</code>, <code>\k'name'</code></td><td><code>\k&lt;foo&gt;</code></td><td><code>{"type":"backreference","kind":"named","ref":&lt;name string&gt;}</code></td></tr>
+<tr><td>2</td><td><code>\k{name}</code></td><td><code>\k{foo}</code></td><td><code>{"type":"backreference","kind":"named_braced","ref":&lt;name string&gt;}</code></td></tr>
+<tr><td>3</td><td><code>\g&lt;NAME&gt;</code></td><td><code>\g&lt;foo&gt;</code></td><td><code>{"type":"backreference","kind":"subroutine_named","ref":"foo"}</code> (PCRE2 subroutine call, named)</td></tr>
+<tr><td>4</td><td><code>\g&lt;N&gt;</code></td><td><code>\g&lt;1&gt;</code></td><td><code>{"type":"backreference","kind":"subroutine_numeric","ref":{"sign":[],"value":1}}</code> (PCRE2 subroutine call, numeric)</td></tr>
+<tr><td>5</td><td><code>\g'NAME'</code></td><td><code>\g'foo'</code></td><td>Same as branch 3 (apostrophe variant)</td></tr>
+<tr><td>6</td><td><code>\g'N'</code></td><td><code>\g'1'</code></td><td>Same as branch 4 (apostrophe variant)</td></tr>
+<tr><td>7</td><td><code>\g{NAME}</code></td><td><code>\g{foo}</code></td><td><code>{"type":"backreference","kind":"named_braced","ref":"foo"}</code> (back-reference per PCRE2; same kind as <code>\k{NAME}</code>)</td></tr>
+<tr><td>8</td><td><code>\g{N}</code></td><td><code>\g{1}</code></td><td><code>{"type":"backreference","kind":"numeric_backreference","ref":{"sign":[],"value":1}}</code> (numeric back-reference)</td></tr>
+<tr><td>9</td><td><code>\gN</code>, <code>\g+1</code>, <code>\g-2</code></td><td><code>\g42</code></td><td><code>{"type":"backreference","kind":"numeric_backreference","ref":{"sign":[],"value":42}}</code> (bare numeric back-reference)</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>backreference_digits</code> is itself annotated (<code>@transform: str::parse::&lt;usize&gt;</code>), so branch 0’s <code>index</code> is a typed integer directly. The other branches’ <code>ref</code> fields carry the inner sub-rule’s raw shape — a follow-up slice will type <code>name_ref</code>, <code>braced_name_ref</code>, and <code>subroutine_ref</code> so the <code>ref</code> field becomes a clean <code>{name: &lt;str&gt;}</code> / <code>{kind: ..., ...}</code> typed object instead of the raw EBNF Sequence. Until then, consumers walking <code>ref</code> for branches 1-3 dispatch on the raw structure documented in <a href="rules-misc.html">Anchors, Backreferences, and Misc</a>.</p>
+<p><strong>PCRE2 semantics</strong> (per <code>pcre2pattern(3)</code> § “Subroutine references and recursive patterns”):</p>
+<ul>
+<li>Angle/apostrophe forms (<code>\g&lt;...&gt;</code>, <code>\g'...'</code>) → <strong>subroutine call</strong> (re-execute the group)</li>
+<li>Brace/bare forms (<code>\g{...}</code>, <code>\gN</code>) → <strong>back-reference</strong> (match what the group captured)</li>
+</ul>
+<p>The <code>kind</code> discriminator preserves this distinction — consumers can dispatch on <code>kind</code> to choose the right semantic. Pre-PGEN-RGX-0081 (parser releases 1.1.43 through 1.1.74) all <code>\g</code>-prefixed forms collapsed to <code>kind:"subroutine"</code>, losing this distinction.</p>
+<p><code>backreference_digits</code> is itself annotated (<code>@transform: str::parse::&lt;usize&gt;</code>), so branch 0’s <code>index</code> is a typed integer directly. Named-ref branches (1, 2, 3, 5, 7) carry a clean <code>name</code> string. Numeric-ref branches (4, 6, 8, 9) carry a <code>{sign, value}</code> object from the typed <code>signed_digits</code> rule.</p>
 <h3 id="consumer-extraction"><a class="header" href="#consumer-extraction">Consumer extraction</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -303,19 +320,33 @@
     }
     match obj.get("kind")?.as_str()? {
         "numeric" =&gt; {
+            // \1, \2, ...
             let index = obj.get("index")?.as_u64()?;
             Some(Backreference::Numeric(index))
         }
         "named" | "named_braced" =&gt; {
-            // ref is the raw name_ref / braced_name_ref shape until those rules
-            // are typed in a follow-up slice. For now, walk the raw chain.
-            let raw_ref = obj.get("ref")?;
-            let name = extract_name_from_raw(raw_ref)?;
+            // \k&lt;NAME&gt;, \k'NAME', \k{NAME}, \g{NAME}
+            let name = obj.get("ref")?.as_str()?.to_string();
             Some(Backreference::Named(name))
         }
-        "subroutine" =&gt; {
-            let raw_ref = obj.get("ref")?;
-            Some(Backreference::Subroutine(raw_ref.clone()))
+        "subroutine_named" =&gt; {
+            // \g&lt;NAME&gt;, \g'NAME' — subroutine call (re-execute group by name)
+            let name = obj.get("ref")?.as_str()?.to_string();
+            Some(Backreference::SubroutineCallNamed(name))
+        }
+        "subroutine_numeric" =&gt; {
+            // \g&lt;N&gt;, \g'N' — subroutine call (re-execute group N)
+            let r = obj.get("ref")?;
+            let sign = r.get("sign")?;
+            let value = r.get("value")?.as_u64()?;
+            Some(Backreference::SubroutineCallNumeric { sign: sign_str(sign), value })
+        }
+        "numeric_backreference" =&gt; {
+            // \g{N}, \gN — numeric back-reference
+            let r = obj.get("ref")?;
+            let sign = r.get("sign")?;
+            let value = r.get("value")?.as_u64()?;
+            Some(Backreference::NumericBackref { sign: sign_str(sign), value })
         }
         _ =&gt; None,
     }
@@ -420,7 +451,7 @@
 <tr><td><code>whitespace_literal</code></td><td>bare string, single whitespace char</td><td><code>" "</code>, <code>"\t"</code></td></tr>
 <tr><td><code>dot</code></td><td>bare string <code>"."</code></td><td>exactly the <code>.</code> char</td></tr>
 <tr><td><code>anchor</code></td><td>typed object <code>{"type":"anchor","kind":"&lt;name&gt;"}</code></td><td>annotated in slice 7; dispatch on <code>obj.type == "anchor"</code> then read <code>obj.kind</code></td></tr>
-<tr><td><code>backreference</code></td><td>typed object <code>{"type":"backreference","kind":&lt;form&gt;,...}</code></td><td>annotated in slice 10; dispatch on <code>obj.kind</code> (<code>numeric</code> / <code>named</code> / <code>named_braced</code> / <code>subroutine</code>)</td></tr>
+<tr><td><code>backreference</code></td><td>typed object <code>{"type":"backreference","kind":&lt;form&gt;,...}</code></td><td>annotated in slice 10; expanded by PGEN-RGX-0081 fix (post-1.1.75). Dispatch on <code>obj.kind</code> (<code>numeric</code> / <code>named</code> / <code>named_braced</code> / <code>subroutine_named</code> / <code>subroutine_numeric</code> / <code>numeric_backreference</code>)</td></tr>
 <tr><td><code>quoted_literal</code></td><td>3-element array <code>["\\Q", &lt;chars&gt;, "\\E"]</code></td><td>full quoted literal</td></tr>
 <tr><td><code>escape</code></td><td>2-element array starting with <code>"\\"</code> and not matching backreference form</td><td><code>["\\", &lt;escape_unit&gt;]</code></td></tr>
 <tr><td><code>posix_word_boundary_alias</code></td><td>typed object `{“type”:“anchor”,“kind”:“posix_word_start”</td><td>“posix_word_end”}`</td></tr>
