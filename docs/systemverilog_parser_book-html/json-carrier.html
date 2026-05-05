@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aa828d6b.js";
+            window.path_to_searchindex_js = "searchindex-91f50939.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -291,6 +291,10 @@
 <tr><td><code>task_declaration_sv_2017</code></td><td><code>-&gt; {lifetime: $2, body: $3}</code></td><td>Parallel to <code>function_declaration_sv_2017</code>.</td></tr>
 <tr><td><code>task_declaration_sv_2023</code></td><td><code>-&gt; {dynamic_override: $2, lifetime: $3, body: $4}</code></td><td>Parallel to <code>function_declaration_sv_2023</code>.</td></tr>
 <tr><td><code>task_body_declaration</code></td><td><code>-&gt; {name: $1, items: $3, statements: $4, end_label: $6}</code></td><td>Same shape as <code>function_body_declaration</code> but no <code>return_type</code> (task is void by definition).</td></tr>
+<tr><td><code>net_declaration_sv_2017</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"wire"</code> (<code>{net_type, strength, vector_scalar, data_type, delay, assignments}</code> — <code>strength</code> and <code>vector_scalar</code> are typed via helper rules <code>net_strength</code> / <code>net_vector_scalar</code>) / <code>"alias"</code> (<code>{net_type_id, delay_control, assignments}</code>) / <code>"interconnect"</code> (<code>{data_type, delay, name, dims, second}</code>).</td></tr>
+<tr><td><code>net_declaration_sv_2023</code> (3 branches)</td><td>per-branch typed</td><td>Same 3 kinds as sv_2017; alias branch uses field <code>nettype_id</code> instead of <code>net_type_id</code> (LRM 2023 nettype-vs-net_type rule rename).</td></tr>
+<tr><td><code>net_strength</code> (NEW; 2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"drive"</code> (body is the matched drive_strength shape) / <code>"charge"</code> (body is the matched charge_strength shape). Helper rule extracted from inline <code>( drive_strength | charge_strength )?</code> to dodge task #38.</td></tr>
+<tr><td><code>net_vector_scalar</code> (NEW; 2 branches)</td><td>per-branch <code>{kind}</code> (no body)</td><td>Kind labels: <code>"vectored"</code> / <code>"scalared"</code>. Helper rule extracted from inline <code>( kw_vectored | kw_scalared )?</code> to dodge task #38. Bare <code>{kind}</code> shape — each branch matches a single keyword token.</td></tr>
 </tbody>
 </table>
 </div>

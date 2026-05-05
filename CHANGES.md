@@ -1,4 +1,17 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-26 batch: net_declaration typed via helper-rule extraction (4 rules / 10 annotations + 2 new helper rules)
+
+Closes the net_declaration walk path. Two new helper rules extracted from inline parens-Or to dodge task #38 (same pattern as SV-Slice-23's `if_generate_else_clause`).
+
+```ebnf
+net_declaration_sv_2017     -> 3 kinds (wire / alias / interconnect)
+net_declaration_sv_2023     -> 3 kinds (alias branch field is `nettype_id` per LRM 2023)
+net_strength (NEW)          -> 2 kinds (drive {body} / charge {body})
+net_vector_scalar (NEW)     -> 2 kinds (vectored / scalared, bare {kind})
+```
+
+Annotation count: **284** (was 274, +10). Same accept set. Schema stays at `1`. Contract bumped 1.0.25 → 1.0.26. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-25 batch: data/function/task declarations + bodies typed (8 rules / 14 annotations)
 
 Closes the data / function / task walk paths from `package_or_generate_item_declaration`. After this slice, every reachable `package_or_generate_item_declaration.kind == "data_declaration"` / `"function_declaration"` / `"task_declaration"` exposes typed dispatch all the way to the function/task body's name + items + statements + end_label.

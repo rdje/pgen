@@ -107,6 +107,10 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `task_declaration_sv_2017` | `-> {lifetime: $2, body: $3}` | Parallel to `function_declaration_sv_2017`. |
 | `task_declaration_sv_2023` | `-> {dynamic_override: $2, lifetime: $3, body: $4}` | Parallel to `function_declaration_sv_2023`. |
 | `task_body_declaration` | `-> {name: $1, items: $3, statements: $4, end_label: $6}` | Same shape as `function_body_declaration` but no `return_type` (task is void by definition). |
+| `net_declaration_sv_2017` (3 branches) | per-branch typed | Kind labels: `"wire"` (`{net_type, strength, vector_scalar, data_type, delay, assignments}` — `strength` and `vector_scalar` are typed via helper rules `net_strength` / `net_vector_scalar`) / `"alias"` (`{net_type_id, delay_control, assignments}`) / `"interconnect"` (`{data_type, delay, name, dims, second}`). |
+| `net_declaration_sv_2023` (3 branches) | per-branch typed | Same 3 kinds as sv_2017; alias branch uses field `nettype_id` instead of `net_type_id` (LRM 2023 nettype-vs-net_type rule rename). |
+| `net_strength` (NEW; 2 branches) | per-branch `{kind, body}` | Kind labels: `"drive"` (body is the matched drive_strength shape) / `"charge"` (body is the matched charge_strength shape). Helper rule extracted from inline `( drive_strength \| charge_strength )?` to dodge task #38. |
+| `net_vector_scalar` (NEW; 2 branches) | per-branch `{kind}` (no body) | Kind labels: `"vectored"` / `"scalared"`. Helper rule extracted from inline `( kw_vectored \| kw_scalared )?` to dodge task #38. Bare `{kind}` shape — each branch matches a single keyword token. |
 
 ## Sub-rules with implicit defaults
 

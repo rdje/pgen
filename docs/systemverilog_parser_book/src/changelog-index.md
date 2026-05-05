@@ -19,6 +19,23 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.26 / Contract 1.0.26 — SV-Slice-26 batch: net_declaration typed via helper-rule extraction (4 rules / 10 annotations + 2 new helper rules)
+
+**What changed:** Closes the net_declaration walk path. Two new helper rules extracted from inline parens-Or to dodge task #38 (same pattern as SV-Slice-23).
+
+```ebnf
+net_declaration_sv_2017     -> 3 kinds (wire / alias / interconnect)
+net_declaration_sv_2023     -> 3 kinds (alias branch field is `nettype_id` per LRM 2023)
+net_strength (NEW)          -> 2 kinds (drive {body} / charge {body})
+net_vector_scalar (NEW)     -> 2 kinds (vectored / scalared, bare {kind})
+```
+
+**Annotation inventory:** 284 entries (was 274). +10 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.26 / Contract 1.0.26 Highlights" with full annotation source + helper-rule rationale.
+
 ### 1.0.25 / Contract 1.0.25 — SV-Slice-25 batch: data/function/task declarations + bodies typed (8 rules / 14 annotations)
 
 **What changed:** Closes the data / function / task walk paths from package_or_generate_item_declaration.

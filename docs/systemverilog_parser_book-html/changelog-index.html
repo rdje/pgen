@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aa828d6b.js";
+            window.path_to_searchindex_js = "searchindex-91f50939.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,16 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1026--contract-1026--sv-slice-26-batch-net_declaration-typed-via-helper-rule-extraction-4-rules--10-annotations--2-new-helper-rules"><a class="header" href="#1026--contract-1026--sv-slice-26-batch-net_declaration-typed-via-helper-rule-extraction-4-rules--10-annotations--2-new-helper-rules">1.0.26 / Contract 1.0.26 — SV-Slice-26 batch: net_declaration typed via helper-rule extraction (4 rules / 10 annotations + 2 new helper rules)</a></h3>
+<p><strong>What changed:</strong> Closes the net_declaration walk path. Two new helper rules extracted from inline parens-Or to dodge task #38 (same pattern as SV-Slice-23).</p>
+<pre><code class="language-ebnf">net_declaration_sv_2017     -&gt; 3 kinds (wire / alias / interconnect)
+net_declaration_sv_2023     -&gt; 3 kinds (alias branch field is `nettype_id` per LRM 2023)
+net_strength (NEW)          -&gt; 2 kinds (drive {body} / charge {body})
+net_vector_scalar (NEW)     -&gt; 2 kinds (vectored / scalared, bare {kind})
+</code></pre>
+<p><strong>Annotation inventory:</strong> 284 entries (was 274). +10 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.26 / Contract 1.0.26 Highlights” with full annotation source + helper-rule rationale.</p>
 <h3 id="1025--contract-1025--sv-slice-25-batch-datafunctiontask-declarations--bodies-typed-8-rules--14-annotations"><a class="header" href="#1025--contract-1025--sv-slice-25-batch-datafunctiontask-declarations--bodies-typed-8-rules--14-annotations">1.0.25 / Contract 1.0.25 — SV-Slice-25 batch: data/function/task declarations + bodies typed (8 rules / 14 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the data / function / task walk paths from package_or_generate_item_declaration.</p>
 <pre><code class="language-ebnf">data_declaration_sv_2017     -&gt; 4 kinds (variable_decl / type / package_import / net_type)

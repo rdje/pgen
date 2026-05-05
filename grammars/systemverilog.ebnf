@@ -1818,14 +1818,26 @@ net_assignment := net_lvalue assign expression
 net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
 
 @profiles: ["sv_2017"]
-net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( drive_strength | charge_strength )? ( kw_vectored_53eb166d | kw_scalared_92ab459c )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
+net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
+                                -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
                          | @probe_sample: "nt a;" net_type_identifier ( delay_control )? list_of_net_decl_assignments semi
+                                -> {kind: "alias",        net_type_id: $1, delay_control: $2, assignments: $3}
                          | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
+                                -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
 
 @profiles: ["sv_2023"]
-net_declaration_sv_2023 := @probe_sample: "wire a;" net_type ( drive_strength | charge_strength )? ( kw_vectored_53eb166d | kw_scalared_92ab459c )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
+net_declaration_sv_2023 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
+                                -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
                          | @probe_sample: "nt a;" nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
+                                -> {kind: "alias",        nettype_id: $1, delay_control: $2, assignments: $3}
                          | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
+                                -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
+
+net_strength := drive_strength  -> {kind: "drive",  body: $1}
+              | charge_strength -> {kind: "charge", body: $1}
+
+net_vector_scalar := kw_vectored_53eb166d -> {kind: "vectored"}
+                   | kw_scalared_92ab459c -> {kind: "scalared"}
 
 net_declaration := net_declaration_sv_2017 | net_declaration_sv_2023
 

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.25`
+  - `1.0.26`
 - Parser release version:
-  - `1.0.25`
+  - `1.0.26`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,69 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.26 / Contract 1.0.26 Highlights — SV-Slice-26 batch: net_declaration typed via helper-rule extraction (4 rules / 10 annotations + 2 new helper rules)
+
+Closes the net_declaration walk path. After this slice, every reachable `data_declaration_sv_2017.kind == "net_type"` (sv_2017) and contexts that resolve through to net_declaration expose typed dispatch. Two new helper rules (`net_strength`, `net_vector_scalar`) extracted from inline parens-Or to dodge task #38 — same workaround pattern as SV-Slice-23's `if_generate_else_clause`.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+net_declaration_sv_2017 := net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
+                                -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
+                         | net_type_identifier ( delay_control )? list_of_net_decl_assignments semi
+                                -> {kind: "alias",        net_type_id: $1, delay_control: $2, assignments: $3}
+                         | kw_interconnect implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
+                                -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
+
+@profiles: ["sv_2023"]
+net_declaration_sv_2023 := /* same 3 branches; alias branch uses `nettype_identifier` (kind label "alias", field name `nettype_id`) per LRM 2023 nettype-vs-net_type naming */
+
+net_strength := drive_strength  -> {kind: "drive",  body: $1}
+              | charge_strength -> {kind: "charge", body: $1}
+
+net_vector_scalar := kw_vectored -> {kind: "vectored"}
+                   | kw_scalared -> {kind: "scalared"}
+```
+
+### Helper-rule extraction rationale
+
+The original `net_declaration_sv_2017` had two inline parens-Or constructs in branch 0:
+
+```ebnf
+net_type ( drive_strength | charge_strength )? ( kw_vectored | kw_scalared )? data_type_or_implicit ...
+```
+
+Both hit task #38 (parens-grouped-Or trailing-annotation attribution bug). Following the SV-Slice-23 pattern, the inline parens-Ors were extracted to named rules:
+
+- `net_strength := drive_strength | charge_strength`
+- `net_vector_scalar := kw_vectored | kw_scalared`
+
+These rules have no LRM equivalent — they're internal organizational details. Consumers walking `net_declaration.strength` see `{kind: "drive" | "charge", body: <strength shape>}`; walking `net_declaration.vector_scalar` see bare `{kind: "vectored" | "scalared"}` (no body since each branch is a single keyword token).
+
+### Profile difference
+
+`net_declaration_sv_2017` alias branch field name is `net_type_id` (matches the underlying `net_type_identifier` rule); `net_declaration_sv_2023` uses `nettype_id` (matches `nettype_identifier`). Profile-agnostic walks should accept both fields when `kind == "alias"`.
+
+### Annotation inventory
+
+284 entries (was 274). +10 in this batch (3 net_declaration_sv_2017 + 3 net_declaration_sv_2023 + 2 net_strength + 2 net_vector_scalar).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### Grammar surface change
+
+This slice adds two new rules (`net_strength`, `net_vector_scalar`) to the public grammar surface. Both have no LRM equivalent — they're internal refactors of inline parens-Or for annotation purposes. Same accept set.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `concurrent_assertion_statement` / `deferred_immediate_assertion_item` internals.
+- `tf_item_declaration` / `function_statement_or_null` / `statement_or_null` (close function/task body internals one level deeper).
+- `class_item` — close class body walks.
+- `ansi_port_declaration` (still blocked by task #38 — would need explicit fix or larger-scale grammar refactor).
 
 ## Release 1.0.25 / Contract 1.0.25 Highlights — SV-Slice-25 batch: data/function/task declarations + bodies typed (8 rules / 14 annotations)
 
