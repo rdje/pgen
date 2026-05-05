@@ -19,6 +19,27 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.23 / Contract 1.0.23 — SV-Slice-23 batch: generate-construct internals typed (6 rules / 9 annotations + 1 new helper rule)
+
+**What changed:** Closes the loop / conditional / case-generate dispatch path.
+
+```ebnf
+loop_generate_construct        -> {init, condition, step, block}
+conditional_generate_construct -> 2 kinds (if / case)
+if_generate_construct          -> {condition, then_block, else_clause}
+if_generate_else_clause (NEW)  -> 2 kinds (elseif {body} / else_block {body})
+case_generate_construct        -> {expr, items: {first, rest}}
+case_generate_item             -> 2 kinds (expr_list {exprs: {first, rest}, block} / default {block})
+```
+
+**Notable:** New helper rule `if_generate_else_clause` extracted from inline parens-Or to dodge task #38 (parens-grouped-Or trailing-annotation attribution bug). This is now the recommended workaround for similar `( a | b )?` patterns until task #38 is fixed.
+
+**Annotation inventory:** 234 entries (was 225). +9 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.23 / Contract 1.0.23 Highlights" with full annotation source, helper-rule rationale, and full module-item-to-generate-block walker recipe.
+
 ### 1.0.22 / Contract 1.0.22 — SV-Slice-22 batch: generate sub-tree typed (3 rules / 7 annotations)
 
 **What changed:** Closes the generate-construct walk path. Every reachable `non_port_module_item.kind=='generate_region'` exposes typed `{items}`, every `generate_item` discriminates which form it carries, and every `generate_block` (anonymous, labeled, or bare-generate_item passthrough) exposes its name/label/items/end_label.

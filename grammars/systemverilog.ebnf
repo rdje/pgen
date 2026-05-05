@@ -476,8 +476,12 @@ built_in_method_call := array_manipulation_call | randomize_call
 case_expression := expression
 
 case_generate_construct := kw_case_6406510c lparen constant_expression rparen case_generate_item case_generate_item* kw_endcase_a27a6786
+                        -> {expr: $3, items: {first: $5, rest: $6}}
 
-case_generate_item := constant_expression ( comma constant_expression )* colon generate_block | kw_default_7505d64a ( colon )? generate_block
+case_generate_item := constant_expression ( comma constant_expression )* colon generate_block
+                          -> {kind: "expr_list", exprs: {first: $1, rest: $2}, block: $4}
+                   | kw_default_7505d64a ( colon )? generate_block
+                          -> {kind: "default",   block: $3}
 
 @profiles: ["sv_2017"]
 case_inside_item_sv_2017 := open_range_list colon statement_or_null | kw_default_7505d64a ( colon )? statement_or_null
@@ -681,7 +685,8 @@ cond_predicate := expression_or_cond_pattern ( logical_and3 expression_or_cond_p
 
 conditional_expression := cond_predicate &question question attribute_instance* expression colon expression
 
-conditional_generate_construct := if_generate_construct | case_generate_construct
+conditional_generate_construct := if_generate_construct   -> {kind: "if",   body: $1}
+                                | case_generate_construct -> {kind: "case", body: $1}
 
 conditional_statement := @sample: "if (a) ; else ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null &kw_else_ae050f5b kw_else_ae050f5b ( conditional_statement | statement_or_null )
                        | @sample: "if (a) ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null !kw_else_ae050f5b
@@ -1244,7 +1249,11 @@ hierarchical_variable_identifier := hierarchical_identifier
 
 identifier_list := identifier ( comma identifier )*
 
-if_generate_construct := kw_if_958f57f5 lparen constant_expression rparen generate_block ( kw_else_ae050f5b if_generate_construct | kw_else_ae050f5b generate_block )?
+if_generate_construct := kw_if_958f57f5 lparen constant_expression rparen generate_block ( if_generate_else_clause )?
+                      -> {condition: $3, then_block: $5, else_clause: $6}
+
+if_generate_else_clause := kw_else_ae050f5b if_generate_construct -> {kind: "elseif",     body: $2}
+                         | kw_else_ae050f5b generate_block        -> {kind: "else_block", body: $2}
 
 immediate_assertion_statement := simple_immediate_assertion_statement | deferred_immediate_assertion_statement
 
@@ -1534,6 +1543,7 @@ local_parameter_declaration_sv_2023 := kw_localparam_7829ee69 list_of_param_assi
 local_parameter_declaration := local_parameter_declaration_sv_2017 | local_parameter_declaration_sv_2023
 
 loop_generate_construct := kw_for_43eef9a6 lparen genvar_initialization semi genvar_expression semi genvar_iteration rparen generate_block
+                        -> {init: $3, condition: $5, step: $7, block: $9}
 
 loop_statement := kw_forever_e07f8c4a statement_or_null | kw_repeat_c0ac4842 lparen expression rparen statement_or_null | kw_while_6517f89c lparen expression rparen statement_or_null | kw_for_43eef9a6 lparen ( for_initialization )? semi ( expression )? semi ( for_step )? rparen statement_or_null | kw_do_eadcd9bd statement_or_null kw_while_6517f89c lparen expression rparen semi | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen statement
 

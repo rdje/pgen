@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b6ea39d7.js";
+            window.path_to_searchindex_js = "searchindex-1aba6450.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -270,6 +270,12 @@
 <tr><td><code>generate_region</code></td><td><code>-&gt; {items: $2}</code></td><td>Typed object with single <code>items</code> field carrying the matched <code>generate_item*</code> array. Drops <code>kw_generate</code> and <code>kw_endgenerate</code> keywords. Reached from <code>non_port_module_item.kind == "generate_region"</code>.</td></tr>
 <tr><td><code>generate_item</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"module_or_generate_item"</code> / <code>"interface_or_generate_item"</code> / <code>"checker_or_generate_item"</code>. Discriminates which form of generate-item was matched (module vs interface vs checker context).</td></tr>
 <tr><td><code>generate_block</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"anonymous"</code> (<code>{label, items, end_label}</code> for <code>begin ... end</code> form), <code>"labeled"</code> (<code>{name, label, items, end_label}</code> for <code>name : begin ... end</code> form), <code>"generate_item"</code> (<code>{body}</code> for bare-generate_item passthrough — no <code>begin</code>/<code>end</code> wrapping). The <code>label</code> field captures the optional inner <code>( colon generate_block_identifier )?</code> after <code>kw_begin</code>; <code>end_label</code> captures the trailing optional after <code>kw_end</code>.</td></tr>
+<tr><td><code>loop_generate_construct</code></td><td><code>-&gt; {init: $3, condition: $5, step: $7, block: $9}</code></td><td>Single-sequence typed. Drops <code>kw_for</code>, <code>lparen</code>, <code>rparen</code>, and the two semicolons. Reached from <code>module_common_item.kind == "loop_generate_construct"</code>.</td></tr>
+<tr><td><code>conditional_generate_construct</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"if"</code> / <code>"case"</code>. Reached from <code>module_common_item.kind == "conditional_generate_construct"</code>.</td></tr>
+<tr><td><code>if_generate_construct</code></td><td><code>-&gt; {condition: $3, then_block: $5, else_clause: $6}</code></td><td>Single-sequence typed. <code>condition</code> is the matched constant_expression. <code>then_block</code> is the matched generate_block. <code>else_clause</code> is <code>[]</code> when no else is present, or <code>[&lt;if_generate_else_clause shape&gt;]</code> when one is matched. Drops <code>kw_if</code>, <code>lparen</code>, <code>rparen</code>. Reached from <code>conditional_generate_construct.kind == "if"</code>.</td></tr>
+<tr><td><code>if_generate_else_clause</code> (NEW; 2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"elseif"</code> (body is itself an if_generate_construct — supports <code>else if</code> chains) / <code>"else_block"</code> (body is a generate_block — terminal else). Helper rule extracted from inline <code>( kw_else if_generate_construct | kw_else generate_block )?</code> to dodge task #38.</td></tr>
+<tr><td><code>case_generate_construct</code></td><td><code>-&gt; {expr: $3, items: {first: $5, rest: $6}}</code></td><td>Single-sequence typed. <code>expr</code> is the case-discriminant constant_expression. <code>items</code> is a {first, rest} mini-mixed-array (first matched case_generate_item + raw Quantified iteration of repeats). Drops <code>kw_case</code>, <code>lparen</code>, <code>rparen</code>, <code>kw_endcase</code>.</td></tr>
+<tr><td><code>case_generate_item</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"expr_list"</code> (<code>{exprs: {first, rest}, block}</code> — N-way label-list form <code>expr1, expr2, ... : block</code>; mini-mixed-array on <code>exprs</code>) / <code>"default"</code> (<code>{block}</code> — drops <code>kw_default</code> and the optional <code>( colon )?</code> separator).</td></tr>
 </tbody>
 </table>
 </div>

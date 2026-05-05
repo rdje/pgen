@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b6ea39d7.js";
+            window.path_to_searchindex_js = "searchindex-1aba6450.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,19 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1023--contract-1023--sv-slice-23-batch-generate-construct-internals-typed-6-rules--9-annotations--1-new-helper-rule"><a class="header" href="#1023--contract-1023--sv-slice-23-batch-generate-construct-internals-typed-6-rules--9-annotations--1-new-helper-rule">1.0.23 / Contract 1.0.23 — SV-Slice-23 batch: generate-construct internals typed (6 rules / 9 annotations + 1 new helper rule)</a></h3>
+<p><strong>What changed:</strong> Closes the loop / conditional / case-generate dispatch path.</p>
+<pre><code class="language-ebnf">loop_generate_construct        -&gt; {init, condition, step, block}
+conditional_generate_construct -&gt; 2 kinds (if / case)
+if_generate_construct          -&gt; {condition, then_block, else_clause}
+if_generate_else_clause (NEW)  -&gt; 2 kinds (elseif {body} / else_block {body})
+case_generate_construct        -&gt; {expr, items: {first, rest}}
+case_generate_item             -&gt; 2 kinds (expr_list {exprs: {first, rest}, block} / default {block})
+</code></pre>
+<p><strong>Notable:</strong> New helper rule <code>if_generate_else_clause</code> extracted from inline parens-Or to dodge task #38 (parens-grouped-Or trailing-annotation attribution bug). This is now the recommended workaround for similar <code>( a | b )?</code> patterns until task #38 is fixed.</p>
+<p><strong>Annotation inventory:</strong> 234 entries (was 225). +9 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.23 / Contract 1.0.23 Highlights” with full annotation source, helper-rule rationale, and full module-item-to-generate-block walker recipe.</p>
 <h3 id="1022--contract-1022--sv-slice-22-batch-generate-sub-tree-typed-3-rules--7-annotations"><a class="header" href="#1022--contract-1022--sv-slice-22-batch-generate-sub-tree-typed-3-rules--7-annotations">1.0.22 / Contract 1.0.22 — SV-Slice-22 batch: generate sub-tree typed (3 rules / 7 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the generate-construct walk path. Every reachable <code>non_port_module_item.kind=='generate_region'</code> exposes typed <code>{items}</code>, every <code>generate_item</code> discriminates which form it carries, and every <code>generate_block</code> (anonymous, labeled, or bare-generate_item passthrough) exposes its name/label/items/end_label.</p>
 <pre><code class="language-ebnf">generate_region -&gt; {items}

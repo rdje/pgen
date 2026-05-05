@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-23 batch: generate-construct internals typed (6 rules / 9 annotations + 1 new helper rule)
+
+Closes the loop / conditional / case-generate dispatch path. Every reachable `module_common_item.kind=='loop_generate_construct'` and `'conditional_generate_construct'` now exposes typed structural dispatch all the way to the generate body.
+
+```ebnf
+loop_generate_construct        -> {init, condition, step, block}
+conditional_generate_construct -> 2 kinds (if / case)
+if_generate_construct          -> {condition, then_block, else_clause}
+if_generate_else_clause (NEW)  -> 2 kinds (elseif {body} / else_block {body})
+case_generate_construct        -> {expr, items: {first, rest}}
+case_generate_item             -> 2 kinds (expr_list {exprs: {first, rest}, block} / default {block})
+```
+
+**Notable:** new helper rule `if_generate_else_clause` extracted from inline `( kw_else if_generate_construct | kw_else generate_block )?` parens-Or to dodge task #38 (parens-grouped-Or trailing-annotation attribution bug). This is now the recommended pattern for similar `( a | b )?` annotation needs until task #38 is fixed.
+
+Annotation count: **234** (was 225, +9). Same accept set. Schema stays at `1`. Contract bumped 1.0.22 → 1.0.23. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-22 batch: generate sub-tree typed (3 rules / 7 annotations)
 
 Closes the generate-construct walk path. After this slice, every reachable `non_port_module_item.kind=='generate_region'` exposes typed `{items}`, every `generate_item` discriminates which form it carries, and every `generate_block` (anonymous, labeled, or bare-generate_item passthrough) exposes its name/label/items/end_label.

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.22`
+  - `1.0.23`
 - Parser release version:
-  - `1.0.22`
+  - `1.0.23`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,138 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.23 / Contract 1.0.23 Highlights — SV-Slice-23 batch: generate-construct internals typed (6 rules / 9 annotations + 1 new helper rule)
+
+Closes the loop / conditional / case-generate dispatch path. After this slice, every reachable `module_common_item.kind == "loop_generate_construct"` and `"conditional_generate_construct"` exposes typed structural dispatch all the way to the generate body.
+
+### Notable: helper-rule extraction to dodge task #38
+
+The original `if_generate_construct` rule had this trailing optional Or:
+
+```ebnf
+if_generate_construct := kw_if lparen constant_expression rparen generate_block ( kw_else if_generate_construct | kw_else generate_block )?
+```
+
+The inline `( a | b )?` parens-grouped Or hits task #38 (parens-grouped-Or trailing-annotation attribution bug). To unblock annotation, the trailing parens-Or was extracted to a named helper rule:
+
+```ebnf
+if_generate_construct := kw_if lparen constant_expression rparen generate_block ( if_generate_else_clause )?
+                      -> {condition: $3, then_block: $5, else_clause: $6}
+
+if_generate_else_clause := kw_else if_generate_construct -> {kind: "elseif",     body: $2}
+                         | kw_else generate_block        -> {kind: "else_block", body: $2}
+```
+
+This pattern is now the recommended workaround for any similar `( a | b )?` / `( a | b )*` parens-Or annotation needs until task #38 is fixed. It does add a named rule to the public grammar surface, but the rule body is small and the typed shape is consumer-friendly (`else_clause.kind == "elseif"` for chained `else if`, `"else_block"` for terminal `else`).
+
+### Annotations
+
+```ebnf
+loop_generate_construct := kw_for lparen genvar_initialization semi genvar_expression semi genvar_iteration rparen generate_block
+                        -> {init: $3, condition: $5, step: $7, block: $9}
+
+conditional_generate_construct := if_generate_construct   -> {kind: "if",   body: $1}
+                                | case_generate_construct -> {kind: "case", body: $1}
+
+if_generate_construct := kw_if lparen constant_expression rparen generate_block ( if_generate_else_clause )?
+                      -> {condition: $3, then_block: $5, else_clause: $6}
+
+if_generate_else_clause := kw_else if_generate_construct -> {kind: "elseif",     body: $2}
+                         | kw_else generate_block        -> {kind: "else_block", body: $2}
+
+case_generate_construct := kw_case lparen constant_expression rparen case_generate_item case_generate_item* kw_endcase
+                        -> {expr: $3, items: {first: $5, rest: $6}}
+
+case_generate_item := constant_expression ( comma constant_expression )* colon generate_block
+                          -> {kind: "expr_list", exprs: {first: $1, rest: $2}, block: $4}
+                   | kw_default ( colon )? generate_block
+                          -> {kind: "default",   block: $3}
+```
+
+### Consumer dispatch chain
+
+Walk path from a typed module-item all the way to a generate-block body:
+
+```rust
+// description.body.body.items[i] is a module_item
+match item["kind"] {
+  "non_port_item" => match item["body"]["kind"] {
+    "module_or_generate" => {
+      let mog_body = &item["body"]["body"];
+      if mog_body["kind"] == "module_common_item" {
+        let mci = &mog_body["body"];
+        match mci["kind"] {
+          "loop_generate_construct" => {
+            let loop_gen = &mci["body"];                  // typed THIS slice
+            walk_genvar_init(&loop_gen["init"]);
+            walk_expr(&loop_gen["condition"]);
+            walk_genvar_step(&loop_gen["step"]);
+            walk_generate_block(&loop_gen["block"]);      // typed in SV-Slice-22
+          }
+          "conditional_generate_construct" => {
+            let cond = &mci["body"];                      // typed THIS slice
+            match cond["kind"] {
+              "if" => {
+                let if_gen = &cond["body"];               // if_generate_construct (typed THIS slice)
+                walk_expr(&if_gen["condition"]);
+                walk_generate_block(&if_gen["then_block"]);
+                if let Some(ec) = if_gen["else_clause"].as_array().and_then(|a| a.get(0)) {
+                  match ec["kind"] {
+                    "elseif"     => walk_if_generate(&ec["body"]),  // recursive
+                    "else_block" => walk_generate_block(&ec["body"]),
+                  }
+                }
+              }
+              "case" => {
+                let case_gen = &cond["body"];             // case_generate_construct (typed THIS slice)
+                walk_expr(&case_gen["expr"]);
+                let items = &case_gen["items"];
+                walk_case_item(&items["first"]);
+                for item in items["rest"].as_array().unwrap() {
+                    walk_case_item(item);                 // case_generate_item (typed THIS slice)
+                }
+              }
+            }
+          }
+          /* ... 11 more module_common_item kinds ... */
+        }
+      }
+    }
+  }
+}
+
+fn walk_case_item(item: &Value) {
+    match item["kind"].as_str().unwrap() {
+        "expr_list" => {
+            walk_expr(&item["exprs"]["first"]);
+            for e in item["exprs"]["rest"].as_array().unwrap() {
+                walk_expr(e);
+            }
+            walk_generate_block(&item["block"]);
+        }
+        "default" => walk_generate_block(&item["block"]),
+    }
+}
+```
+
+### Annotation inventory
+
+234 entries (was 225). +9 in this batch (1 loop_generate + 2 conditional_generate + 1 if_generate + 2 if_generate_else_clause + 1 case_generate + 2 case_generate_item).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### Grammar surface change
+
+This slice adds one new rule to the public grammar surface: `if_generate_else_clause`. It has no LRM equivalent (it's a refactor of an inline parens-Or for annotation purposes); consumers should treat it as an internal detail of `if_generate_construct.else_clause`. The accept set is unchanged.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `data_declaration` / `function_declaration` / `task_declaration` (close `package_or_generate_item_declaration` walks another level).
+- `assertion_item` / `concurrent_assertion_item` / `assertion_item_declaration` (assertion family).
+- `genvar_initialization` / `genvar_iteration` / `genvar_decl_assignment` (close loop_generate_construct walk's init/step fields).
 
 ## Release 1.0.22 / Contract 1.0.22 Highlights — SV-Slice-22 batch: generate sub-tree typed (3 rules / 7 annotations)
 
