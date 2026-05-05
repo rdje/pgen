@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f904e071.js";
+            window.path_to_searchindex_js = "searchindex-d2e3162f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,15 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1013--contract-1013--sv-slice-13-batch-bind_directive--bind_instantiation--package_item-per-branch-typed"><a class="header" href="#1013--contract-1013--sv-slice-13-batch-bind_directive--bind_instantiation--package_item-per-branch-typed">1.0.13 / Contract 1.0.13 — SV-Slice-13 batch: bind_directive + bind_instantiation + package_item per-branch typed</a></h3>
+<p><strong>What changed:</strong> 3 Or rules typed. Consumers gain clean kind dispatch on description’s <code>package_item</code> and <code>bind_directive</code> branches.</p>
+<pre><code class="language-ebnf">bind_directive       -&gt; 2 kinds: scoped/single
+bind_instantiation   -&gt; 4 kinds: program/module/interface/checker
+package_item         -&gt; 4 kinds: declaration/anonymous_program/export/timeunits
+</code></pre>
+<p><strong>Annotation inventory:</strong> 89 entries (was 79). +10 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.13 / Contract 1.0.13 Highlights” with full annotation source + consumer dispatch recipe.</p>
 <h3 id="1012--contract-1012--sv-slice-12-batch-udp-declaration-family-typed"><a class="header" href="#1012--contract-1012--sv-slice-12-batch-udp-declaration-family-typed">1.0.12 / Contract 1.0.12 — SV-Slice-12 batch: UDP declaration family typed</a></h3>
 <p><strong>What changed:</strong> 4 rules typed across the UDP (User-Defined Primitive) declaration family — sibling pattern to module/interface/program with one twist: <code>udp_declaration_sv_*</code> nonansi branch has a <code>udp_port_declaration udp_port_declaration*</code> mini-mixed-array, handled with the <code>{first, rest}</code> workaround.</p>
 <pre><code class="language-ebnf">udp_ansi_declaration     -&gt; {attributes, name, ports}

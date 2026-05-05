@@ -40,6 +40,9 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `udp_nonansi_declaration` | `-> {attributes, name, ports}` | Same field names as udp_ansi_declaration. Only `ports:` source rule differs (`udp_port_list` vs `udp_declaration_port_list`). |
 | `udp_declaration_sv_2017` (5 branches) | per-branch typed shapes (full source in contract Highlights) | Kind labels: `"nonansi"` / `"ansi"` / `"extern_nonansi"` / `"extern_ansi"` / `"wildcard"`. **Special: `nonansi` branch uses `port_decls: {first, rest}` workaround** for the `udp_port_declaration udp_port_declaration*` mini-mixed-array. |
 | `udp_declaration_sv_2023` (5 branches) | per-branch typed shapes (same kind set as sv_2017) | Identical to sv_2017 except wildcard branch positions shift due to `dot star` (2 tokens) vs `dot_star` (1 token): port_decls $9, body $10, end_label $12. |
+| `bind_directive` (2 branches) | per-branch typed shapes | Kind labels: `"scoped"` (with target_scope, optional instances, instantiation) / `"single"` (with target_instance, instantiation). |
+| `bind_instantiation` (4 branches) | per-branch `{kind, body}` | Kind labels: `"program"` / `"module"` / `"interface"` / `"checker"` — uniform shape over the 4 instantiation forms. |
+| `package_item` (4 branches) | per-branch `{kind, body}` | Kind labels: `"declaration"` (package_or_generate_item_declaration) / `"anonymous_program"` / `"export"` (package_export_declaration) / `"timeunits"` (timeunits_declaration). |
 
 ## Sub-rules with implicit defaults
 

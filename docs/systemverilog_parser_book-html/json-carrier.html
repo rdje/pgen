@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f904e071.js";
+            window.path_to_searchindex_js = "searchindex-d2e3162f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -224,6 +224,9 @@
 <tr><td><code>udp_nonansi_declaration</code></td><td><code>-&gt; {attributes, name, ports}</code></td><td>Same field names as udp_ansi_declaration. Only <code>ports:</code> source rule differs (<code>udp_port_list</code> vs <code>udp_declaration_port_list</code>).</td></tr>
 <tr><td><code>udp_declaration_sv_2017</code> (5 branches)</td><td>per-branch typed shapes (full source in contract Highlights)</td><td>Kind labels: <code>"nonansi"</code> / <code>"ansi"</code> / <code>"extern_nonansi"</code> / <code>"extern_ansi"</code> / <code>"wildcard"</code>. <strong>Special: <code>nonansi</code> branch uses <code>port_decls: {first, rest}</code> workaround</strong> for the <code>udp_port_declaration udp_port_declaration*</code> mini-mixed-array.</td></tr>
 <tr><td><code>udp_declaration_sv_2023</code> (5 branches)</td><td>per-branch typed shapes (same kind set as sv_2017)</td><td>Identical to sv_2017 except wildcard branch positions shift due to <code>dot star</code> (2 tokens) vs <code>dot_star</code> (1 token): port_decls $9, body $10, end_label $12.</td></tr>
+<tr><td><code>bind_directive</code> (2 branches)</td><td>per-branch typed shapes</td><td>Kind labels: <code>"scoped"</code> (with target_scope, optional instances, instantiation) / <code>"single"</code> (with target_instance, instantiation).</td></tr>
+<tr><td><code>bind_instantiation</code> (4 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"program"</code> / <code>"module"</code> / <code>"interface"</code> / <code>"checker"</code> — uniform shape over the 4 instantiation forms.</td></tr>
+<tr><td><code>package_item</code> (4 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"declaration"</code> (package_or_generate_item_declaration) / <code>"anonymous_program"</code> / <code>"export"</code> (package_export_declaration) / <code>"timeunits"</code> (timeunits_declaration).</td></tr>
 </tbody>
 </table>
 </div>

@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-13 batch: bind_directive + bind_instantiation + package_item per-branch typed
+
+3 Or rules typed; consumers gain clean kind dispatch on description's `package_item` and `bind_directive` branches.
+
+```ebnf
+bind_directive       -> 2 kinds: scoped/single
+bind_instantiation   -> 4 kinds: program/module/interface/checker
+package_item         -> 4 kinds: declaration/anonymous_program/export/timeunits
+```
+
+Annotation count: 89 (was 79, +10). Same accept set. Schema stays at `1`. Contract bumped 1.0.12 → 1.0.13. mdBook synced (changelog-index, schema-versioning row 0.14.0, json-carrier 3 new rows, rules-top-level status). SV book gate green ✅. 499/0 regex tests still pass.
+
 ## 2026-05-05 - SV-Slice-12 batch: UDP declaration family typed (mini-mixed-array workaround)
 
 ### What landed

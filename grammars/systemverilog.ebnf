@@ -391,9 +391,15 @@ binary_module_path_operator := binary_module_path_operator_sv_2023
 
 binary_value := binary_digit ( kw_sv_rule_c82a06f6 | binary_digit )*
 
-bind_directive := kw_bind_6bdd4db9 bind_target_scope ( colon bind_target_instance_list )? bind_instantiation semi | kw_bind_6bdd4db9 bind_target_instance bind_instantiation semi
+bind_directive := kw_bind_6bdd4db9 bind_target_scope ( colon bind_target_instance_list )? bind_instantiation semi
+                    -> {kind: "scoped", target_scope: $2, instances: $3, instantiation: $4}
+               | kw_bind_6bdd4db9 bind_target_instance bind_instantiation semi
+                    -> {kind: "single", target_instance: $2, instantiation: $3}
 
-bind_instantiation := program_instantiation | module_instantiation | interface_instantiation | checker_instantiation
+bind_instantiation := program_instantiation   -> {kind: "program",   body: $1}
+                   | module_instantiation     -> {kind: "module",    body: $1}
+                   | interface_instantiation  -> {kind: "interface", body: $1}
+                   | checker_instantiation    -> {kind: "checker",   body: $1}
 
 bind_target_instance := hierarchical_identifier constant_bit_select
 
@@ -1826,7 +1832,10 @@ package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma pac
 
 package_import_item := package_identifier scope_resolution identifier | package_identifier scope_resolution star
 
-package_item := package_or_generate_item_declaration | anonymous_program | package_export_declaration | timeunits_declaration
+package_item := package_or_generate_item_declaration -> {kind: "declaration",        body: $1}
+             | anonymous_program                     -> {kind: "anonymous_program",  body: $1}
+             | package_export_declaration            -> {kind: "export",             body: $1}
+             | timeunits_declaration                 -> {kind: "timeunits",          body: $1}
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]

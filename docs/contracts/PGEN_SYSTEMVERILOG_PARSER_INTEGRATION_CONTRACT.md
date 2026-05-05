@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.12`
+  - `1.0.13`
 - Parser release version:
-  - `1.0.12`
+  - `1.0.13`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,77 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.13 / Contract 1.0.13 Highlights — SV-Slice-13 batch: bind_directive + bind_instantiation + package_item per-branch typed
+
+3 Or rules typed; downstream consumers gain clean kind dispatch on description's `package_item` and `bind_directive` branches (reached when description.kind = `"package_item"` or `"bind_directive"`).
+
+### Annotations
+
+```ebnf
+bind_directive := kw_bind bind_target_scope (colon bind_target_instance_list)? bind_instantiation semi
+                    -> {kind: "scoped", target_scope: $2, instances: $3, instantiation: $4}
+               | kw_bind bind_target_instance bind_instantiation semi
+                    -> {kind: "single", target_instance: $2, instantiation: $3}
+
+bind_instantiation := program_instantiation   -> {kind: "program",   body: $1}
+                   | module_instantiation     -> {kind: "module",    body: $1}
+                   | interface_instantiation  -> {kind: "interface", body: $1}
+                   | checker_instantiation    -> {kind: "checker",   body: $1}
+
+package_item := package_or_generate_item_declaration -> {kind: "declaration",        body: $1}
+             | anonymous_program                     -> {kind: "anonymous_program",  body: $1}
+             | package_export_declaration            -> {kind: "export",             body: $1}
+             | timeunits_declaration                 -> {kind: "timeunits",          body: $1}
+```
+
+### Consumer dispatch
+
+```rust
+// description.kind == "bind_directive" → desc.body is the typed bind_directive shape
+match desc.body.kind {
+    "scoped" => {
+        // (?<scope> : <instances>)? <instantiation>
+        let scope = &desc.body.target_scope;
+        let instances = &desc.body.instances;  // empty array if no `:` clause
+        let inst = &desc.body.instantiation;
+        process_bind_scoped(scope, instances, inst);
+    }
+    "single" => {
+        // <target_instance> <instantiation>
+        process_bind_single(&desc.body.target_instance, &desc.body.instantiation);
+    }
+}
+
+// inst.kind dispatches to which form of instantiation:
+match inst.kind {
+    "program" | "module" | "interface" | "checker" => walk_instantiation(inst.kind, &inst.body),
+}
+
+// description.kind == "package_item" → desc.body is the typed package_item shape
+match desc.body.kind {
+    "declaration"       => process_decl(&desc.body.body),
+    "anonymous_program" => process_anon_program(&desc.body.body),
+    "export"            => process_export(&desc.body.body),
+    "timeunits"         => process_timeunits(&desc.body.body),
+}
+```
+
+### Annotation inventory
+
+89 entries (was 79). +10 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `bind_target_scope` (2-form Or — module_identifier vs interface_identifier).
+- `bind_target_instance` and `bind_target_instance_list` (single-sequence + comma-spread mini-mixed-array).
+- `interface_class_declaration` per-branch.
+- `config_declaration` (single sequence, ~10 elements).
+- Sub-rule typing inside `header.ports` (`udp_port_list`, `udp_declaration_port_list`, `list_of_ports`).
 
 ## Release 1.0.12 / Contract 1.0.12 Highlights — SV-Slice-12 batch: UDP declaration family typed (mirror of module/interface/program pattern + mini-mixed-array workaround)
 
