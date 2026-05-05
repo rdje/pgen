@@ -146,6 +146,9 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `statement_or_null` (2 branches) | per-branch typed | Kind labels: `"statement"` (`{body}`) / `"null"` (`{attributes}` — bare `;` with optional preceding `attribute_instance*`). |
 | `function_statement_or_null` (2 branches) | per-branch typed | Same shape as statement_or_null but for function bodies. |
 | `tf_item_declaration` (2 branches) | per-branch `{kind, body}` | Kind labels: `"block_item"` / `"tf_port"`. Reached from `function_body_declaration.items[]` and `task_body_declaration.items[]`. |
+| `statement_item_sv_2017` (20 branches) | per-branch `{kind, body}` | Kind labels: `"blocking_assignment"` / `"nonblocking_assignment"` / `"procedural_continuous_assignment"` (each drops trailing `semi`) / `"case"` / `"conditional"` / `"inc_or_dec_expression"` (drops `semi`; sv_2017-only) / `"subroutine_call"` / `"disable"` / `"event_trigger"` / `"loop"` / `"jump"` / `"par_block"` / `"procedural_timing_control"` / `"seq_block"` / `"wait"` / `"procedural_assertion"` / `"clocking_drive"` (drops `semi`) / `"randsequence"` / `"randcase"` / `"expect_property"`. Reached from `statement.body`. |
+| `statement_item_sv_2023` (19 branches) | per-branch `{kind, body}` | Same 19 kinds as sv_2017 except `"inc_or_dec_expression"` is removed — LRM 2023 subsumes the semantics into `blocking_assignment` with `++`/`--` operators. |
+| `block_item_declaration` (4 branches) | per-branch `{kind, attributes, body}` | Kind labels: `"block_data"` / `"local_parameter"` / `"parameter"` / `"let"`. Each preserves leading `attribute_instance*` prefix. Reached from `tf_item_declaration.kind == "block_item"`. |
 
 ## Sub-rules with implicit defaults
 

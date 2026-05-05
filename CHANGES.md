@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-32 batch: statement_item dispatch typed (3 rules / 43 annotations — crosses 400-annotation milestone)
+
+Closes the `statement.body` field, exposing typed dispatch into all 20 (sv_2017) / 19 (sv_2023) procedural-statement forms. Crosses the 400-annotation threshold.
+
+```ebnf
+statement_item_sv_2017 -> 20 kinds (blocking_assignment / nonblocking_assignment / procedural_continuous_assignment / case / conditional / inc_or_dec_expression / subroutine_call / disable / event_trigger / loop / jump / par_block / procedural_timing_control / seq_block / wait / procedural_assertion / clocking_drive / randsequence / randcase / expect_property)
+statement_item_sv_2023 -> 19 kinds (sv_2017 minus inc_or_dec_expression — LRM 2023 subsumed into blocking_assignment)
+block_item_declaration -> 4 kinds (block_data / local_parameter / parameter / let)
+```
+
+Annotation count: **410** (was 367, +43). Same accept set. Schema stays at `1`. Contract bumped 1.0.31 → 1.0.32. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-31 batch: action_block + statement framing typed (5 rules / 9 annotations)
 
 Closes the action_block walk path (used pervasively by assertions) and the statement framing path (used by function/task bodies).

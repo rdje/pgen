@@ -19,6 +19,22 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.32 / Contract 1.0.32 — SV-Slice-32 batch: statement_item dispatch typed (3 rules / 43 annotations — crosses 400-annotation milestone)
+
+**What changed:** Closes statement.body field, exposing typed dispatch into all 20 (sv_2017) / 19 (sv_2023) procedural-statement forms.
+
+```ebnf
+statement_item_sv_2017  -> 20 kinds (blocking_assignment, nonblocking_assignment, procedural_continuous_assignment, case, conditional, inc_or_dec_expression, subroutine_call, disable, event_trigger, loop, jump, par_block, procedural_timing_control, seq_block, wait, procedural_assertion, clocking_drive, randsequence, randcase, expect_property)
+statement_item_sv_2023  -> 19 kinds (sv_2017 minus inc_or_dec_expression — LRM 2023 subsumes into blocking_assignment with ++/--)
+block_item_declaration  -> 4 kinds (block_data / local_parameter / parameter / let)
+```
+
+**Annotation inventory:** 410 entries (was 367). +43 in this batch — crosses the 400-annotation milestone.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.32 / Contract 1.0.32 Highlights".
+
 ### 1.0.31 / Contract 1.0.31 — SV-Slice-31 batch: action_block + statement framing typed (5 rules / 9 annotations)
 
 **What changed:** Closes action_block walk path (used pervasively by assertions) and statement framing path (used by function/task bodies).

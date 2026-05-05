@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c395fc32.js";
+            window.path_to_searchindex_js = "searchindex-ff6b7a43.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -330,6 +330,9 @@
 <tr><td><code>statement_or_null</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"statement"</code> (<code>{body}</code>) / <code>"null"</code> (<code>{attributes}</code> — bare <code>;</code> with optional preceding <code>attribute_instance*</code>).</td></tr>
 <tr><td><code>function_statement_or_null</code> (2 branches)</td><td>per-branch typed</td><td>Same shape as statement_or_null but for function bodies.</td></tr>
 <tr><td><code>tf_item_declaration</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"block_item"</code> / <code>"tf_port"</code>. Reached from <code>function_body_declaration.items[]</code> and <code>task_body_declaration.items[]</code>.</td></tr>
+<tr><td><code>statement_item_sv_2017</code> (20 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"blocking_assignment"</code> / <code>"nonblocking_assignment"</code> / <code>"procedural_continuous_assignment"</code> (each drops trailing <code>semi</code>) / <code>"case"</code> / <code>"conditional"</code> / <code>"inc_or_dec_expression"</code> (drops <code>semi</code>; sv_2017-only) / <code>"subroutine_call"</code> / <code>"disable"</code> / <code>"event_trigger"</code> / <code>"loop"</code> / <code>"jump"</code> / <code>"par_block"</code> / <code>"procedural_timing_control"</code> / <code>"seq_block"</code> / <code>"wait"</code> / <code>"procedural_assertion"</code> / <code>"clocking_drive"</code> (drops <code>semi</code>) / <code>"randsequence"</code> / <code>"randcase"</code> / <code>"expect_property"</code>. Reached from <code>statement.body</code>.</td></tr>
+<tr><td><code>statement_item_sv_2023</code> (19 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Same 19 kinds as sv_2017 except <code>"inc_or_dec_expression"</code> is removed — LRM 2023 subsumes the semantics into <code>blocking_assignment</code> with <code>++</code>/<code>--</code> operators.</td></tr>
+<tr><td><code>block_item_declaration</code> (4 branches)</td><td>per-branch <code>{kind, attributes, body}</code></td><td>Kind labels: <code>"block_data"</code> / <code>"local_parameter"</code> / <code>"parameter"</code> / <code>"let"</code>. Each preserves leading <code>attribute_instance*</code> prefix. Reached from <code>tf_item_declaration.kind == "block_item"</code>.</td></tr>
 </tbody>
 </table>
 </div>

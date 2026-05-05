@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.31`
+  - `1.0.32`
 - Parser release version:
-  - `1.0.31`
+  - `1.0.32`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,68 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.32 / Contract 1.0.32 Highlights — SV-Slice-32 batch: statement_item dispatch typed (3 rules / 43 annotations — crosses 400-annotation milestone)
+
+Closes the `statement.body` field, exposing typed dispatch into all 20 (sv_2017) / 19 (sv_2023) procedural-statement forms. Crosses the 400-annotation threshold — pgen's SV grammar is now decisively the most heavily-typed grammar in the family.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+statement_item_sv_2017 := blocking_assignment semi              -> {kind: "blocking_assignment",              body: $1}
+                        | nonblocking_assignment semi           -> {kind: "nonblocking_assignment",           body: $1}
+                        | procedural_continuous_assignment semi -> {kind: "procedural_continuous_assignment", body: $1}
+                        | case_statement                        -> {kind: "case",                             body: $1}
+                        | conditional_statement                 -> {kind: "conditional",                      body: $1}
+                        | inc_or_dec_expression semi            -> {kind: "inc_or_dec_expression",            body: $1}
+                        | subroutine_call_statement             -> {kind: "subroutine_call",                  body: $1}
+                        | disable_statement                     -> {kind: "disable",                          body: $1}
+                        | event_trigger                         -> {kind: "event_trigger",                    body: $1}
+                        | loop_statement                        -> {kind: "loop",                             body: $1}
+                        | jump_statement                        -> {kind: "jump",                             body: $1}
+                        | par_block                             -> {kind: "par_block",                        body: $1}
+                        | procedural_timing_control_statement   -> {kind: "procedural_timing_control",        body: $1}
+                        | seq_block                             -> {kind: "seq_block",                        body: $1}
+                        | wait_statement                        -> {kind: "wait",                             body: $1}
+                        | procedural_assertion_statement        -> {kind: "procedural_assertion",             body: $1}
+                        | clocking_drive semi                   -> {kind: "clocking_drive",                   body: $1}
+                        | randsequence_statement                -> {kind: "randsequence",                     body: $1}
+                        | randcase_statement                    -> {kind: "randcase",                         body: $1}
+                        | expect_property_statement             -> {kind: "expect_property",                  body: $1}
+
+@profiles: ["sv_2023"]
+statement_item_sv_2023 := /* same 19 kinds; `inc_or_dec_expression` removed per LRM 2023 — subsumed by blocking_assignment with ++/-- */
+
+block_item_declaration := attribute_instance* block_data_declaration
+                                    -> {kind: "block_data",        attributes: $1, body: $2}
+                        | attribute_instance* local_parameter_declaration semi
+                                    -> {kind: "local_parameter",   attributes: $1, body: $2}
+                        | attribute_instance* parameter_declaration semi
+                                    -> {kind: "parameter",         attributes: $1, body: $2}
+                        | attribute_instance* let_declaration
+                                    -> {kind: "let",               attributes: $1, body: $2}
+```
+
+### Profile difference
+
+`statement_item_sv_2017` includes `inc_or_dec_expression semi` (kind label `"inc_or_dec_expression"`) — bare `i++;` / `i--;` as a procedural statement. `statement_item_sv_2023` removes this branch — LRM 2023 subsumes the same semantics into `blocking_assignment` (which now accepts `++`/`--` operators directly). Profile-agnostic walks should accept the `"inc_or_dec_expression"` kind only when the parsed file is sv_2017.
+
+### Annotation inventory
+
+410 entries (was 367). +43 in this batch (20 statement_item_sv_2017 + 19 statement_item_sv_2023 + 4 block_item_declaration).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `case_statement` / `conditional_statement` / `loop_statement` (close their internals one level deeper).
+- `seq_block` / `par_block` (typed begin/end / fork/join blocks).
+- `procedural_timing_control_statement`, `event_trigger`.
+- `data_type` / `data_type_or_implicit` / `data_type_or_void`.
+- `block_data_declaration` (close block_item_declaration's body field).
 
 ## Release 1.0.31 / Contract 1.0.31 Highlights — SV-Slice-31 batch: action_block + statement framing typed (5 rules / 9 annotations)
 

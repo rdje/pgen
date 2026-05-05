@@ -459,7 +459,14 @@ block_event_expression := block_event_expression kw_or_1758356d block_event_expr
 
 block_identifier := declaration_identifier
 
-block_item_declaration := attribute_instance* block_data_declaration | attribute_instance* local_parameter_declaration semi | attribute_instance* parameter_declaration semi | attribute_instance* let_declaration
+block_item_declaration := attribute_instance* block_data_declaration
+                                    -> {kind: "block_data",        attributes: $1, body: $2}
+                        | attribute_instance* local_parameter_declaration semi
+                                    -> {kind: "local_parameter",   attributes: $1, body: $2}
+                        | attribute_instance* parameter_declaration semi
+                                    -> {kind: "parameter",         attributes: $1, body: $2}
+                        | attribute_instance* let_declaration
+                                    -> {kind: "let",               attributes: $1, body: $2}
 
 @profiles: ["sv_2017"]
 block_data_declaration_sv_2017 := @probe_sample: "int a;" ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi
@@ -2676,10 +2683,47 @@ statement := ( block_identifier colon !colon )? attribute_instance* statement_it
           -> {label: $1, attributes: $2, body: $3}
 
 @profiles: ["sv_2017"]
-statement_item_sv_2017 := blocking_assignment semi | nonblocking_assignment semi | procedural_continuous_assignment semi | case_statement | conditional_statement | inc_or_dec_expression semi | subroutine_call_statement | disable_statement | event_trigger | loop_statement | jump_statement | par_block | procedural_timing_control_statement | seq_block | wait_statement | procedural_assertion_statement | clocking_drive semi | randsequence_statement | randcase_statement | expect_property_statement
+statement_item_sv_2017 := blocking_assignment semi                  -> {kind: "blocking_assignment",              body: $1}
+                        | nonblocking_assignment semi               -> {kind: "nonblocking_assignment",           body: $1}
+                        | procedural_continuous_assignment semi     -> {kind: "procedural_continuous_assignment", body: $1}
+                        | case_statement                            -> {kind: "case",                             body: $1}
+                        | conditional_statement                     -> {kind: "conditional",                      body: $1}
+                        | inc_or_dec_expression semi                -> {kind: "inc_or_dec_expression",            body: $1}
+                        | subroutine_call_statement                 -> {kind: "subroutine_call",                  body: $1}
+                        | disable_statement                         -> {kind: "disable",                          body: $1}
+                        | event_trigger                             -> {kind: "event_trigger",                    body: $1}
+                        | loop_statement                            -> {kind: "loop",                             body: $1}
+                        | jump_statement                            -> {kind: "jump",                             body: $1}
+                        | par_block                                 -> {kind: "par_block",                        body: $1}
+                        | procedural_timing_control_statement       -> {kind: "procedural_timing_control",        body: $1}
+                        | seq_block                                 -> {kind: "seq_block",                        body: $1}
+                        | wait_statement                            -> {kind: "wait",                             body: $1}
+                        | procedural_assertion_statement            -> {kind: "procedural_assertion",             body: $1}
+                        | clocking_drive semi                       -> {kind: "clocking_drive",                   body: $1}
+                        | randsequence_statement                    -> {kind: "randsequence",                     body: $1}
+                        | randcase_statement                        -> {kind: "randcase",                         body: $1}
+                        | expect_property_statement                 -> {kind: "expect_property",                  body: $1}
 
 @profiles: ["sv_2023"]
-statement_item_sv_2023 := blocking_assignment semi | nonblocking_assignment semi | procedural_continuous_assignment semi | case_statement | conditional_statement | subroutine_call_statement | disable_statement | event_trigger | loop_statement | jump_statement | par_block | procedural_timing_control_statement | seq_block | wait_statement | procedural_assertion_statement | clocking_drive semi | randsequence_statement | randcase_statement | expect_property_statement
+statement_item_sv_2023 := blocking_assignment semi                  -> {kind: "blocking_assignment",              body: $1}
+                        | nonblocking_assignment semi               -> {kind: "nonblocking_assignment",           body: $1}
+                        | procedural_continuous_assignment semi     -> {kind: "procedural_continuous_assignment", body: $1}
+                        | case_statement                            -> {kind: "case",                             body: $1}
+                        | conditional_statement                     -> {kind: "conditional",                      body: $1}
+                        | subroutine_call_statement                 -> {kind: "subroutine_call",                  body: $1}
+                        | disable_statement                         -> {kind: "disable",                          body: $1}
+                        | event_trigger                             -> {kind: "event_trigger",                    body: $1}
+                        | loop_statement                            -> {kind: "loop",                             body: $1}
+                        | jump_statement                            -> {kind: "jump",                             body: $1}
+                        | par_block                                 -> {kind: "par_block",                        body: $1}
+                        | procedural_timing_control_statement       -> {kind: "procedural_timing_control",        body: $1}
+                        | seq_block                                 -> {kind: "seq_block",                        body: $1}
+                        | wait_statement                            -> {kind: "wait",                             body: $1}
+                        | procedural_assertion_statement            -> {kind: "procedural_assertion",             body: $1}
+                        | clocking_drive semi                       -> {kind: "clocking_drive",                   body: $1}
+                        | randsequence_statement                    -> {kind: "randsequence",                     body: $1}
+                        | randcase_statement                        -> {kind: "randcase",                         body: $1}
+                        | expect_property_statement                 -> {kind: "expect_property",                  body: $1}
 
 statement_item := statement_item_sv_2017 | statement_item_sv_2023
 
